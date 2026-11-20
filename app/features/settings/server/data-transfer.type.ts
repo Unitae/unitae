@@ -1,4 +1,4 @@
-export const ARCHIVE_VERSION = '2.20'
+export const ARCHIVE_VERSION = '2.21'
 
 // Older archive versions an import will still accept. v1.0 archives miss every
 // post-shipping feature table (custom roles, allowed-roles, external speakers,
@@ -76,6 +76,10 @@ export const ARCHIVE_VERSION = '2.20'
 // day-off by the archive's own template key and restores its absence only.
 // v2.20 drops `legacyEventId` from `absences.ndjson`: no day-off event is left for it to name. A 2.19 archive still
 // carries it, and a restore reads it to know which of that archive's day-offs the absences file covers.
+// v2.21 carries the schedules: `schedule-templates.ndjson` (each one's name or catalogue key, kind and responsible
+// role), `kind-schedule-templates.ndjson` (which ones each template suggests, in order) and `schedules.ndjson`
+// (each event's, with its own status); the four item files name theirs (`scheduleTemplateId`, `scheduleId`). A 2.20 or
+// older archive carries none, and a restore gives them by the add_schedules migration's rule.
 // v1.x archives are listed here so the import path reports them with a warning rather than rejecting outright;
 // `migrateLegacyUsersNdjson` splits their `users.ndjson` before the import runs.
 export const SUPPORTED_ARCHIVE_VERSIONS = [
@@ -102,6 +106,7 @@ export const SUPPORTED_ARCHIVE_VERSIONS = [
   '2.18',
   '2.19',
   '2.20',
+  '2.21',
 ] as const
 
 export interface ManifestJson {
@@ -162,6 +167,8 @@ export const ENTITY_FILES = [
   'attributions',
   'part-presets',
   'programme-templates',
+  'schedule-templates',
+  'kind-schedule-templates',
   'programme-template-parts',
   'programme-template-part-allowed-roles',
   'programme-template-service-roles',
@@ -170,6 +177,7 @@ export const ENTITY_FILES = [
   'events',
   'absences',
   'attendance',
+  'schedules',
   'programme-part-assignments',
   'programme-part-assignment-allowed-roles',
   'programme-service-role-assignments',

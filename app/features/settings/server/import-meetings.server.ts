@@ -20,11 +20,17 @@ import {
   settleImportedEventOrigins,
 } from './import-events.server'
 import { importPartPresets } from './import-part-presets.server'
-import { importSchedules } from './import-schedules.server'
+import {
+  importEventSchedules,
+  importKindScheduleTemplates,
+  importScheduleTemplates,
+  settleImportedSchedules,
+} from './import-schedules.server'
 
 /**
  * The meeting steps of runImport, in their order: part presets, templates and their items and responsibles, events with
- * their absences, counts and items, then their schedules. `progress` is runImport's, called after each step (IMPORT_TOTAL_STEPS counts them).
+ * their absences, counts, schedules and items, then the schedules settled. `progress` is runImport's, called after
+ * each step (IMPORT_TOTAL_STEPS counts them).
  */
 export async function importMeetings(
   zip: JsZip,
@@ -38,6 +44,13 @@ export async function importMeetings(
   await progress()
 
   await importEventTemplates(zip, db, idMap, congregationId)
+  await progress()
+
+  // Before the template items, which name them.
+  await importScheduleTemplates(zip, db, idMap, congregationId)
+  await progress()
+
+  const mergedTemplateIds = await importKindScheduleTemplates(zip, db, idMap, congregationId)
   await progress()
 
   await importTemplateParts(zip, db, idMap, congregationId)
@@ -60,6 +73,10 @@ export async function importMeetings(
   await importAttendance(zip, db, idMap, congregationId)
   await progress()
 
+  // Before the event items, which name them.
+  await importEventSchedules(zip, db, idMap, congregationId)
+  await progress()
+
   await importEventParts(zip, db, idMap, congregationId)
   await progress()
 
@@ -73,7 +90,7 @@ export async function importMeetings(
   await importEventServicePartAllowedRoles(zip, db, idMap, congregationId)
   await progress()
 
-  // After the templates, their responsibles, the events and their items: an archive carries no schedules yet.
-  await importSchedules(db, congregationId)
+  // Last: it finds the items that came without a schedule, so every item must be in.
+  await settleImportedSchedules(zip, db, congregationId, mergedTemplateIds)
   await progress()
 }

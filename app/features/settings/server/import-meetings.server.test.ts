@@ -25,12 +25,17 @@ vi.mock('./import-events.server', () => ({
   importEventServicePartAllowedRoles: step('event service roles'),
 }))
 vi.mock('./import-part-presets.server', () => ({ importPartPresets: step('presets') }))
-vi.mock('./import-schedules.server', () => ({ importSchedules: step('schedules') }))
+vi.mock('./import-schedules.server', () => ({
+  importScheduleTemplates: step('schedule templates'),
+  importKindScheduleTemplates: step('kind schedule templates'),
+  importEventSchedules: step('schedules'),
+  settleImportedSchedules: step('settle schedules'),
+}))
 
 const { importMeetings } = await import('./import-meetings.server')
 
 describe('importMeetings', () => {
-  it('imports the meeting entities in dependency order, schedules last, reporting progress after each step', async () => {
+  it('imports the meeting entities in dependency order, settles the schedules last, reporting progress after each step', async () => {
     const progress = vi.fn(async () => {
       calls.push('·')
     })
@@ -41,17 +46,20 @@ describe('importMeetings', () => {
       [
         'presets ·',
         'templates ·',
+        'schedule templates ·',
+        'kind schedule templates ·',
         'template parts ·',
         'template part roles ·',
         'template services ·',
         'template service roles ·',
         'template responsibles ·',
         'events absences attendance ·',
+        'schedules ·',
         'event parts ·',
         'event part roles ·',
         'event services origins ·',
         'event service roles ·',
-        'schedules ·',
+        'settle schedules ·',
       ].join(' '),
     )
   })

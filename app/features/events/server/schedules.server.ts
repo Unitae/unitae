@@ -138,9 +138,16 @@ export async function setEventSchedulesStatus(
 
 /**
  * Puts the events' items that have no schedule into their event's schedule of their kind, then gives every schedule of
- * the events its event's status: for items written without one (a demo, a restored archive). Idempotent.
+ * the events its event's status: for items written without one (a demo, a restored archive). Idempotent. With
+ * `keepStatuses`, the statuses the schedules have stay (a restored archive's own); a schedule made here still takes
+ * its event's.
  */
-export async function attachEventItems(db: TransactionClient, eventIds: number[], congregationId: number) {
+export async function attachEventItems(
+  db: TransactionClient,
+  eventIds: number[],
+  congregationId: number,
+  { keepStatuses = false }: { keepStatuses?: boolean } = {},
+) {
   if (eventIds.length === 0) return
   const unattached = { where: { scheduleId: null } }
   const events = await db.event.findMany({
@@ -162,6 +169,7 @@ export async function attachEventItems(db: TransactionClient, eventIds: number[]
       await db.eventServicePart.updateMany({ where, data: { scheduleId } })
     }
   }
+  if (keepStatuses) return
   // scheduleStatusFor's rule, in two writes rather than one per event.
   const released = events.filter(event => event.status === EventStatus.Released).map(event => event.id)
   await db.schedule.updateMany({

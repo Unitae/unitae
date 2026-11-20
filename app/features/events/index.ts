@@ -45,6 +45,7 @@ export {
   ResponsibilityScope,
   scopesCovering,
 } from './model/responsibility-scope.type'
+export { isScheduleKind, ScheduleStatus, UNNAMED_SCHEDULE_KEY } from './model/schedule.type'
 export { sectionColor, sectionIcon } from './model/section-style'
 export {
   findUnknownVariables,

@@ -75,8 +75,12 @@ describe('EntityIdMap', () => {
 })
 
 describe('ARCHIVE_VERSION', () => {
-  it('is the current 2.20 schema version', () => {
-    expect(ARCHIVE_VERSION).toBe('2.20')
+  it('accepts the version it writes', () => {
+    expect(SUPPORTED_ARCHIVE_VERSIONS).toContain(ARCHIVE_VERSION)
+  })
+
+  it('is the current 2.21 schema version', () => {
+    expect(ARCHIVE_VERSION).toBe('2.21')
   })
 
   it('still imports 2.19 archives', () => {
@@ -101,6 +105,16 @@ describe('ENTITY_FILES', () => {
     expect(at('absences')).toBeGreaterThan(at('members'))
     expect(at('absences')).toBeGreaterThan(at('user-accounts'))
     expect(at('absences')).toBeGreaterThan(at('events'))
+  })
+
+  it('has the schedules between what they point at and the items that name them', () => {
+    const at = (file: EntityFile) => ENTITY_FILES.indexOf(file)
+    expect(at('schedule-templates')).toBeGreaterThan(at('roles'))
+    expect(at('schedule-templates')).toBeLessThan(at('programme-template-parts'))
+    expect(at('kind-schedule-templates')).toBeGreaterThan(at('programme-templates'))
+    expect(at('kind-schedule-templates')).toBeGreaterThan(at('schedule-templates'))
+    expect(at('schedules')).toBeGreaterThan(at('events'))
+    expect(at('schedules')).toBeLessThan(at('programme-part-assignments'))
   })
 
   it('has attendance after the events it belongs to and the accounts that entered it', () => {

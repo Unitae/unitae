@@ -594,8 +594,7 @@ async function exportToZip(
 
 async function importFromZip(buffer: Buffer, congregationId: number): Promise<void> {
   const mod = await import('./import-congregation.server')
-  const { importAbsences } = await import('./import-absences.server')
-  const { importAttendance } = await import('./import-attendance.server')
+  const { importMeetings } = await import('./import-meetings.server')
 
   const zip = await JsZip.loadAsync(buffer)
   const idMap = new EntityIdMap()
@@ -633,21 +632,8 @@ async function importFromZip(buffer: Buffer, congregationId: number): Promise<vo
     // NOTE: this sequence duplicates runImport's. Keep the two in step —
     // nothing enforces it, so an importer added there and missed here makes the
     // round-trip test pass while the real import drops the data.
-    await mod.importPartPresets(zip, db, idMap, congregationId)
-    await mod.importEventTemplates(zip, db, idMap, congregationId)
-    await mod.importTemplateParts(zip, db, idMap, congregationId)
-    await mod.importTemplatePartAllowedRoles(zip, db, idMap, congregationId)
-    await mod.importTemplateServiceParts(zip, db, idMap, congregationId)
-    await mod.importTemplateServicePartAllowedRoles(zip, db, idMap, congregationId)
-    await mod.importTemplateResponsibles(zip, db, idMap, congregationId)
-    const withoutOrigin = await mod.importEvents(zip, db, idMap, congregationId)
-    await importAbsences(zip, db, idMap, congregationId)
-    await importAttendance(zip, db, idMap, congregationId)
-    await mod.importEventParts(zip, db, idMap, congregationId)
-    await mod.importEventPartAllowedRoles(zip, db, idMap, congregationId)
-    await mod.importEventServiceParts(zip, db, idMap, congregationId)
-    await (await import('./import-events.server')).settleImportedEventOrigins(db, withoutOrigin, congregationId)
-    await mod.importEventServicePartAllowedRoles(zip, db, idMap, congregationId)
+    // The meeting steps as runImport runs them, in their own module.
+    await importMeetings(zip, db, idMap, congregationId, async () => undefined)
     await mod.importBoardSections(zip, db, idMap, congregationId)
     await mod.importBoardSectionVisibilityRoles(zip, db, idMap, congregationId)
     await mod.importBoardDocuments(zip, db, idMap, congregationId)
