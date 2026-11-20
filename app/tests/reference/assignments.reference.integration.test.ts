@@ -290,8 +290,7 @@ async function declareAbsence(person: string, first: string, last: string): Prom
       fixture.congregationId,
     ),
   )
-  if (absence?.eventId == null) throw new Error(`could not declare ${person}’s absence`)
-  fixture.labels.set(`event:${absence.eventId}`, `absence-${person}`)
+  if (absence == null) throw new Error(`could not declare ${person}’s absence`)
   // An absence is deleted by its row.
   return absence.absenceId
 }

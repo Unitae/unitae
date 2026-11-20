@@ -73,12 +73,12 @@ describe('deleteTemplate', () => {
     expect(db.eventTemplate.delete).not.toHaveBeenCalled()
   })
 
-  // System templates (day-off, freeform) are looked up by key at runtime; the
+  // System templates (freeform) are looked up by key at runtime; the
   // server refuses to remove them even if a stale form POSTs the intent.
   it('refuses to delete a system template', async () => {
     vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({
-      key: 'day-off',
-      name: 'Jour de congé',
+      key: 'freeform',
+      name: 'Autre événement',
       _count: { events: 0 },
     } as never)
 

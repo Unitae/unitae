@@ -5,9 +5,6 @@ vi.mock('~/shared/domain/audit.server', () => ({
   auditInTransaction: vi.fn().mockResolvedValue({}),
 }))
 
-const warn = vi.fn()
-vi.mock('~/shared/infra/logger.server', () => ({ createLogger: () => ({ warn, info: vi.fn() }) }))
-
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     event: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), delete: vi.fn(), deleteMany: vi.fn() },
@@ -51,82 +48,32 @@ describe('createDayOff', () => {
     expect(result).toBeNull()
   })
 
-  it('creates an event when dates are valid', async () => {
-    const fakeEvent = { id: 1, name: 'Absence' }
-    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({ id: 5, key: 'day-off' } as never)
-    vi.mocked(db.event.create).mockResolvedValue(fakeEvent as never)
-
-    const result = await createDayOff(db, 1, 1, new Date(2025, 3, 8), new Date(2025, 3, 10), 1)
-    // The row the absence is deleted by, and its event.
-    expect(result).toEqual({ absenceId: 900, eventId: 1 })
-  })
-
-  // Days-off events are not part of the draft/released workflow — they must go
-  // live immediately, otherwise the absence-overlap query silently ignores them
-  // and the whole conflict-awareness pipeline breaks.
-  it('writes status "released" on the created event', async () => {
-    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({ id: 5, key: 'day-off' } as never)
-    vi.mocked(db.event.create).mockResolvedValue({ id: 1, name: 'Absence' } as never)
-
-    await createDayOff(db, 1, 1, new Date(2025, 3, 8), new Date(2025, 3, 10), 1)
-
-    expect(db.event.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ status: 'released' }) }),
-    )
-  })
-
-  it('creates an event when startDate == endDate', async () => {
-    const sameDate = new Date(2025, 3, 8)
-    const fakeEvent = { id: 2, name: 'Absence' }
-    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({ id: 5, key: 'day-off' } as never)
-    vi.mocked(db.event.create).mockResolvedValue(fakeEvent as never)
-
-    const result = await createDayOff(db, 1, 1, sameDate, sameDate, 1)
-    expect(result).toEqual({ absenceId: 900, eventId: 2 })
-  })
-
-  // The day-off events and their template are being dropped: without the template the absence is written alone, so
-  // declaring one keeps working on both sides of that migration. With no event, nothing can show as an empty meeting.
-  it('writes the absence alone when there is no day-off template', async () => {
-    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue(null as never)
-
+  // An absence is its Absence row alone: no event, so nothing can show as an empty meeting in the programme.
+  it('writes the absence as its row alone', async () => {
     const result = await createDayOff(db, 1, 1, new Date(2025, 3, 8), new Date(2025, 3, 10), 1)
 
-    expect(result).toEqual({ absenceId: 900, eventId: null })
+    expect(result).toEqual({ absenceId: 900 })
     expect(db.event.create).not.toHaveBeenCalled()
     expect(db.absence.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ memberId: 1, accountId: 1, legacyEventId: null }),
+      data: {
+        startDate: new Date(2025, 3, 8),
+        endDate: new Date(2025, 3, 10),
+        memberId: 1,
+        accountId: 1,
+        congregationId: 1,
+      },
     })
-    // The rest of a declaration still happens: the record's assignments are flagged, the declaration recorded.
+    // The record's assignments during it are flagged.
     expect(db.event.findMany).toHaveBeenCalled()
-    expect(auditInTransaction).toHaveBeenCalledWith(
-      db,
-      expect.objectContaining({ action: 'day_off.created', entityType: 'Absence', entityId: 900 }),
-    )
-    // Until the events are dropped, a congregation without the template was set up wrong: the log says so.
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('No day-off template'), { congregationId: 1 })
   })
 
-  it('connects the event to the day-off template when it exists', async () => {
-    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({ id: 42, key: 'day-off' } as never)
-    vi.mocked(db.event.create).mockResolvedValue({ id: 1 } as never)
+  it('writes an absence of a single day', async () => {
+    const sameDate = new Date(2025, 3, 8)
 
-    await createDayOff(db, 1, 1, new Date(2025, 3, 8), new Date(2025, 3, 10), 7)
-
-    expect(db.eventTemplate.findFirst).toHaveBeenCalledWith({
-      where: { key: 'day-off', congregationId: 7 },
-    })
-    expect(db.event.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ template: { connect: { id: 42 } } }),
-      }),
-    )
+    expect(await createDayOff(db, 1, 1, sameDate, sameDate, 1)).toEqual({ absenceId: 900 })
   })
 
   it('records who declared the absence in the audit trail', async () => {
-    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({ id: 5, key: 'day-off' } as never)
-    vi.mocked(db.event.create).mockResolvedValue({ id: 77, name: 'Absence' } as never)
-
     await createDayOff(db, 12, 1, new Date(2025, 3, 8), new Date(2025, 3, 10), 3)
 
     expect(auditInTransaction).toHaveBeenCalledWith(
@@ -145,10 +92,6 @@ describe('createDayOff', () => {
   // overseer or admin), we skip the conflict-flag refresh entirely: there
   // can be no assignments to flag.
   it('skips refreshConflictFlags when memberId is null', async () => {
-    const fakeEvent = { id: 4, name: 'Absence' }
-    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({ id: 5, key: 'day-off' } as never)
-    vi.mocked(db.event.create).mockResolvedValue(fakeEvent as never)
-
     await createDayOff(db, 1, null, new Date(2025, 3, 8), new Date(2025, 3, 10), 1)
 
     expect(db.event.findMany).not.toHaveBeenCalled()
@@ -158,7 +101,7 @@ describe('createDayOff', () => {
 describe('deleteDayOff', () => {
   const ACCOUNT_ID = 12
   const MEMBER_ID = 1
-  const absence = { id: 42, startDate: new Date(2025, 3, 8), endDate: new Date(2025, 3, 10), legacyEventId: 77 }
+  const absence = { id: 42, startDate: new Date(2025, 3, 8), endDate: new Date(2025, 3, 10) }
 
   // Only the caller's own absence answers the lookup — by their record, or by their account when they have none:
   // another person's absence finds nothing.
@@ -175,7 +118,7 @@ describe('deleteDayOff', () => {
     vi.mocked(db.event.deleteMany).mockResolvedValue({ count: 1 } as never)
   }
 
-  it("deletes the caller's own absence, with its event, and returns it", async () => {
+  it("deletes the caller's own absence and returns it", async () => {
     ownAbsenceLookup()
 
     const result = await deleteDayOff(db, {
@@ -187,10 +130,7 @@ describe('deleteDayOff', () => {
 
     expect(result).toEqual(absence)
     expect(db.absence.deleteMany).toHaveBeenCalledWith({ where: { id: 42, congregationId: 1 } })
-    // Its day-off event only, never whatever event the id might name.
-    expect(db.event.deleteMany).toHaveBeenCalledWith({
-      where: { id: 77, congregationId: 1, template: { key: 'day-off' } },
-    })
+    expect(db.event.deleteMany).not.toHaveBeenCalled()
   })
 
   it("refuses someone else's absence", async () => {
@@ -200,8 +140,6 @@ describe('deleteDayOff', () => {
 
     expect(result).toBeNull()
     expect(db.absence.deleteMany).not.toHaveBeenCalled()
-    // Nor its event: the two copies stay together.
-    expect(db.event.deleteMany).not.toHaveBeenCalled()
   })
 
   it('answers as for no absence when it is gone between the lookup and the delete', async () => {

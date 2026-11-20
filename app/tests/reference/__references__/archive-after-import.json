@@ -113,18 +113,6 @@
     "programme-templates": [
       {
         "id": "<id>",
-        "name": "Absence",
-        "key": "day-off",
-        "description": "",
-        "weekDay": null,
-        "isRecurring": false,
-        "startTime": "00:00",
-        "endTime": "23:59",
-        "color": "#cfcfcf",
-        "attendanceKind": "none"
-      },
-      {
-        "id": "<id>",
         "name": "Autre événement",
         "key": "freeform",
         "description": "",
@@ -570,18 +558,6 @@
     "events": [
       {
         "id": "<id>",
-        "name": "Absence",
-        "description": "",
-        "startDate": "2027-03-14T23:00:00.000Z",
-        "endDate": "2027-03-17T22:59:00.000Z",
-        "templateId": "<template:day-off>",
-        "createdById": "<account:hugo>",
-        "createdAt": "<time>",
-        "status": "released",
-        "origin": "manual"
-      },
-      {
-        "id": "<id>",
         "name": "Mémorial",
         "description": "",
         "startDate": "2027-03-22T18:00:00.000Z",
@@ -805,7 +781,7 @@
         "note": "",
         "memberId": "<member:hugo>",
         "accountId": "<account:hugo>",
-        "legacyEventId": "<id>",
+        "legacyEventId": null,
         "createdAt": "<time>"
       }
     ],
@@ -2368,7 +2344,7 @@
       "status": "draft"
     },
     {
-      "_count": 3,
+      "_count": 2,
       "status": "released"
     }
   ],

@@ -269,8 +269,7 @@ export async function buildReferenceCongregation(suffix: string): Promise<Refere
       combineLocalDateTime('2027-03-17', '23:59', REFERENCE_TIMEZONE),
       congregationId,
     )
-    if (absence?.eventId == null) throw new Error('the fixture could not create Hugo’s absence')
-    label('event', absence.eventId, 'absence-hugo')
+    if (absence == null) throw new Error('the fixture could not create Hugo’s absence')
   })
 
   // Week 1 filled and published; week 2 filled, with Hugo on his absence, left a draft.
@@ -375,7 +374,6 @@ async function labelSeededRows(db: TransactionClient, congregationId: number, la
     [EventTemplateKey.MidweekMeeting, 'midweek'],
     [EventTemplateKey.WeekendMeeting, 'weekend'],
     [EventTemplateKey.Memorial, 'memorial'],
-    [EventTemplateKey.DayOff, 'day-off'],
     [EventTemplateKey.Freeform, 'freeform'],
   ])
   const all = await db.eventTemplate.findMany({

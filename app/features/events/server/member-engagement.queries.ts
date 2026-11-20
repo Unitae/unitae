@@ -1,6 +1,5 @@
 import type { Prisma } from '~/database/generated/client'
 import { EventStatus } from '~/features/events/model/event-status.type'
-import { EventTemplateKey } from '~/features/events/model/event-template.type'
 import type { MemberAbsence, MemberAssignment } from '~/features/events/model/member-engagement.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { CongregationId, MemberId } from '~/shared/types/branded'
@@ -33,7 +32,6 @@ export async function findUpcomingAssignmentsForMember(
     congregationId,
     status: EventStatus.Released,
     startDate: { gte: now },
-    NOT: { template: { key: EventTemplateKey.DayOff } },
   }
   const select = {
     id: true,
@@ -114,7 +112,6 @@ export async function findLastAssignmentsForMembers(
     congregationId,
     status: EventStatus.Released,
     startDate: { gte: since, lt: now },
-    NOT: { template: { key: EventTemplateKey.DayOff } },
   }
   const [parts, serviceParts] = await Promise.all([
     db.eventPart.findMany({

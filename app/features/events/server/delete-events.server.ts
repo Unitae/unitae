@@ -66,7 +66,8 @@ export async function bulkDeleteEvents(db: TransactionClient, ids: number[], con
   if (toDelete.length > 0) await cancelNoticesOf(db, toDelete, congregationId)
   const result =
     toDelete.length > 0 ? await db.event.deleteMany({ where: { id: { in: toDelete }, congregationId } }) : { count: 0 }
-  // An absence's event among them takes its Absence row (written alongside it, no foreign key) with it.
+  // No event is an absence any more; a row naming one of these (legacyEventId, no foreign key) can only be a day-off the
+  // contract migration left in place because it had parts. Gone with legacyEventId.
   if (toDelete.length > 0) await db.absence.deleteMany({ where: { legacyEventId: { in: toDelete }, congregationId } })
 
   // auditInTransaction (not audit) so the audit rows roll back with the

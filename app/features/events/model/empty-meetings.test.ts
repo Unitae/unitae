@@ -41,9 +41,8 @@ describe('isAwaitingProgramme', () => {
   })
 
   // « Autre évènement » has no programme to wait for: empty, it is still an event that can be published.
-  it('is never another event, nor an absence', () => {
+  it('is never another event', () => {
     expect(isAwaitingProgramme({ parts: 0, services: 0, template: { ...midweek, key: 'freeform' } })).toBe(false)
-    expect(isAwaitingProgramme({ parts: 0, services: 0, template: { ...midweek, key: 'day-off' } })).toBe(false)
   })
 
   it('is not an event without a template', () => {

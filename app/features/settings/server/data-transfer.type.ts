@@ -71,7 +71,9 @@ export const ARCHIVE_VERSION = '2.19'
 // is one — `accountId` — who declared it, the owner when there is no record — the day-off event it was copied from,
 // `createdAt`). A restore takes the absences from it, keeping one whose account or event did not come as long as its
 // person did; a day-off the file does not cover still gets its absence from its author. Pre-2.19 archives have no such
-// file: each absence comes back from its day-off event, owned by its author's record when the account has one.
+// file: each absence comes back from its day-off event, owned by its author's record when the account has one. Since the
+// day-off events and their template were dropped, a restore brings neither back from an older archive: it tells a
+// day-off by the archive's own template key and restores its absence only.
 // v1.x archives are listed here so the import path reports them with a warning rather than rejecting outright;
 // `migrateLegacyUsersNdjson` splits their `users.ndjson` before the import runs.
 export const SUPPORTED_ARCHIVE_VERSIONS = [

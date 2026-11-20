@@ -1,7 +1,6 @@
 import { isAwaitingProgramme, programmeTemplate } from '~/features/events/model/empty-meetings'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import { TEMPLATE_PROGRAMME_COUNT } from '~/features/events/server/give-programme.server'
-import { PROGRAMME_EVENT } from '~/features/events/server/programme-event.queries'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 /** How many slots a programme has, how many have someone, and how many are flagged as falling in an absence. */
@@ -44,7 +43,7 @@ export async function listProgrammes(
   { congregationId, from, to }: { congregationId: number; from: Date; to: Date },
 ): Promise<ProgrammeListItem[]> {
   const rows = await db.event.findMany({
-    where: { congregationId, ...PROGRAMME_EVENT, startDate: { lte: to }, endDate: { gte: from } },
+    where: { congregationId, startDate: { lte: to }, endDate: { gte: from } },
     select: {
       id: true,
       name: true,
@@ -85,7 +84,7 @@ export async function congregationHasProgrammes(
   { withDrafts }: { withDrafts: boolean },
 ): Promise<boolean> {
   const one = await db.event.findFirst({
-    where: { congregationId, ...PROGRAMME_EVENT, ...(withDrafts ? {} : { status: EventStatus.Released }) },
+    where: { congregationId, ...(withDrafts ? {} : { status: EventStatus.Released }) },
     select: { id: true },
   })
   return one != null

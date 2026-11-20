@@ -199,7 +199,7 @@ describe('the lists of absences and the absences table', () => {
     expect(uids).toEqual([`absence-${ids.paulRow}`, `day-off-${ids.dualEvent}`])
   })
 
-  it('deletes an absence by its row, with its event, and only the person’s own', async () => {
+  it('deletes an absence by its row, and only the person’s own', async () => {
     const refused = await read(tx =>
       deleteDayOff(tx, { absenceId: ids.dualRow, accountId: ids.samAccount, memberId: null, congregationId: ids.cong }),
     )
@@ -214,11 +214,7 @@ describe('the lists of absences and the absences table', () => {
 
     expect(refused).toBeNull()
     expect(deleted).toMatchObject({ startDate: day('2027-06-01'), endDate: day('2027-06-02') })
-    const left = await read(async tx => ({
-      row: await tx.absence.findFirst({ where: { id: ids.dualRow } }),
-      event: await tx.event.findFirst({ where: { id: ids.dualEvent } }),
-    }))
-    expect(left).toEqual({ row: null, event: null })
+    expect(await read(tx => tx.absence.findFirst({ where: { id: ids.dualRow } }))).toBeNull()
   })
 
   it('refuses another person’s absence, whoever asks, and lets an account without a record delete its own', async () => {

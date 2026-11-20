@@ -77,6 +77,15 @@ describe('importAbsences', () => {
     })
   })
 
+  // The day-off events are no longer restored: a 2.19 archive's absence comes back naming none.
+  it('restores an absence without its day-off event, which the restore does not bring back', async () => {
+    readNdjsonFile.mockResolvedValue([row({ legacyEventId: 77 })])
+
+    await importAbsences({} as never, db as never, idMap(), 1)
+
+    expect(db.absence.createMany.mock.calls[0][0].data[0].legacyEventId).toBeNull()
+  })
+
   it('keeps an absence whose account or event did not come, as long as someone is away on it', async () => {
     readNdjsonFile.mockResolvedValue([
       // The person's record, the account not restored (its e-mail belongs to another congregation).

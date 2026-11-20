@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { EventTemplateKey } from '~/features/events/model/event-template.type'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
@@ -287,23 +286,15 @@ describe('refreshConflictFlags', () => {
     expect(where).not.toHaveProperty('templateId')
   })
 
-  // Day-off events themselves are just date ranges — they have no part or
-  // service assignments. Iterating over them is wasted work and semantically
-  // odd (a day-off isn't a programme event that can conflict with itself).
-  //
-  // The filter must use `NOT: { template: { key: 'day-off' } }` (not
-  // `template: { key: { not: 'day-off' } }`): Prisma's relational filter
-  // inner-joins through `template`, so the second form silently drops
-  // events whose templateId is null — a shape legacy imports and older
-  // data may still carry.
-  it('excludes day-off events but keeps null-template events in the overlapping-events lookup', async () => {
+  // No template filter here: one through `template` would inner-join it and drop the events that have none.
+  it('looks at every overlapping event, with or without a template', async () => {
     vi.mocked(db.event.findMany).mockResolvedValue([] as never)
 
     await refreshConflictFlags(db, 5, new Date(2026, 3, 13), new Date(2026, 3, 15), 1)
 
     const call = vi.mocked(db.event.findMany).mock.calls[0][0]
     const where = call?.where as Record<string, unknown>
-    expect(where.NOT).toEqual({ template: { key: EventTemplateKey.DayOff } })
+    expect(where).not.toHaveProperty('NOT')
     expect(where).not.toHaveProperty('template')
   })
 })

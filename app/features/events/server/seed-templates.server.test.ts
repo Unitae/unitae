@@ -31,15 +31,15 @@ beforeEach(() => {
 })
 
 describe('seedDefaultTemplates', () => {
-  it('seeds all 5 templates when none exist', async () => {
+  it('seeds all 4 templates when none exist', async () => {
     const db = makeDb()
     db.eventTemplate.findFirst.mockResolvedValue(null as never)
     db.eventTemplate.create.mockResolvedValue({} as never)
 
     await seedDefaultTemplates(db, 1, 'fr')
 
-    expect(db.eventTemplate.findFirst).toHaveBeenCalledTimes(5)
-    expect(db.eventTemplate.create).toHaveBeenCalledTimes(5)
+    expect(db.eventTemplate.findFirst).toHaveBeenCalledTimes(4)
+    expect(db.eventTemplate.create).toHaveBeenCalledTimes(4)
   })
 
   it('skips existing templates', async () => {
@@ -48,13 +48,12 @@ describe('seedDefaultTemplates', () => {
       .mockResolvedValueOnce({ id: 1 } as never) // midweek exists
       .mockResolvedValueOnce(null as never) // weekend does not
       .mockResolvedValueOnce(null as never) // memorial does not
-      .mockResolvedValueOnce(null as never) // day-off does not
       .mockResolvedValueOnce(null as never) // freeform does not
     db.eventTemplate.create.mockResolvedValue({} as never)
 
     await seedDefaultTemplates(db, 1, 'fr')
 
-    expect(db.eventTemplate.create).toHaveBeenCalledTimes(4)
+    expect(db.eventTemplate.create).toHaveBeenCalledTimes(3)
   })
 
   it('skips all when all templates exist', async () => {
@@ -76,13 +75,7 @@ describe('seedDefaultTemplates', () => {
     const createdNames = db.eventTemplate.create.mock.calls.map(
       (call: unknown[]) => (call[0] as { data: { name: string } }).data.name,
     )
-    expect(createdNames).toEqual([
-      'Réunion de semaine',
-      'Réunion du week-end',
-      'Mémorial',
-      'Absence',
-      'Autre événement',
-    ])
+    expect(createdNames).toEqual(['Réunion de semaine', 'Réunion du week-end', 'Mémorial', 'Autre événement'])
   })
 
   it('makes the seeded meetings count in attendance, the Mémorial apart, and nothing else', async () => {
@@ -100,28 +93,22 @@ describe('seedDefaultTemplates', () => {
       ['midweek-meeting', 'midweek'],
       ['weekend-meeting', 'weekend'],
       ['memorial', 'separate'],
-      ['day-off', 'none'],
       ['freeform', 'none'],
     ])
   })
 
-  it('creates day-off and freeform templates with the right key, empty parts, and colour', async () => {
+  // Absences are rows of their own: a congregation gets no day-off template.
+  it('creates the freeform template with the right key, empty parts, and colour, and no day-off one', async () => {
     const db = makeDb()
     db.eventTemplate.findFirst.mockResolvedValue(null as never)
     db.eventTemplate.create.mockResolvedValue({} as never)
 
     await seedDefaultTemplates(db, 1, 'fr')
 
-    const [, , , dayOffCall, freeformCall] = db.eventTemplate.create.mock.calls
-    const dayOff = (dayOffCall[0] as { data: Record<string, unknown> }).data
-    const freeform = (freeformCall[0] as { data: Record<string, unknown> }).data
-
-    expect(dayOff.key).toBe('day-off')
-    expect(dayOff.isRecurring).toBe(false)
-    expect(dayOff.weekDay).toBeNull()
-    expect(dayOff.color).toBe('#cfcfcf')
-    expect((dayOff.parts as { create: unknown[] }).create).toEqual([])
-    expect((dayOff.serviceParts as { create: unknown[] }).create).toEqual([])
+    const calls = db.eventTemplate.create.mock.calls
+    const keys = calls.map(call => (call[0] as { data: { key: string } }).data.key)
+    expect(keys).not.toContain('day-off')
+    const freeform = (calls[3][0] as { data: Record<string, unknown> }).data
 
     expect(freeform.key).toBe('freeform')
     expect(freeform.isRecurring).toBe(false)
@@ -212,7 +199,7 @@ describe('seedDefaultTemplates', () => {
     await seedDefaultTemplates(db, 1, 'fr')
 
     // Only the meeting-style templates (first 3) carry the shared service roles;
-    // the day-off and freeform templates are structural placeholders with none.
+    // the freeform template is a structural placeholder with none.
     for (const call of db.eventTemplate.create.mock.calls.slice(0, 3)) {
       const roles = call[0].data.serviceParts.create
       expect(roles.length).toBe(4)
@@ -252,7 +239,6 @@ describe('seedDefaultTemplates', () => {
     expect(findCalls[0][0]).toEqual({ where: { key: 'midweek-meeting', congregationId: 3 } })
     expect(findCalls[1][0]).toEqual({ where: { key: 'weekend-meeting', congregationId: 3 } })
     expect(findCalls[2][0]).toEqual({ where: { key: 'memorial', congregationId: 3 } })
-    expect(findCalls[3][0]).toEqual({ where: { key: 'day-off', congregationId: 3 } })
-    expect(findCalls[4][0]).toEqual({ where: { key: 'freeform', congregationId: 3 } })
+    expect(findCalls[3][0]).toEqual({ where: { key: 'freeform', congregationId: 3 } })
   })
 })

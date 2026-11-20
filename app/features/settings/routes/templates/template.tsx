@@ -179,11 +179,7 @@ export default function TemplatePage({ loaderData }: Route.ComponentProps) {
           responsibles={page.responsibles ?? undefined}
         />
         {builtIn ? (
-          <p className="text-muted-foreground text-sm">
-            {template.key === 'day-off'
-              ? m.settings_template_system_body_day_off()
-              : m.settings_template_system_body_freeform()}
-          </p>
+          <p className="text-muted-foreground text-sm">{m.settings_template_system_body_freeform()}</p>
         ) : (
           <TemplateEditor
             templateId={template.id}

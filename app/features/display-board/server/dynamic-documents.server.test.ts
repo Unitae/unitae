@@ -105,8 +105,6 @@ describe('getDynamicPreview', () => {
         template: { key: 'midweek' },
         startDate: { gte: expect.any(Date) },
         status: 'released',
-        // An absence is never the next programme.
-        NOT: { template: { key: 'day-off' } },
       },
       orderBy: { startDate: 'asc' },
       select: { startDate: true },

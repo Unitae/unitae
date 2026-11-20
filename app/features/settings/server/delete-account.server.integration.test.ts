@@ -1,11 +1,11 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 
-// Deleting an account must not end in a foreign-key error on the events it created. Its absences go with it when it
-// has no record: they belong to nobody else. An account linked to a record keeps them, so it is refused until they can
-// be handed to the record. Its other events lose their author and stay what they were: a hand-made event never becomes
-// an empty meeting a template may move or delete.
+// Deleting an account: its absences go with it when it has no record, since they belong to nobody else, and stay on the
+// record when it has one. Its events lose their author and stay what they were: a hand-made event never becomes an
+// empty meeting a template may move or delete. The audit trail counts the events it let go of.
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -71,7 +71,7 @@ afterAll(async () => {
   await testDb.$disconnect()
 })
 
-/** An account, with a record when asked, an absence when asked, and an empty meeting it made by hand. */
+/** An account, with a record when asked, an absence (its row) when asked, and an empty meeting it made by hand. */
 async function account(name: string, { record, absence }: { record: boolean; absence: boolean }) {
   return withScope(ids.cong, async tx => {
     const congregationId = ids.cong
@@ -87,15 +87,11 @@ async function account(name: string, { record, absence }: { record: boolean; abs
       tx.event.create({
         data: { name, startDate: DAY, endDate: DAY, templateId, createdById: accountId, congregationId, ...extra },
       })
-    const absenceId = absence ? (await event(ids.dayOffTemplate, { status: 'released' })).id : null
-    // Written twice, as createDayOff does: the event and its Absence row.
-    if (absenceId != null) {
-      await tx.absence.create({
-        data: { startDate: DAY, endDate: DAY, memberId, accountId, legacyEventId: absenceId, congregationId },
-      })
+    if (absence) {
+      await tx.absence.create({ data: { startDate: DAY, endDate: DAY, memberId, accountId, congregationId } })
     }
     const meetingId = (await event(ids.meetingTemplate)).id
-    return { accountId, memberId, absenceId, meetingId }
+    return { accountId, memberId, meetingId }
   })
 }
 
@@ -120,52 +116,27 @@ const eventsOf = (eventIds: (number | null)[]) =>
 
 describe('deleteAccount and the events the account created', () => {
   it('deletes an account without a record with its absences, and clears its author elsewhere', async () => {
-    const { accountId, absenceId, meetingId } = await account('Sans-fiche', { record: false, absence: true })
+    const { accountId, meetingId } = await account('Sans-fiche', { record: false, absence: true })
 
     await remove(accountId)
 
     const left = await withScope(ids.cong, tx => tx.userAccount.findFirst({ where: { id: accountId } }))
     expect(left).toBeNull()
-    expect(await eventsOf([absenceId, meetingId])).toEqual([{ id: meetingId, createdById: null, origin: 'manual' }])
+    expect(await eventsOf([meetingId])).toEqual([{ id: meetingId, createdById: null, origin: 'manual' }])
     expect(await absencesOf(accountId)).toBe(0)
   })
 
-  // A congregation without the day-off template writes an absence as its row alone: it goes with the account too.
-  it('deletes an account without a record whose absence has no event', async () => {
-    const { accountId } = await account('Sans-evenement', { record: false, absence: false })
-    await withScope(ids.cong, tx =>
-      tx.absence.create({ data: { startDate: DAY, endDate: DAY, accountId, congregationId: ids.cong } }),
-    )
-
-    await remove(accountId)
-
-    const left = await withScope(ids.cong, tx => tx.userAccount.findFirst({ where: { id: accountId } }))
-    expect(left).toBeNull()
-    expect(await absencesOf(accountId)).toBe(0)
-  })
-
-  // The absences are the person's: they stay on the record, without the account; only their day-off events go.
+  // The absences are the person's: they stay on the record, without the account.
   it('deletes an account linked to a record, keeping its absences on the record', async () => {
-    const { accountId, memberId, absenceId, meetingId } = await account('Avec-fiche', { record: true, absence: true })
+    const { accountId, memberId, meetingId } = await account('Avec-fiche', { record: true, absence: true })
 
     const result = await remove(accountId)
 
     expect(result.memberId).toBe(memberId)
     const left = await withScope(ids.cong, tx => tx.userAccount.findFirst({ where: { id: accountId } }))
     expect(left).toBeNull()
-    expect(await eventsOf([absenceId, meetingId])).toEqual([{ id: meetingId, createdById: null, origin: 'manual' }])
-    expect(await absencesOfRecord(memberId)).toEqual([{ accountId: null, legacyEventId: absenceId }])
-  })
-
-  // A day-off the previous image wrote alone during the rollout is not lost with its event.
-  it('gives the record a row for a day-off that had none before deleting the account', async () => {
-    const { accountId, memberId, absenceId } = await account('Sans-ligne', { record: true, absence: true })
-    await withScope(ids.cong, tx => tx.absence.deleteMany({ where: { legacyEventId: absenceId } }))
-
-    await remove(accountId)
-
-    expect(await eventsOf([absenceId])).toEqual([])
-    expect(await absencesOfRecord(memberId)).toEqual([{ accountId: null, legacyEventId: absenceId }])
+    expect(await eventsOf([meetingId])).toEqual([{ id: meetingId, createdById: null, origin: 'manual' }])
+    expect(await absencesOfRecord(memberId)).toEqual([{ accountId: null, legacyEventId: null }])
   })
 
   // An Absence row whose event a previous version deleted without it still names the account (Restrict).
@@ -214,6 +185,14 @@ describe('deleteAccount and the events the account created', () => {
 
     expect(result.memberId).not.toBeNull()
     expect(await eventsOf([meetingId])).toEqual([{ id: meetingId, createdById: null, origin: 'manual' }])
+    // The database would clear the author too (SetNull): the deletion clears it itself, to count it for the audit trail.
+    await flushPendingAuditWrites()
+    const audit = await testDb.auditLog.findFirst({
+      where: { congregationId: ids.cong, action: 'account.deleted', entityId: accountId },
+      select: { metadata: true },
+    })
+    // Stored as JSON text.
+    expect(JSON.parse(String(audit?.metadata))).toMatchObject({ eventsUnattributed: 1 })
   })
 
   // The bug this guards: an event without an author used to read as the job's. Once their accounts are gone, the

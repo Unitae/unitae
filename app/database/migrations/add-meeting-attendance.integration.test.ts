@@ -133,13 +133,11 @@ describe('20261116120000_add_meeting_attendance', () => {
     expect(message).toMatch(KIND_CHECK)
   })
 
-  it('keeps deleting an account refused while it owns an event', async () => {
-    const rows = await testDb.$queryRaw<{ delete_rule: string; is_nullable: string }[]>`
-      SELECT rc.delete_rule, c.is_nullable
-      FROM information_schema.referential_constraints rc
-      JOIN information_schema.columns c ON c.table_name = 'Event' AND c.column_name = 'createdById'
-      WHERE rc.constraint_name = 'Event_createdById_fkey'`
-    expect(rows).toEqual([{ delete_rule: 'RESTRICT', is_nullable: 'YES' }])
+  // What deleting the account does to the author is checked by event-author-set-null.integration.test.ts.
+  it('makes an event’s author optional', async () => {
+    const rows = await testDb.$queryRaw<{ is_nullable: string }[]>`
+      SELECT is_nullable FROM information_schema.columns WHERE table_name = 'Event' AND column_name = 'createdById'`
+    expect(rows).toEqual([{ is_nullable: 'YES' }])
   })
 
   it('isolates attendance rows by congregation', async () => {

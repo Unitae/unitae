@@ -32,6 +32,22 @@ beforeEach(() => {
   db.eventTemplate.create.mockResolvedValue({ id: 900 })
 })
 
+describe('importEventTemplates — day-off', () => {
+  // An archive from before the day-off events were dropped has their template: it is not restored, nor mapped, so
+  // nothing can attach to it.
+  it('does not restore an archive’s day-off template', async () => {
+    const idMap = new EntityIdMap()
+    readNdjsonFile.mockResolvedValue([template({ id: 9, key: 'day-off', name: 'Absence' }), template()])
+    db.eventTemplate.findFirst.mockResolvedValue(null)
+
+    await importEventTemplates({} as never, db as never, idMap, 1)
+
+    expect(db.eventTemplate.create).toHaveBeenCalledTimes(1)
+    expect(db.eventTemplate.create.mock.calls[0][0].data.key).toBe('midweek-meeting')
+    expect(idMap.getOptional('programme-templates', 9)).toBeNull()
+  })
+})
+
 describe('importEventTemplates — attendance', () => {
   it('keeps an existing template’s kind when the archive predates attendance (before 2.15)', async () => {
     db.eventTemplate.findFirst.mockResolvedValue({ id: 30 })

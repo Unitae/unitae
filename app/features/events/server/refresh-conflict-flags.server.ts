@@ -1,4 +1,3 @@
-import { EventTemplateKey } from '~/features/events/model/event-template.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 /**
@@ -16,19 +15,11 @@ export async function refreshConflictFlags(
   endDate: Date,
   congregationId: number,
 ) {
-  // Find all programme events overlapping the range, regardless of whether
-  // they have a template link. Day-off events themselves have no
-  // assignments and are excluded to avoid pointless iteration.
-  //
-  // The `NOT: { template: {...} }` shape (rather than
-  // `template: { key: { not } }`) matters: Prisma's relational filter
-  // inner-joins through `template`, so the `key: { not: 'day-off' }` form
-  // silently excludes events whose templateId is null — a shape legacy
-  // imports and older data may still carry.
+  // Every event overlapping the range, with or without a template: a filter through `template` would inner-join it and
+  // drop the events that have none.
   const overlappingEvents = await db.event.findMany({
     where: {
       congregationId,
-      NOT: { template: { key: EventTemplateKey.DayOff } },
       startDate: { lte: endDate },
       endDate: { gte: startDate },
     },

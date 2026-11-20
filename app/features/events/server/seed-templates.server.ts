@@ -250,18 +250,6 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
       serviceParts: sharedServiceParts,
     },
     {
-      name: m.seed_template_day_off({}, { locale }),
-      key: EventTemplateKey.DayOff,
-      attendanceKind: AttendanceKind.None,
-      weekDay: null,
-      isRecurring: false,
-      startTime: '00:00',
-      endTime: '23:59',
-      color: '#cfcfcf',
-      parts: [],
-      serviceParts: [],
-    },
-    {
       name: m.seed_template_freeform({}, { locale }),
       key: EventTemplateKey.Freeform,
       attendanceKind: AttendanceKind.None,
