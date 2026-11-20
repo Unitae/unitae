@@ -215,6 +215,44 @@ describe('syncTemplateScheduleTemplates', () => {
   })
 })
 
+describe('syncTemplateScheduleTemplates at the same moment', () => {
+  it('gives a template one schedule template of a kind when two writers sync it together', async () => {
+    const stamp = `st-race-${process.pid}-${globalThis.performance.now().toString().replace('.', '')}`
+    const congregationId = (await testDb.congregation.create({ data: { name: stamp, slug: stamp, active: true } })).id
+    const scoped = <T>(fn: (db: TransactionClient) => Promise<T>) =>
+      testDb.$transaction(async tx => {
+        await tx.$executeRawUnsafe(`SET LOCAL app.congregation_id = '${String(congregationId)}'`)
+        return fn(tx as unknown as TransactionClient)
+      })
+    try {
+      const templateId = await scoped(async db => {
+        const template = await db.eventTemplate.create({ data: { name: 'Réunion', key: stamp, congregationId } })
+        await db.templatePart.create({ data: { name: 'Discours', order: 0, templateId: template.id, congregationId } })
+        return template.id
+      })
+
+      await Promise.all(
+        [1, 2].map(() =>
+          scoped(async db => {
+            await syncTemplateScheduleTemplates(db, templateId, congregationId)
+            // Holds the transaction open a moment, as the write that follows a sync would.
+            await db.$executeRawUnsafe('SELECT pg_sleep(0.2)')
+          }),
+        ),
+      )
+
+      expect(await scoped(db => db.scheduleTemplate.count({ where: { congregationId } }))).toBe(1)
+    } finally {
+      await scoped(async db => {
+        await db.scheduleTemplate.deleteMany({ where: { congregationId } })
+        await db.templatePart.deleteMany({ where: { congregationId } })
+        await db.eventTemplate.deleteMany({ where: { congregationId } })
+      })
+      await testDb.congregation.delete({ where: { id: congregationId } })
+    }
+  })
+})
+
 describe('deleteTemplateScheduleTemplates', () => {
   it('deletes the schedule templates a template suggests, before the template goes', async () => {
     await inCongregation(async ({ db, congregationId, template, part, service }) => {

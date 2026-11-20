@@ -14,7 +14,11 @@ vi.mock('~/features/events/server/schedule-templates.server', () => ({
 }))
 
 vi.mock('~/shared/infra/db.server', () => ({
-  unscopedDb: { eventTemplate: { findFirst: vi.fn(), delete: vi.fn() }, event: { deleteMany: vi.fn() } },
+  unscopedDb: {
+    eventTemplate: { findFirst: vi.fn(), delete: vi.fn() },
+    event: { deleteMany: vi.fn() },
+    $queryRaw: vi.fn(),
+  },
 }))
 vi.mock('~/shared/domain/audit.server', () => ({
   audit: vi.fn(),

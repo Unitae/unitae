@@ -1,5 +1,6 @@
 import { EventStatus } from '~/features/events/model/event-status.type'
 import {
+  isScheduleKind,
   SCHEDULE_ORDER,
   ScheduleKind,
   ScheduleStatus,
@@ -11,10 +12,17 @@ import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 // An event's schedules, written beside its items' `eventId` and its own `status` until the readers move over. The rule
-// is the add_schedules migration's, for one event: keep the two in step. While it lasts, an event has at most one
-// schedule of each kind, and its schedules follow its template and its status.
+// is the add_schedules migration's, for one event: keep the two in step. While it lasts, an event has one programme at
+// most (a unique index, D9) and, because every writer goes through eventScheduleId, one duty schedule at most; its
+// schedules follow its template and its status.
+//
+// Locks: a template's row before an event's, the order of every path that creates or moves events of a template.
 
-/** What a schedule copies from the schedule template it is made from: none, and the catalogue's key, without one. */
+/**
+ * The schedule template, name and key a schedule of this kind takes from the event's template: none and the
+ * catalogue's key when there is none. Syncs the template's schedule templates first, so it may create them, and locks
+ * the template's row.
+ */
 async function scheduleTemplateFor(
   db: TransactionClient,
   templateId: number | null,
@@ -50,8 +58,13 @@ export async function eventScheduleId(
   const existing = await findEventSchedule(db, eventId, kind, congregationId)
   if (existing) return existing
 
-  // Two writers giving the event its first item of a kind at the same moment would each make a schedule: the event's
-  // row is locked, then looked at again, so the second one takes the first one's.
+  const before = await db.event.findFirst({ where: { id: eventId, congregationId }, select: { templateId: true } })
+  if (!before) throw new NotFoundError('Event', eventId)
+  // The template first (its row is locked), then the event's.
+  let madeFrom = await scheduleTemplateFor(db, before.templateId, kind, congregationId)
+
+  // Two writers giving the event its first item of a kind at the same moment would each make a schedule: inside the
+  // caller's transaction, the event's row is locked, then looked at again, so the second one takes the first one's.
   await db.$queryRaw`SELECT "id" FROM "Event" WHERE "id" = ${eventId} AND "congregationId" = ${congregationId} FOR UPDATE`
   const madeMeanwhile = await findEventSchedule(db, eventId, kind, congregationId)
   if (madeMeanwhile) return madeMeanwhile
@@ -61,13 +74,17 @@ export async function eventScheduleId(
     select: { templateId: true, status: true },
   })
   if (!event) throw new NotFoundError('Event', eventId)
+  // Applied to another template meanwhile: made from that one's.
+  if (event.templateId !== before.templateId) {
+    madeFrom = await scheduleTemplateFor(db, event.templateId, kind, congregationId)
+  }
   const created = await db.schedule.create({
     data: {
       eventId,
       kind,
       order: SCHEDULE_ORDER[kind],
       status: scheduleStatusFor(event.status),
-      ...(await scheduleTemplateFor(db, event.templateId, kind, congregationId)),
+      ...madeFrom,
       congregationId,
     },
   })
@@ -94,11 +111,13 @@ export async function alignEventSchedules(db: TransactionClient, eventId: number
     where: { id: eventId, congregationId },
     select: { templateId: true, schedules: { select: { id: true, kind: true } } },
   })
-  if (!event) return
+  if (!event) throw new NotFoundError('Event', eventId)
   for (const schedule of event.schedules) {
+    // Pinned by Schedule_kind_check: a schedule of another kind cannot exist.
+    if (!isScheduleKind(schedule.kind)) continue
     await db.schedule.update({
       where: { id_congregationId: { id: schedule.id, congregationId } },
-      data: await scheduleTemplateFor(db, event.templateId, schedule.kind as ScheduleKind, congregationId),
+      data: await scheduleTemplateFor(db, event.templateId, schedule.kind, congregationId),
     })
   }
 }
@@ -107,7 +126,7 @@ export async function alignEventSchedules(db: TransactionClient, eventId: number
 export async function setEventSchedulesStatus(
   db: TransactionClient,
   eventIds: number[],
-  eventStatus: string,
+  eventStatus: EventStatus,
   congregationId: number,
 ) {
   if (eventIds.length === 0) return
@@ -143,6 +162,7 @@ export async function attachEventItems(db: TransactionClient, eventIds: number[]
       await db.eventServicePart.updateMany({ where, data: { scheduleId } })
     }
   }
+  // scheduleStatusFor's rule, in two writes rather than one per event.
   const released = events.filter(event => event.status === EventStatus.Released).map(event => event.id)
   await db.schedule.updateMany({
     where: { eventId: { in: released }, congregationId, status: { not: ScheduleStatus.Published } },

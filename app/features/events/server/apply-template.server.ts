@@ -1,4 +1,5 @@
 import { ScheduleKind } from '~/features/events/model/schedule.type'
+import { syncTemplateScheduleTemplates } from '~/features/events/server/schedule-templates.server'
 import { alignEventSchedules, eventScheduleId } from '~/features/events/server/schedules.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
@@ -23,6 +24,8 @@ export async function applyTemplateToEvent(
   })
   if (!template) return null
 
+  // The template's schedule templates first, which locks its row: a template before an event, as every path does.
+  await syncTemplateScheduleTemplates(db, templateId, congregationId)
   await db.event.update({
     where: {
       id_congregationId: { id: eventId, congregationId },
