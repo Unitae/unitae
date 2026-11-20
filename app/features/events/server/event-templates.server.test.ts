@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
 
-// Schedules are written beside the items (plan PR 3); their own tests cover them.
+// Schedules are written beside the items (the schedules' expand step); their own tests cover them.
 vi.mock('~/features/events/server/schedules.server', () => ({
   alignEventSchedules: vi.fn(),
   attachEventItems: vi.fn(),

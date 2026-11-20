@@ -1,7 +1,7 @@
 // Compares two dumps of scripts/events-snapshot.ts. Pure, so that it is tested on its own.
 
 export interface SnapshotDifference {
-  /** Where the two dumps part, as a JSON path (`$.congregations.12.board.3.events.0.name`). */
+  /** Where the two dumps part, as a JSON path (`$.12.board.3.events.0.name`: congregation 12, its board document 3…). */
   path: string
   before: unknown
   after: unknown

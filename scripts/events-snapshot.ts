@@ -27,74 +27,86 @@ import { diffSnapshots } from './events-snapshot-diff'
 
 const DAY = 24 * 60 * 60 * 1000
 const DTSTAMP = /DTSTAMP:\d{8}T\d{6}Z/g
+// Every reader of a congregation runs in one read: a large one takes longer than a transaction's default 5 seconds.
+const DUMP_TRANSACTION = { timeout: 10 * 60 * 1000, maxWait: 30 * 1000 }
 
 /** What every reader gives one congregation, at `now`. */
 function dumpCongregation(congregationId: number, timeZone: string, now: Date) {
-  return withScope(congregationId, async db => {
-    const from = new Date(now.getTime() - 60 * DAY)
-    const to = new Date(now.getTime() + 120 * DAY)
-    const programmeList = await listProgrammes(db, { congregationId, from, to })
-    const programmes: Record<number, unknown> = {}
-    for (const item of programmeList) programmes[item.id] = await getEventProgramme(db, item.id, congregationId)
+  return withScope(
+    congregationId,
+    async db => {
+      const from = new Date(now.getTime() - 60 * DAY)
+      const to = new Date(now.getTime() + 120 * DAY)
+      const programmeList = await listProgrammes(db, { congregationId, from, to })
+      const programmes: Record<number, unknown> = {}
+      for (const item of programmeList) programmes[item.id] = await getEventProgramme(db, item.id, congregationId)
 
-    const documents = await db.boardDynamicDocumentSettings.findMany({
-      where: { congregationId },
-      orderBy: { id: 'asc' },
-    })
-    const board: Record<number, unknown> = {}
-    for (const settings of documents) {
-      board[settings.id] = await getDynamicDocumentData(db, settings.dynamicType, settings.dynamicRef, congregationId, {
-        showServices: settings.showServices,
-        dynamicConfig: settings.dynamicConfig,
-        attendance: { timeZone, now },
+      const documents = await db.boardDynamicDocumentSettings.findMany({
+        where: { congregationId },
+        orderBy: { id: 'asc' },
       })
-    }
-
-    const accounts = await db.userAccount.findMany({
-      where: { congregationId, memberId: { not: null } },
-      select: { id: true, memberId: true },
-      orderBy: { id: 'asc' },
-    })
-    const people: Record<number, unknown> = {}
-    for (const { id: accountId, memberId } of accounts) {
-      if (memberId == null) continue
-      const items = await getPersonalAssignments(db, accountId, congregationId, from)
-      const order = (item: (typeof items)[number]) => `${item.start.toISOString()} ${item.kind} ${item.summary}`
-      people[accountId] = {
-        nextMeeting: await nextMeetingForViewer(db, {
-          accountId,
-          memberId,
+      const board: Record<number, unknown> = {}
+      for (const settings of documents) {
+        board[settings.id] = await getDynamicDocumentData(
+          db,
+          settings.dynamicType,
+          settings.dynamicRef,
           congregationId,
-          permissions: new Set([Permission.CanViewPrograms]),
-          audience: 'programmes',
-        }),
-        nextMeetingOnTheBoard: await nextMeetingForViewer(db, {
-          accountId,
-          memberId,
-          congregationId,
-          permissions: new Set([Permission.CanViewBoard]),
-          audience: 'board',
-        }),
-        upcomingAssignments: await getUpcomingAssignments(db, memberId, congregationId, now),
-        conflictingAssignments: await getConflictingAssignments(db, memberId),
-        responsibleConflicts: await getResponsibleConflicts(db, accountId, congregationId, false),
-        // DTSTAMP is the moment the feed was written: the wall clock, not the data.
-        feed: buildPersonalCalendarIcs({
-          items: [...items].sort((a, b) => (order(a) < order(b) ? -1 : order(a) > order(b) ? 1 : 0)),
-          userLabel: String(accountId),
-          uidDomain: 'snapshot.local',
-        }).replace(DTSTAMP, 'DTSTAMP:<written>'),
+          {
+            showServices: settings.showServices,
+            dynamicConfig: settings.dynamicConfig,
+            attendance: { timeZone, now },
+          },
+        )
       }
-    }
 
-    return {
-      programmeList,
-      programmes,
-      board,
-      openParts: await getOpenParts(db, congregationId, { templateIds: null, days: 60, now }),
-      people,
-    }
-  })
+      const accounts = await db.userAccount.findMany({
+        where: { congregationId, memberId: { not: null } },
+        select: { id: true, memberId: true },
+        orderBy: { id: 'asc' },
+      })
+      const people: Record<number, unknown> = {}
+      for (const { id: accountId, memberId } of accounts) {
+        if (memberId == null) continue
+        const items = await getPersonalAssignments(db, accountId, congregationId, from)
+        const order = (item: (typeof items)[number]) => `${item.start.toISOString()} ${item.kind} ${item.summary}`
+        people[accountId] = {
+          nextMeeting: await nextMeetingForViewer(db, {
+            accountId,
+            memberId,
+            congregationId,
+            permissions: new Set([Permission.CanViewPrograms]),
+            audience: 'programmes',
+          }),
+          nextMeetingOnTheBoard: await nextMeetingForViewer(db, {
+            accountId,
+            memberId,
+            congregationId,
+            permissions: new Set([Permission.CanViewBoard]),
+            audience: 'board',
+          }),
+          upcomingAssignments: await getUpcomingAssignments(db, memberId, congregationId, now),
+          conflictingAssignments: await getConflictingAssignments(db, memberId),
+          responsibleConflicts: await getResponsibleConflicts(db, accountId, congregationId, false),
+          // DTSTAMP is the moment the feed was written: the wall clock, not the data.
+          feed: buildPersonalCalendarIcs({
+            items: [...items].sort((a, b) => (order(a) < order(b) ? -1 : order(a) > order(b) ? 1 : 0)),
+            userLabel: String(accountId),
+            uidDomain: 'snapshot.local',
+          }).replace(DTSTAMP, 'DTSTAMP:<written>'),
+        }
+      }
+
+      return {
+        programmeList,
+        programmes,
+        board,
+        openParts: await getOpenParts(db, congregationId, { templateIds: null, days: 60, now }),
+        people,
+      }
+    },
+    DUMP_TRANSACTION,
+  )
 }
 
 async function dump(file: string, now: Date) {
@@ -132,10 +144,12 @@ function optionValues(args: string[], name: string): string[] {
 
 async function main() {
   const [command, ...args] = process.argv.slice(2)
-  if (command === 'dump' && args[0]) {
+  if (command === 'dump' && args[0] && !args[0].startsWith('--')) {
     const [now] = optionValues(args, '--now')
     if (!now) throw new Error('--now is required: both dumps must read at the same instant')
-    await dump(args[0], new Date(now))
+    const instant = new Date(now)
+    if (Number.isNaN(instant.getTime())) throw new Error(`--now is not an instant: ${now}`)
+    await dump(args[0], instant)
   } else if (command === 'compare' && args[0] && args[1]) {
     if (!compare(args[0], args[1], new Set(optionValues(args, '--ignore-key')))) process.exitCode = 1
   } else {

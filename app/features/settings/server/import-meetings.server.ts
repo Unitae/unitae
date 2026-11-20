@@ -24,7 +24,7 @@ import { importSchedules } from './import-schedules.server'
 
 /**
  * The meeting steps of runImport, in their order: part presets, templates and their items and responsibles, events with
- * their absences, counts and items, then their schedules. `progress` is runImport's, called after each step as before.
+ * their absences, counts and items, then their schedules. `progress` is runImport's, called after each step (IMPORT_TOTAL_STEPS counts them).
  */
 export async function importMeetings(
   zip: JsZip,

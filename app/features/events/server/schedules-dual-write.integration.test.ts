@@ -4,7 +4,7 @@ import { PrismaClient } from '~/database/generated/client'
 import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
-// Every writer of items, templates, responsibles and statuses also writes schedules and schedule templates (plan PR 3),
+// Every writer of items, templates, responsibles and statuses also writes schedules and schedule templates (the schedules' expand step),
 // so that the readers can move over to them. What it reads does not change.
 
 const adapter = new PrismaPg({

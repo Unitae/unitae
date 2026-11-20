@@ -102,25 +102,25 @@ app/
 
 ## Where to Find Things
 
-| What | Where |
-|------|-------|
-| Database schema | `app/database/schema.prisma` |
-| Auth middleware (`requireAuth`) | `app/shared/auth/middleware.server.ts` |
-| Origin + security-header middleware | `app/shared/middleware/origin-check.server.ts`, `app/shared/middleware/security-headers.server.ts` |
-| Route context helpers | `app/shared/auth/route-context.server.ts` |
-| DB scope wrapper | `app/shared/infra/db.server.ts` → `withScope()` |
-| Audit trail | `app/shared/domain/audit.server.ts` |
-| Feature limits | `app/shared/domain/limits.server.ts` |
-| File storage (S3/local) | `app/shared/infra/file-storage.server.ts` |
-| Background queue | `app/shared/infra/queues.server.ts` |
-| BullMQ worker | `app/workers/worker.server.ts` |
-| i18n messages | `app/i18n/paraglide/messages.js` (generated) |
-| Route definitions | `app/routes.ts` |
-| Shared UI components | `app/shared/ui/` |
-| AppError classes | `app/shared/errors/app-error.server.ts` |
-| Permission enum | `app/shared/types/permission.ts` |
+| What                                                          | Where                                                                                                         |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Database schema                                               | `app/database/schema.prisma`                                                                                  |
+| Auth middleware (`requireAuth`)                               | `app/shared/auth/middleware.server.ts`                                                                        |
+| Origin + security-header middleware                           | `app/shared/middleware/origin-check.server.ts`, `app/shared/middleware/security-headers.server.ts`            |
+| Route context helpers                                         | `app/shared/auth/route-context.server.ts`                                                                     |
+| DB scope wrapper                                              | `app/shared/infra/db.server.ts` → `withScope()`                                                               |
+| Audit trail                                                   | `app/shared/domain/audit.server.ts`                                                                           |
+| Feature limits                                                | `app/shared/domain/limits.server.ts`                                                                          |
+| File storage (S3/local)                                       | `app/shared/infra/file-storage.server.ts`                                                                     |
+| Background queue                                              | `app/shared/infra/queues.server.ts`                                                                           |
+| BullMQ worker                                                 | `app/workers/worker.server.ts`                                                                                |
+| i18n messages                                                 | `app/i18n/paraglide/messages.js` (generated)                                                                  |
+| Route definitions                                             | `app/routes.ts`                                                                                               |
+| Shared UI components                                          | `app/shared/ui/`                                                                                              |
+| AppError classes                                              | `app/shared/errors/app-error.server.ts`                                                                       |
+| Permission enum                                               | `app/shared/types/permission.ts`                                                                              |
 | Role helpers (display names, built-in keys, custom-role CRUD) | `app/shared/types/role.ts`, `app/shared/domain/built-in-roles.server.ts`, `app/shared/domain/roles.server.ts` |
-| Territory edit map — which entrances show as candidates | `app/features/territories/server/map-visibility.ts` |
+| Territory edit map — which entrances show as candidates       | `app/features/territories/server/map-visibility.ts`                                                           |
 
 ## Build and Test Commands
 
@@ -177,30 +177,30 @@ Enforced by **Biome 2.5.3** (`pnpm build:format` auto-fixes most issues):
 
 ### File naming
 
-| Pattern | Purpose |
-|---------|---------|
-| `*.server.ts` | Server-only code (not importable from client bundles) |
-| `*.aggregate.ts` | Aggregate root — owns mutations + invariants for a domain entity (e.g., `member.aggregate.ts`) |
-| `*.workflow.ts` | Cross-aggregate orchestration for a single user action (e.g., `anonymize-member.workflow.ts` calls both `memberAggregate.anonymize` and `attributionAggregate.markReturnedForPublisher`) |
-| `*.queries.ts` | Read-only query helpers (CQRS-lite read side) |
-| `*.policy.ts` | Pure-function invariant checks shared across mutators (e.g., `event-status.policy.ts`) |
-| `*.type.ts` | TypeScript type/interface definitions |
-| `*.schema.ts` | Conform + Zod form validation schemas |
-| `*.routes.ts` | Route configuration |
-| `*-queue.server.ts` | BullMQ queue definitions |
-| `handle-*-work.server.ts` | Background job handlers |
-| PascalCase `.tsx` | React components |
-| camelCase `.ts` | Utilities and services |
+| Pattern                   | Purpose                                                                                                                                                                                  |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `*.server.ts`             | Server-only code (not importable from client bundles)                                                                                                                                    |
+| `*.aggregate.ts`          | Aggregate root — owns mutations + invariants for a domain entity (e.g., `member.aggregate.ts`)                                                                                           |
+| `*.workflow.ts`           | Cross-aggregate orchestration for a single user action (e.g., `anonymize-member.workflow.ts` calls both `memberAggregate.anonymize` and `attributionAggregate.markReturnedForPublisher`) |
+| `*.queries.ts`            | Read-only query helpers (CQRS-lite read side)                                                                                                                                            |
+| `*.policy.ts`             | Pure-function invariant checks shared across mutators (e.g., `event-status.policy.ts`)                                                                                                   |
+| `*.type.ts`               | TypeScript type/interface definitions                                                                                                                                                    |
+| `*.schema.ts`             | Conform + Zod form validation schemas                                                                                                                                                    |
+| `*.routes.ts`             | Route configuration                                                                                                                                                                      |
+| `*-queue.server.ts`       | BullMQ queue definitions                                                                                                                                                                 |
+| `handle-*-work.server.ts` | Background job handlers                                                                                                                                                                  |
+| PascalCase `.tsx`         | React components                                                                                                                                                                         |
+| camelCase `.ts`           | Utilities and services                                                                                                                                                                   |
 
 ### File-size budgets
 
 Files have soft (warning) and hard (CI failure) line limits. See [Architecture Conventions › File-size Budgets](docs/development/architecture-conventions.md#file-size-budgets) for the full table. Quick reference:
 
-| Pattern | Soft | Hard |
-|---|---|---|
-| `*.server.ts`, `*.aggregate.ts` | 200 | 350 |
-| Route `*.tsx` | 150 | 300 |
-| Component `*.tsx` | 200 | 400 |
+| Pattern                         | Soft | Hard |
+| ------------------------------- | ---- | ---- |
+| `*.server.ts`, `*.aggregate.ts` | 200  | 350  |
+| Route `*.tsx`                   | 150  | 300  |
+| Component `*.tsx`               | 200  | 400  |
 
 Tests and generated code are exempt.
 
@@ -237,7 +237,7 @@ Installed automatically via `pnpm install` (triggers `lefthook install` from the
 Test-Driven Development applies to two situations specifically:
 
 - **New service functions** — write the test first. The test describes the contract; the implementation conforms to it.
-- **Bug regressions** — write a failing test that reproduces the bug *before* writing the fix. The test stays as a regression guard.
+- **Bug regressions** — write a failing test that reproduces the bug _before_ writing the fix. The test stays as a regression guard.
 
 Aggregate invariant tests should aim for 100% branch coverage of the `_assert*` helpers. TDD is **not** required for route components, glue code, or migrations. See [Architecture Conventions › TDD Discipline](docs/development/architecture-conventions.md#tdd-discipline) for the full rules.
 
@@ -279,7 +279,7 @@ const permissions = context.get(permissionsContext)
 if (!permissions.has(Permission.TerritoriesManager)) throw redirect('/dashboard')
 ```
 
-**Auth model:** `Permission` (48 entries, in `app/shared/types/permission.ts`) is the unit of access. **Roles** (DB table) bundle permissions and are assigned to users. Three kinds: **identity** roles synced from `Member` flags (`BUILT_IN_ROLE_KEYS`), **system** roles granted by hand (`SYSTEM_ROLE_KEYS`, currently just `admin`), and **custom** roles a Roles Manager creates. Identity and system roles both carry `isBuiltIn` — use `isIdentityRoleKey()` when the question is which side a role attaches to, since `isBuiltIn` only means "undeletable". A role is the *only* way a permission reaches an account: the direct `CongregationUserPermission` edge was dropped in #149, so never reintroduce a user→permission write. `requireAuth()` runs `resolveEffectivePermissions` and stores the user's full granted set in `permissionsContext`; the legacy `_required` parameter is retained for call-site compatibility but no longer filters anything. See `docs/development/permissions-and-roles.md`.
+**Auth model:** `Permission` (48 entries, in `app/shared/types/permission.ts`) is the unit of access. **Roles** (DB table) bundle permissions and are assigned to users. Three kinds: **identity** roles synced from `Member` flags (`BUILT_IN_ROLE_KEYS`), **system** roles granted by hand (`SYSTEM_ROLE_KEYS`, currently just `admin`), and **custom** roles a Roles Manager creates. Identity and system roles both carry `isBuiltIn` — use `isIdentityRoleKey()` when the question is which side a role attaches to, since `isBuiltIn` only means "undeletable". A role is the _only_ way a permission reaches an account: the direct `CongregationUserPermission` edge was dropped in #149, so never reintroduce a user→permission write. `requireAuth()` runs `resolveEffectivePermissions` and stores the user's full granted set in `permissionsContext`; the legacy `_required` parameter is retained for call-site compatibility but no longer filters anything. See `docs/development/permissions-and-roles.md`.
 
 **Two-factor (TOTP):** opt-in per user. `UserAccount.twoFactorSecret` stores the AES-256-GCM ciphertext of the base32 seed (`null` = never enrolled) and `twoFactorEnabledAt` stays `null` while enrollment is pending. An enrolled user's login lands on `authentication/routes/two-factor-challenge.tsx` before the session is issued — anything that changes the login path must keep that hop intact. Server side: `totp.server.ts`, `start-two-factor-enrollment.server.ts`, `verify-two-factor-challenge.server.ts`.
 
@@ -315,7 +315,7 @@ audit({
   action: AuditAction.TerritoryUpdated,
   congregationId,
   actorId,
-  entityType: 'Territory',   // Prisma model name
+  entityType: 'Territory', // Prisma model name
   entityId: territory.id,
   metadata: { changes },
 })
@@ -358,7 +358,7 @@ await createTerritory(db, ...)
 - ❌ **Don't use `prisma migrate dev` in CI/scripts** — Non-interactive; use `migrate diff` + `migrate deploy`
 - ❌ **Don't add `.server.ts` to files in `features/*/model/`** — These are shared between client and server; the suffix causes bundler errors
 - ❌ **Don't read flash messages in individual route loaders** — The authenticated layout already reads them; double-reading causes duplicate toasts
-- ❌ **Don't omit `congregationId` in `db.*.create()`** — Pass the real value explicitly (`congregationId: params.congregationId`). RLS *filters* reads and blocks cross-tenant writes, but it does not populate the column on insert. (An older `congregationId: 0 as number` placeholder convention is gone — it appears nowhere in the codebase.)
+- ❌ **Don't omit `congregationId` in `db.*.create()`** — Pass the real value explicitly (`congregationId: params.congregationId`). RLS _filters_ reads and blocks cross-tenant writes, but it does not populate the column on insert. (An older `congregationId: 0 as number` placeholder convention is gone — it appears nowhere in the codebase.)
 - ❌ **Don't use `any` type** — TypeScript strict mode is enforced everywhere except explicit `noExplicitAny` suppressions
 - ❌ **Don't create circular imports between features** — Features must be independent; use `shared/` for cross-feature utilities
 
@@ -370,7 +370,7 @@ await createTerritory(db, ...)
 - **Email templates** are colocated per feature (`app/features/{feature}/emails/*.tsx`); the `pnpm start:emails` dev server is configured with `--dir app/features`.
 - **Built-in role memberships are auto-synced** from `Member` flags (`isPublisher`, `type`, `isMale`, `baptismDate`, `isAnointed`, `isHelder`, `isServant`, `leftAt`). All `Member` mutations go through `app/features/publishers/server/member.aggregate.ts`, which calls `syncBuiltInRoleAssignments` internally — callers never invoke it directly. Route callers use `memberAggregate.setLifecycle('left'|'returned'|'active'|'inactive')`, `togglePublisher`, `updateIdentity`, etc. A person's roles live on `MemberRoleAssignment` — identity roles and roles given by hand (with their seat), login or not; `UserRoleAssignment` only holds `admin` and the roles of accounts without a record. Write them through `shared/domain/role-assignments.server.ts`.
 - **Member anonymize preconditions** (Wave 8): `memberAggregate.anonymize` throws `ConflictError` if the member is a `PublisherGroup.responsible` — the FK is required + unique in the schema, so admins must reassign the group's responsibility first. On success it nulls `Member.publisherGroupId` and clears any `PublisherGroup.deputyId` pointing at the member.
-- **Schedules are written beside today's shape** (event schedules refactor, expand step): until the readers move to them, every writer of event parts or services puts the item in its event's schedule (`eventScheduleId`), every writer of template items, responsibles or names ends with `syncTemplateScheduleTemplates`, and a status change goes through `setEventSchedulesStatus`. Nothing enforces it: a writer that skips it leaves a row the next release's catch-up has to repair.
+- **Schedules are written beside today's shape** (event schedules refactor, expand step): until the readers move to them, every writer of event parts or services puts the item in its event's schedule (`eventScheduleId`), an event changing template moves its schedules (`alignEventSchedules`), a programme removed takes its schedules (`deleteEventSchedules`), every writer of template items, responsibles or names ends with `syncTemplateScheduleTemplates`, a template deleted takes its schedule templates (`deleteTemplateScheduleTemplates`), and a status change goes through `setEventSchedulesStatus`. Nothing enforces it: a writer that skips it leaves rows only the next release's backfill repairs, and only if that runs after the write.
 - **Member vs UserAccount FK rule of thumb**: action requires login → `UserAccount`; subject is a person in the congregation → `Member`. See `docs/development/coding-conventions.md` for the full table.
 
 ## Known gaps
@@ -412,18 +412,18 @@ LOGIN_RATE_LIMIT_GLOBAL_MAX="100"      # Max failed login attempts instance-wide
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|---------|
-| `Cannot find module '~/database/generated/...'` | Run `pnpm prisma generate` |
-| Lint errors after schema changes | Run `pnpm build:format` to auto-fix most; check for new `biome-ignore` needs |
-| Integration tests fail with RLS errors | Ensure `DB_RUNTIME_URL` points to the `unitae_app` role (not superuser) |
+| Issue                                                           | Solution                                                                                                                                                                                                                                                                                                  |
+| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Cannot find module '~/database/generated/...'`                 | Run `pnpm prisma generate`                                                                                                                                                                                                                                                                                |
+| Lint errors after schema changes                                | Run `pnpm build:format` to auto-fix most; check for new `biome-ignore` needs                                                                                                                                                                                                                              |
+| Integration tests fail with RLS errors                          | Ensure `DB_RUNTIME_URL` points to the `unitae_app` role (not superuser)                                                                                                                                                                                                                                   |
 | `Refusing to run integration tests: …must carry a "test" token` | The suite truncates data, so it only runs against a disposable database. Point **both** `DB_URL` and `DB_RUNTIME_URL` at e.g. `unitae_test` — `DB_RUNTIME_URL` is often exported from a shell profile and left on `unitae_dev`. See [Testing](docs/development/testing.md#the-database-these-run-against) |
-| `prisma migrate dev` hangs in terminal | Use `prisma migrate diff --script` + manual migration + `prisma migrate deploy` |
-| Session not persisting in dev | Check `UNITAE_SESSION_SECRET` is set; cookie lifetime is 8h in dev, 1h in prod |
-| Port already in use | `lsof -i :5173` (dev server) or `lsof -i :9090` (worker health) |
-| Worker not processing jobs | Start with `pnpm start:worker`; check Redis connection via `REDIS_HOST`/`REDIS_PORT` |
-| `compound key` TypeScript error | Pass `congregationId` explicitly in the `data` of the create call; for `where` on a compound unique use the generated key (e.g. `id_congregationId: { id, congregationId }`) |
-| Flash toast appearing twice | Remove `session.flash()` reads from individual route loaders — layout handles it |
+| `prisma migrate dev` hangs in terminal                          | Use `prisma migrate diff --script` + manual migration + `prisma migrate deploy`                                                                                                                                                                                                                           |
+| Session not persisting in dev                                   | Check `UNITAE_SESSION_SECRET` is set; cookie lifetime is 8h in dev, 1h in prod                                                                                                                                                                                                                            |
+| Port already in use                                             | `lsof -i :5173` (dev server) or `lsof -i :9090` (worker health)                                                                                                                                                                                                                                           |
+| Worker not processing jobs                                      | Start with `pnpm start:worker`; check Redis connection via `REDIS_HOST`/`REDIS_PORT`                                                                                                                                                                                                                      |
+| `compound key` TypeScript error                                 | Pass `congregationId` explicitly in the `data` of the create call; for `where` on a compound unique use the generated key (e.g. `id_congregationId: { id, congregationId }`)                                                                                                                              |
+| Flash toast appearing twice                                     | Remove `session.flash()` reads from individual route loaders — layout handles it                                                                                                                                                                                                                          |
 
 ## In-app help
 
@@ -433,43 +433,43 @@ A « ? » goes in the header's `help` slot (`<PageHeader help={<HelpEntryButton 
 
 `app/features/help/entry-points.test.ts` is the authoritative wiring: it scans the app source for every `<HelpEntryButton slug="…" />` and fails unless each one is pinned there and ships in every language. Keep this table in step with it.
 
-| « ? » on | Route | Opens | Permission |
-|---|---|---|---|
-| Mes absences | `/me/days-off` | `absences` | none |
-| Mes territoires | `/me/territories` | `my-territories` | none |
-| Territoires, new territory | `/territories`, `/territories/territory/new` | `create-territory` | `CanManageTerritories` |
-| A territory's page | `/territories/territory/:id/view` | `territory-card` | `CanViewTerritories` |
-| Modifier a territory | `/territories/territory/:id/edit` | `split-territory` | `CanManageTerritories` |
-| Créer en lot | `/territories/buildings/split-territories` | `batch-territories` | `CanPlanTerritorySplits` |
-| Attributions, Attribuer un territoire | `/territories/attributions`, `/territories/attributions/new/available-territories` | `territory-attributions` | `CanManageTerritoryAttributions` |
-| Statistiques | `/territories/stats` | `territory-stats` | `CanManageTerritories` |
-| Tableau d’affichage | `/board` | `board-read` | `CanViewBoard` |
-| Gérer le tableau (one article per right, first held: upload, live documents, sections or order, reads) | `/board/documents` | `board-add-pdf`, `board-dynamic`, `board-sections`, `board-reads` | each its own |
-| Téléverser un PDF | `/board/documents/new` | `board-add-pdf` | `CanUploadBoardDocuments` |
-| Document dynamique, new and edit | `/board/documents/new-dynamic`, `/board/dynamic/:id/edit` | `board-dynamic` | `CanManageDynamicBoardDocuments` |
-| Section, new and edit | `/board/sections/new`, `/board/sections/:id/edit` | `board-sections` | `CanConfigureBoardSections, CanOrganiseBoardDocuments` |
-| Campagnes | `/territories/attributions/campaigns` | `campaign-create` | `CanManageTerritoryCampaigns` |
-| Prospection | `/territories/buildings` | `prospection` | `CanViewProspection` |
-| Réglages › Territoires | `/settings/territories` | `territories-settings` | `CanConfigureTerritorySettings` |
-| Réglages › Utilisateurs | `/settings/users` | `invite-user` | `CanManageUsers, CanManagePublishers` |
-| An account, Réglages › Rôles et autorisations | `/settings/users/:id`, `/settings/roles` | `give-rights` | `CanManageUsers, CanConfigurePermissions` |
-| Réglages › Import et export | `/settings/data` | `congregation-data` | `CanExportCongregationData, CanImportCongregationData` |
-| Réglages › Journal d’audit | `/settings/audit-log` | `audit-log` | `CanConfigureCongregation` |
-| Organigramme, Équipes | `/congregation/roles/organigram`, `/congregation/roles` | `organigram` | `CanManageRoles` |
-| Mon compte › Profil | `/me/profile` | `calendar-feed` | none |
-| Mon compte › Préférences | `/me/preferences` | `language` | none |
-| Mon compte › Sécurité | `/me/security` | `password` | none |
-| Mon compte › Notifications | `/me/notifications` | `notifications` | none |
-| Mon compte › Confidentialité | `/me/privacy` | `my-data` | none |
-| Orateurs extérieurs › Listes reçues | `/programs/external-speakers` | `external-speakers` | `CanViewExternalSpeakers, CanManageExternalSpeakers` |
-| Orateurs extérieurs › Notre liste | `/programs/external-speakers/ours` | `external-speakers` | `CanViewExternalSpeakers, CanManageExternalSpeakers` |
-| Assistance, today's meetings (enter only) | `/attendance` | `attendance-entry` | `CanRecordAttendance, CanCorrectAttendance` |
-| Assistance, service year | `/attendance` | `attendance-s88` | `CanViewAttendance` |
-| Proclamateurs, new publisher, publisher record | `/publishers`, `/publishers/new`, `/publishers/:id/view` | `publisher-arrivals-departures` | `CanManagePublishers, CanManagePublisherLifecycle` |
-| Groupes de prédication, new and edit | `/groups`, `/groups/new`, `/groups/:id/edit` | `groups` | `CanManagePublisherGroups` |
-| A group's page (« Mon groupe » too) | `/groups/:id/view` | `field-service-reports` | `CanRecordActivity, CanCorrectActivity, CanManagePublishers, GroupLeader` |
-| Activité › Rapports | `/publishers/activity` | `field-service-reports` | same |
-| Activité › Pionniers | `/publishers/activity/pioneers` | `pioneers` | `CanViewActivity, CanManagePublishers` |
+| « ? » on                                                                                               | Route                                                                              | Opens                                                             | Permission                                                                |
+| ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Mes absences                                                                                           | `/me/days-off`                                                                     | `absences`                                                        | none                                                                      |
+| Mes territoires                                                                                        | `/me/territories`                                                                  | `my-territories`                                                  | none                                                                      |
+| Territoires, new territory                                                                             | `/territories`, `/territories/territory/new`                                       | `create-territory`                                                | `CanManageTerritories`                                                    |
+| A territory's page                                                                                     | `/territories/territory/:id/view`                                                  | `territory-card`                                                  | `CanViewTerritories`                                                      |
+| Modifier a territory                                                                                   | `/territories/territory/:id/edit`                                                  | `split-territory`                                                 | `CanManageTerritories`                                                    |
+| Créer en lot                                                                                           | `/territories/buildings/split-territories`                                         | `batch-territories`                                               | `CanPlanTerritorySplits`                                                  |
+| Attributions, Attribuer un territoire                                                                  | `/territories/attributions`, `/territories/attributions/new/available-territories` | `territory-attributions`                                          | `CanManageTerritoryAttributions`                                          |
+| Statistiques                                                                                           | `/territories/stats`                                                               | `territory-stats`                                                 | `CanManageTerritories`                                                    |
+| Tableau d’affichage                                                                                    | `/board`                                                                           | `board-read`                                                      | `CanViewBoard`                                                            |
+| Gérer le tableau (one article per right, first held: upload, live documents, sections or order, reads) | `/board/documents`                                                                 | `board-add-pdf`, `board-dynamic`, `board-sections`, `board-reads` | each its own                                                              |
+| Téléverser un PDF                                                                                      | `/board/documents/new`                                                             | `board-add-pdf`                                                   | `CanUploadBoardDocuments`                                                 |
+| Document dynamique, new and edit                                                                       | `/board/documents/new-dynamic`, `/board/dynamic/:id/edit`                          | `board-dynamic`                                                   | `CanManageDynamicBoardDocuments`                                          |
+| Section, new and edit                                                                                  | `/board/sections/new`, `/board/sections/:id/edit`                                  | `board-sections`                                                  | `CanConfigureBoardSections, CanOrganiseBoardDocuments`                    |
+| Campagnes                                                                                              | `/territories/attributions/campaigns`                                              | `campaign-create`                                                 | `CanManageTerritoryCampaigns`                                             |
+| Prospection                                                                                            | `/territories/buildings`                                                           | `prospection`                                                     | `CanViewProspection`                                                      |
+| Réglages › Territoires                                                                                 | `/settings/territories`                                                            | `territories-settings`                                            | `CanConfigureTerritorySettings`                                           |
+| Réglages › Utilisateurs                                                                                | `/settings/users`                                                                  | `invite-user`                                                     | `CanManageUsers, CanManagePublishers`                                     |
+| An account, Réglages › Rôles et autorisations                                                          | `/settings/users/:id`, `/settings/roles`                                           | `give-rights`                                                     | `CanManageUsers, CanConfigurePermissions`                                 |
+| Réglages › Import et export                                                                            | `/settings/data`                                                                   | `congregation-data`                                               | `CanExportCongregationData, CanImportCongregationData`                    |
+| Réglages › Journal d’audit                                                                             | `/settings/audit-log`                                                              | `audit-log`                                                       | `CanConfigureCongregation`                                                |
+| Organigramme, Équipes                                                                                  | `/congregation/roles/organigram`, `/congregation/roles`                            | `organigram`                                                      | `CanManageRoles`                                                          |
+| Mon compte › Profil                                                                                    | `/me/profile`                                                                      | `calendar-feed`                                                   | none                                                                      |
+| Mon compte › Préférences                                                                               | `/me/preferences`                                                                  | `language`                                                        | none                                                                      |
+| Mon compte › Sécurité                                                                                  | `/me/security`                                                                     | `password`                                                        | none                                                                      |
+| Mon compte › Notifications                                                                             | `/me/notifications`                                                                | `notifications`                                                   | none                                                                      |
+| Mon compte › Confidentialité                                                                           | `/me/privacy`                                                                      | `my-data`                                                         | none                                                                      |
+| Orateurs extérieurs › Listes reçues                                                                    | `/programs/external-speakers`                                                      | `external-speakers`                                               | `CanViewExternalSpeakers, CanManageExternalSpeakers`                      |
+| Orateurs extérieurs › Notre liste                                                                      | `/programs/external-speakers/ours`                                                 | `external-speakers`                                               | `CanViewExternalSpeakers, CanManageExternalSpeakers`                      |
+| Assistance, today's meetings (enter only)                                                              | `/attendance`                                                                      | `attendance-entry`                                                | `CanRecordAttendance, CanCorrectAttendance`                               |
+| Assistance, service year                                                                               | `/attendance`                                                                      | `attendance-s88`                                                  | `CanViewAttendance`                                                       |
+| Proclamateurs, new publisher, publisher record                                                         | `/publishers`, `/publishers/new`, `/publishers/:id/view`                           | `publisher-arrivals-departures`                                   | `CanManagePublishers, CanManagePublisherLifecycle`                        |
+| Groupes de prédication, new and edit                                                                   | `/groups`, `/groups/new`, `/groups/:id/edit`                                       | `groups`                                                          | `CanManagePublisherGroups`                                                |
+| A group's page (« Mon groupe » too)                                                                    | `/groups/:id/view`                                                                 | `field-service-reports`                                           | `CanRecordActivity, CanCorrectActivity, CanManagePublishers, GroupLeader` |
+| Activité › Rapports                                                                                    | `/publishers/activity`                                                             | `field-service-reports`                                           | same                                                                      |
+| Activité › Pionniers                                                                                   | `/publishers/activity/pioneers`                                                    | `pioneers`                                                        | `CanViewActivity, CanManagePublishers`                                    |
 
 Articles without a « ? » are reached from the index, the search and related links only: `my-parts` (none: a person's parts show on the home page, the board and in e-mails, none of them a page of their own), `two-step-verification` (none: the Sécurité page's « ? » opens `password`, which links to it), `phone-territories` and `bano` (`CanConfigureTerritorySettings`), `board-download` (`CanViewBoard`), `board-versions` (`CanReviewBoardDocuments, CanUploadBoardDocuments`: the document history on `/board/documents/:id/edit`, which an uploader opens on the documents they uploaded), `emergency-roster` (`CanViewEmergencyInfo, CanManageEmergencyInfo, GroupLeader`: the roster is a button on the publishers list and the group page, whose « ? » open their own tasks), `activity-exports` (`CanViewActivity, CanRecordActivity`: Activité's « ? » opens the reports), `reset-two-step` (`CanManageUsers`: an account's « ? » opens `give-rights`, which links to it).
 
@@ -520,21 +520,21 @@ build(deps): bump Prisma from 7.0.0 to 7.1.0
 
 Detailed guides are in `docs/development/`:
 
-| File | Content |
-|------|---------|
+| File                          | Content                                                                                                |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `architecture-conventions.md` | Feature shape, `index.ts` boundaries, aggregate doctrine, CQRS-lite, file-size budgets, TDD discipline |
-| `architecture.md` | Request flow, multi-tenancy model, audit logging patterns |
-| `row-level-security.md` | PostgreSQL RLS policies, `withScope`, connection pool safety |
-| `coding-conventions.md` | Style rules, service layer mechanics, Member vs UserAccount FK rule, language conventions |
-| `background-processing.md` | BullMQ worker architecture, queue names, job data shapes |
-| `getting-started.md` | Local environment setup from scratch |
-| `testing.md` | Unit / integration / E2E setup and conventions |
-| `permissions-and-roles.md` | Permission enum, built-in vs custom roles, effective-permission resolution |
-| `internationalization.md` | Paraglide setup, message keys, locale handling |
-| `translation-glossary.md` | Official EN/FR congregation vocabulary every message must use |
-| `notifications.md` | Notification events, preferences, flush worker |
-| `data-transfer.md` | Congregation import/export and archive format |
-| `email-templates.md` | React Email templates, per-feature colocation |
+| `architecture.md`             | Request flow, multi-tenancy model, audit logging patterns                                              |
+| `row-level-security.md`       | PostgreSQL RLS policies, `withScope`, connection pool safety                                           |
+| `coding-conventions.md`       | Style rules, service layer mechanics, Member vs UserAccount FK rule, language conventions              |
+| `background-processing.md`    | BullMQ worker architecture, queue names, job data shapes                                               |
+| `getting-started.md`          | Local environment setup from scratch                                                                   |
+| `testing.md`                  | Unit / integration / E2E setup and conventions                                                         |
+| `permissions-and-roles.md`    | Permission enum, built-in vs custom roles, effective-permission resolution                             |
+| `internationalization.md`     | Paraglide setup, message keys, locale handling                                                         |
+| `translation-glossary.md`     | Official EN/FR congregation vocabulary every message must use                                          |
+| `notifications.md`            | Notification events, preferences, flush worker                                                         |
+| `data-transfer.md`            | Congregation import/export and archive format                                                          |
+| `email-templates.md`          | React Email templates, per-feature colocation                                                          |
 
 ---
 
