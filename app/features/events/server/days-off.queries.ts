@@ -55,7 +55,7 @@ export async function listMyAbsences(
 /** An assignment flagged as falling during its holder's absence, with what the reader needs to reach it. */
 export interface AbsenceAssignment {
   kind: AssignKind
-  /** The part's or the service's id, from its own table. */
+  /** The id publicItemId hands out (today the old part's or service's), with its kind beside it. */
   id: number
   name: string
   eventId: number
@@ -78,9 +78,6 @@ export interface CongregationAbsence {
   lastname: string | null
   conflicts: AbsenceAssignment[]
 }
-
-// The programme's order: a meeting's parts, then its services (the stable sort by date below keeps them so), each in
-// their order — never whatever order the table returns them in.
 
 const overlaps = (event: { startDate: Date; endDate: Date }, absence: { startDate: Date; endDate: Date }) =>
   event.startDate <= absence.endDate && event.endDate >= absence.startDate

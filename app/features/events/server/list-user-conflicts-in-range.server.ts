@@ -16,8 +16,6 @@ export interface UserConflictInRange {
   responsibleName: string | null
 }
 
-// One meeting's clashes in the programme's order: the date sort below is stable, so parts then services, each in theirs.
-
 // Shared between the two `findMany` calls so the query shape stays in sync.
 const eventWithResponsiblesSelect = {
   startDate: true,

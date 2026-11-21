@@ -43,6 +43,8 @@ export async function listUserCadence(
 
   const partsSelect = {
     where: PART_ITEMS,
+    // The first matching part names the person: in the old rows' order, as the old relation returned them.
+    orderBy: { legacyPartId: 'asc' },
     select: {
       name: true,
       section: true,

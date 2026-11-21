@@ -17,7 +17,7 @@ export async function listUserSameEventAssignments(
   db: TransactionClient,
   { userId, eventId, congregationId, excludePartAssignmentId, excludeServiceAssignmentId }: Options,
 ): Promise<SameEventAssignment[]> {
-  // The excluded assignment by the id its routes carry, the old row's (plan T12).
+  // Both exclusions go by the id the routes carry, the old row's (plan T12).
   const parts = await db.item.findMany({
     where: {
       ...PART_ITEMS,

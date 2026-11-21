@@ -13,12 +13,6 @@ import type { CongregationId, MemberId } from '~/shared/types/branded'
 const MAX_ASSIGNMENTS = 5
 
 /**
- * One meeting's assignments in the programme's order, so a record reads the same every time. Coming ones: the date sort
- * is stable, so parts then services, each in theirs. Last done: `keep` only replaces on a later date, so the meeting's
- * first assignment wins.
- */
-
-/**
  * Upcoming released parts and service parts a member holds (as assignee or
  * assistant), for the publisher record page. Read-only companion to the
  * dashboard's getUpcomingAssignments, keyed by an arbitrary member instead of
@@ -130,6 +124,7 @@ export async function findLastAssignmentsForMembers(
   ])
 
   const wanted = new Set<number>(memberIds)
+  // Only a later date replaces, so a meeting's first assignment in the programme's order wins.
   const keep = (memberId: number | null, partName: string, date: Date) => {
     if (memberId == null || !wanted.has(memberId)) return
     const current = last.get(memberId as MemberId)

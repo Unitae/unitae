@@ -24,8 +24,8 @@ type Options = {
 }
 
 // Sibling of listUserCadence for service-role assignments. Same event-side
-// query pattern (anchored on Event.templateId) but reads the
-// `serviceParts` relation instead of `parts`. Service
+// query pattern (anchored on Event.templateId) but reads the event's
+// service items (SERVICE_ITEMS) instead of its parts. Service
 // assignments have a single slot (assigneeId) and no section, so the anchor
 // and the participant check are both simpler. `hasHistory` reports whether
 // the user was ever on the matching service role at any past event of the
@@ -38,6 +38,8 @@ export async function listUserServiceCadence(
 
   const servicesSelect = {
     where: SERVICE_ITEMS,
+    // The first matching duty names the person: in the old rows' order, as the old relation returned them.
+    orderBy: { legacyServiceId: 'asc' },
     select: {
       name: true,
       assigneeId: true,
