@@ -470,7 +470,10 @@ both; `program-permissions.spec.ts` updated to the new rights.
 
 **Items (T12):** writers move to `Item` and its allowed roles, and the public id becomes `Item.id` (the
 projection helper of PR 4 flips; a form rendered by the previous image carries an old id, so posts say which
-id space they use); the triggers stay until PR 9 for the previous
+id space they use). While it rolls out, PR 4's image still serves and reads only items that mirror an old row
+(`MIRRORED_ITEMS`): an item PR 5's writers make without one is missing from that image's pages until the
+rollout ends, never an error. Callers that look an item up by its legacy id (`legacyPartId`, e.g. the
+external speaker's cadence) are found by grep when the helper flips; the triggers stay until PR 9 for the previous
 image, which still writes the old tables during the rollout (a row it writes lands in `Item` as before). The
 migration rewrites pending notices from `EventPart` / `EventServicePart` to `Item` (`entityType`, `entityId`
 through the legacy keys, `debounceKey`); the notice worker reads both kinds until PR 9.
