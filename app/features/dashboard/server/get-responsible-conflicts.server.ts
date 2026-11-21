@@ -1,3 +1,4 @@
+import { PART_ITEMS, SERVICE_ITEMS } from '~/features/events/index.server'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import { ResponsibilityScope, scopesCovering } from '~/features/events/model/responsibility-scope.type'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
@@ -51,8 +52,8 @@ export async function getResponsibleConflicts(
   const serviceEventFilter = isProgramManager ? upcoming : responsibleFor(ResponsibilityScope.Service)
 
   const [partRows, serviceRows] = await Promise.all([
-    db.eventPart.findMany({
-      where: { hasConflict: true, event: partEventFilter },
+    db.item.findMany({
+      where: { ...PART_ITEMS, hasConflict: true, event: partEventFilter },
       select: {
         eventId: true,
         assigneeId: true,
@@ -61,8 +62,8 @@ export async function getResponsibleConflicts(
         assistant: { select: { firstname: true, lastname: true } },
       },
     }),
-    db.eventServicePart.findMany({
-      where: { hasConflict: true, event: serviceEventFilter },
+    db.item.findMany({
+      where: { ...SERVICE_ITEMS, hasConflict: true, event: serviceEventFilter },
       select: {
         eventId: true,
         assigneeId: true,

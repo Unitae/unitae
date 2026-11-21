@@ -1,4 +1,5 @@
 import { EventStatus } from '~/features/events'
+import { PART_ITEMS } from '~/features/events/index.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -35,17 +36,17 @@ export async function getOpenParts(
       name: true,
       startDate: true,
       status: true,
-      _count: { select: { eventParts: { where: { assigneeId: null, externalSpeakerId: null } } } },
+      _count: { select: { items: { where: { ...PART_ITEMS, assigneeId: null, externalSpeakerId: null } } } },
     },
     orderBy: { startDate: 'asc' },
   })
   return events
-    .filter(event => event._count.eventParts > 0)
+    .filter(event => event._count.items > 0)
     .map(event => ({
       eventId: event.id,
       name: event.name,
       startDate: event.startDate,
       isDraft: event.status === EventStatus.Draft,
-      count: event._count.eventParts,
+      count: event._count.items,
     }))
 }

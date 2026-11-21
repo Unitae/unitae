@@ -1,16 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('~/shared/infra/db.server', () => ({
-  unscopedDb: {
-    attribution: { findMany: vi.fn() },
-    boardDocument: { findMany: vi.fn(), count: vi.fn() },
-    boardDynamicDocumentSettings: { findMany: vi.fn(), count: vi.fn() },
-    event: { findFirst: vi.fn(), findMany: vi.fn() },
-    eventPart: { findMany: vi.fn() },
-    eventServicePart: { findMany: vi.fn() },
-    role: { findMany: vi.fn() },
-  },
-}))
+vi.mock('~/shared/infra/db.server', async () => {
+  const { withItemMock } = await import('~/tests/helpers/item-mock')
+  return {
+    unscopedDb: withItemMock({
+      attribution: { findMany: vi.fn() },
+      boardDocument: { findMany: vi.fn(), count: vi.fn() },
+      boardDynamicDocumentSettings: { findMany: vi.fn(), count: vi.fn() },
+      event: { findFirst: vi.fn(), findMany: vi.fn() },
+      eventPart: { findMany: vi.fn() },
+      eventServicePart: { findMany: vi.fn() },
+      role: { findMany: vi.fn() },
+    }),
+  }
+})
 
 vi.mock('~/features/events/server/days-off.server', () => ({
   getNextDaysOffs: vi.fn(),
@@ -121,15 +124,27 @@ describe('getBoardDocuments', () => {
 
 // --- getNextMeeting ---
 
+// getNextMeeting reads its parts and services as items (plan T12): a fixture's lists feed the part and service mocks.
+function givenNextMeeting(event: { eventParts?: unknown[]; eventServiceParts?: unknown[] } | null) {
+  if (event == null) {
+    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    return
+  }
+  const { eventParts = [], eventServiceParts = [], ...rest } = event
+  vi.mocked(db.event.findFirst).mockResolvedValue(rest as never)
+  vi.mocked(db.eventPart.findMany).mockResolvedValue(eventParts as never)
+  vi.mocked(db.eventServicePart.findMany).mockResolvedValue(eventServiceParts as never)
+}
+
 describe('getNextMeeting', () => {
   it('returns null when no upcoming event exists', async () => {
-    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    givenNextMeeting(null as never)
     const result = await getNextMeeting(db, 1, CONGREGATION_ID)
     expect(result).toBeNull()
   })
 
   it('returns event with user part IDs identified and viewerRole tagged as speaker when viewer is the assignee', async () => {
-    vi.mocked(db.event.findFirst).mockResolvedValue({
+    givenNextMeeting({
       id: 1,
       name: 'Midweek',
       startDate: new Date(2026, 3, 25),
@@ -181,7 +196,7 @@ describe('getNextMeeting', () => {
   // through the same shared resolver as the assignment emails and the
   // upcoming-assignments card.
   it('resolves the board deep link via resolveProgrammeLink and returns it', async () => {
-    vi.mocked(db.event.findFirst).mockResolvedValue({
+    givenNextMeeting({
       id: 55,
       templateId: 9,
       name: 'Midweek',
@@ -199,7 +214,7 @@ describe('getNextMeeting', () => {
   })
 
   it('tags viewerRole as reader when viewer is the assistant (previously mislabeled speaker in the UI)', async () => {
-    vi.mocked(db.event.findFirst).mockResolvedValue({
+    givenNextMeeting({
       id: 1,
       name: 'Midweek',
       startDate: new Date(2026, 3, 25),
@@ -235,7 +250,7 @@ describe('getNextMeeting', () => {
   // helper fall back to defaults for every part, silently masking whatever
   // admins configured.
   it('projects speakerLabel and readerLabel on every partAssignment (sentinel test)', async () => {
-    vi.mocked(db.event.findFirst).mockResolvedValue({
+    givenNextMeeting({
       id: 1,
       name: 'Midweek',
       startDate: new Date(2026, 3, 25),
@@ -278,13 +293,12 @@ describe('getNextMeeting', () => {
 
     // Also assert the Prisma select requested the fields — a fixture that
     // happened to include the sentinels would pass without this.
-    const call = vi.mocked(db.event.findFirst).mock.calls[0][0]
-    const select = call?.select as { eventParts?: { select?: Record<string, unknown> } }
-    expect(select.eventParts?.select).toMatchObject({ speakerLabel: true, readerLabel: true })
+    const call = vi.mocked(db.eventPart.findMany).mock.calls[0][0]
+    expect(call?.select).toMatchObject({ speakerLabel: true, readerLabel: true })
   })
 
   it('returns empty arrays when user has no assignments', async () => {
-    vi.mocked(db.event.findFirst).mockResolvedValue({
+    givenNextMeeting({
       id: 1,
       name: 'Midweek',
       startDate: new Date(2026, 3, 25),
@@ -312,7 +326,7 @@ describe('getNextMeeting', () => {
   // The dashboard is publisher-facing. Drafts must not surface — same
   // rationale as the other dashboard queries in this file.
   it('filters to status=released', async () => {
-    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    givenNextMeeting(null as never)
 
     await getNextMeeting(db, 42, CONGREGATION_ID)
 
@@ -323,7 +337,7 @@ describe('getNextMeeting', () => {
 
   // A filter through `template` would inner-join it and drop the events without one.
   it('keeps events without a template among the meetings to come', async () => {
-    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    givenNextMeeting(null as never)
 
     await getNextMeeting(db, 42, CONGREGATION_ID)
 

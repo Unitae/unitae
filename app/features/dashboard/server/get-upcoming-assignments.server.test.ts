@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('~/shared/infra/db.server', () => ({
-  unscopedDb: {
-    eventPart: { findMany: vi.fn() },
-    eventServicePart: { findMany: vi.fn() },
-  },
-}))
+vi.mock('~/shared/infra/db.server', async () => {
+  const { withItemMock } = await import('~/tests/helpers/item-mock')
+  return {
+    unscopedDb: withItemMock({
+      eventPart: { findMany: vi.fn() },
+      eventServicePart: { findMany: vi.fn() },
+    }),
+  }
+})
 
 // The board deep-link resolver is shared with the assignment notification
 // emails; we mock it here and assert we hand it the right event, rather than
