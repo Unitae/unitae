@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mockDb = {
   externalSpeaker: { findMany: vi.fn(), findFirst: vi.fn(), count: vi.fn() },
   speakerCongregation: { findMany: vi.fn(), findFirst: vi.fn() },
-  eventPart: { findMany: vi.fn() },
+  item: { findMany: vi.fn() },
 }
 
 const {
@@ -46,7 +46,7 @@ describe('listSpeakerDirectory', () => {
   it('gives each speaker its last visit here and its next planned one', async () => {
     mockDb.speakerCongregation.findMany.mockResolvedValue([{ id: 8, name: 'Bagnolet' }])
     mockDb.externalSpeaker.findMany.mockResolvedValue([speaker(1, 'Paul LEROY'), speaker(2, 'Hugo BLANC')])
-    mockDb.eventPart.findMany.mockResolvedValue([
+    mockDb.item.findMany.mockResolvedValue([
       part(1, '2024-06-02T10:00:00Z'),
       part(1, '2026-03-08T10:00:00Z'),
       part(1, '2027-02-07T10:00:00Z', 40, 'draft'),
@@ -66,7 +66,7 @@ describe('listSpeakerDirectory', () => {
   it('never lists an anonymised speaker', async () => {
     mockDb.speakerCongregation.findMany.mockResolvedValue([])
     mockDb.externalSpeaker.findMany.mockResolvedValue([])
-    mockDb.eventPart.findMany.mockResolvedValue([])
+    mockDb.item.findMany.mockResolvedValue([])
 
     await listSpeakerDirectory(mockDb as never, 1, NOW)
 
@@ -79,7 +79,7 @@ describe('listSpeakerDirectory', () => {
       speaker(5, 'Kevin ROCHE', { speakerCongregationId: null, speakerCongregation: null, congregationName: 'Noisy' }),
       speaker(6, 'M. DIALLO', { speakerCongregationId: null, speakerCongregation: null, congregationName: '' }),
     ])
-    mockDb.eventPart.findMany.mockResolvedValue([])
+    mockDb.item.findMany.mockResolvedValue([])
 
     const directory = await listSpeakerDirectory(mockDb as never, 1, NOW)
 
@@ -89,7 +89,7 @@ describe('listSpeakerDirectory', () => {
 
 describe('getSpeakerVisits', () => {
   it('splits a speaker’s visits into upcoming (soonest first) and past (latest first)', async () => {
-    mockDb.eventPart.findMany.mockResolvedValue([
+    mockDb.item.findMany.mockResolvedValue([
       {
         name: 'Discours public',
         topic: 'n° 54',
@@ -127,7 +127,7 @@ describe('listExternalSpeakerOptions', () => {
       speaker(2, 'Hugo BLANC', { speakerCongregationId: null, speakerCongregation: null, congregationName: 'Noisy' }),
       speaker(3, 'Antoine MERCIER'),
     ])
-    mockDb.eventPart.findMany.mockResolvedValue([part(1, '2026-03-08T10:00:00Z'), part(3, '2025-02-09T10:00:00Z')])
+    mockDb.item.findMany.mockResolvedValue([part(1, '2026-03-08T10:00:00Z'), part(3, '2025-02-09T10:00:00Z')])
 
     const options = await listExternalSpeakerOptions(mockDb as never, 1, NOW)
 

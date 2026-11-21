@@ -5,6 +5,7 @@ import {
   normalize,
   toCadenceStatus,
 } from '~/features/events/server/cadence-shared.server'
+import { PART_ITEMS } from '~/features/events/server/item-projection'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { EXTERNAL_SPEAKER_LABEL_SELECT, externalSpeakerLabel } from '~/shared/utils/external-speaker-label'
 import { formatPersonName } from '~/shared/utils/format-person-name'
@@ -33,6 +34,7 @@ export async function listExternalSpeakerCadence(
   if (event.templateId == null) return { past: [], future: [], hasHistory: false, lastAssignedAt: null }
 
   const partsSelect = {
+    where: PART_ITEMS,
     select: {
       name: true,
       section: true,
@@ -44,7 +46,7 @@ export async function listExternalSpeakerCadence(
   } as const
 
   const commonWhere = { templateId: event.templateId, congregationId } as const
-  const rowSelect = { id: true, startDate: true, status: true, eventParts: partsSelect } as const
+  const rowSelect = { id: true, startDate: true, status: true, items: partsSelect } as const
 
   const [pastRows, futureRows, historicalAssignments] = await Promise.all([
     db.event.findMany({
@@ -59,10 +61,11 @@ export async function listExternalSpeakerCadence(
       take: futureCount,
       select: rowSelect,
     }),
-    db.eventPart.findMany({
+    db.item.findMany({
       where: {
         event: { ...commonWhere, startDate: { lt: event.startDate } },
         externalSpeakerId,
+        ...PART_ITEMS,
       },
       select: { name: true, section: true, event: { select: { startDate: true } } },
     }),
@@ -70,7 +73,7 @@ export async function listExternalSpeakerCadence(
 
   const targetName = normalize(partName)
   const targetSection = normalize(partSection)
-  type PartRow = (typeof pastRows)[number]['eventParts'][number]
+  type PartRow = (typeof pastRows)[number]['items'][number]
   // Prefer the external speaker on this row even if their name is empty —
   // the FK is the identity signal, not the display string. Fall back to
   // the in-house assignee for rows where the slot was covered internally.
@@ -80,9 +83,7 @@ export async function listExternalSpeakerCadence(
     return null
   }
   const toEntry = (row: (typeof pastRows)[number]): CadenceEntry => {
-    const matches = row.eventParts.filter(
-      p => normalize(p.name) === targetName && normalize(p.section) === targetSection,
-    )
+    const matches = row.items.filter(p => normalize(p.name) === targetName && normalize(p.section) === targetSection)
     const person = matches.map(nameOf).find(n => n != null)
     return {
       date: row.startDate.toISOString(),

@@ -22,8 +22,9 @@ export async function resolveExternalSpeakerCadence(
 ): Promise<CadencePayload> {
   if (excludePartAssignmentId == null) return EMPTY_CADENCE
 
-  const current = await db.eventPart.findFirst({
-    where: { id: excludePartAssignmentId, congregationId },
+  // The part by the id its routes carry, the old row's (plan T12): its item mirrors it.
+  const current = await db.item.findFirst({
+    where: { legacyPartId: excludePartAssignmentId, congregationId },
     select: { name: true, section: true, externalSpeakerId: true },
   })
   if (!current) return EMPTY_CADENCE

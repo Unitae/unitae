@@ -1,10 +1,10 @@
 import { mayReadSlotFacts } from '~/features/events/server/events-auth.server'
+import { PART_ITEMS } from '~/features/events/server/item-projection'
 import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
 import { resolveExternalSpeakerCadence } from '~/features/events/server/resolve-external-speaker-cadence.server'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import type { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
-
 import type { Route } from './+types/external-speaker-info'
 
 function parseOptionalId(raw: string | null): number | null {
@@ -41,10 +41,11 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
     })
     if (!speaker) return Response.json(null)
 
-    const recentHistory = await db.eventPart.findMany({
+    const recentHistory = await db.item.findMany({
       where: {
         congregationId,
         externalSpeakerId,
+        ...PART_ITEMS,
         event: { startDate: { lt: new Date() } },
       },
       select: {

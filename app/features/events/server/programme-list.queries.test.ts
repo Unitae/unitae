@@ -9,12 +9,22 @@ const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 const FROM = new Date('2026-11-08T23:00:00Z')
 const TO = new Date('2026-12-31T22:59:59.999Z')
+// The rows the items read as (plan T12): a part or a service by the old row each mirrors.
+let legacyId = 100
 const part = (assigneeId: number | null, externalSpeakerId: number | null = null, hasConflict = false) => ({
+  legacyPartId: legacyId++,
+  legacyServiceId: null,
   assigneeId,
   externalSpeakerId,
   hasConflict,
 })
-const service = (assigneeId: number | null, hasConflict = false) => ({ assigneeId, hasConflict })
+const service = (assigneeId: number | null, hasConflict = false) => ({
+  legacyPartId: null,
+  legacyServiceId: legacyId++,
+  assigneeId,
+  externalSpeakerId: null,
+  hasConflict,
+})
 
 beforeEach(() => vi.resetAllMocks())
 
@@ -35,8 +45,7 @@ describe('listProgrammes', () => {
           key: 'midweek-meeting',
           _count: { parts: 12, serviceParts: 4 },
         },
-        eventParts: [part(5), part(null, 2), part(null), part(7, null, true)],
-        eventServiceParts: [service(9), service(null), service(5, true)],
+        items: [part(5), service(9), part(null, 2), part(null), service(null), part(7, null, true), service(5, true)],
       },
     ] as never)
 
@@ -58,7 +67,7 @@ describe('listProgrammes', () => {
 
   // The recurring-events job creates the meetings ahead; their programme comes later.
   it('says which meetings are still waiting for their programme, never another event', async () => {
-    const empty = { startDate: new Date(), endDate: new Date(), status: 'draft', eventParts: [], eventServiceParts: [] }
+    const empty = { startDate: new Date(), endDate: new Date(), status: 'draft', items: [] }
     vi.mocked(db.event.findMany).mockResolvedValue([
       {
         ...empty,
@@ -92,8 +101,7 @@ describe('listProgrammes', () => {
         status: 'draft',
         templateId: null,
         template: null,
-        eventParts: [],
-        eventServiceParts: [],
+        items: [],
       },
     ] as never)
 

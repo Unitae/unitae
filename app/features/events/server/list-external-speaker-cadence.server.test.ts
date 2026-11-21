@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     event: { findMany: vi.fn() },
-    eventPart: { findMany: vi.fn().mockResolvedValue([]) },
+    item: { findMany: vi.fn().mockResolvedValue([]) },
   },
 }))
 
@@ -24,7 +24,7 @@ const DEFAULT_ARGS = {
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(db.event.findMany).mockResolvedValue([] as never)
-  vi.mocked(db.eventPart.findMany).mockResolvedValue([] as never)
+  vi.mocked(db.item.findMany).mockResolvedValue([] as never)
 })
 
 describe('listExternalSpeakerCadence — event window queries', () => {
@@ -77,7 +77,7 @@ describe('listExternalSpeakerCadence — assigned + personName', () => {
           id: 1,
           startDate: new Date('2026-04-01'),
           status: 'released',
-          eventParts: [
+          items: [
             {
               name: 'Discours public',
               section: 'Culte',
@@ -104,7 +104,7 @@ describe('listExternalSpeakerCadence — assigned + personName', () => {
           id: 1,
           startDate: new Date('2026-04-01'),
           status: 'released',
-          eventParts: [
+          items: [
             {
               name: 'Discours public',
               section: 'Culte',
@@ -131,7 +131,7 @@ describe('listExternalSpeakerCadence — assigned + personName', () => {
           id: 1,
           startDate: new Date('2026-04-01'),
           status: 'released',
-          eventParts: [
+          items: [
             {
               name: 'Discours public',
               section: 'Culte',
@@ -163,7 +163,7 @@ describe('listExternalSpeakerCadence — assigned + personName', () => {
           id: 1,
           startDate: new Date('2026-04-01'),
           status: 'released',
-          eventParts: [
+          items: [
             {
               name: 'Discours public',
               section: 'Culte',
@@ -184,9 +184,7 @@ describe('listExternalSpeakerCadence — assigned + personName', () => {
 
   it('returns personName=null when the event has no matching part assignment', async () => {
     vi.mocked(db.event.findMany)
-      .mockResolvedValueOnce([
-        { id: 1, startDate: new Date('2026-04-01'), status: 'released', eventParts: [] },
-      ] as never)
+      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-04-01'), status: 'released', items: [] }] as never)
       .mockResolvedValueOnce([] as never)
 
     const result = await listExternalSpeakerCadence(db, DEFAULT_ARGS)
@@ -199,7 +197,7 @@ describe('listExternalSpeakerCadence — assigned + personName', () => {
   // don't accidentally coerce past status to 'released'.
   it("propagates event.status as 'draft' when the past row is a draft", async () => {
     vi.mocked(db.event.findMany)
-      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-04-01'), status: 'draft', eventParts: [] }] as never)
+      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-04-01'), status: 'draft', items: [] }] as never)
       .mockResolvedValueOnce([] as never)
 
     const result = await listExternalSpeakerCadence(db, DEFAULT_ARGS)
@@ -209,9 +207,7 @@ describe('listExternalSpeakerCadence — assigned + personName', () => {
 
   it("bucket unknown Event.status values as 'released' (fallback contract)", async () => {
     vi.mocked(db.event.findMany)
-      .mockResolvedValueOnce([
-        { id: 1, startDate: new Date('2026-04-01'), status: 'cancelled', eventParts: [] },
-      ] as never)
+      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-04-01'), status: 'cancelled', items: [] }] as never)
       .mockResolvedValueOnce([] as never)
 
     const result = await listExternalSpeakerCadence(db, DEFAULT_ARGS)
@@ -222,7 +218,7 @@ describe('listExternalSpeakerCadence — assigned + personName', () => {
   it("propagates event.status as 'draft' when the future row is a draft", async () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([] as never)
-      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-08-01'), status: 'draft', eventParts: [] }] as never)
+      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-08-01'), status: 'draft', items: [] }] as never)
 
     const result = await listExternalSpeakerCadence(db, DEFAULT_ARGS)
 
@@ -238,7 +234,7 @@ describe('listExternalSpeakerCadence — anchor matching + hasHistory', () => {
           id: 1,
           startDate: new Date('2026-04-01'),
           status: 'released',
-          eventParts: [
+          items: [
             {
               name: 'Cantique',
               section: 'Culte',
@@ -264,7 +260,7 @@ describe('listExternalSpeakerCadence — anchor matching + hasHistory', () => {
           id: 1,
           startDate: new Date('2026-04-01'),
           status: 'released',
-          eventParts: [
+          items: [
             {
               name: '  DISCOURS PUBLIC  ',
               section: 'culte',
@@ -283,15 +279,15 @@ describe('listExternalSpeakerCadence — anchor matching + hasHistory', () => {
     expect(result.past[0].assigned).toBe(true)
   })
 
-  it('hasHistory query filters eventPart on the external speaker id', async () => {
+  it('hasHistory query filters the parts on the external speaker id', async () => {
     await listExternalSpeakerCadence(db, DEFAULT_ARGS)
 
-    const call = vi.mocked(db.eventPart.findMany).mock.calls[0][0]
+    const call = vi.mocked(db.item.findMany).mock.calls[0][0]
     expect(call?.where).toMatchObject({ externalSpeakerId: 42 })
   })
 
   it('returns hasHistory=true when the speaker held the same-name-and-section slot at some point in the past', async () => {
-    vi.mocked(db.eventPart.findMany).mockResolvedValue([
+    vi.mocked(db.item.findMany).mockResolvedValue([
       { name: 'Discours public', section: 'Culte', event: { startDate: new Date('2024-03-01') } },
     ] as never)
 
@@ -301,7 +297,7 @@ describe('listExternalSpeakerCadence — anchor matching + hasHistory', () => {
   })
 
   it('reports when the speaker last held the slot, across all past instances', async () => {
-    vi.mocked(db.eventPart.findMany).mockResolvedValue([
+    vi.mocked(db.item.findMany).mockResolvedValue([
       { name: 'Discours public', section: 'Culte', event: { startDate: new Date('2025-03-14') } },
       { name: 'Discours public', section: 'Culte', event: { startDate: new Date('2024-01-07') } },
     ] as never)
@@ -312,7 +308,7 @@ describe('listExternalSpeakerCadence — anchor matching + hasHistory', () => {
   })
 
   it('hasHistory ignores rows whose normalized name/section do not match', async () => {
-    vi.mocked(db.eventPart.findMany).mockResolvedValue([
+    vi.mocked(db.item.findMany).mockResolvedValue([
       { name: 'Prière', section: 'Culte' },
       { name: 'Discours public', section: 'Assembly' },
     ] as never)
