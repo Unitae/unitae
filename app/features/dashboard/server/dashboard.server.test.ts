@@ -138,7 +138,7 @@ function givenNextMeeting(event: { eventParts?: unknown[]; eventServiceParts?: u
 
 describe('getNextMeeting', () => {
   it('returns null when no upcoming event exists', async () => {
-    givenNextMeeting(null as never)
+    givenNextMeeting(null)
     const result = await getNextMeeting(db, 1, CONGREGATION_ID)
     expect(result).toBeNull()
   })
@@ -295,6 +295,11 @@ describe('getNextMeeting', () => {
     // happened to include the sentinels would pass without this.
     const call = vi.mocked(db.eventPart.findMany).mock.calls[0][0]
     expect(call?.select).toMatchObject({ speakerLabel: true, readerLabel: true })
+    // Only that meeting's parts and services.
+    expect(call?.where).toMatchObject({ eventId: expect.any(Number) })
+    expect(vi.mocked(db.eventServicePart.findMany).mock.calls[0][0]?.where).toMatchObject({
+      eventId: call?.where?.eventId,
+    })
   })
 
   it('returns empty arrays when user has no assignments', async () => {
@@ -326,7 +331,7 @@ describe('getNextMeeting', () => {
   // The dashboard is publisher-facing. Drafts must not surface — same
   // rationale as the other dashboard queries in this file.
   it('filters to status=released', async () => {
-    givenNextMeeting(null as never)
+    givenNextMeeting(null)
 
     await getNextMeeting(db, 42, CONGREGATION_ID)
 
@@ -337,7 +342,7 @@ describe('getNextMeeting', () => {
 
   // A filter through `template` would inner-join it and drop the events without one.
   it('keeps events without a template among the meetings to come', async () => {
-    givenNextMeeting(null as never)
+    givenNextMeeting(null)
 
     await getNextMeeting(db, 42, CONGREGATION_ID)
 

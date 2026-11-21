@@ -4,7 +4,9 @@
 // top-level filter only (PART_ITEMS, SERVICE_ITEMS or a legacy id): a query that names neither or both throws, so a
 // reader that drops its kind filter fails here even when it excludes a row by a legacy id. A row comes back with the old
 // row's id as its legacy key, its template part's as its template item's, and an item id of its own that is never the old
-// one, so a reader handing out the item's id instead of the old row's shows.
+// one when its select asks for `id` (as Prisma, a select without it gets none; no other field is filtered), so a reader
+// handing out the item's id instead of the old row's shows. The legacy keys come whatever the select names: typecheck
+// is what makes a reader select them.
 
 type Args = { where?: Record<string, unknown>; select?: Record<string, unknown> } | undefined
 type Model = Partial<Record<'findMany' | 'findFirst', (args: Args) => unknown>>

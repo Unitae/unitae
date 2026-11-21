@@ -83,7 +83,7 @@ export async function getUpcomingAssignments(
         assistant: { select: { firstname: true, lastname: true } },
         event: eventSelect,
       },
-      // The old rows' order breaks a tie, as their physical order did.
+      // The old row's id breaks a tie the old query left to Postgres (in practice the rows' insertion order).
       orderBy: [{ event: { startDate: 'asc' } }, { legacyPartId: 'asc' }],
     }),
     db.item.findMany({

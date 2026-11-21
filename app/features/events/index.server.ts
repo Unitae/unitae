@@ -16,15 +16,12 @@ export {
 } from './server/event-templates.server'
 export { getResponsibleTemplateIds, templateItemBelongsToTemplate } from './server/events-auth.server'
 export {
-  MIRRORED_ITEMS,
-  PART_ITEM_ORDER,
   PART_ITEMS,
   PART_ITEMS_BY_DATE,
   publicItemId,
   SERVICE_ITEM_ORDER,
   SERVICE_ITEMS,
   SERVICE_ITEMS_BY_DATE,
-  splitItems,
 } from './server/item-projection.server'
 export {
   findLastAssignmentsForMembers,

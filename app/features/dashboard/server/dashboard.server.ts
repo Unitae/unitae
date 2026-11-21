@@ -196,6 +196,8 @@ export async function getNextMeeting(db: TransactionClient, userId: number, cong
         // A visiting speaker holds the part instead of a member: not an empty slot.
         externalSpeaker: { select: EXTERNAL_SPEAKER_LABEL_SELECT },
       },
+      // The old query's order, by position alone (never the track's, unlike PART_ITEM_ORDER), the old row's id breaking a
+      // tie it left to Postgres.
       orderBy: [{ order: 'asc' }, { legacyPartId: 'asc' }],
     }),
     db.item.findMany({
