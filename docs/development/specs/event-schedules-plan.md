@@ -14,9 +14,9 @@ decision of its own, only the technical choices listed in §1.
 
 | # | Choice | Why |
 |---|---|---|
-| T1 | **The service-part tables keep their names.** `EventServicePart`, `TemplateServicePart` and their allowed-role tables stay as they are in the database and in Prisma; « duty » is the word of the UI, the spec and new code. | The model names are frozen into pending notification rows, debounce keys (`EventServicePart:<id>:user:<n>`), audit rows and the legacy entity map of the archive import. A rename buys nothing and needs a map in four places. |
+| T1 | ~~**The service-part tables keep their names.**~~ Superseded by T12 (2026-11-21): items are unified, so the four item tables go in PR 9 and pending notices are rewritten when they do. | Kept the item ids and names frozen in notices, debounce keys, audit rows and the archive's entity map; T12 pays that rewrite once. |
 | T2 | **`EventTemplate` becomes the event kind in place**, and its table is never renamed: the Prisma model becomes `EventKind` with `@@map("EventTemplate")` in PR 6, and audit rows keep the entity type `EventTemplate`. | A table rename breaks the image still running at the migration; a mapped model costs nothing but a cosmetic SQL name. |
-| T3 | **Allowed roles hang off items, not schedules.** The four allowed-role tables and `PartPreset.scope` (`part` / `service`) are untouched; `service` means « duty » from PR 5 on, in labels only. | They describe one item; moving items into schedules does not change them. |
+| T3 | **Allowed roles hang off items, not schedules**, in one table per side keyed by slot (`main`, `second`: today's speaker and reader, a duty's single list as `main`). `PartPreset.scope` (`part` / `service`) stays; `service` means « duty » from PR 5 on, in labels only. | They describe one item; moving items into schedules does not change them. |
 | T4 | **The freeform template becomes the kind « Autre évènement »**: no suggested schedules, no rules, managers only, as today. The stale « freeform = templateId null » comments go in PR 0. | It is already a template row; nothing to migrate. |
 | T5 | **`applyTemplateToEvent` splits in two** (PR 5): « Ajouter un planning » (from a schedule template, appended as a new schedule) and « Changer le type » (the event's kind, an event edit). | Today one action re-points `templateId` — which changes who is responsible — and appends parts and services. |
 | T6 | **Rules get their own expand step** (PR 7), after schedules are switched, instead of being backfilled with schedules. The kind-level weekday, hours and `generatedUntil` are written until PR 8 and dropped in PR 10; the lock stays on the kind's row. | Keeps PR 3 to one concern; the recurring job changes in one PR. |
@@ -25,6 +25,7 @@ decision of its own, only the technical choices listed in §1.
 | T10 | **`Event.origin`** (`job` / `manual` / `import`) replaces « null author » as the sign of a job-made meeting (PR 0). | Clearing an author (account deletion) must never turn a hand-made event into one a template move may delete. |
 | T11 | **One event per occurrence, by constraint**: `Event.occurrenceDay` and a unique index on (`recurrenceRuleId`, `occurrenceDay`) (PR 7). The job inserts with `ON CONFLICT DO NOTHING`; dedupe and moves key on the rule, never on the kind and the day. | Eight rules of one kind share weekdays; a day-keyed check would skip one rule's events and let a split delete another rule's meeting. |
 | T8 | **One archive bump per PR that changes the format**, numbered in merge order from 2.16. Each previous version joins `SUPPORTED_ARCHIVE_VERSIONS` and has an import mapping, tested by importing an archive of that version kept as a fixture. | Same rule as every bump so far. |
+| T12 | **Parts and duties become one item** (spec D36): `TemplateItem`, `TemplateItemAllowedRole`, `Item`, `ItemAllowedRole` replace the eight item tables. Expanded right before the read switch (PR 3c, 3d) so PR 4 moves every item reader once, to items in schedules; PR 9 drops the old tables. | 61 of the 84 files reading items read both tables with the same logic twice; the read switch rewrites them anyway, so unifying then costs two PRs instead of a second rewrite. |
 
 ## 2. Ground rules for every PR
 
@@ -131,6 +132,8 @@ about thirty non-test files; the read switch goes feature by feature.
 | 2 | Absences — contract | — | none |
 | 3a | Schedules: tables, backfill, dual write | — | none |
 | 3b | Schedules: archive | bump | none |
+| 3c | Items: one table per side, backfill, dual write (T12) | — | none |
+| 3d | Items: archive | bump | none |
 | — | Design round A (event view, publishing, settings) | — | canvas |
 | 4a | Read switch: catch-up migration; programme list, event view, share message, external speakers | — | none visible |
 | 4b | Read switch: assignments, conflicts, candidates, cadence, engagement | — | none visible |
@@ -341,12 +344,42 @@ same. » apart from the new column.
 with and without a service scope; a released and a draft event; idempotence; the partial unique
 index refusing a second programme); dual-write service tests; archive round-trip and an import of the previous version's fixture.
 
+## 7a. PR 3c, 3d — Items, expand (T12, spec D36)
+
+**Schema and migration** `add_items`: `TemplateItem` (`scheduleTemplateId` Cascade, `templateId` kept
+while templates still own their items, `name`, `order`, `presetId?`, the programme columns `section`,
+`track`, `trackOrder`, `durationMin`, `speakerLabel`, `readerLabel`, `allowExternalSpeaker`) and
+`TemplateItemAllowedRole` (`slot` `main` | `second`, CHECK); `Item` (`scheduleId`, `eventId` with the
+composite foreign key to `Schedule(id, eventId)`, `templateItemId?` SetNull, every column of today's
+parts, the main slot's `assigneeId`, `assistantId`, `externalSpeakerId`, `topic`, `note`, `hasConflict`)
+and `ItemAllowedRole`. Each carries `legacyPartId?` / `legacyServiceId?` (unique), the row it was copied
+from: the key a re-run and the notice rewrite use, dropped in PR 9. `congregationId`, RLS and
+`TENANT_MODELS` for all four.
+
+**Backfill:** every template part and service, every event part and service, with its allowed roles
+(a part's `speaker` → `main`, `reader` → `second`; a service's single list → `main`); items take their
+row's schedule or schedule template (PR 3). Re-runnable on the legacy keys.
+
+**Dual write:** every writer of the old item tables (the PR 3 list, plus assign, unassign, reorder,
+conflict flags, allowed roles) writes the matching `Item` too, through one helper per side. Reads do
+not change. Duties may now carry a preset in the data; the picker comes with PR 6's template editor.
+
+**3d, archive (bump):** `template-items.ndjson`, `template-item-allowed-roles.ndjson`, `items.ndjson`,
+`item-allowed-roles.ndjson`; an older archive's four item files are mapped by the migration's rule in
+TypeScript, as for schedules.
+
+**Previous image:** writes the old tables only; PR 4's catch-up copies what it wrote.
+**Tests:** migration test (parts and services of both sides, allowed roles per slot, a part with a
+reader, idempotence, a re-run after old-shape writes); dual-write tests through every writer; the
+reference suite unchanged.
+
 ## 8. Design round A
 
-On the canvas, before PR 5: the event view with one section per schedule (status, responsible,
-« Publier »), « Ajouter un planning » and « Changer le type », the bulk publish report, Réglages
-« Types d’évènements » and « Modèles de plannings », the board programme configuration. Questions
-numbered on the board; PR 5 starts on the user's go.
+Done 2026-11-21, on the canvas page « Programmes — plusieurs plannings par réunion » (row « Tour A »):
+the event view with one section per schedule (status, responsible, « Publier », « Tout publier »),
+« Ajouter un planning » and « Changer le type », the bulk publish confirmation, Réglages « Types
+d’évènement » and « Modèles de planning », the board programme configuration. Decisions D37–D45 in
+the spec. PR 5 starts on the user's go.
 
 ## 9. PR 4 — Schedules, read switch
 
@@ -357,8 +390,14 @@ numbered on the board; PR 5 starts on the user's go.
    what PR 3's image cannot: deleting a role leaves a duty schedule template without its responsible
    where D31 falls back to the programme one (`deleteRole` lives in `shared/` and cannot call the events
    feature). Before this PR merges, any other service that seeds a congregation's templates must write
-   their schedule templates too, or congregations it creates afterwards keep none.
-2. Every reader of items and status reads schedules: the ~40 status readers and ~60 + ~50 item readers
+   their schedule templates too, or congregations it creates afterwards keep none. The same migration
+   catches up the items (PR 3c's backfill again) and rewrites pending notices from `EventPart` /
+   `EventServicePart` to `Item` (`entityType`, `entityId` through the legacy keys, `debounceKey`), as the
+   new image's writers notify on items from here on (T12). The previous image keeps writing the old
+   tables and old-kind notices during the rollout, so this image still writes both shapes and its
+   notice worker reads both kinds; PR 5 stops writing the old item tables, and its migration rewrites
+   the notices the previous image left.
+2. Every reader of items and status reads items in schedules: the ~40 status readers and ~60 + ~50 item readers
    listed in Appendix A, grouped into commits by feature — events (lists, view, cadence,
    conflicts, candidates, share message, engagement, feed, notifications), dashboard (next meeting,
    open parts, upcoming assignments, responsible conflicts, urgent items), board (`dynamic-documents`,
@@ -473,8 +512,8 @@ the duty assignee picker (person, group, free text), the redesigned list and the
   `EventFieldValue` (Cascade from its field and its event) — each with `congregationId`, RLS and a
   `TENANT_MODELS` entry. `Event` gains `recurrenceRuleId?` (SetNull), `occurrenceDay?` and
   `changedOnce`, with a unique index on (`recurrenceRuleId`, `occurrenceDay`) (T11).
-- `EventServicePart` gains `assigneeGroupId?` (PublisherGroup, SetNull) and `assigneeText?`, with a
-  CHECK keeping the three assignees exclusive.
+- `Item` gains `assigneeGroupId?` (PublisherGroup, SetNull) and `assigneeText?`, with a CHECK keeping
+  the three assignees exclusive; offered only in duty schedules (T12).
 - Backfill (spec §7 step 2): one rule per recurring template; its events on the template's weekday
   linked with their `occurrenceDay`, those whose hours differ marked `changedOnce`; events on another
   weekday left unlinked.
@@ -554,7 +593,9 @@ The image stops writing the kind-level weekday, hours and mark (PR 7's image rea
 ## 15. PR 9 — Schedules, contract
 
 Once PR 8's image runs, and nothing reads or writes them any more (T9): drop `Event.status` (unwritten
-since PR 5), `TemplateResponsible` and the template items' `templateId` (unwritten since PR 6);
+since PR 5), `TemplateResponsible` and the template items' `templateId` (unwritten since PR 6), the eight
+old item tables (`TemplatePart`, `TemplateServicePart`, `EventPart`, `EventServicePart` and their allowed
+roles, unwritten since PR 5) and the items' legacy keys (T12);
 `scheduleId` becomes required on items and `scheduleTemplateId` on template items. The items keep
 their `eventId` (composite foreign key, PR 3). Readers left on the dropped columns fail the full suite
 against the migrated schema first (the data-migration check).

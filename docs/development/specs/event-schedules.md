@@ -94,6 +94,16 @@ to filter out.
 | D33 | **Conductors are duties**, shown inline: a field service meeting's duty schedule « Conducteurs » holds one or two duties, and the event form shows it as « Conducteur(s) », so conductors keep notices, absence checks and their feed. |
 | D34 | **A rule can carry its own name**: a rule named « Prédication par groupe », with no place and no conductor, creates events of that name, and « Semaine type » prints the name in its cell. No separate note. |
 | D35 | **An event can have an audience**: everyone (default), or one or more publisher groups and/or chosen people. It is a **restriction**: only the audience, the event's assignees and the people who prepare programmes ever see it. Per-group meetings are one rule per group in the same slot (a rule's audience is copied onto its events). On the board a signed-in reader sees their own group's event in its cell; paper and other readers see one collapsed cell « Par groupe » (§5.3a). |
+| D36 | **Parts and duties are one kind of item** (decided 2026-11-21): one item table for templates, one for events, each with its allowed roles per slot. Duties get a type (preset) like parts, so a share message, slot labels and allowed-role defaults reach them too. The schedule's kind decides which fields an item shows: sections, tracks and durations in a programme; group and text assignees (D13) in a duty schedule. |
+| D37 | **A schedule's responsible** shows as the role, then its titulaire, then its adjoints (design round A). |
+| D38 | **Two forms stay**: a schedule's structure (rare, many options) on its own « Modifier le planning » page; the day-to-day assigning in the event view. Merging them would need another design. |
+| D39 | **A template's responsible may add** a schedule of their template to an event, besides filling and publishing it. |
+| D40 | **« Changer le type » warns and asks**: every schedule of the old kind is kept by default; unticking one removes it with its assignments. The new kind's suggestions are offered, a second programme only once the old one is unticked. |
+| D41 | **Deleting a published schedule** tells its assignees: « Attribution annulée ». |
+| D42 | **Bulk publish confirms first**, saying what will be published and what stays a draft, and why (not yours, someone absent). |
+| D43 | **« Tout publier »** on the event publishes every schedule the person may publish, beside each schedule's own button. |
+| D44 | **A schedule can be renamed on one event only**; its template keeps its name. |
+| D45 | **A reader sees only published schedules**, with no mention of the others. |
 
 ## 4. Current implementation (verified)
 
@@ -183,8 +193,13 @@ model RecurrenceRule {              // D16 — « Répéter chaque semaine »; C
 model ScheduleTemplate {            // one per schedule, shared by any event kind
   id, name, kind ('programme' | 'duty')
   responsibleRole Role?             // ONE responsible (D7): may fill and publish schedules made from it
-  parts  TemplatePart[]             // kind = programme
-  duties TemplateServicePart[]      // kind = duty; the table keeps its name (plan T1)
+  items  TemplateItem[]             // parts in a programme, duties in a duty template (D36)
+}
+
+model TemplateItem {                // D36 — a part or a duty of a schedule template
+  id, scheduleTemplateId, name, order, presetId?
+  section?, track?, trackOrder?, durationMin?, speakerLabel?, readerLabel?, allowExternalSpeaker
+  allowedRoles TemplateItemAllowedRole[]   // per slot: main, second
 }
 
 model EventKindScheduleTemplate {   // which schedule templates an event kind starts with, in order
@@ -217,16 +232,21 @@ model EventFieldValue { eventId, fieldId, value }
 model Schedule {                    // one schedule of one event
   id, eventId (onDelete: Cascade), scheduleTemplateId? (onDelete: SetNull), name, kind, order
   status  String @default("draft")  // 'draft' | 'published' — per schedule
-  parts   EventPart[]               // kind = programme
-  duties  EventServicePart[]        // kind = duty; the table keeps its name (plan T1)
+  items   Item[]                    // parts in a programme, duties in a duty schedule (D36)
   // at most one programme schedule per event (D9): partial unique index on (eventId) where kind = 'programme'
 }
 
-model EventServicePart {            // the duty, with a wider assignee (D13); group deleted → open
-  // exactly one of these, or none (open): a CHECK keeps them exclusive
+model Item {                        // D36 — a part or a duty of one schedule; (scheduleId, eventId) → Schedule
+  id, scheduleId, eventId, templateItemId?, name, order, presetId?, note, hasConflict
+  topic?, section?, track?, trackOrder?, durationMin?, speakerLabel?, readerLabel?   // programme items
+  allowExternalSpeaker, externalSpeakerId?
+  // the main slot: exactly one of these, or none (open); a CHECK keeps them exclusive. Group and text
+  // (D13) only in a duty schedule; group deleted → open
   assigneeId      Int?              // Member
   assigneeGroupId Int?              // PublisherGroup
   assigneeText    String?           // another congregation, an outside body
+  assistantId     Int?              // the second slot (reader, assistant), when the preset has one
+  allowedRoles ItemAllowedRole[]    // per slot: main, second
 }
 
 model Absence {                     // « Mes absences »
@@ -268,9 +288,10 @@ today.
 
 ### 5.2 Kinds of schedule
 
-- **`kind` fixes the shape of the items**, not the name: a `programme` schedule holds parts (section,
-  track, duration, reader slot, external speaker…); a `duty` schedule holds duties (name, preset,
-  assignee, allowed roles). Names, number and order of duty schedules are free.
+- **`kind` fixes the shape of the items**, not the name: items are one table (D36), and a `programme`
+  schedule's items are parts (section, track, duration, reader slot, external speaker…) while a `duty`
+  schedule's are duties (name, preset, assignee, allowed roles, a group or text assignee). Names, number
+  and order of duty schedules are free.
 - At most one programme schedule per event (D9), enforced in the database.
 - An event with **no schedule** is valid — « <event kind name> · Pas encore de programme ».
 
