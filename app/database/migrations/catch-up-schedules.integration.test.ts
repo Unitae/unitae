@@ -36,9 +36,11 @@ interface Result {
   dutyResponsible: (number | null)[]
   programmeRoleId: number
   serviceRoleId: number
-  /** The schedule of a part the previous image wrote without one, in the old table and in its mirror. */
+  /** The schedule of a part and a duty an older image wrote without one, in the old table and in its mirror. */
   strayPartSchedule: { old: number | null; mirror: number | null }
+  strayDutySchedule: { old: number | null; mirror: number | null }
   programmeScheduleId: number | null
+  dutyScheduleId: number | null
   itemsInStep: boolean
 }
 
@@ -78,8 +80,11 @@ function snapshot(): Promise<Result> {
             congregationId,
           },
         })
-        // Written by the previous image: no schedule.
+        // Written by an older image: no schedule, a part and a duty.
         const stray = await tx.eventPart.create({ data: { name: 'Discours', eventId: event.id, congregationId } })
+        const strayDuty = await tx.eventServicePart.create({
+          data: { name: 'Sono', eventId: event.id, congregationId },
+        })
 
         const dutyResponsible = async () =>
           (
@@ -96,14 +101,19 @@ function snapshot(): Promise<Result> {
         const second = await dutyResponsible()
 
         const programme = await tx.schedule.findFirst({ where: { eventId: event.id, kind: 'programme' } })
+        const duties = await tx.schedule.findFirst({ where: { eventId: event.id, kind: 'duty' } })
         const old = await tx.eventPart.findUniqueOrThrow({ where: { id: stray.id } })
         const mirror = await tx.item.findUniqueOrThrow({ where: { legacyPartId: stray.id } })
+        const oldDuty = await tx.eventServicePart.findUniqueOrThrow({ where: { id: strayDuty.id } })
+        const dutyMirror = await tx.item.findUniqueOrThrow({ where: { legacyServiceId: strayDuty.id } })
         result = {
           dutyResponsible: [first, second],
           programmeRoleId: programmeRole.id,
           serviceRoleId: serviceRole.id,
           strayPartSchedule: { old: old.scheduleId, mirror: mirror.scheduleId },
+          strayDutySchedule: { old: oldDuty.scheduleId, mirror: dutyMirror.scheduleId },
           programmeScheduleId: programme?.id ?? null,
+          dutyScheduleId: duties?.id ?? null,
           itemsInStep:
             JSON.stringify(await readOldItems(tx, congregationId)) ===
             JSON.stringify(await readNewItems(tx, congregationId)),
@@ -136,11 +146,13 @@ describe('catch_up_schedules migration', () => {
     expect(dutyResponsible).toEqual([serviceRoleId, programmeRoleId])
   })
 
-  it('puts an item the previous image wrote without a schedule in its schedule, in both shapes', async () => {
-    const { strayPartSchedule, programmeScheduleId, itemsInStep } = await snapshot()
+  it('puts a part and a duty an older image wrote without a schedule in theirs, in both shapes', async () => {
+    const { strayPartSchedule, strayDutySchedule, programmeScheduleId, dutyScheduleId, itemsInStep } = await snapshot()
 
     expect(programmeScheduleId).not.toBeNull()
+    expect(dutyScheduleId).not.toBeNull()
     expect(strayPartSchedule).toEqual({ old: programmeScheduleId, mirror: programmeScheduleId })
+    expect(strayDutySchedule).toEqual({ old: dutyScheduleId, mirror: dutyScheduleId })
     expect(itemsInStep).toBe(true)
   })
 })
