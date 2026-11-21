@@ -1,8 +1,11 @@
 -- The read switch's catch-up (plan T7): add_schedules' data writes and add_items' backfill again, copied verbatim, so
--- what the previous image wrote during the rollout reaches the schedules and the items before the readers move to them.
--- Schedule templates of templates made meanwhile, responsibles changed or lost with a deleted role (D31 falls back to
--- the programme one), items without their schedule, statuses, stray or missing item mirrors. Re-runs as is; the
--- migration test keeps both parts equal to their source files.
+-- what earlier images left without the new shape reaches the schedules and the items before the readers move to them:
+-- the image before the schedules during their rollout, and what the next one cannot realign. Among others: schedule
+-- templates of templates made or renamed meanwhile, a template applied to an event, a deleted template's schedule
+-- templates, a responsible changed or lost with a deleted role (D31 falls back to the programme one; a role deleted
+-- after this runs drifts again until PR 5, and nothing reads it before), items without their schedule, statuses, stray
+-- or missing item mirrors. In the copied steps, « the previous image » is the one running when each was first written.
+-- Re-runs as is; the migration test keeps both parts equal, statement for statement, to their source files.
 
 -- Part one: add_schedules, steps 2 to 9.
 

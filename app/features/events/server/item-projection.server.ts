@@ -1,4 +1,4 @@
-import { Prisma } from '~/database/generated/client'
+import { type EventPart, type EventServicePart, type Item, Prisma } from '~/database/generated/client'
 
 // The read switch (plan T12, PR 4): readers read `Item` but hand back today's shapes, the old row's id and kind, so the
 // writers, routes, form fields, links and notices keep theirs. PR 5 moves the writers to `Item` and flips this file: the
@@ -20,17 +20,16 @@ export const ITEM_ORIGIN_INCLUDE = {
   templateItem: { select: { legacyPartId: true, legacyServiceId: true } },
 } satisfies Prisma.ItemInclude
 
-/** What a reader selects beside its own columns to project an item: the rows it and its template item mirror. */
-export const ITEM_ORIGIN = {
-  legacyPartId: true,
-  legacyServiceId: true,
-  ...ITEM_ORIGIN_INCLUDE,
-} satisfies Prisma.ItemSelect
-
 export const PART_ITEMS = { legacyPartId: { not: null } } satisfies Prisma.ItemWhereInput
 export const SERVICE_ITEMS = { legacyServiceId: { not: null } } satisfies Prisma.ItemWhereInput
+/** The items this file can name: those that mirror an old row. PR 5's writers make items without one, which a reader of
+ * this image skips while that rollout runs rather than fail. */
+export const MIRRORED_ITEMS = { OR: [PART_ITEMS, SERVICE_ITEMS] } satisfies Prisma.ItemWhereInput
 
-/** Today's order of a programme's parts, the old row's id breaking the last ties as its own id did. */
+/**
+ * Today's order of a programme's parts. The old query left its last ties to Postgres (in practice the rows' insertion
+ * order); items sit in another physical order, so the old row's id makes that order explicit.
+ */
 export const PART_ITEM_ORDER = [
   { order: 'asc' },
   { trackOrder: { sort: 'asc', nulls: 'last' } },
@@ -43,7 +42,12 @@ export const SERVICE_ITEM_ORDER = [
   { legacyServiceId: 'asc' },
 ] satisfies Prisma.ItemOrderByWithRelationInput[]
 
-const ORIGIN_KEYS = ['legacyPartId', 'legacyServiceId', 'templateItem', 'templateItemId'] as const
+const ORIGIN_KEYS = [
+  'legacyPartId',
+  'legacyServiceId',
+  'templateItem',
+  'templateItemId',
+] as const satisfies readonly (keyof Prisma.ItemSelect)[]
 // What a part has and a service does not, the relations included.
 const PROGRAMME_KEYS = [
   'topic',
@@ -58,10 +62,18 @@ const PROGRAMME_KEYS = [
   'externalSpeakerId',
   'assistant',
   'externalSpeaker',
-] as const
+] as const satisfies readonly (keyof Prisma.ItemSelect)[]
 
 type OriginKey = (typeof ORIGIN_KEYS)[number]
 type ProgrammeKey = (typeof PROGRAMME_KEYS)[number]
+
+// Compile-time: the projections carry today's columns, no more and no fewer, so a column added to one side fails here.
+type SameKeys<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false
+const PART_SHAPE: SameKeys<Exclude<keyof Item, OriginKey> | 'partId', keyof EventPart> = true
+const SERVICE_SHAPE: SameKeys<Exclude<keyof Item, OriginKey | ProgrammeKey> | 'servicePartId', keyof EventServicePart> =
+  true
+void PART_SHAPE
+void SERVICE_SHAPE
 
 // Today's columns in their schema order: a row comes out with its keys where Prisma put them, so anything that prints a
 // row (the reference files) reads the same.
@@ -83,7 +95,10 @@ function without<T extends object, K extends string>(row: T, keys: readonly K[])
   return copy as Omit<T, K>
 }
 
-/** Whether an item is a part or a duty. Every item mirrors one old row until PR 5. */
+/**
+ * Whether an item is a part or a duty. Every item mirrors one old row until PR 5's writers make items of their own;
+ * readers of this image filter on MIRRORED_ITEMS (or one kind) so those never reach here.
+ */
 export function itemKind(item: ItemOrigin): ItemKind {
   if (item.legacyPartId != null) return 'part'
   if (item.legacyServiceId != null) return 'service'
