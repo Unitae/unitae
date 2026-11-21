@@ -36,6 +36,24 @@ export const PART_ITEM_ORDER = [
   { legacyPartId: 'asc' },
 ] satisfies Prisma.ItemOrderByWithRelationInput[]
 
+/**
+ * Parts across events in the programme's order: by event date, then position in the programme, the old row's id breaking
+ * ties so the order never depends on how Postgres stores the rows. A reader that lists parts then services and sorts the
+ * whole by date (a stable sort) shows each meeting's parts, then its services, each in theirs.
+ */
+export const PART_ITEMS_BY_DATE = [
+  { event: { startDate: 'asc' } },
+  { order: 'asc' },
+  { legacyPartId: 'asc' },
+] satisfies Prisma.ItemOrderByWithRelationInput[]
+
+/** Services across events, the same way. */
+export const SERVICE_ITEMS_BY_DATE = [
+  { event: { startDate: 'asc' } },
+  { order: 'asc' },
+  { legacyServiceId: 'asc' },
+] satisfies Prisma.ItemOrderByWithRelationInput[]
+
 /** Today's order of an event's services. */
 export const SERVICE_ITEM_ORDER = [
   { order: 'asc' },
@@ -103,6 +121,16 @@ export function itemKind(item: ItemOrigin): ItemKind {
   if (item.legacyPartId != null) return 'part'
   if (item.legacyServiceId != null) return 'service'
   throw new Error('An item that mirrors no part or service cannot be read before the writers move to items')
+}
+
+/**
+ * The id a reader hands out for an item: the old row's, until PR 5. A part and a service can share one, so it always
+ * travels with its kind.
+ */
+export function publicItemId(item: ItemOrigin): number {
+  const id = item.legacyPartId ?? item.legacyServiceId
+  if (id == null) throw new Error('An item that mirrors no part or service has no id this image can hand out')
+  return id
 }
 
 /** The parts and the duties of a list of items, each kind in the list's order. */

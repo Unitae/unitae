@@ -1,12 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('~/shared/infra/db.server', () => ({
-  unscopedDb: {
-    eventPart: { findFirst: vi.fn(), findMany: vi.fn().mockResolvedValue([]) },
-    eventServicePart: { findFirst: vi.fn(), findMany: vi.fn().mockResolvedValue([]) },
-    event: { findMany: vi.fn().mockResolvedValue([]) },
-  },
-}))
+vi.mock('~/shared/infra/db.server', async () => {
+  const { withItemMock } = await import('~/tests/helpers/item-mock')
+  return {
+    unscopedDb: withItemMock({
+      eventPart: { findFirst: vi.fn(), findMany: vi.fn().mockResolvedValue([]) },
+      eventServicePart: { findFirst: vi.fn(), findMany: vi.fn().mockResolvedValue([]) },
+      event: { findMany: vi.fn().mockResolvedValue([]) },
+    }),
+  }
+})
 
 const { resolvePublisherCadence } = await import('./resolve-publisher-cadence.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
@@ -195,7 +198,7 @@ describe('resolvePublisherCadence — anchor lookup filters', () => {
     await resolvePublisherCadence(db, DEFAULT_ARGS)
 
     const call = vi.mocked(db.eventPart.findFirst).mock.calls[0][0]
-    expect(call?.where).toEqual({ id: 77, congregationId: 1 })
+    expect(call?.where).toEqual({ legacyPartId: 77, congregationId: 1 })
     expect(call?.select).toMatchObject({ name: true, section: true, assigneeId: true, assistantId: true })
   })
 
@@ -209,7 +212,7 @@ describe('resolvePublisherCadence — anchor lookup filters', () => {
     })
 
     const call = vi.mocked(db.eventServicePart.findFirst).mock.calls[0][0]
-    expect(call?.where).toEqual({ id: 55, congregationId: 1 })
+    expect(call?.where).toEqual({ legacyServiceId: 55, congregationId: 1 })
     expect(call?.select).toMatchObject({ name: true, assigneeId: true })
   })
 })

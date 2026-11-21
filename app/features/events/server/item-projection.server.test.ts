@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { asEventPart, asEventServicePart, itemKind, splitItems } from './item-projection.server'
+import { asEventPart, asEventServicePart, itemKind, publicItemId, splitItems } from './item-projection.server'
 
 const base = {
   id: 900,
@@ -53,6 +53,12 @@ describe('item projection', () => {
 
   it('refuses an item that mirrors no row, which no reader can name yet', () => {
     expect(() => itemKind({ legacyPartId: null, legacyServiceId: null })).toThrow()
+  })
+
+  it("hands out the old row's id as an item's, and none for an item that mirrors no row", () => {
+    expect(publicItemId(part)).toBe(40)
+    expect(publicItemId(service)).toBe(60)
+    expect(() => publicItemId({ legacyPartId: null, legacyServiceId: null })).toThrow()
   })
 
   it("splits items by kind, keeping each kind's order", () => {

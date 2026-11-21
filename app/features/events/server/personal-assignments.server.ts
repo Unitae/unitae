@@ -1,6 +1,13 @@
 import type { Absence, Event, EventPart, EventServicePart } from '~/database/generated/client'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import { absencesOf } from '~/features/events/server/absences.queries'
+import {
+  asEventPart,
+  asEventServicePart,
+  ITEM_ORIGIN_INCLUDE,
+  PART_ITEMS,
+  SERVICE_ITEMS,
+} from '~/features/events/server/item-projection.server'
 import * as m from '~/i18n/paraglide/messages'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -36,22 +43,24 @@ export async function getPersonalAssignments(
 
   const [parts, serviceParts, daysOff] = await Promise.all([
     memberId != null
-      ? db.eventPart.findMany({
+      ? db.item.findMany({
           where: {
+            ...PART_ITEMS,
             OR: [{ assigneeId: memberId }, { assistantId: memberId }],
             // Drafts stay off the publisher's calendar and ICS feed.
             event: { startDate: { gte: since }, status: EventStatus.Released },
           },
-          include: { event: true },
+          include: { ...ITEM_ORIGIN_INCLUDE, event: true },
         })
       : Promise.resolve([]),
     memberId != null
-      ? db.eventServicePart.findMany({
+      ? db.item.findMany({
           where: {
+            ...SERVICE_ITEMS,
             assigneeId: memberId,
             event: { startDate: { gte: since }, status: EventStatus.Released },
           },
-          include: { event: true },
+          include: { ...ITEM_ORIGIN_INCLUDE, event: true },
         })
       : Promise.resolve([]),
     db.absence.findMany({
@@ -61,8 +70,8 @@ export async function getPersonalAssignments(
   ])
 
   return [
-    ...parts.map(p => partAssignmentToItem(p, memberId ?? userId)),
-    ...serviceParts.map(servicePartAssignmentToItem),
+    ...parts.map(p => partAssignmentToItem(asEventPart(p), memberId ?? userId)),
+    ...serviceParts.map(s => servicePartAssignmentToItem(asEventServicePart(s))),
     ...daysOff.map(dayOffToItem),
   ]
 }

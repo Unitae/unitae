@@ -1,7 +1,13 @@
-import type { Prisma } from '~/database/generated/client'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import type { AssignKind } from '~/features/events/model/reassign'
 import { absencesOf } from '~/features/events/server/absences.queries'
+import {
+  PART_ITEMS,
+  PART_ITEMS_BY_DATE,
+  publicItemId,
+  SERVICE_ITEMS,
+  SERVICE_ITEMS_BY_DATE,
+} from '~/features/events/server/item-projection.server'
 import {
   listUserConflictsInRange,
   type UserConflictInRange,
@@ -49,7 +55,7 @@ export async function listMyAbsences(
 /** An assignment flagged as falling during its holder's absence, with what the reader needs to reach it. */
 export interface AbsenceAssignment {
   kind: AssignKind
-  /** The part's or the service's id, from its own table. */
+  /** The id publicItemId hands out (today the old part's or service's), with its kind beside it. */
   id: number
   name: string
   eventId: number
@@ -72,13 +78,6 @@ export interface CongregationAbsence {
   lastname: string | null
   conflicts: AbsenceAssignment[]
 }
-
-// The programme's order: a meeting's parts, then its services (the stable sort by date below keeps them so), each in
-// their order — never whatever order the table returns them in.
-const PROGRAMME_ORDER = [{ event: { startDate: 'asc' } }, { order: 'asc' }, { id: 'asc' }] as const satisfies (
-  | Prisma.EventPartOrderByWithRelationInput
-  | Prisma.EventServicePartOrderByWithRelationInput
-)[]
 
 const overlaps = (event: { startDate: Date; endDate: Date }, absence: { startDate: Date; endDate: Date }) =>
   event.startDate <= absence.endDate && event.endDate >= absence.startDate
@@ -121,25 +120,38 @@ export async function listCongregationAbsences(
   }
   const event = { select: { id: true, startDate: true, endDate: true, templateId: true, status: true } }
   const [parts, services] = await Promise.all([
-    db.eventPart.findMany({
+    db.item.findMany({
       where: {
+        ...PART_ITEMS,
         congregationId,
         hasConflict: true,
         event: span,
         OR: [{ assigneeId: { in: memberIds } }, { assistantId: { in: memberIds } }],
       },
-      select: { id: true, name: true, assigneeId: true, assistantId: true, event },
-      orderBy: PROGRAMME_ORDER,
+      select: { legacyPartId: true, legacyServiceId: true, name: true, assigneeId: true, assistantId: true, event },
+      orderBy: PART_ITEMS_BY_DATE,
     }),
-    db.eventServicePart.findMany({
-      where: { congregationId, hasConflict: true, event: span, assigneeId: { in: memberIds } },
-      select: { id: true, name: true, assigneeId: true, event },
-      orderBy: PROGRAMME_ORDER,
+    db.item.findMany({
+      where: { ...SERVICE_ITEMS, congregationId, hasConflict: true, event: span, assigneeId: { in: memberIds } },
+      select: { legacyPartId: true, legacyServiceId: true, name: true, assigneeId: true, event },
+      orderBy: SERVICE_ITEMS_BY_DATE,
     }),
   ])
   const slots = [
-    ...parts.map(part => ({ ...part, kind: 'part' as const, holders: [part.assigneeId, part.assistantId] })),
-    ...services.map(service => ({ ...service, kind: 'service' as const, holders: [service.assigneeId] })),
+    ...parts.map(part => ({
+      id: publicItemId(part),
+      name: part.name,
+      event: part.event,
+      kind: 'part' as const,
+      holders: [part.assigneeId, part.assistantId],
+    })),
+    ...services.map(service => ({
+      id: publicItemId(service),
+      name: service.name,
+      event: service.event,
+      kind: 'service' as const,
+      holders: [service.assigneeId],
+    })),
   ]
 
   return absences.map(absence => ({

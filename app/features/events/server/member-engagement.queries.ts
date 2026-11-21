@@ -1,20 +1,16 @@
-import type { Prisma } from '~/database/generated/client'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import type { MemberAbsence, MemberAssignment } from '~/features/events/model/member-engagement.type'
+import {
+  PART_ITEMS,
+  PART_ITEMS_BY_DATE,
+  publicItemId,
+  SERVICE_ITEMS,
+  SERVICE_ITEMS_BY_DATE,
+} from '~/features/events/server/item-projection.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { CongregationId, MemberId } from '~/shared/types/branded'
 
 const MAX_ASSIGNMENTS = 5
-
-/**
- * One meeting's assignments in the programme's order, so a record reads the same every time. Coming ones: the date sort
- * is stable, so parts then services, each in theirs. Last done: `keep` only replaces on a later date, so the meeting's
- * first assignment wins.
- */
-const PROGRAMME_ORDER = [{ event: { startDate: 'asc' } }, { order: 'asc' }, { id: 'asc' }] as const satisfies (
-  | Prisma.EventPartOrderByWithRelationInput
-  | Prisma.EventServicePartOrderByWithRelationInput
-)[]
 
 /**
  * Upcoming released parts and service parts a member holds (as assignee or
@@ -34,29 +30,30 @@ export async function findUpcomingAssignmentsForMember(
     startDate: { gte: now },
   }
   const select = {
-    id: true,
+    legacyPartId: true,
+    legacyServiceId: true,
     name: true,
     event: { select: { id: true, name: true, startDate: true } },
   }
 
   const [parts, serviceParts] = await Promise.all([
-    db.eventPart.findMany({
-      where: { OR: [{ assigneeId: memberId }, { assistantId: memberId }], event: eventFilter },
+    db.item.findMany({
+      where: { ...PART_ITEMS, OR: [{ assigneeId: memberId }, { assistantId: memberId }], event: eventFilter },
       select,
-      orderBy: PROGRAMME_ORDER,
+      orderBy: PART_ITEMS_BY_DATE,
       take: MAX_ASSIGNMENTS,
     }),
-    db.eventServicePart.findMany({
-      where: { assigneeId: memberId, event: eventFilter },
+    db.item.findMany({
+      where: { ...SERVICE_ITEMS, assigneeId: memberId, event: eventFilter },
       select,
-      orderBy: PROGRAMME_ORDER,
+      orderBy: SERVICE_ITEMS_BY_DATE,
       take: MAX_ASSIGNMENTS,
     }),
   ])
 
   return [
-    ...parts.map(part => ({ key: `part-${part.id}`, ...toAssignment(part) })),
-    ...serviceParts.map(part => ({ key: `service-${part.id}`, ...toAssignment(part) })),
+    ...parts.map(part => ({ key: `part-${publicItemId(part)}`, ...toAssignment(part) })),
+    ...serviceParts.map(part => ({ key: `service-${publicItemId(part)}`, ...toAssignment(part) })),
   ]
     .sort((a, b) => a.eventStartDate.getTime() - b.eventStartDate.getTime())
     .slice(0, MAX_ASSIGNMENTS)
@@ -114,19 +111,20 @@ export async function findLastAssignmentsForMembers(
     startDate: { gte: since, lt: now },
   }
   const [parts, serviceParts] = await Promise.all([
-    db.eventPart.findMany({
-      where: { OR: [{ assigneeId: { in: memberIds } }, { assistantId: { in: memberIds } }], event },
+    db.item.findMany({
+      where: { ...PART_ITEMS, OR: [{ assigneeId: { in: memberIds } }, { assistantId: { in: memberIds } }], event },
       select: { name: true, assigneeId: true, assistantId: true, event: { select: { startDate: true } } },
-      orderBy: PROGRAMME_ORDER,
+      orderBy: PART_ITEMS_BY_DATE,
     }),
-    db.eventServicePart.findMany({
-      where: { assigneeId: { in: memberIds }, event },
+    db.item.findMany({
+      where: { ...SERVICE_ITEMS, assigneeId: { in: memberIds }, event },
       select: { name: true, assigneeId: true, event: { select: { startDate: true } } },
-      orderBy: PROGRAMME_ORDER,
+      orderBy: SERVICE_ITEMS_BY_DATE,
     }),
   ])
 
   const wanted = new Set<number>(memberIds)
+  // Only a later date replaces, so a meeting's first assignment in the programme's order wins.
   const keep = (memberId: number | null, partName: string, date: Date) => {
     if (memberId == null || !wanted.has(memberId)) return
     const current = last.get(memberId as MemberId)

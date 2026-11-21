@@ -25,8 +25,9 @@ export async function resolvePublisherCadence(
   { userId, event, congregationId, excludePartAssignmentId, excludeServiceAssignmentId, partSlot }: Options,
 ): Promise<CadencePayload> {
   if (excludePartAssignmentId != null) {
-    const current = await db.eventPart.findFirst({
-      where: { id: excludePartAssignmentId, congregationId },
+    // The part by the id its routes carry, the old row's (plan T12): its item mirrors it.
+    const current = await db.item.findFirst({
+      where: { legacyPartId: excludePartAssignmentId, congregationId },
       select: { name: true, section: true, assigneeId: true, assistantId: true },
     })
     if (!current) return EMPTY_CADENCE
@@ -46,8 +47,8 @@ export async function resolvePublisherCadence(
   }
 
   if (excludeServiceAssignmentId != null) {
-    const current = await db.eventServicePart.findFirst({
-      where: { id: excludeServiceAssignmentId, congregationId },
+    const current = await db.item.findFirst({
+      where: { legacyServiceId: excludeServiceAssignmentId, congregationId },
       select: { name: true, assigneeId: true },
     })
     if (!current) return EMPTY_CADENCE

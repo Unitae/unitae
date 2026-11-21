@@ -9,14 +9,17 @@ vi.mock('~/features/events/server/list-user-conflicts-in-range.server', () => ({
   },
 }))
 
-vi.mock('~/shared/infra/db.server', () => ({
-  unscopedDb: {
-    event: { findMany: vi.fn(), findFirst: vi.fn() },
-    absence: { findMany: vi.fn(), findFirst: vi.fn() },
-    eventPart: { findMany: vi.fn() },
-    eventServicePart: { findMany: vi.fn() },
-  },
-}))
+vi.mock('~/shared/infra/db.server', async () => {
+  const { withItemMock } = await import('~/tests/helpers/item-mock')
+  return {
+    unscopedDb: withItemMock({
+      event: { findMany: vi.fn(), findFirst: vi.fn() },
+      absence: { findMany: vi.fn(), findFirst: vi.fn() },
+      eventPart: { findMany: vi.fn() },
+      eventServicePart: { findMany: vi.fn() },
+    }),
+  }
+})
 
 const { listCongregationAbsences, listMyAbsences } = await import('./days-off.queries')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')

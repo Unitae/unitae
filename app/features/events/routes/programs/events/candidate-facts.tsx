@@ -43,15 +43,16 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
 
     let target: SlotTarget
     if (kind === 'part') {
-      const part = await db.eventPart.findFirst({
-        where: { id: assignmentId, congregationId },
+      // The slot by the id its routes carry, the old row's (plan T12): its item mirrors it.
+      const part = await db.item.findFirst({
+        where: { legacyPartId: assignmentId, congregationId },
         select: { name: true, section: true },
       })
       if (!part) return Response.json(null, { status: 404 })
       target = { kind, assignmentId, partName: part.name, partSection: part.section, slot }
     } else {
-      const service = await db.eventServicePart.findFirst({
-        where: { id: assignmentId, congregationId },
+      const service = await db.item.findFirst({
+        where: { legacyServiceId: assignmentId, congregationId },
         select: { name: true },
       })
       if (!service) return Response.json(null, { status: 404 })
