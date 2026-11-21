@@ -36,7 +36,7 @@ describe('listUserSameEventAssignments', () => {
     await listUserSameEventAssignments(db, { userId: 5, eventId: 10, congregationId: 1 })
 
     const call = vi.mocked(db.eventPart.findMany).mock.calls[0][0]
-    expect(call?.where).not.toHaveProperty('id')
+    expect(call?.where).not.toHaveProperty('NOT')
   })
 
   it('excludes the given service assignment id from the service query when provided', async () => {
@@ -55,7 +55,7 @@ describe('listUserSameEventAssignments', () => {
     await listUserSameEventAssignments(db, { userId: 5, eventId: 10, congregationId: 1 })
 
     const call = vi.mocked(db.eventServicePart.findMany).mock.calls[0][0]
-    expect(call?.where).not.toHaveProperty('id')
+    expect(call?.where).not.toHaveProperty('NOT')
   })
 
   it('returns parts tagged "part" and services tagged "service", parts first', async () => {
