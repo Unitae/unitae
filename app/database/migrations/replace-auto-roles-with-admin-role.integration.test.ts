@@ -409,8 +409,8 @@ describe('20260826120000_replace_auto_roles_with_admin_role', () => {
           // a role at all. Counting it here would be counting rows this SQL cannot destroy.
           // A table that starts cascading BEFORE this migration still fails the check.
           'TemplateResponsible',
-          // Created by add_items (20261125090000), long after this migration, as mirrors of the four allowed-role tables
-          // counted above: no row of theirs existed for this SQL to destroy.
+          // Created by add_items (20261125090000), long after this migration, as mirrors of the four item allowed-role
+          // tables that migration counts: no row of theirs existed for this SQL to destroy.
           'TemplateItemAllowedRole',
           'ItemAllowedRole',
         ].includes(t),

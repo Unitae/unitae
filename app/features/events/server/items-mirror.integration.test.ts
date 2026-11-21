@@ -5,8 +5,9 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 import { readNewItems, readOldItems } from '~/tests/helpers/item-mirror'
 
 // Parts and duties become one item (plan T12): until the writers move over, triggers copy every write of the eight old
-// item tables into TemplateItem, Item and their allowed roles. These run the app's own writers as the app's database
-// role, under its tenant scope, and compare the two shapes after each.
+// item tables into TemplateItem, Item and their allowed roles. These run the app's writers and direct Prisma writes under
+// the tenant scope, as the app's database role where DB_RUNTIME_URL names it (CI does), and compare the two shapes after
+// each step.
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -22,6 +23,10 @@ const { applyTemplateToEvent } = await import('./apply-template.server')
 const { bulkDeleteEvents } = await import('./delete-events.server')
 const { duplicateTemplate } = await import('./duplicate-template.server')
 const { deleteTemplate } = await import('./delete-template.server')
+const { setPartAssignmentAllowedRoles, setServicePartAssignmentAllowedRoles, setTemplatePartAllowedRoles } =
+  await import('./allowed-roles.server')
+
+const UNKNOWN_KIND = /unknown allowed-role kind 'host'/
 
 class Rollback extends Error {}
 
@@ -32,6 +37,8 @@ interface Fixture {
   /** Fails the test unless the new tables hold exactly what the old ones do. */
   inStep: () => Promise<void>
   templateId: (key: string) => Promise<number>
+  /** The role the fixture allows in every slot. */
+  roleId: number
 }
 
 /** Runs `fn` in a congregation of its own with the default templates, inside a transaction that is rolled back. */
@@ -47,14 +54,21 @@ async function inCongregation(fn: (fixture: Fixture) => Promise<void>) {
         ).id
         const db = tx as unknown as TransactionClient
         await seedDefaultTemplates(db, congregationId, 'fr')
-        // A bare congregation has no roles for the seed to allow: one role in both slots of every part and on every duty.
+        // The seed writes no allowed roles: one role in both slots of every part and on every duty, so the four
+        // allowed-role tables have rows to mirror.
         const role = await tx.role.create({ data: { key: `brother-${stamp}`, name: 'brother', congregationId } })
-        for (const { id: partId } of await tx.templatePart.findMany({ select: { id: true } })) {
+        for (const { id: partId } of await tx.templatePart.findMany({
+          where: { congregationId },
+          select: { id: true },
+        })) {
           await tx.templatePartAllowedRole.createMany({
             data: ['speaker', 'reader'].map(asKind => ({ partId, roleId: role.id, asKind, congregationId })),
           })
         }
-        for (const { id: servicePartId } of await tx.templateServicePart.findMany({ select: { id: true } })) {
+        for (const { id: servicePartId } of await tx.templateServicePart.findMany({
+          where: { congregationId },
+          select: { id: true },
+        })) {
           await tx.templateServicePartAllowedRole.create({ data: { servicePartId, roleId: role.id, congregationId } })
         }
         await fn({
@@ -66,6 +80,7 @@ async function inCongregation(fn: (fixture: Fixture) => Promise<void>) {
             expect(mirrored).toEqual(old)
           },
           templateId: async key => (await tx.eventTemplate.findFirstOrThrow({ where: { key } })).id,
+          roleId: role.id,
         })
         throw new Rollback()
       },
@@ -130,6 +145,35 @@ describe('old item tables mirrored into the new ones', () => {
     })
   })
 
+  it('removes one slot of allowed roles and keeps the other, on templates, programmes and duties', async () => {
+    await inCongregation(async ({ db, congregationId, actorId, inStep, templateId, roleId }) => {
+      const midweek = await templateId('midweek-meeting')
+      const { id: eventId } = await createProgrammeOnDay(
+        db,
+        { templateId: midweek, day: '2027-04-08' },
+        { congregationId, timezone: 'Europe/Paris', actorId },
+      )
+      const templatePart = await db.templatePart.findFirstOrThrow({ where: { templateId: midweek } })
+      const part = await db.eventPart.findFirstOrThrow({ where: { eventId, allowedRoles: { some: {} } } })
+      const service = await db.eventServicePart.findFirstOrThrow({ where: { eventId, allowedRoles: { some: {} } } })
+
+      await setTemplatePartAllowedRoles(db, templatePart.id, 'reader', [], congregationId)
+      await setPartAssignmentAllowedRoles(db, part.id, 'speaker', [], congregationId)
+      await setServicePartAssignmentAllowedRoles(db, service.id, [], congregationId)
+
+      await inStep()
+      const slots = async (where: object) =>
+        (await db.templateItemAllowedRole.findMany({ where, select: { slot: true } })).map(row => row.slot)
+      expect(await slots({ item: { legacyPartId: templatePart.id }, roleId })).toEqual(['main'])
+      expect(
+        (await db.itemAllowedRole.findMany({ where: { item: { legacyPartId: part.id } }, select: { slot: true } })).map(
+          row => row.slot,
+        ),
+      ).toEqual(['second'])
+      expect(await db.itemAllowedRole.count({ where: { item: { legacyServiceId: service.id } } })).toBe(0)
+    })
+  })
+
   it('follows cascades and SET NULL: a member, a template part, a template applied, deleted events and templates', async () => {
     await inCongregation(async ({ db, congregationId, actorId, inStep, templateId }) => {
       const midweek = await templateId('midweek-meeting')
@@ -138,24 +182,39 @@ describe('old item tables mirrored into the new ones', () => {
       const { id: first } = await createProgrammeOnDay(db, { templateId: midweek, day: '2027-04-08' }, timing)
       const { id: second } = await createProgrammeOnDay(db, { templateId: midweek, day: '2027-04-15' }, timing)
       const member = await db.member.create({ data: { firstname: 'Luc', lastname: 'ROUX', congregationId } })
+      const speaker = await db.externalSpeaker.create({ data: { name: 'Jean DURAND', congregationId } })
       await db.eventServicePart.updateMany({ where: { eventId: first }, data: { assigneeId: member.id } })
+      await db.eventPart.updateMany({ where: { eventId: first }, data: { externalSpeakerId: speaker.id } })
+      await inStep()
+      expect(await db.item.count({ where: { eventId: first, externalSpeakerId: speaker.id } })).toBeGreaterThan(0)
 
-      // SET NULL from a member and from a template part, each through its own foreign key.
+      // SET NULL from a member, an external speaker, a template part and a template service, each through its own
+      // foreign key on the old table and on the new one.
       await db.member.delete({ where: { id: member.id } })
+      await db.externalSpeaker.delete({ where: { id: speaker.id } })
       await db.templatePart.delete({
         where: { id: (await db.templatePart.findFirstOrThrow({ where: { templateId: midweek } })).id },
       })
+      await db.templateServicePart.delete({
+        where: { id: (await db.templateServicePart.findFirstOrThrow({ where: { templateId: midweek } })).id },
+      })
       await inStep()
       expect(await db.item.count({ where: { eventId: first, assigneeId: { not: null } } })).toBe(0)
+      expect(await db.item.count({ where: { eventId: first, externalSpeakerId: { not: null } } })).toBe(0)
+      expect(await db.item.count({ where: { eventId: first, templateItemId: null } })).toBe(2)
 
       await applyTemplateToEvent(db, second, weekend, congregationId, actorId)
-      await duplicateTemplate(db, weekend, congregationId, actorId)
+      const copy = await duplicateTemplate(db, weekend, congregationId, actorId)
+      if (!copy) throw new Error('the template was not duplicated')
+      expect(await db.templateItem.count({ where: { templateId: copy.id } })).toBeGreaterThan(0)
       await inStep()
 
       await bulkDeleteEvents(db, [first, second], congregationId, actorId)
-      await deleteTemplate(db, midweek, congregationId, actorId)
+      // The seeded templates cannot be deleted; the copy can.
+      expect(await deleteTemplate(db, copy.id, congregationId, actorId)).toMatchObject({ ok: true })
       await inStep()
       expect(await db.item.count({ where: { eventId: { in: [first, second] } } })).toBe(0)
+      expect(await db.templateItem.count({ where: { templateId: copy.id } })).toBe(0)
     })
   })
 
@@ -170,7 +229,7 @@ describe('old item tables mirrored into the new ones', () => {
         db.templatePartAllowedRole.create({
           data: { partId: part.id, roleId: role.id, asKind: 'host', congregationId },
         }),
-      ).rejects.toThrow()
+      ).rejects.toThrow(UNKNOWN_KIND)
     })
   })
 })

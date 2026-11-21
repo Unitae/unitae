@@ -259,8 +259,8 @@ describe('20261121090000_drop_day_off_events', () => {
 
   // A table added later that cascades from Event would be deleted with a day-off that has rows in it, unless guarded.
   // Schedule and Item are the exceptions: add_schedules (20261124090000) and add_items (20261125090000) run after this
-  // migration, so neither exists when it does; a schedule only holds parts and services, which are guarded, and an item
-  // only mirrors one of them.
+  // migration, so neither exists when it does; a schedule only holds parts, services and their item mirrors, and an
+  // item only mirrors a guarded row.
   it('guards every table that cascades from an event', async () => {
     const cascading = await testDb.$queryRaw<{ table_name: string }[]>`
       SELECT DISTINCT tc.table_name
