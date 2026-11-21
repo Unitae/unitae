@@ -241,9 +241,21 @@ CREATE POLICY tenant_isolation ON "ItemAllowedRole" FOR ALL
 
 -- 4. Triggers keep the new tables in step with the old ones until the writers move over (plan T12): every insert,
 --    update and delete of an old item or allowed role, from the app, from a foreign key's cascade or SET NULL, from the
---    previous image or from another service, lands in the new table. Upserts on the legacy keys, so a trigger and the
---    backfill below meet whatever their order. They run as the writer, under its tenant scope. An `asKind` other than
---    speaker / reader maps to no slot and fails the write rather than land in the wrong one.
+--    previous image or from another service writing these tables, lands in the new table. Items upsert on the legacy
+--    keys and allowed roles insert or skip, so a trigger and the backfill below meet whatever their order. They run as
+--    the writer, under its tenant scope. An `asKind` other than speaker / reader fails the write with an error naming
+--    it (`item_slot`) rather than land in the wrong slot.
+
+CREATE OR REPLACE FUNCTION "item_slot"(kind text) RETURNS text LANGUAGE plpgsql IMMUTABLE AS $$
+BEGIN
+  IF kind = 'speaker' THEN
+    RETURN 'main';
+  ELSIF kind = 'reader' THEN
+    RETURN 'second';
+  END IF;
+  RAISE EXCEPTION 'unknown allowed-role kind %: only speaker and reader have a slot', quote_nullable(kind);
+END
+$$;
 
 CREATE OR REPLACE FUNCTION "mirror_template_part"() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
@@ -265,7 +277,9 @@ BEGIN
       "readerLabel" = EXCLUDED."readerLabel",
       "templateId" = EXCLUDED."templateId",
       "scheduleTemplateId" = EXCLUDED."scheduleTemplateId",
-      "presetId" = EXCLUDED."presetId";
+      "presetId" = EXCLUDED."presetId",
+
+      "congregationId" = EXCLUDED."congregationId";
   RETURN NEW;
 END
 $$;
@@ -284,7 +298,9 @@ BEGIN
       "order" = EXCLUDED."order",
       "templateId" = EXCLUDED."templateId",
       "scheduleTemplateId" = EXCLUDED."scheduleTemplateId",
-      "presetId" = EXCLUDED."presetId";
+      "presetId" = EXCLUDED."presetId",
+
+      "congregationId" = EXCLUDED."congregationId";
   RETURN NEW;
 END
 $$;
@@ -317,7 +333,9 @@ BEGIN
       "assistantId" = EXCLUDED."assistantId",
       "allowExternalSpeaker" = EXCLUDED."allowExternalSpeaker",
       "externalSpeakerId" = EXCLUDED."externalSpeakerId",
-      "updatedAt" = EXCLUDED."updatedAt";
+      "updatedAt" = EXCLUDED."updatedAt",
+
+      "congregationId" = EXCLUDED."congregationId";
   RETURN NEW;
 END
 $$;
@@ -340,7 +358,9 @@ BEGIN
       "templateItemId" = EXCLUDED."templateItemId",
       "presetId" = EXCLUDED."presetId",
       "assigneeId" = EXCLUDED."assigneeId",
-      "updatedAt" = EXCLUDED."updatedAt";
+      "updatedAt" = EXCLUDED."updatedAt",
+
+      "congregationId" = EXCLUDED."congregationId";
   RETURN NEW;
 END
 $$;
@@ -351,13 +371,13 @@ BEGIN
     DELETE FROM "TemplateItemAllowedRole" r
       USING "TemplateItem" ti
       WHERE ti."legacyPartId" = OLD."partId" AND r."itemId" = ti."id" AND r."roleId" = OLD."roleId"
-        AND r."slot" = CASE OLD."asKind" WHEN 'speaker' THEN 'main' WHEN 'reader' THEN 'second' END;
+        AND r."slot" = "item_slot"(OLD."asKind");
   END IF;
   IF TG_OP = 'DELETE' THEN
     RETURN OLD;
   END IF;
   INSERT INTO "TemplateItemAllowedRole" ("itemId", "roleId", "slot", "congregationId")
-    SELECT ti."id", NEW."roleId", CASE NEW."asKind" WHEN 'speaker' THEN 'main' WHEN 'reader' THEN 'second' END, NEW."congregationId"
+    SELECT ti."id", NEW."roleId", "item_slot"(NEW."asKind"), NEW."congregationId"
     FROM "TemplateItem" ti WHERE ti."legacyPartId" = NEW."partId"
     ON CONFLICT DO NOTHING;
   RETURN NEW;
@@ -389,13 +409,13 @@ BEGIN
     DELETE FROM "ItemAllowedRole" r
       USING "Item" i
       WHERE i."legacyPartId" = OLD."eventPartId" AND r."itemId" = i."id" AND r."roleId" = OLD."roleId"
-        AND r."slot" = CASE OLD."asKind" WHEN 'speaker' THEN 'main' WHEN 'reader' THEN 'second' END;
+        AND r."slot" = "item_slot"(OLD."asKind");
   END IF;
   IF TG_OP = 'DELETE' THEN
     RETURN OLD;
   END IF;
   INSERT INTO "ItemAllowedRole" ("itemId", "roleId", "slot", "congregationId")
-    SELECT i."id", NEW."roleId", CASE NEW."asKind" WHEN 'speaker' THEN 'main' WHEN 'reader' THEN 'second' END, NEW."congregationId"
+    SELECT i."id", NEW."roleId", "item_slot"(NEW."asKind"), NEW."congregationId"
     FROM "Item" i WHERE i."legacyPartId" = NEW."eventPartId"
     ON CONFLICT DO NOTHING;
   RETURN NEW;
@@ -446,7 +466,8 @@ DROP TRIGGER IF EXISTS "EventServicePartAllowedRole_mirror" ON "EventServicePart
 CREATE TRIGGER "EventServicePartAllowedRole_mirror" AFTER INSERT OR UPDATE OR DELETE ON "EventServicePartAllowedRole"
   FOR EACH ROW EXECUTE FUNCTION "mirror_event_service_part_allowed_role"();
 
--- backfill: everything below re-runs as is (plan T7); the migration test replays it from this marker.
+-- backfill: everything below re-runs as is (plan T7) and leaves the new tables equal to the old ones: it adds,
+-- refreshes, and removes what has no old row any more. The migration test replays it from this marker.
 
 -- 5. Template items, from parts and services.
 INSERT INTO "TemplateItem" ("name", "section", "track", "trackOrder", "order", "durationMin", "allowExternalSpeaker", "speakerLabel", "readerLabel", "templateId", "scheduleTemplateId", "presetId", "legacyPartId", "congregationId")
@@ -464,7 +485,9 @@ ON CONFLICT ("legacyPartId") DO UPDATE SET
   "readerLabel" = EXCLUDED."readerLabel",
   "templateId" = EXCLUDED."templateId",
   "scheduleTemplateId" = EXCLUDED."scheduleTemplateId",
-  "presetId" = EXCLUDED."presetId";
+  "presetId" = EXCLUDED."presetId",
+
+  "congregationId" = EXCLUDED."congregationId";
 
 INSERT INTO "TemplateItem" ("name", "key", "order", "templateId", "scheduleTemplateId", "presetId", "legacyServiceId", "congregationId")
 SELECT s."name", s."key", s."order", s."templateId", s."scheduleTemplateId", s."presetId", s."id", s."congregationId"
@@ -475,7 +498,9 @@ ON CONFLICT ("legacyServiceId") DO UPDATE SET
   "order" = EXCLUDED."order",
   "templateId" = EXCLUDED."templateId",
   "scheduleTemplateId" = EXCLUDED."scheduleTemplateId",
-  "presetId" = EXCLUDED."presetId";
+  "presetId" = EXCLUDED."presetId",
+
+  "congregationId" = EXCLUDED."congregationId";
 
 -- 6. Items, from event parts and services, pointing at the template item their row came from.
 INSERT INTO "Item" ("name", "order", "topic", "note", "hasConflict", "section", "track", "trackOrder", "durationMin", "speakerLabel", "readerLabel", "eventId", "scheduleId", "templateItemId", "presetId", "assigneeId", "assistantId", "allowExternalSpeaker", "externalSpeakerId", "updatedAt", "createdAt", "legacyPartId", "congregationId")
@@ -502,7 +527,9 @@ ON CONFLICT ("legacyPartId") DO UPDATE SET
   "assistantId" = EXCLUDED."assistantId",
   "allowExternalSpeaker" = EXCLUDED."allowExternalSpeaker",
   "externalSpeakerId" = EXCLUDED."externalSpeakerId",
-  "updatedAt" = EXCLUDED."updatedAt";
+  "updatedAt" = EXCLUDED."updatedAt",
+
+  "congregationId" = EXCLUDED."congregationId";
 
 INSERT INTO "Item" ("name", "order", "note", "hasConflict", "eventId", "scheduleId", "templateItemId", "presetId", "assigneeId", "updatedAt", "createdAt", "legacyServiceId", "congregationId")
 SELECT s."name", s."order", s."note", s."hasConflict", s."eventId", s."scheduleId", ti."id", s."presetId", s."assigneeId", s."updatedAt", s."createdAt", s."id", s."congregationId"
@@ -518,11 +545,13 @@ ON CONFLICT ("legacyServiceId") DO UPDATE SET
   "templateItemId" = EXCLUDED."templateItemId",
   "presetId" = EXCLUDED."presetId",
   "assigneeId" = EXCLUDED."assigneeId",
-  "updatedAt" = EXCLUDED."updatedAt";
+  "updatedAt" = EXCLUDED."updatedAt",
+
+  "congregationId" = EXCLUDED."congregationId";
 
 -- 7. Allowed roles: a part's speaker is the main slot, its reader the second; a service's single list is the main slot.
 INSERT INTO "TemplateItemAllowedRole" ("itemId", "roleId", "slot", "congregationId")
-SELECT ti."id", r."roleId", CASE r."asKind" WHEN 'speaker' THEN 'main' WHEN 'reader' THEN 'second' END, r."congregationId"
+SELECT ti."id", r."roleId", "item_slot"(r."asKind"), r."congregationId"
 FROM "TemplatePartAllowedRole" r
 JOIN "TemplateItem" ti ON ti."legacyPartId" = r."partId"
 ON CONFLICT DO NOTHING;
@@ -534,7 +563,7 @@ JOIN "TemplateItem" ti ON ti."legacyServiceId" = r."servicePartId"
 ON CONFLICT DO NOTHING;
 
 INSERT INTO "ItemAllowedRole" ("itemId", "roleId", "slot", "congregationId")
-SELECT i."id", r."roleId", CASE r."asKind" WHEN 'speaker' THEN 'main' WHEN 'reader' THEN 'second' END, r."congregationId"
+SELECT i."id", r."roleId", "item_slot"(r."asKind"), r."congregationId"
 FROM "EventPartAllowedRole" r
 JOIN "Item" i ON i."legacyPartId" = r."eventPartId"
 ON CONFLICT DO NOTHING;
@@ -544,3 +573,51 @@ SELECT i."id", r."roleId", 'main', r."congregationId"
 FROM "EventServicePartAllowedRole" r
 JOIN "Item" i ON i."legacyServiceId" = r."eventServicePartId"
 ON CONFLICT DO NOTHING;
+
+-- 8. What has no old row any more, had a write ever reached the old tables without its trigger: allowed roles first,
+--    then items. A row with no legacy key at all is left alone.
+DELETE FROM "TemplateItemAllowedRole" r
+USING "TemplateItem" ti
+WHERE ti."id" = r."itemId" AND ti."legacyPartId" IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM "TemplatePartAllowedRole" o
+    WHERE o."partId" = ti."legacyPartId" AND o."roleId" = r."roleId" AND "item_slot"(o."asKind") = r."slot"
+  );
+
+DELETE FROM "TemplateItemAllowedRole" r
+USING "TemplateItem" ti
+WHERE ti."id" = r."itemId" AND ti."legacyServiceId" IS NOT NULL
+  AND NOT (r."slot" = 'main' AND EXISTS (
+    SELECT 1 FROM "TemplateServicePartAllowedRole" o
+    WHERE o."servicePartId" = ti."legacyServiceId" AND o."roleId" = r."roleId"
+  ));
+
+DELETE FROM "ItemAllowedRole" r
+USING "Item" i
+WHERE i."id" = r."itemId" AND i."legacyPartId" IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM "EventPartAllowedRole" o
+    WHERE o."eventPartId" = i."legacyPartId" AND o."roleId" = r."roleId" AND "item_slot"(o."asKind") = r."slot"
+  );
+
+DELETE FROM "ItemAllowedRole" r
+USING "Item" i
+WHERE i."id" = r."itemId" AND i."legacyServiceId" IS NOT NULL
+  AND NOT (r."slot" = 'main' AND EXISTS (
+    SELECT 1 FROM "EventServicePartAllowedRole" o
+    WHERE o."eventServicePartId" = i."legacyServiceId" AND o."roleId" = r."roleId"
+  ));
+
+DELETE FROM "Item" i
+WHERE i."legacyPartId" IS NOT NULL AND NOT EXISTS (SELECT 1 FROM "EventPart" p WHERE p."id" = i."legacyPartId");
+
+DELETE FROM "Item" i
+WHERE i."legacyServiceId" IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM "EventServicePart" s WHERE s."id" = i."legacyServiceId");
+
+DELETE FROM "TemplateItem" ti
+WHERE ti."legacyPartId" IS NOT NULL AND NOT EXISTS (SELECT 1 FROM "TemplatePart" p WHERE p."id" = ti."legacyPartId");
+
+DELETE FROM "TemplateItem" ti
+WHERE ti."legacyServiceId" IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM "TemplateServicePart" s WHERE s."id" = ti."legacyServiceId");
