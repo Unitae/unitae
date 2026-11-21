@@ -36,6 +36,20 @@ export const PART_ITEM_ORDER = [
   { legacyPartId: 'asc' },
 ] satisfies Prisma.ItemOrderByWithRelationInput[]
 
+/** A person's parts across events, by date then place, ties by the old row's id as before. */
+export const PART_ITEMS_BY_DATE = [
+  { event: { startDate: 'asc' } },
+  { order: 'asc' },
+  { legacyPartId: 'asc' },
+] satisfies Prisma.ItemOrderByWithRelationInput[]
+
+/** A person's services across events, the same way. */
+export const SERVICE_ITEMS_BY_DATE = [
+  { event: { startDate: 'asc' } },
+  { order: 'asc' },
+  { legacyServiceId: 'asc' },
+] satisfies Prisma.ItemOrderByWithRelationInput[]
+
 /** Today's order of an event's services. */
 export const SERVICE_ITEM_ORDER = [
   { order: 'asc' },
@@ -103,6 +117,13 @@ export function itemKind(item: ItemOrigin): ItemKind {
   if (item.legacyPartId != null) return 'part'
   if (item.legacyServiceId != null) return 'service'
   throw new Error('An item that mirrors no part or service cannot be read before the writers move to items')
+}
+
+/** The id a reader hands out for an item: the old row's, until PR 5. */
+export function publicItemId(item: ItemOrigin): number {
+  const id = item.legacyPartId ?? item.legacyServiceId
+  if (id == null) throw new Error('An item that mirrors no part or service has no id this image can hand out')
+  return id
 }
 
 /** The parts and the duties of a list of items, each kind in the list's order. */

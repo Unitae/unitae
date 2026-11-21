@@ -1,15 +1,16 @@
 import { describe, expect, it, vi } from 'vitest'
+import { withItemMock } from '~/tests/helpers/item-mock'
 import { getPersonalAssignments } from './personal-assignments.server'
 
 function makeDb(rows: { parts?: unknown[]; serviceParts?: unknown[]; daysOff?: unknown[]; memberId?: number }) {
   // Mirror the new id-resolution: getPersonalAssignments looks up the linked
   // member id from the UserAccount before issuing member-bound queries.
-  return {
+  return withItemMock({
     userAccount: { findUnique: vi.fn().mockResolvedValue({ memberId: rows.memberId ?? 42 }) },
     eventPart: { findMany: vi.fn().mockResolvedValue(rows.parts ?? []) },
     eventServicePart: { findMany: vi.fn().mockResolvedValue(rows.serviceParts ?? []) },
     absence: { findMany: vi.fn().mockResolvedValue(rows.daysOff ?? []) },
-  } as never
+  }) as never
 }
 
 describe('getPersonalAssignments', () => {

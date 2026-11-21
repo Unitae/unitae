@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { CongregationId, MemberId } from '~/shared/types/branded'
+import { withItemMock } from '~/tests/helpers/item-mock'
 
 import {
   findLastAssignmentsForMembers,
@@ -36,7 +37,12 @@ describe('findUpcomingAssignmentsForMember', () => {
       },
     }
 
-    const assignments = await findUpcomingAssignmentsForMember(db as never, MEMBER_ID, CONGREGATION_ID, NOW)
+    const assignments = await findUpcomingAssignmentsForMember(
+      withItemMock(db) as never,
+      MEMBER_ID,
+      CONGREGATION_ID,
+      NOW,
+    )
 
     expect(assignments.map(a => a.partName)).toEqual(['Sonorisation', 'Discours public'])
     expect(assignments[0]).toMatchObject({
@@ -65,7 +71,12 @@ describe('findUpcomingAssignmentsForMember', () => {
       },
     }
 
-    const assignments = await findUpcomingAssignmentsForMember(db as never, MEMBER_ID, CONGREGATION_ID, NOW)
+    const assignments = await findUpcomingAssignmentsForMember(
+      withItemMock(db) as never,
+      MEMBER_ID,
+      CONGREGATION_ID,
+      NOW,
+    )
 
     // Stable sort: on a date tie, programme parts precede service parts.
     expect(assignments.map(a => a.key)).toEqual(['part-1', 'service-2'])
@@ -82,7 +93,12 @@ describe('findUpcomingAssignmentsForMember', () => {
       eventServicePart: { findMany: vi.fn().mockResolvedValue([part(5, 5), part(6, 6)]) },
     }
 
-    const assignments = await findUpcomingAssignmentsForMember(db as never, MEMBER_ID, CONGREGATION_ID, NOW)
+    const assignments = await findUpcomingAssignmentsForMember(
+      withItemMock(db) as never,
+      MEMBER_ID,
+      CONGREGATION_ID,
+      NOW,
+    )
 
     expect(assignments).toHaveLength(5)
   })
@@ -98,7 +114,7 @@ describe('findUpcomingAbsencesForMember', () => {
       },
     }
 
-    const absences = await findUpcomingAbsencesForMember(db as never, MEMBER_ID, CONGREGATION_ID, NOW)
+    const absences = await findUpcomingAbsencesForMember(withItemMock(db) as never, MEMBER_ID, CONGREGATION_ID, NOW)
 
     expect(absences).toEqual([{ id: 20, startDate: new Date(2026, 8, 10), endDate: new Date(2026, 8, 14) }])
     const where = db.absence.findMany.mock.calls[0][0].where
@@ -123,7 +139,12 @@ describe('findLastAssignmentsForMembers', () => {
       },
     }
 
-    const last = await findLastAssignmentsForMembers(db as never, [1, 2, 3] as MemberId[], CONGREGATION_ID, NOW)
+    const last = await findLastAssignmentsForMembers(
+      withItemMock(db) as never,
+      [1, 2, 3] as MemberId[],
+      CONGREGATION_ID,
+      NOW,
+    )
 
     expect(last.get(1 as MemberId)).toEqual({ partName: 'Discours', date: new Date(2026, 7, 20) })
     expect(last.get(2 as MemberId)).toEqual({ partName: 'Sonorisation', date: new Date(2026, 7, 16) })
@@ -132,7 +153,7 @@ describe('findLastAssignmentsForMembers', () => {
 
   it('asks nothing for an empty list', async () => {
     const db = { eventPart: { findMany: vi.fn() }, eventServicePart: { findMany: vi.fn() } }
-    expect((await findLastAssignmentsForMembers(db as never, [], CONGREGATION_ID, NOW)).size).toBe(0)
+    expect((await findLastAssignmentsForMembers(withItemMock(db) as never, [], CONGREGATION_ID, NOW)).size).toBe(0)
   })
 })
 
@@ -148,7 +169,12 @@ describe('findNextAbsencesForMembers', () => {
       },
     }
 
-    const next = await findNextAbsencesForMembers(db as never, [4, 5, 6] as MemberId[], CONGREGATION_ID, NOW)
+    const next = await findNextAbsencesForMembers(
+      withItemMock(db) as never,
+      [4, 5, 6] as MemberId[],
+      CONGREGATION_ID,
+      NOW,
+    )
 
     expect(next.get(4 as MemberId)).toEqual({ startDate: new Date(2026, 7, 21), endDate: new Date(2026, 7, 25) })
     expect(next.get(5 as MemberId)).toEqual({ startDate: new Date(2026, 8, 3), endDate: new Date(2026, 8, 4) })

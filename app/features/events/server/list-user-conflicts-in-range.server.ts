@@ -1,5 +1,11 @@
 import type { Prisma } from '~/database/generated/client'
 import { EventStatus } from '~/features/events/model/event-status.type'
+import {
+  PART_ITEMS,
+  PART_ITEMS_BY_DATE,
+  SERVICE_ITEMS,
+  SERVICE_ITEMS_BY_DATE,
+} from '~/features/events/server/item-projection.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { getRoleDisplayName } from '~/shared/types/role'
 import { accountDisplayName } from '~/shared/utils/display-name'
@@ -11,10 +17,6 @@ export interface UserConflictInRange {
 }
 
 // One meeting's clashes in the programme's order: the date sort below is stable, so parts then services, each in theirs.
-const PROGRAMME_ORDER = [{ event: { startDate: 'asc' } }, { order: 'asc' }, { id: 'asc' }] as const satisfies (
-  | Prisma.EventPartOrderByWithRelationInput
-  | Prisma.EventServicePartOrderByWithRelationInput
-)[]
 
 // Shared between the two `findMany` calls so the query shape stays in sync.
 const eventWithResponsiblesSelect = {
@@ -61,8 +63,9 @@ export async function listUserConflictsInRange(
   endDate: Date,
 ): Promise<UserConflictInRange[]> {
   const [partConflicts, serviceConflicts] = await Promise.all([
-    db.eventPart.findMany({
+    db.item.findMany({
       where: {
+        ...PART_ITEMS,
         hasConflict: true,
         OR: [{ assigneeId: memberId }, { assistantId: memberId }],
         // Drafts are invisible to publisher- and manager-facing conflict
@@ -74,10 +77,11 @@ export async function listUserConflictsInRange(
         name: true,
         event: { select: eventWithResponsiblesSelect },
       },
-      orderBy: PROGRAMME_ORDER,
+      orderBy: PART_ITEMS_BY_DATE,
     }),
-    db.eventServicePart.findMany({
+    db.item.findMany({
       where: {
+        ...SERVICE_ITEMS,
         hasConflict: true,
         assigneeId: memberId,
         event: { startDate: { lte: endDate }, endDate: { gte: startDate }, status: EventStatus.Released },
@@ -86,7 +90,7 @@ export async function listUserConflictsInRange(
         name: true,
         event: { select: eventWithResponsiblesSelect },
       },
-      orderBy: PROGRAMME_ORDER,
+      orderBy: SERVICE_ITEMS_BY_DATE,
     }),
   ])
 

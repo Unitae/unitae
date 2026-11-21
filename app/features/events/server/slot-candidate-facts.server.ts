@@ -1,4 +1,5 @@
 import { normalize, type PartSlot } from '~/features/events/server/cadence-shared.server'
+import { PART_ITEMS, SERVICE_ITEMS } from '~/features/events/server/item-projection.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 /** The slot being assigned: one of a part's two people, or a service. */
@@ -71,8 +72,8 @@ async function heldPart(
   target: Extract<SlotTarget, { kind: 'part' }>,
 ): Promise<{ memberId: number; date: Date }[]> {
   const field = target.slot === 'assignee' ? 'assigneeId' : 'assistantId'
-  const rows = await db.eventPart.findMany({
-    where: { congregationId: past.congregationId, event: past, [field]: { not: null } },
+  const rows = await db.item.findMany({
+    where: { ...PART_ITEMS, congregationId: past.congregationId, event: past, [field]: { not: null } },
     select: { name: true, section: true, assigneeId: true, assistantId: true, event: { select: { startDate: true } } },
   })
   const name = normalize(target.partName)
@@ -89,8 +90,8 @@ async function heldService(
   past: PastEvents,
   target: Extract<SlotTarget, { kind: 'service' }>,
 ): Promise<{ memberId: number; date: Date }[]> {
-  const rows = await db.eventServicePart.findMany({
-    where: { congregationId: past.congregationId, event: past, assigneeId: { not: null } },
+  const rows = await db.item.findMany({
+    where: { ...SERVICE_ITEMS, congregationId: past.congregationId, event: past, assigneeId: { not: null } },
     select: { name: true, assigneeId: true, event: { select: { startDate: true } } },
   })
   const name = normalize(target.serviceName)
@@ -133,24 +134,26 @@ async function alreadyAtEvent(
   target: SlotTarget,
 ): Promise<SlotCandidateFacts['elsewhere']> {
   // The whole edited row is left out, as listUserSameEventAssignments does: the person in the other slot of the
-  // same part is not « elsewhere ».
+  // same part is not « elsewhere ». The edited row by the id its routes carry, the old row's (plan T12).
   const [parts, services] = await Promise.all([
-    db.eventPart.findMany({
+    db.item.findMany({
       where: {
+        ...PART_ITEMS,
         eventId: event.id,
         congregationId,
-        ...(target.kind === 'part' ? { id: { not: target.assignmentId } } : {}),
+        ...(target.kind === 'part' ? { NOT: { legacyPartId: target.assignmentId } } : {}),
       },
-      orderBy: { order: 'asc' },
+      orderBy: [{ order: 'asc' }, { legacyPartId: 'asc' }],
       select: { name: true, assigneeId: true, assistantId: true },
     }),
-    db.eventServicePart.findMany({
+    db.item.findMany({
       where: {
+        ...SERVICE_ITEMS,
         eventId: event.id,
         congregationId,
-        ...(target.kind === 'service' ? { id: { not: target.assignmentId } } : {}),
+        ...(target.kind === 'service' ? { NOT: { legacyServiceId: target.assignmentId } } : {}),
       },
-      orderBy: { id: 'asc' },
+      orderBy: { legacyServiceId: 'asc' },
       select: { name: true, assigneeId: true },
     }),
   ])
@@ -182,17 +185,24 @@ async function speakerFacts(
   const [past, current] = await Promise.all([
     event.templateId == null
       ? []
-      : db.eventPart.findMany({
+      : db.item.findMany({
           where: {
+            ...PART_ITEMS,
             congregationId,
             externalSpeakerId: { not: null },
             event: { templateId: event.templateId, congregationId, startDate: { lt: event.startDate } },
           },
           select: { name: true, section: true, externalSpeakerId: true, event: { select: { startDate: true } } },
         }),
-    db.eventPart.findMany({
-      where: { eventId: event.id, congregationId, externalSpeakerId: { not: null }, id: { not: target.assignmentId } },
-      orderBy: { order: 'asc' },
+    db.item.findMany({
+      where: {
+        ...PART_ITEMS,
+        eventId: event.id,
+        congregationId,
+        externalSpeakerId: { not: null },
+        NOT: { legacyPartId: target.assignmentId },
+      },
+      orderBy: [{ order: 'asc' }, { legacyPartId: 'asc' }],
       select: { name: true, externalSpeakerId: true },
     }),
   ])

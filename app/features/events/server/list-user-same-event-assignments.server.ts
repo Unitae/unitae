@@ -1,3 +1,4 @@
+import { PART_ITEMS, SERVICE_ITEMS } from '~/features/events/server/item-projection.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export type SameEventAssignment = { type: 'part'; name: string; section: string } | { type: 'service'; name: string }
@@ -16,24 +17,27 @@ export async function listUserSameEventAssignments(
   db: TransactionClient,
   { userId, eventId, congregationId, excludePartAssignmentId, excludeServiceAssignmentId }: Options,
 ): Promise<SameEventAssignment[]> {
-  const parts = await db.eventPart.findMany({
+  // The excluded assignment by the id its routes carry, the old row's (plan T12).
+  const parts = await db.item.findMany({
     where: {
+      ...PART_ITEMS,
       eventId,
       congregationId,
       OR: [{ assigneeId: userId }, { assistantId: userId }],
-      ...(excludePartAssignmentId != null && { id: { not: excludePartAssignmentId } }),
+      ...(excludePartAssignmentId != null && { NOT: { legacyPartId: excludePartAssignmentId } }),
     },
-    select: { id: true, name: true, section: true },
+    select: { name: true, section: true },
   })
 
-  const services = await db.eventServicePart.findMany({
+  const services = await db.item.findMany({
     where: {
+      ...SERVICE_ITEMS,
       eventId,
       congregationId,
       assigneeId: userId,
-      ...(excludeServiceAssignmentId != null && { id: { not: excludeServiceAssignmentId } }),
+      ...(excludeServiceAssignmentId != null && { NOT: { legacyServiceId: excludeServiceAssignmentId } }),
     },
-    select: { id: true, name: true },
+    select: { name: true },
   })
 
   return [

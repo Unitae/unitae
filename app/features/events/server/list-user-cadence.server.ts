@@ -6,6 +6,7 @@ import {
   type PartSlot,
   toCadenceStatus,
 } from '~/features/events/server/cadence-shared.server'
+import { PART_ITEMS } from '~/features/events/server/item-projection.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 
@@ -41,6 +42,7 @@ export async function listUserCadence(
   if (event.templateId == null) return { past: [], future: [], hasHistory: false, lastAssignedAt: null }
 
   const partsSelect = {
+    where: PART_ITEMS,
     select: {
       name: true,
       section: true,
@@ -55,7 +57,7 @@ export async function listUserCadence(
   } as const
 
   const commonWhere = { templateId: event.templateId, congregationId } as const
-  const rowSelect = { id: true, startDate: true, status: true, eventParts: partsSelect } as const
+  const rowSelect = { id: true, startDate: true, status: true, items: partsSelect } as const
 
   const [pastRows, futureRows, historicalAssignments] = await Promise.all([
     db.event.findMany({
@@ -73,8 +75,9 @@ export async function listUserCadence(
     // Aggregate over ALL past events (not just the visible window) to detect
     // "used to do this slot, hasn't recently" candidates. Filtered in JS to
     // reuse the same normalized-name/section comparison.
-    db.eventPart.findMany({
+    db.item.findMany({
       where: {
+        ...PART_ITEMS,
         event: { ...commonWhere, startDate: { lt: event.startDate } },
         ...(slot === 'assignee' ? { assigneeId: userId } : { assistantId: userId }),
       },
@@ -84,14 +87,12 @@ export async function listUserCadence(
 
   const targetName = normalize(partName)
   const targetSection = normalize(partSection)
-  type PartRow = (typeof pastRows)[number]['eventParts'][number]
+  type PartRow = (typeof pastRows)[number]['items'][number]
   const isOnSlot =
     slot === 'assignee' ? (p: PartRow) => p.assigneeId === userId : (p: PartRow) => p.assistantId === userId
   const personOnSlot = (p: PartRow) => (slot === 'assignee' ? p.assignee : p.assistant)
   const toEntry = (row: (typeof pastRows)[number]): CadenceEntry => {
-    const matches = row.eventParts.filter(
-      p => normalize(p.name) === targetName && normalize(p.section) === targetSection,
-    )
+    const matches = row.items.filter(p => normalize(p.name) === targetName && normalize(p.section) === targetSection)
     const person = matches.map(personOnSlot).find(p => p != null)
     return {
       date: row.startDate.toISOString(),

@@ -5,6 +5,7 @@ import {
   normalize,
   toCadenceStatus,
 } from '~/features/events/server/cadence-shared.server'
+import { SERVICE_ITEMS } from '~/features/events/server/item-projection.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 
@@ -36,6 +37,7 @@ export async function listUserServiceCadence(
   if (event.templateId == null) return { past: [], future: [], hasHistory: false, lastAssignedAt: null }
 
   const servicesSelect = {
+    where: SERVICE_ITEMS,
     select: {
       name: true,
       assigneeId: true,
@@ -47,7 +49,7 @@ export async function listUserServiceCadence(
   } as const
 
   const commonWhere = { templateId: event.templateId, congregationId } as const
-  const rowSelect = { id: true, startDate: true, status: true, eventServiceParts: servicesSelect } as const
+  const rowSelect = { id: true, startDate: true, status: true, items: servicesSelect } as const
 
   const [pastRows, futureRows, historicalAssignments] = await Promise.all([
     db.event.findMany({
@@ -62,15 +64,15 @@ export async function listUserServiceCadence(
       take: futureCount,
       select: rowSelect,
     }),
-    db.eventServicePart.findMany({
-      where: { event: { ...commonWhere, startDate: { lt: event.startDate } }, assigneeId: userId },
+    db.item.findMany({
+      where: { ...SERVICE_ITEMS, event: { ...commonWhere, startDate: { lt: event.startDate } }, assigneeId: userId },
       select: { name: true, event: { select: { startDate: true } } },
     }),
   ])
 
   const targetName = normalize(servicePartName)
   const toEntry = (row: (typeof pastRows)[number]): CadenceEntry => {
-    const matches = row.eventServiceParts.filter(s => normalize(s.name) === targetName)
+    const matches = row.items.filter(s => normalize(s.name) === targetName)
     const person = matches.map(s => s.assignee).find(p => p != null)
     return {
       date: row.startDate.toISOString(),

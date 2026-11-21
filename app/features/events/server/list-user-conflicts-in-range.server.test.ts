@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('~/shared/infra/db.server', () => ({
-  unscopedDb: {
-    eventPart: { findMany: vi.fn() },
-    eventServicePart: { findMany: vi.fn() },
-  },
-}))
+vi.mock('~/shared/infra/db.server', async () => {
+  const { withItemMock } = await import('~/tests/helpers/item-mock')
+  return {
+    unscopedDb: withItemMock({
+      eventPart: { findMany: vi.fn() },
+      eventServicePart: { findMany: vi.fn() },
+    }),
+  }
+})
 
 const { listUserConflictsInRange } = await import('./list-user-conflicts-in-range.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
