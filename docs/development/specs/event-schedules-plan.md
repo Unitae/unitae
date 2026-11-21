@@ -394,8 +394,10 @@ the spec. PR 5 starts on the user's go.
    feature). Before this PR merges, any other service that seeds a congregation's templates must write
    their schedule templates too, or congregations it creates afterwards keep none. The same migration
    runs PR 3c's item backfill again.
-   Readers return `Item` ids; writers still write the old tables, translating an `Item` id to its legacy
-   row, and the triggers keep `Item` in step (T12), so notices keep their old entity names for now.
+   Readers read `Item` in its schedule but hand back the old row's id and kind (`legacyPartId` /
+   `legacyServiceId`, part or service), through one projection helper, so writers, routes, form fields,
+   links and notices keep their ids; the triggers keep `Item` in step (T12). PR 5 flips the helper to
+   `Item.id` and the schedule's kind, with the writers.
 2. Every reader of items and status reads items in schedules: the ~40 status readers and ~60 + ~50 item readers
    listed in Appendix A, grouped into commits by feature — events (lists, view, cadence,
    conflicts, candidates, share message, engagement, feed, notifications), dashboard (next meeting,
@@ -407,8 +409,8 @@ the spec. PR 5 starts on the user's go.
    PR 5 stops (T9).
 
 No visible change: one programme and one services schedule per event publish together until PR 5.
-**Tests:** every touched query keeps its tests green against fixtures written in the new shape; a
-dual-shape fixture proves PR 3's image still reads the same results.
+**Tests:** every touched query keeps its tests green unchanged: their fixtures write the old tables, the
+triggers fill `Item`, the readers read it. The events snapshot diff is empty before and after.
 
 ## 10. PR 5 — Per-schedule publishing, event view, rights
 
@@ -466,7 +468,9 @@ and « Changer le type » (T5). `EventView.tsx` (364) splits its header and its 
 `schedules.spec.ts`: publish the duties before the programme, the board shows the duties alone, then
 both; `program-permissions.spec.ts` updated to the new rights.
 
-**Items (T12):** writers move to `Item` and its allowed roles; the triggers stay until PR 9 for the previous
+**Items (T12):** writers move to `Item` and its allowed roles, and the public id becomes `Item.id` (the
+projection helper of PR 4 flips; a form rendered by the previous image carries an old id, so posts say which
+id space they use); the triggers stay until PR 9 for the previous
 image, which still writes the old tables during the rollout (a row it writes lands in `Item` as before). The
 migration rewrites pending notices from `EventPart` / `EventServicePart` to `Item` (`entityType`, `entityId`
 through the legacy keys, `debounceKey`); the notice worker reads both kinds until PR 9.
