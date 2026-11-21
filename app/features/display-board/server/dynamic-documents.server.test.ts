@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { withItemMock } from '~/tests/helpers/item-mock'
 
 const listLastWeekAttendance = vi.fn()
 vi.mock('~/features/events/index.server', async importOriginal => ({
@@ -13,7 +14,7 @@ import {
   markDynamicDocumentViewed,
 } from './dynamic-documents.server'
 
-const mockDb = {
+const mockDb = withItemMock({
   congregation: {
     findFirstOrThrow: vi.fn(),
   },
@@ -42,7 +43,7 @@ const mockDb = {
   setting: {
     findFirst: vi.fn(),
   },
-}
+})
 
 beforeEach(() => {
   vi.resetAllMocks()
