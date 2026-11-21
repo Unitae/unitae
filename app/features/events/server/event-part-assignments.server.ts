@@ -19,7 +19,7 @@ import {
   PART_ITEMS,
   SERVICE_ITEM_ORDER,
   SERVICE_ITEMS,
-} from '~/features/events/server/item-projection'
+} from '~/features/events/server/item-projection.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { asEventPart, asEventServicePart, itemKind, splitItems } from './item-projection'
+import { asEventPart, asEventServicePart, itemKind, splitItems } from './item-projection.server'
 
 const base = {
   id: 900,

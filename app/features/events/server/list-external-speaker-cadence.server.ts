@@ -5,7 +5,7 @@ import {
   normalize,
   toCadenceStatus,
 } from '~/features/events/server/cadence-shared.server'
-import { PART_ITEMS } from '~/features/events/server/item-projection'
+import { PART_ITEMS } from '~/features/events/server/item-projection.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { EXTERNAL_SPEAKER_LABEL_SELECT, externalSpeakerLabel } from '~/shared/utils/external-speaker-label'
 import { formatPersonName } from '~/shared/utils/format-person-name'

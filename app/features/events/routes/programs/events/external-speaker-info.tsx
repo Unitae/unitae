@@ -1,5 +1,5 @@
 import { mayReadSlotFacts } from '~/features/events/server/events-auth.server'
-import { PART_ITEMS } from '~/features/events/server/item-projection'
+import { PART_ITEMS } from '~/features/events/server/item-projection.server'
 import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
 import { resolveExternalSpeakerCadence } from '~/features/events/server/resolve-external-speaker-cadence.server'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'

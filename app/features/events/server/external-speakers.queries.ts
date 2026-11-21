@@ -5,7 +5,7 @@ import type {
   SpeakerNextVisit,
   SpeakerVisits,
 } from '~/features/events/model/external-speaker.type'
-import { PART_ITEMS } from '~/features/events/server/item-projection'
+import { PART_ITEMS } from '~/features/events/server/item-projection.server'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
