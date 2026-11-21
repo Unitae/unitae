@@ -25,7 +25,7 @@ decision of its own, only the technical choices listed in §1.
 | T10 | **`Event.origin`** (`job` / `manual` / `import`) replaces « null author » as the sign of a job-made meeting (PR 0). | Clearing an author (account deletion) must never turn a hand-made event into one a template move may delete. |
 | T11 | **One event per occurrence, by constraint**: `Event.occurrenceDay` and a unique index on (`recurrenceRuleId`, `occurrenceDay`) (PR 7). The job inserts with `ON CONFLICT DO NOTHING`; dedupe and moves key on the rule, never on the kind and the day. | Eight rules of one kind share weekdays; a day-keyed check would skip one rule's events and let a split delete another rule's meeting. |
 | T8 | **One archive bump per PR that changes the format**, numbered in merge order from 2.16. Each previous version joins `SUPPORTED_ARCHIVE_VERSIONS` and has an import mapping, tested by importing an archive of that version kept as a fixture. | Same rule as every bump so far. |
-| T12 | **Parts and duties become one item** (spec D36): `TemplateItem`, `TemplateItemAllowedRole`, `Item`, `ItemAllowedRole` replace the eight item tables. Expanded right before the read switch (PR 3c, 3d) so PR 4 moves every item reader once, to items in schedules; PR 9 drops the old tables. | 61 of the 84 files reading items read both tables with the same logic twice; the read switch rewrites them anyway, so unifying then costs two PRs instead of a second rewrite. |
+| T12 | **Parts and duties become one item** (spec D36): `TemplateItem`, `TemplateItemAllowedRole`, `Item`, `ItemAllowedRole` replace the eight item tables. Expanded right before the read switch (PR 3c) so PR 4 moves every item reader once, to items in schedules; PR 9 drops the old tables. | 61 of the 84 files reading items read both tables with the same logic twice; the read switch rewrites them anyway, so unifying then costs two PRs instead of a second rewrite. |
 
 ## 2. Ground rules for every PR
 
@@ -133,7 +133,6 @@ about thirty non-test files; the read switch goes feature by feature.
 | 3a | Schedules: tables, backfill, dual write | — | none |
 | 3b | Schedules: archive | bump | none |
 | 3c | Items: one table per side, backfill, dual write (T12) | — | none |
-| 3d | Items: archive | bump | none |
 | — | Design round A (event view, publishing, settings) | — | canvas |
 | 4a | Read switch: catch-up migration; programme list, event view, share message, external speakers | — | none visible |
 | 4b | Read switch: assignments, conflicts, candidates, cadence, engagement | — | none visible |
@@ -344,7 +343,7 @@ same. » apart from the new column.
 with and without a service scope; a released and a draft event; idempotence; the partial unique
 index refusing a second programme); dual-write service tests; archive round-trip and an import of the previous version's fixture.
 
-## 7a. PR 3c, 3d — Items, expand (T12, spec D36)
+## 7a. PR 3c — Items, expand (T12, spec D36)
 
 **Schema and migration** `add_items`: `TemplateItem` (`scheduleTemplateId` SetNull as on the old items, `templateId` kept
 while templates still own their items, `name`, `order`, `presetId?`, the programme columns `section`,
@@ -368,9 +367,8 @@ An `asKind` other than `speaker` / `reader` fails the write rather than land in 
 now carry a preset in the data; the picker comes with PR 6's template editor. PR 9 drops the triggers
 with the old tables.
 
-**3d, archive (bump):** `template-items.ndjson`, `template-item-allowed-roles.ndjson`, `items.ndjson`,
-`item-allowed-roles.ndjson`; an older archive's four item files are mapped by the migration's rule in
-TypeScript, as for schedules.
+**No archive bump yet** (decided 2026-11-21): until PR 5 the new tables hold nothing the old ones do not,
+and the importer's writes to the old tables rebuild them through the triggers. PR 5 carries the items.
 
 **Previous image:** writes the old tables only; PR 4's catch-up copies what it wrote.
 **Tests:** migration test (parts and services of both sides, allowed roles per slot, a part with a
@@ -472,6 +470,9 @@ both; `program-permissions.spec.ts` updated to the new rights.
 image, which still writes the old tables during the rollout (a row it writes lands in `Item` as before). The
 migration rewrites pending notices from `EventPart` / `EventServicePart` to `Item` (`entityType`, `entityId`
 through the legacy keys, `debounceKey`); the notice worker reads both kinds until PR 9.
+**Archive (bump):** `template-items.ndjson`, `template-item-allowed-roles.ndjson`, `items.ndjson`,
+`item-allowed-roles.ndjson` replace the four item files; an older archive's item files are mapped by the
+backfill's rule in TypeScript (speaker → `main`, reader → `second`, a duty's list → `main`), as for schedules.
 
 ## 11. PR 6 — Réglages: event kinds and schedule templates
 
