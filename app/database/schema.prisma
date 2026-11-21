@@ -156,6 +156,10 @@ model Congregation {
   eventPartAllowedRoles           EventPartAllowedRole[]
   templateServicePartAllowedRoles TemplateServicePartAllowedRole[]
   eventServicePartAllowedRoles    EventServicePartAllowedRole[]
+  templateItems                   TemplateItem[]
+  templateItemAllowedRoles        TemplateItemAllowedRole[]
+  items                           Item[]
+  itemAllowedRoles                ItemAllowedRole[]
   partPresets                     PartPreset[]
   externalSpeakers                ExternalSpeaker[]
   speakerCongregations            SpeakerCongregation[]
@@ -258,6 +262,8 @@ model Member {
   eventPartsAsAssignee        EventPart[]         @relation("partAssignee")
   eventPartsAsAssistant       EventPart[]         @relation("partAssistant")
   eventServicePartsAsAssignee EventServicePart[]  @relation("servicePartAssignee")
+  itemsAsAssignee             Item[]              @relation("itemAssignee")
+  itemsAsAssistant            Item[]              @relation("itemAssistant")
 
   // Identity-role assignments (built-in roles like brother/elder/pioneer plus
   // any custom role the user may add later that expresses identity)
@@ -395,6 +401,8 @@ model Role {
   allowedForEventParts             EventPartAllowedRole[]
   allowedForTemplateServiceParts   TemplateServicePartAllowedRole[]
   allowedForEventServiceParts      EventServicePartAllowedRole[]
+  allowedForTemplateItems          TemplateItemAllowedRole[]
+  allowedForItems                  ItemAllowedRole[]
   allowedForBoardSections          BoardSectionVisibilityRole[]
   allowedForTerritoryKinds         TerritoryKindAllowedRole[]
   templateResponsibilities         TemplateResponsible[]            @relation("templateResponsible")
@@ -1040,6 +1048,7 @@ model Event {
 
   eventParts        EventPart[]
   eventServiceParts EventServicePart[]
+  items             Item[]
   // Its programme and duty schedules, each published on its own. Written beside `status` and the items' `eventId`
   // until the readers move to them.
   schedules         Schedule[]
@@ -1084,6 +1093,7 @@ model EventTemplate {
 
   parts             TemplatePart[]
   serviceParts      TemplateServicePart[]
+  items             TemplateItem[]
   events            Event[]                     @relation("templateEvents")
   responsibles      TemplateResponsible[]
   // The schedule templates its events start with, in order: the event kind's suggestions (plan T2: this row is the kind).
@@ -1254,6 +1264,7 @@ model ExternalSpeaker {
   speakerCongregationId Int?
 
   eventParts EventPart[]
+  items      Item[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1435,6 +1446,8 @@ model PartPreset {
   eventParts           EventPart[]
   templateServiceParts TemplateServicePart[]
   eventServiceParts    EventServicePart[]
+  templateItems        TemplateItem[]
+  items                Item[]
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
@@ -1505,6 +1518,136 @@ model EventServicePartAllowedRole {
   @@index([congregationId])
 }
 
+// A part or a duty of a schedule template (plan T12): one table where TemplatePart and TemplateServicePart are two.
+// Until the writers move to it, triggers copy every write of those tables here (add_items migration), keyed by
+// `legacyPartId` / `legacyServiceId`; nothing writes it directly. Programme columns stay at their defaults on a duty.
+model TemplateItem {
+  id                   Int     @id @default(autoincrement())
+  name                 String
+  // A duty's catalogue key, copied from TemplateServicePart.key; null on a part.
+  key                  String?
+  section              String  @default("")
+  track                String  @default("")
+  trackOrder           Int?
+  order                Int     @default(0)
+  durationMin          Int?
+  allowExternalSpeaker Boolean @default(false)
+  speakerLabel         String?
+  readerLabel          String?
+
+  // Nullable from the start: the template stops owning its items once they live in schedule templates.
+  template           EventTemplate?    @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  templateId         Int?
+  scheduleTemplate   ScheduleTemplate? @relation(fields: [scheduleTemplateId], references: [id], onDelete: SetNull)
+  scheduleTemplateId Int?
+  preset             PartPreset?       @relation(fields: [presetId], references: [id], onDelete: SetNull)
+  presetId           Int?
+
+  // The row it mirrors, at most one (TemplateItem_legacy_check). Dropped with the old tables.
+  legacyPartId    Int? @unique
+  legacyServiceId Int? @unique
+
+  items        Item[]
+  allowedRoles TemplateItemAllowedRole[]
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+
+  @@unique([id, congregationId])
+  @@index([templateId])
+  @@index([scheduleTemplateId])
+  @@index([presetId])
+}
+
+// Who may hold a template item's slot: `main` (a part's speaker, a duty's holder) or `second` (a part's reader).
+// Constrained in SQL by TemplateItemAllowedRole_slot_check.
+model TemplateItemAllowedRole {
+  item   TemplateItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId Int
+  role   Role         @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId Int
+  slot   String
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
+  congregationId Int
+
+  @@id([itemId, roleId, slot])
+  @@index([roleId])
+  @@index([congregationId])
+}
+
+// A part or a duty of one event's schedule (plan T12): one table where EventPart and EventServicePart are two. Mirrored
+// from them by triggers like TemplateItem; nothing writes it directly yet.
+model Item {
+  id           Int     @id @default(autoincrement())
+  name         String  @default("")
+  order        Int     @default(0)
+  topic        String  @default("")
+  note         String  @default("")
+  hasConflict  Boolean @default(false)
+  section      String  @default("")
+  track        String  @default("")
+  trackOrder   Int?
+  durationMin  Int?
+  speakerLabel String?
+  readerLabel  String?
+
+  event      Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId    Int
+  // Through (scheduleId, eventId), as on the old items. Null where the old row has none, until it gets one.
+  schedule   Schedule? @relation(fields: [scheduleId, eventId], references: [id, eventId], onDelete: Cascade)
+  scheduleId Int?
+
+  templateItem   TemplateItem? @relation(fields: [templateItemId], references: [id], onDelete: SetNull)
+  templateItemId Int?
+  preset         PartPreset?   @relation(fields: [presetId], references: [id], onDelete: SetNull)
+  presetId       Int?
+
+  // The main slot and the second one (a part's reader or assistant).
+  assignee             Member?          @relation("itemAssignee", fields: [assigneeId], references: [id])
+  assigneeId           Int?
+  assistant            Member?          @relation("itemAssistant", fields: [assistantId], references: [id])
+  assistantId          Int?
+  allowExternalSpeaker Boolean          @default(false)
+  externalSpeaker      ExternalSpeaker? @relation(fields: [externalSpeakerId], references: [id], onDelete: SetNull)
+  externalSpeakerId    Int?
+
+  // The row it mirrors, at most one (Item_legacy_check). Dropped with the old tables.
+  legacyPartId    Int? @unique
+  legacyServiceId Int? @unique
+
+  allowedRoles ItemAllowedRole[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+
+  @@unique([id, congregationId])
+  @@index([eventId])
+  @@index([scheduleId])
+  @@index([templateItemId])
+  @@index([presetId])
+  @@index([externalSpeakerId])
+}
+
+// Who may hold an item's slot, as on TemplateItemAllowedRole. Constrained in SQL by ItemAllowedRole_slot_check.
+model ItemAllowedRole {
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId Int
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId Int
+  slot   String
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
+  congregationId Int
+
+  @@id([itemId, roleId, slot])
+  @@index([roleId])
+  @@index([congregationId])
+}
+
 // What one schedule of an event holds — a programme's parts or a duty schedule's duties — and who answers for it.
 // Shared: any event kind may suggest it (EventKindScheduleTemplate). Until the readers move over, the writers keep each
 // template to one of each kind (nothing in the database says so), written beside its own items.
@@ -1524,6 +1667,7 @@ model ScheduleTemplate {
 
   parts        TemplatePart[]
   serviceParts TemplateServicePart[]
+  items        TemplateItem[]
   eventKinds   EventKindScheduleTemplate[]
   schedules    Schedule[]
 
@@ -1581,6 +1725,7 @@ model Schedule {
 
   parts        EventPart[]
   serviceParts EventServicePart[]
+  items        Item[]
 
   congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
   congregationId Int
