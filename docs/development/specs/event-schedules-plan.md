@@ -346,7 +346,7 @@ index refusing a second programme); dual-write service tests; archive round-trip
 
 ## 7a. PR 3c, 3d — Items, expand (T12, spec D36)
 
-**Schema and migration** `add_items`: `TemplateItem` (`scheduleTemplateId` Cascade, `templateId` kept
+**Schema and migration** `add_items`: `TemplateItem` (`scheduleTemplateId` SetNull as on the old items, `templateId` kept
 while templates still own their items, `name`, `order`, `presetId?`, the programme columns `section`,
 `track`, `trackOrder`, `durationMin`, `speakerLabel`, `readerLabel`, `allowExternalSpeaker`) and
 `TemplateItemAllowedRole` (`slot` `main` | `second`, CHECK); `Item` (`scheduleId`, `eventId` with the
