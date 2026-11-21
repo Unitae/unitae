@@ -360,9 +360,13 @@ from: the key a re-run and the notice rewrite use, dropped in PR 9. `congregatio
 (a part's `speaker` → `main`, `reader` → `second`; a service's single list → `main`); items take their
 row's schedule or schedule template (PR 3). Re-runnable on the legacy keys.
 
-**Dual write:** every writer of the old item tables (the PR 3 list, plus assign, unassign, reorder,
-conflict flags, allowed roles) writes the matching `Item` too, through one helper per side. Reads do
-not change. Duties may now carry a preset in the data; the picker comes with PR 6's template editor.
+**Mirrored by triggers, not by the writers:** an `AFTER INSERT OR UPDATE OR DELETE` trigger on each of
+the eight old tables upserts or deletes the matching new row on its legacy key. It catches what a helper
+per writer would miss: foreign-key cascades and `SET NULL`, the previous image during every rollout, and
+another service seeding a congregation's templates. No application code changes; reads do not change.
+An `asKind` other than `speaker` / `reader` fails the write rather than land in a wrong slot. Duties may
+now carry a preset in the data; the picker comes with PR 6's template editor. PR 9 drops the triggers
+with the old tables.
 
 **3d, archive (bump):** `template-items.ndjson`, `template-item-allowed-roles.ndjson`, `items.ndjson`,
 `item-allowed-roles.ndjson`; an older archive's four item files are mapped by the migration's rule in
@@ -391,12 +395,9 @@ the spec. PR 5 starts on the user's go.
    where D31 falls back to the programme one (`deleteRole` lives in `shared/` and cannot call the events
    feature). Before this PR merges, any other service that seeds a congregation's templates must write
    their schedule templates too, or congregations it creates afterwards keep none. The same migration
-   catches up the items (PR 3c's backfill again) and rewrites pending notices from `EventPart` /
-   `EventServicePart` to `Item` (`entityType`, `entityId` through the legacy keys, `debounceKey`), as the
-   new image's writers notify on items from here on (T12). The previous image keeps writing the old
-   tables and old-kind notices during the rollout, so this image still writes both shapes and its
-   notice worker reads both kinds; PR 5 stops writing the old item tables, and its migration rewrites
-   the notices the previous image left.
+   runs PR 3c's item backfill again.
+   Readers return `Item` ids; writers still write the old tables, translating an `Item` id to its legacy
+   row, and the triggers keep `Item` in step (T12), so notices keep their old entity names for now.
 2. Every reader of items and status reads items in schedules: the ~40 status readers and ~60 + ~50 item readers
    listed in Appendix A, grouped into commits by feature — events (lists, view, cadence,
    conflicts, candidates, share message, engagement, feed, notifications), dashboard (next meeting,
@@ -466,6 +467,11 @@ and « Changer le type » (T5). `EventView.tsx` (364) splits its header and its 
 **Tests:** service tests for each row of the rights table and for publishing one schedule; E2E
 `schedules.spec.ts`: publish the duties before the programme, the board shows the duties alone, then
 both; `program-permissions.spec.ts` updated to the new rights.
+
+**Items (T12):** writers move to `Item` and its allowed roles; the triggers stay until PR 9 for the previous
+image, which still writes the old tables during the rollout (a row it writes lands in `Item` as before). The
+migration rewrites pending notices from `EventPart` / `EventServicePart` to `Item` (`entityType`, `entityId`
+through the legacy keys, `debounceKey`); the notice worker reads both kinds until PR 9.
 
 ## 11. PR 6 — Réglages: event kinds and schedule templates
 
