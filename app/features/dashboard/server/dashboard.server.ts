@@ -1,7 +1,15 @@
 // Intentional cross-feature import: dashboard aggregates data from events and the board for the overview
 import { listBoardItems, resolveProgrammeLink } from '~/features/display-board/index.server'
 import { EventStatus } from '~/features/events'
-import { getNextDaysOffs } from '~/features/events/index.server'
+import {
+  getNextDaysOffs,
+  PART_ITEMS,
+  PART_ITEMS_BY_DATE,
+  publicItemId,
+  SERVICE_ITEM_ORDER,
+  SERVICE_ITEMS,
+  SERVICE_ITEMS_BY_DATE,
+} from '~/features/events/index.server'
 import { TWO_WEEKS_MS } from '~/shared/constants/limits'
 import { DASHBOARD_RECENT_ITEMS_LIMIT } from '~/shared/constants/pagination'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -80,8 +88,9 @@ export async function getConflictingAssignments(db: TransactionClient, userId: n
   const now = new Date()
 
   const [partConflicts, serviceConflicts] = await Promise.all([
-    db.eventPart.findMany({
+    db.item.findMany({
       where: {
+        ...PART_ITEMS,
         hasConflict: true,
         OR: [{ assigneeId: userId }, { assistantId: userId }],
         // Conflicts on a draft event are not urgent — the schedule isn't
@@ -90,27 +99,30 @@ export async function getConflictingAssignments(db: TransactionClient, userId: n
         event: { startDate: { gte: now }, status: EventStatus.Released },
       },
       select: {
-        id: true,
+        legacyPartId: true,
+        legacyServiceId: true,
         name: true,
         event: { select: { startDate: true } },
       },
       // Several parts or services of one meeting can clash with the same absence: the first in the programme is named,
       // here and in the services query below.
-      orderBy: [{ event: { startDate: 'asc' } }, { order: 'asc' }, { id: 'asc' }],
+      orderBy: PART_ITEMS_BY_DATE,
       take: 1,
     }),
-    db.eventServicePart.findMany({
+    db.item.findMany({
       where: {
+        ...SERVICE_ITEMS,
         hasConflict: true,
         assigneeId: userId,
         event: { startDate: { gte: now }, status: EventStatus.Released },
       },
       select: {
-        id: true,
+        legacyPartId: true,
+        legacyServiceId: true,
         name: true,
         event: { select: { startDate: true } },
       },
-      orderBy: [{ event: { startDate: 'asc' } }, { order: 'asc' }, { id: 'asc' }],
+      orderBy: SERVICE_ITEMS_BY_DATE,
       take: 1,
     }),
   ])
@@ -121,13 +133,13 @@ export async function getConflictingAssignments(db: TransactionClient, userId: n
   const candidates = [
     ...partConflicts.map(c => ({
       kind: 'part' as const,
-      id: c.id,
+      id: publicItemId(c),
       name: c.name,
       eventStartDate: c.event.startDate,
     })),
     ...serviceConflicts.map(c => ({
       kind: 'service-role' as const,
-      id: c.id,
+      id: publicItemId(c),
       name: c.name,
       eventStartDate: c.event.startDate,
     })),
@@ -155,53 +167,69 @@ export async function getNextMeeting(db: TransactionClient, userId: number, cong
       startDate: true,
       endDate: true,
       template: { select: { name: true, color: true } },
-      eventParts: {
-        select: {
-          id: true,
-          name: true,
-          section: true,
-          // Track, duration and conflict flag feed the programme overview card.
-          track: true,
-          trackOrder: true,
-          durationMin: true,
-          hasConflict: true,
-          topic: true,
-          order: true,
-          speakerLabel: true,
-          readerLabel: true,
-          assignee: { select: { id: true, firstname: true, lastname: true } },
-          assistant: { select: { id: true, firstname: true, lastname: true } },
-          // A visiting speaker holds the part instead of a member: not an empty slot.
-          externalSpeaker: { select: EXTERNAL_SPEAKER_LABEL_SELECT },
-        },
-        orderBy: { order: 'asc' },
-      },
-      eventServiceParts: {
-        select: {
-          id: true,
-          name: true,
-          assignee: { select: { id: true, firstname: true, lastname: true } },
-        },
-        orderBy: [{ order: 'asc' }, { id: 'asc' }],
-      },
     },
     orderBy: { startDate: 'asc' },
   })
 
   if (!event) return null
 
+  // Its parts and services from items (plan T12), each with the id its routes carry, the old row's.
+  const [partItems, serviceItems] = await Promise.all([
+    db.item.findMany({
+      where: { eventId: event.id, ...PART_ITEMS },
+      select: {
+        legacyPartId: true,
+        legacyServiceId: true,
+        name: true,
+        section: true,
+        // Track, duration and conflict flag feed the programme overview card.
+        track: true,
+        trackOrder: true,
+        durationMin: true,
+        hasConflict: true,
+        topic: true,
+        order: true,
+        speakerLabel: true,
+        readerLabel: true,
+        assignee: { select: { id: true, firstname: true, lastname: true } },
+        assistant: { select: { id: true, firstname: true, lastname: true } },
+        // A visiting speaker holds the part instead of a member: not an empty slot.
+        externalSpeaker: { select: EXTERNAL_SPEAKER_LABEL_SELECT },
+      },
+      // The old query's order, by position alone (never the track's, unlike PART_ITEM_ORDER), the old row's id breaking a
+      // tie it left to Postgres.
+      orderBy: [{ order: 'asc' }, { legacyPartId: 'asc' }],
+    }),
+    db.item.findMany({
+      where: { eventId: event.id, ...SERVICE_ITEMS },
+      select: {
+        legacyPartId: true,
+        legacyServiceId: true,
+        name: true,
+        assignee: { select: { id: true, firstname: true, lastname: true } },
+      },
+      orderBy: SERVICE_ITEM_ORDER,
+    }),
+  ])
+  const withPublicId = <T extends { legacyPartId: number | null; legacyServiceId: number | null }>({
+    legacyPartId,
+    legacyServiceId,
+    ...row
+  }: T) => ({ id: publicItemId({ legacyPartId, legacyServiceId }), ...row })
+  const eventServiceParts = serviceItems.map(withPublicId)
+
   // Tag each part with the viewer's role so the UI doesn't have to reverse-
   // engineer it. `null` means "viewer has no role on this part" — the UI
   // filters on userPartIds so nulls never render, but keeping the field
   // present makes the shape uniform and typed.
-  const eventParts = event.eventParts.map(p => ({
+  const eventParts = partItems.map(withPublicId).map(p => ({
     ...p,
     viewerRole:
       p.assignee?.id === userId ? ('speaker' as const) : p.assistant?.id === userId ? ('reader' as const) : null,
   }))
 
   const userPartIds = new Set(eventParts.filter(p => p.viewerRole !== null).map(p => p.id))
-  const userServicePartIds = new Set(event.eventServiceParts.filter(r => r.assignee?.id === userId).map(r => r.id))
+  const userServicePartIds = new Set(eventServiceParts.filter(r => r.assignee?.id === userId).map(r => r.id))
 
   // Canonical board link for this meeting, shared with the assignment emails
   // and the upcoming-assignments card.
@@ -210,6 +238,7 @@ export async function getNextMeeting(db: TransactionClient, userId: number, cong
   return {
     ...event,
     eventParts,
+    eventServiceParts,
     userPartIds: [...userPartIds],
     userServicePartIds: [...userServicePartIds],
     link,

@@ -16,6 +16,14 @@ export {
 } from './server/event-templates.server'
 export { getResponsibleTemplateIds, templateItemBelongsToTemplate } from './server/events-auth.server'
 export {
+  PART_ITEMS,
+  PART_ITEMS_BY_DATE,
+  publicItemId,
+  SERVICE_ITEM_ORDER,
+  SERVICE_ITEMS,
+  SERVICE_ITEMS_BY_DATE,
+} from './server/item-projection.server'
+export {
   findLastAssignmentsForMembers,
   findNextAbsencesForMembers,
   findUpcomingAbsencesForMember,

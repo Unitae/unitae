@@ -1,5 +1,6 @@
 import { resolveProgrammeLink } from '~/features/display-board/index.server'
 import { EventStatus, partPresetReaderLabel, partPresetSpeakerLabel } from '~/features/events'
+import { PART_ITEMS, publicItemId, SERVICE_ITEMS, SERVICE_ITEMS_BY_DATE } from '~/features/events/index.server'
 import { FOUR_WEEKS_MS } from '~/shared/constants/limits'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -63,10 +64,11 @@ export async function getUpcomingAssignments(
   const eventSelect = { select: { id: true, templateId: true, name: true, startDate: true } }
 
   const [partRows, serviceRows] = await Promise.all([
-    db.eventPart.findMany({
-      where: { OR: [{ assigneeId: userId }, { assistantId: userId }], event: eventFilter },
+    db.item.findMany({
+      where: { ...PART_ITEMS, OR: [{ assigneeId: userId }, { assistantId: userId }], event: eventFilter },
       select: {
-        id: true,
+        legacyPartId: true,
+        legacyServiceId: true,
         name: true,
         topic: true,
         speakerLabel: true,
@@ -81,19 +83,20 @@ export async function getUpcomingAssignments(
         assistant: { select: { firstname: true, lastname: true } },
         event: eventSelect,
       },
-      orderBy: { event: { startDate: 'asc' } },
+      // The old row's id breaks a tie the old query left to Postgres (in practice the rows' insertion order).
+      orderBy: [{ event: { startDate: 'asc' } }, { legacyPartId: 'asc' }],
     }),
-    db.eventServicePart.findMany({
-      where: { assigneeId: userId, event: eventFilter },
-      select: { id: true, name: true, event: eventSelect },
-      orderBy: [{ event: { startDate: 'asc' } }, { order: 'asc' }, { id: 'asc' }],
+    db.item.findMany({
+      where: { ...SERVICE_ITEMS, assigneeId: userId, event: eventFilter },
+      select: { legacyPartId: true, legacyServiceId: true, name: true, event: eventSelect },
+      orderBy: SERVICE_ITEMS_BY_DATE,
     }),
   ])
 
   const raw: RawAssignment[] = [
     ...partRows.map(
       (part): RawAssignment => ({
-        key: `part-${part.id}`,
+        key: `part-${publicItemId(part)}`,
         // A member listed as the part's assignee is the speaker; otherwise the
         // OR filter guarantees they are the assistant (reader).
         role: part.assigneeId === userId ? 'speaker' : 'reader',
@@ -109,7 +112,7 @@ export async function getUpcomingAssignments(
     ),
     ...serviceRows.map(
       (role): RawAssignment => ({
-        key: `service-${role.id}`,
+        key: `service-${publicItemId(role)}`,
         role: 'service',
         partner: null,
         name: role.name,

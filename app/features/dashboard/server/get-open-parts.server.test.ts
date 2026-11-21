@@ -13,14 +13,14 @@ describe('getOpenParts', () => {
         name: 'Réunion de semaine',
         startDate: new Date(2026, 10, 12),
         status: 'draft',
-        _count: { eventParts: 2 },
+        _count: { items: 2 },
       },
       {
         id: 2,
         name: 'Réunion du week-end',
         startDate: new Date(2026, 10, 15),
         status: 'released',
-        _count: { eventParts: 0 },
+        _count: { items: 0 },
       },
     ] as never)
     const open = await getOpenParts(db, 1, { templateIds: null, days: 28 })
@@ -31,7 +31,7 @@ describe('getOpenParts', () => {
 
   it('finds nothing for someone responsible for no meeting type', async () => {
     vi.mocked(db.event.findMany).mockResolvedValue([
-      { id: 1, name: 'x', startDate: new Date(), status: 'draft', _count: { eventParts: 2 } },
+      { id: 1, name: 'x', startDate: new Date(), status: 'draft', _count: { items: 2 } },
     ] as never)
     expect(await getOpenParts(db, 1, { templateIds: [], days: 28 })).toEqual([])
   })
