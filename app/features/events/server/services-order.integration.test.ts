@@ -197,6 +197,33 @@ describe('the order of services', () => {
     })
   })
 
+  // Ties go by the old row's id (order_services), and a programme's parts with the same order and track position too,
+  // even where the items were written in another order than the rows they mirror.
+  it('breaks ties by the order the rows were created in, whatever order their items were written in', async () => {
+    const read = await withScope(ids.cong, async tx => {
+      const event = await newEvent(tx, 'Égalités')
+      const congregationId = ids.cong
+      const first = await tx.eventServicePart.create({
+        data: { name: 'A', order: 0, eventId: event.id, congregationId },
+      })
+      await tx.eventServicePart.create({ data: { name: 'B', order: 0, eventId: event.id, congregationId } })
+      const lead = await tx.eventPart.create({ data: { name: 'P1', order: 5, eventId: event.id, congregationId } })
+      await tx.eventPart.create({ data: { name: 'P2', order: 5, eventId: event.id, congregationId } })
+      await tx.eventPart.create({ data: { name: 'P0', order: 5, trackOrder: 1, eventId: event.id, congregationId } })
+      // The first row of each pair gets its item back with a newer id than the second's.
+      await tx.item.deleteMany({ where: { OR: [{ legacyServiceId: first.id }, { legacyPartId: lead.id }] } })
+      await tx.eventServicePart.update({ where: { id: first.id }, data: { note: '' } })
+      await tx.eventPart.update({ where: { id: lead.id }, data: { note: '' } })
+      const page = await getEventProgramme(tx, event.id, congregationId)
+      return {
+        services: page?.eventServiceParts.map(service => service.name),
+        parts: page?.eventParts.map(part => part.name),
+      }
+    })
+
+    expect(read).toEqual({ services: ['A', 'B'], parts: ['P0', 'P1', 'P2'] })
+  })
+
   it('seeds the services of a new congregation in the order they are listed', async () => {
     const orders = await withScope(ids.seededCong, async tx => {
       await seedDefaultTemplates(tx, ids.seededCong, 'fr')

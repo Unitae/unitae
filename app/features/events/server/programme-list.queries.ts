@@ -1,6 +1,7 @@
 import { isAwaitingProgramme, programmeTemplate } from '~/features/events/model/empty-meetings'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import { TEMPLATE_PROGRAMME_COUNT } from '~/features/events/server/give-programme.server'
+import { MIRRORED_ITEMS, splitItems } from '~/features/events/server/item-projection.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 /** How many slots a programme has, how many have someone, and how many are flagged as falling in an absence. */
@@ -52,29 +53,40 @@ export async function listProgrammes(
       status: true,
       templateId: true,
       template: { select: { name: true, color: true, key: true, ...TEMPLATE_PROGRAMME_COUNT } },
-      eventParts: { select: { assigneeId: true, externalSpeakerId: true, hasConflict: true } },
-      eventServiceParts: { select: { assigneeId: true, hasConflict: true } },
+      items: {
+        where: MIRRORED_ITEMS,
+        select: {
+          legacyPartId: true,
+          legacyServiceId: true,
+          assigneeId: true,
+          externalSpeakerId: true,
+          hasConflict: true,
+        },
+      },
     },
     orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
   })
-  return rows.map(({ template, eventParts, eventServiceParts, ...row }) => ({
-    ...row,
-    kind: template && { name: template.name, color: template.color },
-    awaitingProgramme: isAwaitingProgramme({
-      parts: eventParts.length,
-      services: eventServiceParts.length,
-      template: programmeTemplate(template),
-    }),
-    parts: counts(
-      eventParts.map(part => ({
-        filled: part.assigneeId != null || part.externalSpeakerId != null,
-        hasConflict: part.hasConflict,
-      })),
-    ),
-    services: counts(
-      eventServiceParts.map(service => ({ filled: service.assigneeId != null, hasConflict: service.hasConflict })),
-    ),
-  }))
+  return rows.map(({ template, items, ...row }) => {
+    const { parts: eventParts, services: eventServiceParts } = splitItems(items)
+    return {
+      ...row,
+      kind: template && { name: template.name, color: template.color },
+      awaitingProgramme: isAwaitingProgramme({
+        parts: eventParts.length,
+        services: eventServiceParts.length,
+        template: programmeTemplate(template),
+      }),
+      parts: counts(
+        eventParts.map(part => ({
+          filled: part.assigneeId != null || part.externalSpeakerId != null,
+          hasConflict: part.hasConflict,
+        })),
+      ),
+      services: counts(
+        eventServiceParts.map(service => ({ filled: service.assigneeId != null, hasConflict: service.hasConflict })),
+      ),
+    }
+  })
 }
 
 /** Whether a programme exists at all, drafts counted only for a reader who may see them: the empty list says which. */

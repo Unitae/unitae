@@ -5,6 +5,7 @@ import type {
   SpeakerNextVisit,
   SpeakerVisits,
 } from '~/features/events/model/external-speaker.type'
+import { PART_ITEMS } from '~/features/events/server/item-projection.server'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -28,8 +29,8 @@ async function summariseVisits(
 ): Promise<Map<number, VisitSummary>> {
   const summaries = new Map<number, VisitSummary>()
   if (speakerIds.length === 0) return summaries
-  const parts = await db.eventPart.findMany({
-    where: { congregationId, externalSpeakerId: { in: speakerIds } },
+  const parts = await db.item.findMany({
+    where: { congregationId, externalSpeakerId: { in: speakerIds }, ...PART_ITEMS },
     select: { externalSpeakerId: true, event: { select: { id: true, startDate: true, status: true } } },
   })
   for (const part of parts) {
@@ -127,8 +128,8 @@ export async function getSpeakerVisits(
   speakerId: number,
   now: Date = new Date(),
 ): Promise<SpeakerVisits> {
-  const parts = await db.eventPart.findMany({
-    where: { congregationId, externalSpeakerId: speakerId },
+  const parts = await db.item.findMany({
+    where: { congregationId, externalSpeakerId: speakerId, ...PART_ITEMS },
     select: { name: true, topic: true, event: { select: { id: true, startDate: true, status: true } } },
   })
   const visits = parts.map(p => ({

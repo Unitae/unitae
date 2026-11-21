@@ -11,6 +11,15 @@ import {
   DAY_OFF_MESSAGE,
   PROGRAMME_ASSIGNMENT_ERRORS,
 } from '~/features/events/server/event-part.policy'
+import {
+  asEventPart,
+  asEventServicePart,
+  ITEM_ORIGIN_INCLUDE,
+  PART_ITEM_ORDER,
+  PART_ITEMS,
+  SERVICE_ITEM_ORDER,
+  SERVICE_ITEMS,
+} from '~/features/events/server/item-projection.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
 
@@ -31,32 +40,34 @@ async function lockServicePartAssignmentRow(db: TransactionClient, id: number, c
   await db.$executeRaw`SELECT id FROM "EventServicePart" WHERE id = ${id} AND "congregationId" = ${congregationId} FOR UPDATE`
 }
 
-export function getEventProgramme(db: TransactionClient, eventId: number, congregationId: number) {
-  return db.event.findFirst({
+export async function getEventProgramme(db: TransactionClient, eventId: number, congregationId: number) {
+  const event = await db.event.findFirst({
     where: { id: eventId, congregationId },
-    include: {
-      // With the counts of its template: they say whether an empty event waits for its programme (isAwaitingProgramme).
-      template: { include: { _count: { select: { parts: true, serviceParts: true } } } },
-      eventParts: {
-        include: {
-          assignee: true,
-          assistant: true,
-          // archivedAt and the congregation: a speaker retired after being planned is flagged on the programme.
-          externalSpeaker: { include: { speakerCongregation: { select: { name: true } } } },
-          // Read live rather than denormalized: an improved wording should
-          // reach assignments that already exist.
-          preset: true,
-        },
-        orderBy: [{ order: 'asc' }, { trackOrder: { sort: 'asc', nulls: 'last' } }],
-      },
-      eventServiceParts: {
-        include: {
-          assignee: true,
-        },
-        orderBy: [{ order: 'asc' }, { id: 'asc' }],
-      },
-    },
+    // With the counts of its template: they say whether an empty event waits for its programme (isAwaitingProgramme).
+    include: { template: { include: { _count: { select: { parts: true, serviceParts: true } } } } },
   })
+  if (!event) return null
+  const [parts, services] = await Promise.all([
+    db.item.findMany({
+      where: { eventId, congregationId, ...PART_ITEMS },
+      include: {
+        ...ITEM_ORIGIN_INCLUDE,
+        assignee: true,
+        assistant: true,
+        // archivedAt and the congregation: a speaker retired after being planned is flagged on the programme.
+        externalSpeaker: { include: { speakerCongregation: { select: { name: true } } } },
+        // Read live rather than denormalized: an improved wording should reach assignments that already exist.
+        preset: true,
+      },
+      orderBy: PART_ITEM_ORDER,
+    }),
+    db.item.findMany({
+      where: { eventId, congregationId, ...SERVICE_ITEMS },
+      include: { ...ITEM_ORIGIN_INCLUDE, assignee: true },
+      orderBy: SERVICE_ITEM_ORDER,
+    }),
+  ])
+  return { ...event, eventParts: parts.map(asEventPart), eventServiceParts: services.map(asEventServicePart) }
 }
 
 // Runs the per-participant checks used by assignPart for both speaker and
