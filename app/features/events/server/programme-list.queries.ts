@@ -1,7 +1,7 @@
 import { isAwaitingProgramme, programmeTemplate } from '~/features/events/model/empty-meetings'
 import { VISIBLE_EVENT } from '~/features/events/model/visibility'
 import { TEMPLATE_PROGRAMME_COUNT } from '~/features/events/server/give-programme.server'
-import { MIRRORED_ITEMS, splitItems } from '~/features/events/server/item-projection.server'
+import { ITEM_KIND, SCHEDULED_ITEMS, splitItems } from '~/features/events/server/item-projection.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 /** How many slots a programme has, how many have someone, and how many are flagged as falling in an absence. */
@@ -54,10 +54,9 @@ export async function listProgrammes(
       templateId: true,
       template: { select: { name: true, color: true, key: true, ...TEMPLATE_PROGRAMME_COUNT } },
       items: {
-        where: MIRRORED_ITEMS,
+        where: SCHEDULED_ITEMS,
         select: {
-          legacyPartId: true,
-          legacyServiceId: true,
+          ...ITEM_KIND,
           assigneeId: true,
           externalSpeakerId: true,
           hasConflict: true,

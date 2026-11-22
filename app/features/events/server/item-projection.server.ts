@@ -1,8 +1,9 @@
 import { type EventPart, type EventServicePart, type Item, Prisma } from '~/database/generated/client'
+import { ScheduleKind } from '~/features/events/model/schedule.type'
 
 // The read switch (plan T12, PR 4): readers read `Item` but hand back today's shapes, the old row's id and kind, so the
 // writers, routes, form fields, links and notices keep theirs. PR 5 moves the writers to `Item` and flips this file: the
-// public id becomes `Item.id` and the kind the schedule's.
+// public id becomes `Item.id`. An item's kind is its schedule's: a programme holds parts, a duty schedule duties.
 
 interface ItemOrigin {
   legacyPartId: number | null
@@ -15,16 +16,24 @@ interface WithTemplateItem extends ItemOrigin {
 
 export type ItemKind = 'part' | 'service'
 
+interface WithScheduleKind {
+  schedule: { kind: string } | null
+}
+
 /** What a reader includes to project an item: the row its template item mirrors (its own columns come anyway). */
 export const ITEM_ORIGIN_INCLUDE = {
   templateItem: { select: { legacyPartId: true, legacyServiceId: true } },
 } satisfies Prisma.ItemInclude
 
-export const PART_ITEMS = { legacyPartId: { not: null } } satisfies Prisma.ItemWhereInput
-export const SERVICE_ITEMS = { legacyServiceId: { not: null } } satisfies Prisma.ItemWhereInput
-/** The items this file can name: those that mirror an old row. PR 5's writers make items without one, which a reader of
- * this image skips while that rollout runs rather than fail. */
-export const MIRRORED_ITEMS = { OR: [PART_ITEMS, SERVICE_ITEMS] } satisfies Prisma.ItemWhereInput
+// The kinds go through `AND`, so that VISIBLE_ITEM (which sets `schedule`) spreads beside them without either losing.
+/** A programme's parts: the items of a programme schedule. */
+export const PART_ITEMS = { AND: [{ schedule: { kind: ScheduleKind.Programme } }] } satisfies Prisma.ItemWhereInput
+/** The duties: the items of a duty schedule. */
+export const SERVICE_ITEMS = { AND: [{ schedule: { kind: ScheduleKind.Duty } }] } satisfies Prisma.ItemWhereInput
+/** Every item of an event, parts and duties: every item sits in a schedule. */
+export const SCHEDULED_ITEMS = { scheduleId: { not: null } } satisfies Prisma.ItemWhereInput
+/** What a reader includes or selects to tell an item's kind with itemKind or splitItems. */
+export const ITEM_KIND = { schedule: { select: { kind: true } } } satisfies Prisma.ItemInclude
 
 /**
  * Today's order of a programme's parts. The old query left its last ties to Postgres (in practice the rows' insertion
@@ -65,6 +74,7 @@ const ORIGIN_KEYS = [
   'legacyServiceId',
   'templateItem',
   'templateItemId',
+  'schedule',
 ] as const satisfies readonly (keyof Prisma.ItemSelect)[]
 // What a part has and a service does not, the relations included.
 const PROGRAMME_KEYS = [
@@ -113,14 +123,11 @@ function without<T extends object, K extends string>(row: T, keys: readonly K[])
   return copy as Omit<T, K>
 }
 
-/**
- * Whether an item is a part or a duty. Every item mirrors one old row until PR 5's writers make items of their own;
- * readers of this image filter on MIRRORED_ITEMS (or one kind) so those never reach here.
- */
-export function itemKind(item: ItemOrigin): ItemKind {
-  if (item.legacyPartId != null) return 'part'
-  if (item.legacyServiceId != null) return 'service'
-  throw new Error('An item that mirrors no part or service cannot be read before the writers move to items')
+/** Whether an item is a part or a duty: its schedule's kind. A reader reads only items in a schedule (SCHEDULED_ITEMS). */
+export function itemKind(item: WithScheduleKind): ItemKind {
+  if (item.schedule?.kind === ScheduleKind.Programme) return 'part'
+  if (item.schedule?.kind === ScheduleKind.Duty) return 'service'
+  throw new Error('An item outside a schedule has no kind: read SCHEDULED_ITEMS only')
 }
 
 /**
@@ -134,7 +141,7 @@ export function publicItemId(item: ItemOrigin): number {
 }
 
 /** The parts and the duties of a list of items, each kind in the list's order. */
-export function splitItems<T extends ItemOrigin>(items: T[]): { parts: T[]; services: T[] } {
+export function splitItems<T extends WithScheduleKind>(items: T[]): { parts: T[]; services: T[] } {
   return {
     parts: items.filter(item => itemKind(item) === 'part'),
     services: items.filter(item => itemKind(item) === 'service'),
