@@ -1,5 +1,5 @@
-import { EventStatus } from '~/features/events/model/event-status.type'
 import type { AssignKind } from '~/features/events/model/reassign'
+import { ScheduleStatus } from '~/features/events/model/schedule.type'
 import { absencesOf } from '~/features/events/server/absences.queries'
 import {
   PART_ITEMS,
@@ -62,7 +62,7 @@ export interface AbsenceAssignment {
   eventDate: Date
   /** Who may reassign it follows the event's template. */
   templateId: number | null
-  /** Its programme is published: people already rely on it. */
+  /** Its schedule is published: people already rely on it. */
   published: boolean
 }
 
@@ -118,7 +118,8 @@ export async function listCongregationAbsences(
     startDate: { lte: new Date(Math.max(...absences.map(absence => absence.endDate.getTime()))) },
     endDate: { gte: new Date(Math.min(...absences.map(absence => absence.startDate.getTime()))) },
   }
-  const event = { select: { id: true, startDate: true, endDate: true, templateId: true, status: true } }
+  const event = { select: { id: true, startDate: true, endDate: true, templateId: true } }
+  const schedule = { select: { status: true } }
   const [parts, services] = await Promise.all([
     db.item.findMany({
       where: {
@@ -128,12 +129,20 @@ export async function listCongregationAbsences(
         event: span,
         OR: [{ assigneeId: { in: memberIds } }, { assistantId: { in: memberIds } }],
       },
-      select: { legacyPartId: true, legacyServiceId: true, name: true, assigneeId: true, assistantId: true, event },
+      select: {
+        legacyPartId: true,
+        legacyServiceId: true,
+        name: true,
+        assigneeId: true,
+        assistantId: true,
+        event,
+        schedule,
+      },
       orderBy: PART_ITEMS_BY_DATE,
     }),
     db.item.findMany({
       where: { ...SERVICE_ITEMS, congregationId, hasConflict: true, event: span, assigneeId: { in: memberIds } },
-      select: { legacyPartId: true, legacyServiceId: true, name: true, assigneeId: true, event },
+      select: { legacyPartId: true, legacyServiceId: true, name: true, assigneeId: true, event, schedule },
       orderBy: SERVICE_ITEMS_BY_DATE,
     }),
   ])
@@ -142,6 +151,7 @@ export async function listCongregationAbsences(
       id: publicItemId(part),
       name: part.name,
       event: part.event,
+      published: part.schedule?.status === ScheduleStatus.Published,
       kind: 'part' as const,
       holders: [part.assigneeId, part.assistantId],
     })),
@@ -149,6 +159,7 @@ export async function listCongregationAbsences(
       id: publicItemId(service),
       name: service.name,
       event: service.event,
+      published: service.schedule?.status === ScheduleStatus.Published,
       kind: 'service' as const,
       holders: [service.assigneeId],
     })),
@@ -167,7 +178,7 @@ export async function listCongregationAbsences(
         eventId: slot.event.id,
         eventDate: slot.event.startDate,
         templateId: slot.event.templateId,
-        published: slot.event.status === EventStatus.Released,
+        published: slot.published,
       }))
       .sort((a, b) => a.eventDate.getTime() - b.eventDate.getTime()),
   }))

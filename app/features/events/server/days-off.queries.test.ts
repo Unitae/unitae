@@ -104,7 +104,7 @@ describe('listCongregationAbsences', () => {
     expect(absence).toMatchObject({ id: 1, memberId: 5, firstname: 'Élodie', lastname: 'Martin', declaredAt: declared })
   })
 
-  // Whether its programme is published already: red once people rely on it, orange while it is a draft.
+  // Whether its schedule is published already: red once people rely on it, orange while it is a draft.
   it('gives each absence the flagged assignments of its own person that fall during it', async () => {
     vi.mocked(db.absence.findMany).mockResolvedValue([elodie, paul] as never)
     vi.mocked(db.eventPart.findMany).mockResolvedValue([
@@ -114,9 +114,17 @@ describe('listCongregationAbsences', () => {
         assigneeId: 5,
         assistantId: null,
         event: meeting(31, '2026-11-12T18:00:00Z'),
+        schedule: { status: 'published' },
       },
       // Élodie's part the week after her absence: not during it.
-      { id: 13, name: 'Prière', assigneeId: 5, assistantId: null, event: meeting(32, '2026-11-19T18:00:00Z') },
+      {
+        id: 13,
+        name: 'Prière',
+        assigneeId: 5,
+        assistantId: null,
+        event: meeting(32, '2026-11-19T18:00:00Z'),
+        schedule: { status: 'published' },
+      },
       // Paul as the assistant of someone else's part.
       {
         id: 14,
@@ -124,10 +132,17 @@ describe('listCongregationAbsences', () => {
         assigneeId: 9,
         assistantId: 7,
         event: meeting(40, '2026-12-27T09:00:00Z', null, 'draft'),
+        schedule: { status: 'draft' },
       },
     ] as never)
     vi.mocked(db.eventServicePart.findMany).mockResolvedValue([
-      { id: 7, name: 'Sonorisation', assigneeId: 7, event: meeting(39, '2026-12-24T18:00:00Z') },
+      {
+        id: 7,
+        name: 'Sonorisation',
+        assigneeId: 7,
+        event: meeting(39, '2026-12-24T18:00:00Z'),
+        schedule: { status: 'published' },
+      },
     ] as never)
 
     const result = await listCongregationAbsences(db, { congregationId: 1, from: FROM, to: TO })
@@ -174,6 +189,38 @@ describe('listCongregationAbsences', () => {
   })
 
   // The old page ran two queries per absence.
+  // The flag follows the item's own schedule, not its event's status: a part in a draft schedule of a released event,
+  // or a part in no schedule, is not published.
+  it("takes « published » from the assignment's own schedule", async () => {
+    vi.mocked(db.absence.findMany).mockResolvedValue([elodie] as never)
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([
+      {
+        id: 12,
+        name: 'Lecture',
+        assigneeId: 5,
+        assistantId: null,
+        event: meeting(31, '2026-11-12T18:00:00Z'),
+        schedule: { status: 'draft' },
+      },
+      {
+        id: 15,
+        name: 'Prière',
+        assigneeId: 5,
+        assistantId: null,
+        event: meeting(33, '2026-11-12T19:00:00Z'),
+        schedule: null,
+      },
+    ] as never)
+    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([])
+
+    const [absence] = await listCongregationAbsences(db, { congregationId: 1, from: FROM, to: TO })
+
+    expect(absence?.conflicts.map(conflict => [conflict.id, conflict.published])).toEqual([
+      [12, false],
+      [15, false],
+    ])
+  })
+
   it('reads the flagged assignments of everyone away in one query per kind', async () => {
     vi.mocked(db.absence.findMany).mockResolvedValue([elodie, paul] as never)
     vi.mocked(db.eventPart.findMany).mockResolvedValue([])

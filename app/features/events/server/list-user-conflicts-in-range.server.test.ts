@@ -26,10 +26,10 @@ describe('listUserConflictsInRange', () => {
   })
 
   // Filters must be by memberId (assigneeId / assistantId reference Member.id),
-  // hasConflict: true, event range overlap, and released status. Drafts are
+  // hasConflict: true, event range overlap, and a published schedule. Drafts are
   // the manager's scratch space and must never surface to consumers of this
   // query (days-off modal, responsibles dashboard card).
-  it('filters part assignments by memberId, hasConflict, event overlap, and released status', async () => {
+  it('filters part assignments by memberId, hasConflict, event overlap, and published schedule', async () => {
     const memberId = 5000
     const start = new Date(2026, 6, 1)
     const end = new Date(2026, 6, 3)
@@ -40,10 +40,11 @@ describe('listUserConflictsInRange', () => {
     const where = call?.where as Record<string, unknown>
     expect(where.hasConflict).toBe(true)
     expect(where.OR).toEqual([{ assigneeId: memberId }, { assistantId: memberId }])
-    expect(where.event).toEqual({ startDate: { lte: end }, endDate: { gte: start }, status: 'released' })
+    expect(where.schedule).toEqual({ status: 'published' })
+    expect(where.event).toEqual({ startDate: { lte: end }, endDate: { gte: start } })
   })
 
-  it('filters service-role assignments by memberId as assignee and released status', async () => {
+  it('filters service-role assignments by memberId as assignee and published schedule', async () => {
     const memberId = 5000
     await listUserConflictsInRange(db, memberId, new Date(2026, 6, 1), new Date(2026, 6, 3))
 
@@ -51,7 +52,7 @@ describe('listUserConflictsInRange', () => {
     const where = call?.where as Record<string, unknown>
     expect(where.hasConflict).toBe(true)
     expect(where.assigneeId).toBe(memberId)
-    expect((where.event as { status?: string }).status).toBe('released')
+    expect(where.schedule).toEqual({ status: 'published' })
   })
 
   it('resolves the responsible name via accountDisplayName when a template responsible exists', async () => {

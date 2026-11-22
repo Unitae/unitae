@@ -105,7 +105,7 @@ describe('getDynamicPreview', () => {
         congregationId: 10,
         template: { key: 'midweek' },
         startDate: { gte: expect.any(Date) },
-        status: 'released',
+        OR: [{ schedules: { some: { status: 'published' } } }, { schedules: { none: {} }, status: 'released' }],
       },
       orderBy: { startDate: 'asc' },
       select: { startDate: true },
@@ -255,26 +255,28 @@ describe('current pioneers month', () => {
   })
 })
 
-// --- getDynamicDocumentData: draft events hidden ---
+// --- getDynamicDocumentData: only what members may see (D46) ---
 //
-// The board is the public face of the schedule. Any query that surfaces
-// programme events to it MUST filter out drafts, otherwise a manager mid-edit
+// The board is the public face of the schedule. Any query that surfaces programme events to it reads only an event
+// with a published schedule, or with no schedule and released; otherwise a manager mid-edit
 // leaks half-baked assignments to every publisher walking past the screen.
 
 describe('getDynamicDocumentData programme draft filter', () => {
-  it('filters legacy single-template events to status=released', async () => {
+  it('reads only legacy single-template events members may see (D46)', async () => {
     mockDb.event.findMany.mockResolvedValue([])
 
     await getDynamicDocumentData(mockDb as never, 'programme', 'midweek', 10, { showServices: false })
 
     expect(mockDb.event.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ status: 'released' }),
+        where: expect.objectContaining({
+          OR: [{ schedules: { some: { status: 'published' } } }, { schedules: { none: {} }, status: 'released' }],
+        }),
       }),
     )
   })
 
-  it('filters multi-template events to status=released', async () => {
+  it('reads only multi-template events members may see (D46)', async () => {
     mockDb.event.findMany.mockResolvedValue([])
     const dynamicConfig = { templates: [{ templateId: 1, parts: true, services: false }] }
 
@@ -282,7 +284,9 @@ describe('getDynamicDocumentData programme draft filter', () => {
 
     expect(mockDb.event.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ status: 'released' }),
+        where: expect.objectContaining({
+          OR: [{ schedules: { some: { status: 'published' } } }, { schedules: { none: {} }, status: 'released' }],
+        }),
       }),
     )
   })
@@ -358,30 +362,34 @@ describe('getDynamicDocumentData attendance line', () => {
 })
 
 describe('getDynamicPreview programme draft filter', () => {
-  it('picks the next released event only', async () => {
+  it('picks the next event members may see only', async () => {
     mockDb.event.findFirst.mockResolvedValue(null)
 
     await getDynamicPreview(mockDb as never, 'programme', 'midweek', 10)
 
     expect(mockDb.event.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ status: 'released' }),
+        where: expect.objectContaining({
+          OR: [{ schedules: { some: { status: 'published' } } }, { schedules: { none: {} }, status: 'released' }],
+        }),
       }),
     )
   })
 })
 
 describe('getContentVersion programme draft filter', () => {
-  it('reads latest event / assignment updatedAt from released events only', async () => {
+  it('reads latest event / assignment updatedAt from what members may see only', async () => {
     mockDb.event.findFirst.mockResolvedValue(null)
     mockDb.eventPart.findFirst.mockResolvedValue(null)
 
     await getContentVersion(mockDb as never, 'programme', 'midweek', 10)
 
     const eventCall = mockDb.event.findFirst.mock.calls[0][0]
-    expect(eventCall.where).toMatchObject({ status: 'released' })
+    expect(eventCall.where).toMatchObject({
+      OR: [{ schedules: { some: { status: 'published' } } }, { schedules: { none: {} }, status: 'released' }],
+    })
     const assignmentCall = mockDb.eventPart.findFirst.mock.calls[0][0]
-    expect(assignmentCall.where.event).toMatchObject({ status: 'released' })
+    expect(assignmentCall.where).toMatchObject({ schedule: { status: 'published' } })
   })
 })
 

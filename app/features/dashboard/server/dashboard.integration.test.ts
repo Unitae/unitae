@@ -2,6 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
+import { settleFixtureSchedules } from '~/tests/helpers/settle-fixture-schedules'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -207,6 +208,7 @@ beforeAll(async () => {
       },
     })
     pastEventId = past.id
+    await settleFixtureSchedules(tx as never, congregationId)
   })
 })
 
@@ -336,9 +338,8 @@ describe('getConflictingAssignments (integration)', () => {
           endDate: opts.endDate ?? new Date(opts.startDate.getTime() + 2 * 60 * 60 * 1000),
           createdById: opts.createdById ?? aliceAccountId,
           congregationId: cong,
-          // Every publisher-facing conflict / dashboard query filters on
-          // status='released' now that the draft/released workflow is live.
-          // Test fixtures are always public.
+          // Every publisher-facing query reads published schedules only: released, the fixture's schedules come
+          // out published when settleFixtureSchedules settles them.
           status: 'released',
         },
       })
@@ -373,6 +374,7 @@ describe('getConflictingAssignments (integration)', () => {
           return created.id
         }),
       )
+      await settleFixtureSchedules(tx as never, cong)
       return { eventId: event.id, partIds, servicePartIds }
     })
   }
@@ -530,6 +532,7 @@ describe('getConflictingAssignments (integration)', () => {
           congregationId: otherCong.id,
         },
       })
+      await settleFixtureSchedules(tx as never, otherCong.id)
       return {
         otherKindId: otherKind.id,
         otherMemberId: otherMember.id,
@@ -612,6 +615,7 @@ describe('getConflictingAssignments (integration)', () => {
           congregationId,
         },
       })
+      await settleFixtureSchedules(tx as never, congregationId)
       return { templateId: template.id, eventId: event.id, partId: part.id, servicePartId: servicePart.id }
     })
 
@@ -713,6 +717,7 @@ describe('getConflictingAssignments (integration)', () => {
           congregationId,
         },
       })
+      await settleFixtureSchedules(tx as never, congregationId)
       return { templateId: template.id, eventId: event.id, partId: part.id }
     })
 
@@ -781,6 +786,7 @@ describe('getConflictingAssignments (integration)', () => {
           congregationId,
         },
       })
+      await settleFixtureSchedules(tx as never, congregationId)
       return { eventId: event.id, partId: part.id }
     })
 

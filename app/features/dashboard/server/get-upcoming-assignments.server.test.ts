@@ -53,29 +53,25 @@ describe('getUpcomingAssignments', () => {
     expect(result).toEqual([])
   })
 
-  // The card is a forward view: only released events between now and four
+  // The card is a forward view: only published schedules between now and four
   // weeks out. Parts match the member as
   // either the speaker (assignee) or the assistant (assistant).
-  it('scopes the part query to my released events within the four-week window', async () => {
+  it('scopes the part query to my published parts within the four-week window', async () => {
     await getUpcomingAssignments(db, 100, CONGREGATION_ID, NOW)
 
     const where = vi.mocked(db.eventPart.findMany).mock.calls[0][0]?.where as Record<string, unknown>
     expect(where.OR).toEqual([{ assigneeId: 100 }, { assistantId: 100 }])
-    expect(where.event).toEqual({
-      status: 'released',
-      startDate: { gte: NOW, lte: FOUR_WEEKS_LATER },
-    })
+    expect(where.schedule).toEqual({ status: 'published' })
+    expect(where.event).toEqual({ startDate: { gte: NOW, lte: FOUR_WEEKS_LATER } })
   })
 
-  it('scopes the service-role query to my released events within the four-week window', async () => {
+  it('scopes the service-role query to my published duties within the four-week window', async () => {
     await getUpcomingAssignments(db, 100, CONGREGATION_ID, NOW)
 
     const where = vi.mocked(db.eventServicePart.findMany).mock.calls[0][0]?.where as Record<string, unknown>
     expect(where.assigneeId).toBe(100)
-    expect(where.event).toEqual({
-      status: 'released',
-      startDate: { gte: NOW, lte: FOUR_WEEKS_LATER },
-    })
+    expect(where.schedule).toEqual({ status: 'published' })
+    expect(where.event).toEqual({ startDate: { gte: NOW, lte: FOUR_WEEKS_LATER } })
   })
 
   // A demonstration is prepared with someone: the speaker needs to know the assistant, and the

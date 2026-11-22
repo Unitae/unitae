@@ -1,6 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+import { settleFixtureSchedules } from '~/tests/helpers/settle-fixture-schedules'
 
 // A publisher's record names their assignments: the coming ones, and the last one done. Several in one meeting are
 // read in the programme's order — parts, then services — not in whatever order the table returns them, so the record
@@ -47,6 +48,7 @@ beforeAll(async () => {
       await tx.eventPart.create({ data: { name: 'Cantique de conclusion', order: 20, ...held } })
       await tx.eventPart.create({ data: { name: 'Cantique et prière', order: 0, ...held } })
     }
+    await settleFixtureSchedules(tx as never, congregationId)
   })
 })
 

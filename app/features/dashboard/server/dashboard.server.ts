@@ -1,6 +1,6 @@
 // Intentional cross-feature import: dashboard aggregates data from events and the board for the overview
 import { listBoardItems, resolveProgrammeLink } from '~/features/display-board/index.server'
-import { EventStatus } from '~/features/events'
+import { VISIBLE_EVENT, VISIBLE_ITEM } from '~/features/events'
 import {
   getNextDaysOffs,
   PART_ITEMS,
@@ -91,12 +91,12 @@ export async function getConflictingAssignments(db: TransactionClient, userId: n
     db.item.findMany({
       where: {
         ...PART_ITEMS,
+        // Conflicts in a draft schedule are not urgent: it isn't public yet. They only surface via the events-list
+        // amber badge for managers, and block the release step.
+        ...VISIBLE_ITEM,
         hasConflict: true,
         OR: [{ assigneeId: userId }, { assistantId: userId }],
-        // Conflicts on a draft event are not urgent — the schedule isn't
-        // public yet. They only surface via the events-list amber badge for
-        // managers, and block the release step.
-        event: { startDate: { gte: now }, status: EventStatus.Released },
+        event: { startDate: { gte: now } },
       },
       select: {
         legacyPartId: true,
@@ -112,9 +112,10 @@ export async function getConflictingAssignments(db: TransactionClient, userId: n
     db.item.findMany({
       where: {
         ...SERVICE_ITEMS,
+        ...VISIBLE_ITEM,
         hasConflict: true,
         assigneeId: userId,
-        event: { startDate: { gte: now }, status: EventStatus.Released },
+        event: { startDate: { gte: now } },
       },
       select: {
         legacyPartId: true,
@@ -155,8 +156,8 @@ export async function getNextMeeting(db: TransactionClient, userId: number, cong
   const event = await db.event.findFirst({
     where: {
       startDate: { gte: now },
-      // Publisher-facing dashboard — drafts must stay hidden.
-      status: EventStatus.Released,
+      // Publisher-facing dashboard: only what members may see (D46).
+      ...VISIBLE_EVENT,
     },
     select: {
       id: true,
@@ -176,7 +177,7 @@ export async function getNextMeeting(db: TransactionClient, userId: number, cong
   // Its parts and services from items (plan T12), each with the id its routes carry, the old row's.
   const [partItems, serviceItems] = await Promise.all([
     db.item.findMany({
-      where: { eventId: event.id, ...PART_ITEMS },
+      where: { eventId: event.id, ...PART_ITEMS, ...VISIBLE_ITEM },
       select: {
         legacyPartId: true,
         legacyServiceId: true,
@@ -201,7 +202,7 @@ export async function getNextMeeting(db: TransactionClient, userId: number, cong
       orderBy: [{ order: 'asc' }, { legacyPartId: 'asc' }],
     }),
     db.item.findMany({
-      where: { eventId: event.id, ...SERVICE_ITEMS },
+      where: { eventId: event.id, ...SERVICE_ITEMS, ...VISIBLE_ITEM },
       select: {
         legacyPartId: true,
         legacyServiceId: true,

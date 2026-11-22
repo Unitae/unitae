@@ -295,10 +295,11 @@ describe('getNextMeeting', () => {
     // happened to include the sentinels would pass without this.
     const call = vi.mocked(db.eventPart.findMany).mock.calls[0][0]
     expect(call?.select).toMatchObject({ speakerLabel: true, readerLabel: true })
-    // Only that meeting's parts and services.
-    expect(call?.where).toMatchObject({ eventId: expect.any(Number) })
+    // Only that meeting's parts and services, in published schedules.
+    expect(call?.where).toMatchObject({ eventId: expect.any(Number), schedule: { status: 'published' } })
     expect(vi.mocked(db.eventServicePart.findMany).mock.calls[0][0]?.where).toMatchObject({
       eventId: call?.where?.eventId,
+      schedule: { status: 'published' },
     })
   })
 
@@ -330,14 +331,18 @@ describe('getNextMeeting', () => {
 
   // The dashboard is publisher-facing. Drafts must not surface — same
   // rationale as the other dashboard queries in this file.
-  it('filters to status=released', async () => {
+  // What members may see (D46): a published schedule, or no schedule and released.
+  it('reads only an event members may see', async () => {
     givenNextMeeting(null)
 
     await getNextMeeting(db, 42, CONGREGATION_ID)
 
     const call = vi.mocked(db.event.findFirst).mock.calls[0][0]
     const where = call?.where as Record<string, unknown>
-    expect(where.status).toBe('released')
+    expect(where.OR).toEqual([
+      { schedules: { some: { status: 'published' } } },
+      { schedules: { none: {} }, status: 'released' },
+    ])
   })
 
   // A filter through `template` would inner-join it and drop the events without one.
@@ -395,16 +400,16 @@ describe('getUpcomingAbsences', () => {
 })
 
 describe('getConflictingAssignments', () => {
-  it('only surfaces conflicts on released events', async () => {
+  it('only surfaces conflicts in published schedules', async () => {
     vi.mocked(db.eventPart.findMany).mockResolvedValue([] as never)
     vi.mocked(db.eventServicePart.findMany).mockResolvedValue([] as never)
 
     await getConflictingAssignments(db, 42)
 
     const [partCall] = vi.mocked(db.eventPart.findMany).mock.calls[0]
-    expect((partCall as { where: { event: unknown } }).where.event).toMatchObject({ status: 'released' })
+    expect((partCall as { where: { schedule: unknown } }).where.schedule).toEqual({ status: 'published' })
 
     const [serviceCall] = vi.mocked(db.eventServicePart.findMany).mock.calls[0]
-    expect((serviceCall as { where: { event: unknown } }).where.event).toMatchObject({ status: 'released' })
+    expect((serviceCall as { where: { schedule: unknown } }).where.schedule).toEqual({ status: 'published' })
   })
 })

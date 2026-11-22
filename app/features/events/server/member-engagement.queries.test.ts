@@ -50,8 +50,10 @@ describe('findUpcomingAssignmentsForMember', () => {
       eventName: 'Réunion de semaine',
       partName: 'Sonorisation',
     })
-    // Only released events count, and both the assignee and assistant slots.
+    // Only published schedules count, and both the assignee and assistant slots.
     const partWhere = db.eventPart.findMany.mock.calls[0][0].where
+    expect(partWhere.schedule).toEqual({ status: 'published' })
+    expect(db.eventServicePart.findMany.mock.calls[0][0].where.schedule).toEqual({ status: 'published' })
     expect(partWhere.OR).toEqual([{ assigneeId: MEMBER_ID }, { assistantId: MEMBER_ID }])
     expect(partWhere.event.congregationId).toBe(CONGREGATION_ID)
   })
