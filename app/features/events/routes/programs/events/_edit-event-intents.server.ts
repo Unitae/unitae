@@ -21,22 +21,60 @@ import {
   updatePartAssignment,
   updateServicePartAssignment,
 } from '~/features/events/server/event-parts.server'
+import type { ItemKind } from '~/features/events/server/item-projection.server'
 import * as m from '~/i18n/paraglide/messages'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { combineLocalDateTime } from '~/shared/utils/event-time'
 
 export type IntentResult = { message: string | null } | { reply: () => unknown }
 
+type EditIntent =
+  | 'update-event'
+  | 'add-part'
+  | 'update-part'
+  | 'delete-part'
+  | 'add-service'
+  | 'update-service'
+  | 'delete-service'
+  | 'apply-template'
+
+/**
+ * The schedule each intent fills, whose right the route checks on top of the event's (plan §10, D31). Complete over
+ * the intents, so a new one does not compile until someone decides it. Applying a template fills the schedules of the
+ * template it applies, which `mayApplyTemplate` checks; changing the event itself fills none.
+ */
+const FILL_INTENT_KINDS: Readonly<Record<EditIntent, readonly ItemKind[]>> = {
+  'update-event': [],
+  'add-part': ['part'],
+  'update-part': ['part'],
+  'delete-part': ['part'],
+  'add-service': ['service'],
+  'update-service': ['service'],
+  'delete-service': ['service'],
+  'apply-template': [],
+}
+
+const isEditIntent = (intent: string): intent is EditIntent => Object.hasOwn(FILL_INTENT_KINDS, intent)
+
+/** The schedules an intent fills on the event, none for an intent it does not know. */
+export function kindsFilledBy(intent: FormDataEntryValue | null): readonly ItemKind[] {
+  const name = String(intent)
+  return isEditIntent(name) ? FILL_INTENT_KINDS[name] : []
+}
+
 /** The decisions that depend on who is asking, made by the route. */
 export interface IntentChecks {
-  /** Whether the caller may edit events of this template: applying one moves the event onto it. */
+  /**
+   * Whether the caller may apply this template: edit events of it (applying moves the event onto it) and fill every
+   * schedule it brings (it appends its parts and duties and moves the event's schedules onto its own).
+   */
   mayApplyTemplate: (templateId: number) => Promise<boolean>
   /**
    * The item a form names (its id, or the old row's from a form of the previous image), when it belongs to the event
    * the caller was authorised on; null otherwise. The writers find it by its id alone, so an id from another event of
    * the congregation would otherwise ride on this event's check.
    */
-  itemInEvent: (kind: 'part' | 'service', posted: { itemId?: string; legacyId?: string }) => Promise<number | null>
+  itemInEvent: (kind: ItemKind, posted: { itemId?: string; legacyId?: string }) => Promise<number | null>
 }
 
 /** The reply refusing a part or service of another event. */
@@ -54,7 +92,7 @@ export function handleEditIntent(
   timezone: string,
   checks: IntentChecks,
 ): Promise<IntentResult | null> {
-  const handlers: Partial<Record<string, () => Promise<IntentResult | null>>> = {
+  const handlers: Record<EditIntent, () => Promise<IntentResult | null>> = {
     'update-event': () => handleUpdateEvent(formData, db, eventId, congregationId, userId, timezone),
     'add-part': () => handleAddPart(formData, db, eventId, congregationId, userId),
     'update-part': () => handleUpdatePart(formData, db, congregationId, userId, checks),
@@ -64,7 +102,8 @@ export function handleEditIntent(
     'delete-service': () => handleDeleteService(formData, db, congregationId, checks),
     'apply-template': () => handleApplyTemplate(formData, db, eventId, congregationId, userId, checks),
   }
-  return handlers[String(intent)]?.() ?? Promise.resolve(null)
+  const name = String(intent)
+  return isEditIntent(name) ? handlers[name]() : Promise.resolve(null)
 }
 
 async function handleUpdateEvent(

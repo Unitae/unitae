@@ -22,6 +22,12 @@ interface WithTemplateItem extends ItemOrigin {
 
 export type ItemKind = 'part' | 'service'
 
+/** The schedule kind that holds each item kind: a programme holds parts, a duty schedule duties. */
+export const SCHEDULE_KIND_OF: Readonly<Record<ItemKind, ScheduleKind>> = {
+  part: ScheduleKind.Programme,
+  service: ScheduleKind.Duty,
+}
+
 interface WithTemplateItemIds extends ItemOrigin {
   id: number
 }

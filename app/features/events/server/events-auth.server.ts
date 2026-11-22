@@ -7,6 +7,7 @@ import {
   PART_ITEMS,
   SERVICE_ITEMS,
 } from '~/features/events/server/item-projection.server'
+import { canFillSchedule } from '~/features/events/server/schedule-rights.server'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
@@ -15,22 +16,21 @@ import { Permission } from '~/shared/types/permission'
 const logger = createLogger('events-auth')
 
 /**
- * Whether the caller may act on this event.
+ * Whether the caller may act on this event as a whole: edit or delete it, apply a template, publish it. Filling one
+ * of its schedules (assigning, adding, editing, reordering items) is canFillSchedule's since 5a-1; this check moves
+ * to schedules in 5a-2 (D28, D49).
  *
- * `required` is the capability the calling route needs — assigning a part and publishing
- * a programme are different jobs, so those routes ask for their own permission rather
- * than the blanket manage one. It defaults to `CanManagePrograms` for routes that really
- * do mean "edit this event".
+ * `required` is the capability the calling route needs — publishing a programme is not editing it, so that route
+ * asks for its own permission rather than the blanket manage one. It defaults to `CanManagePrograms` for routes that
+ * really do mean "edit this event".
  *
  * The template-responsible path is checked regardless of which capability was asked for:
  * delegating a template to someone must keep working without granting them a
  * congregation-wide permission.
  *
- * `scope` says which slice of the event the route is about. It only ever widens who gets
- * through: the service-parts delegation answers `'service'` and nothing else, while the
- * whole-event one answers both. Routes that restructure the event — editing it, applying a
- * template, releasing, deleting — stay on the default and so remain closed to a service
- * responsible.
+ * `scope` says which slice of the event the route is about; no caller passes `'service'` any more, and it goes with
+ * the scopes in 5a-3. Routes that restructure the event — editing it, applying a template, releasing, deleting —
+ * stay on the default and so remain closed to a service responsible.
  */
 export async function canEditEvent(
   db: TransactionClient,
@@ -190,8 +190,8 @@ export async function templateItemBelongsToTemplate(
 
 /**
  * Whether the caller may read the facts shown while assigning a slot — absences, rotation, other duties at the
- * event. They serve whoever may assign that slot, so this follows the assign routes: the assign right or the
- * template's delegation (the services one reaching services only), and a posted slot must belong to the event.
+ * event. They serve whoever may fill that slot's schedule, so this follows the fill routes (canFillSchedule), and a
+ * posted slot must belong to the event.
  */
 export async function mayReadSlotFacts(
   db: TransactionClient,
@@ -201,17 +201,7 @@ export async function mayReadSlotFacts(
   congregationId: number,
   slot: { kind: 'part' | 'service'; assignmentId: number | null },
 ): Promise<boolean> {
-  const scope = slot.kind === 'service' ? ResponsibilityScope.Service : ResponsibilityScope.Programme
-  const allowed = await canEditEvent(
-    db,
-    can,
-    userId,
-    event.templateId,
-    congregationId,
-    Permission.CanAssignProgramParts,
-    scope,
-  )
-  if (!allowed) return false
+  if (!(await canFillSchedule(db, can, userId, event, slot.kind, congregationId))) return false
   if (slot.assignmentId == null) return true
   return assignmentBelongsToEvent(db, slot.kind, slot.assignmentId, event.id, congregationId)
 }

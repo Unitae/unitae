@@ -8,6 +8,7 @@ import { getEventProgramme } from '~/features/events/server/event-part-assignmen
 import { canEditEvent, listApplicableTemplates, resolveEventItem } from '~/features/events/server/events-auth.server'
 import { listPartPresets } from '~/features/events/server/part-presets.queries'
 import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
+import { canFillSchedule, canFillTemplateSchedules } from '~/features/events/server/schedule-rights.server'
 import { EventEditor } from '~/features/events/ui/EventEditor'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -20,7 +21,7 @@ import { listRoles } from '~/shared/domain/roles.server'
 import { Permission } from '~/shared/types/permission'
 import { distinct } from '~/shared/utils/distinct'
 import { requireParamId } from '~/shared/utils/params.server'
-import { handleEditIntent } from './_edit-event-intents.server'
+import { handleEditIntent, kindsFilledBy } from './_edit-event-intents.server'
 
 import type { Route } from './+types/edit'
 
@@ -44,8 +45,11 @@ export function loader({ params, context }: Route.LoaderArgs) {
       throw redirect('/programs')
     }
 
-    const [templates, allRoles, partRoles, serviceRoles, presets] = await Promise.all([
+    const [applicable, canFillParts, canFillServices, allRoles, partRoles, serviceRoles, presets] = await Promise.all([
       listApplicableTemplates(db, can, currentUser.id, congregationId),
+      // Each schedule's section is editable by whoever may fill it (plan §10, D31): the action refuses the others.
+      canFillSchedule(db, can, currentUser.id, event, 'part', congregationId),
+      canFillSchedule(db, can, currentUser.id, event, 'service', congregationId),
       listRoles(db, congregationId),
       getPartAssignmentAllowedRoleIdsForParts(
         db,
@@ -59,6 +63,12 @@ export function loader({ params, context }: Route.LoaderArgs) {
       ),
       listPartPresets(db, congregationId),
     ])
+
+    // Only the templates whose every schedule the caller may fill: applying one fills them (mayApplyTemplate).
+    const mayFillAll = await Promise.all(
+      applicable.map(template => canFillTemplateSchedules(db, can, currentUser.id, template.id, congregationId)),
+    )
+    const templates = applicable.filter((_, index) => mayFillAll[index])
 
     const partsWithRoles = event.eventParts.map(part => ({
       ...part,
@@ -86,6 +96,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
       sectionSuggestions,
       trackSuggestions,
       timezone: context.get(congregationContext).timezone,
+      canFillParts,
+      canFillServices,
       // A template responsible may edit an event without being allowed to read the programmes.
       canViewPrograms: permissions.has(Permission.CanViewPrograms),
     }
@@ -109,10 +121,17 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
       throw redirect('/programs')
     }
+    // On top of the event right above, an intent that writes items must also be allowed to fill their schedule (plan
+    // §10, D31: a programme responsible no longer fills the duties of a template that names another).
+    for (const kind of kindsFilledBy(intent)) {
+      if (!(await canFillSchedule(db, can, currentUser.id, event, kind, congregationId))) throw redirect('/programs')
+    }
 
     const timezone = context.get(congregationContext).timezone
     const result = await handleEditIntent(intent, formData, db, eventId, congregationId, currentUser.id, timezone, {
-      mayApplyTemplate: templateId => canEditEvent(db, can, currentUser.id, templateId, congregationId),
+      mayApplyTemplate: async templateId =>
+        (await canEditEvent(db, can, currentUser.id, templateId, congregationId)) &&
+        (await canFillTemplateSchedules(db, can, currentUser.id, templateId, congregationId)),
       itemInEvent: (kind, { itemId, legacyId }) =>
         resolveEventItem(db, { itemId: itemId ?? null, legacyId: legacyId ?? null }, kind, eventId, congregationId),
     })

@@ -3,13 +3,14 @@ import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { assignPartSchema } from '~/features/events/schemas/assign-part.schema'
 import { assignPart } from '~/features/events/server/event-part-assignments.server'
-import { canEditEvent, resolveEventItem } from '~/features/events/server/events-auth.server'
+import { resolveEventItem } from '~/features/events/server/events-auth.server'
 import {
   buildAssignmentContext,
   dispatchAssignmentDiffs,
   partAssignmentDiffs,
 } from '~/features/events/server/notify-assignment.server'
 import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
+import { canFillSchedule } from '~/features/events/server/schedule-rights.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -18,7 +19,7 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { Permission } from '~/shared/types/permission'
+import type { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/assign-part'
 
@@ -62,16 +63,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const event = await findProgrammeEvent(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
 
-    if (
-      !(await canEditEvent(
-        db,
-        can,
-        currentUser.id,
-        event.templateId ?? null,
-        congregationId,
-        Permission.CanAssignProgramParts,
-      ))
-    ) {
+    // « Attribuer », « Gérer », or the responsible of this schedule's template (plan §10, D7).
+    if (!(await canFillSchedule(db, can, currentUser.id, event, 'part', congregationId))) {
       throw redirect('/programs')
     }
 

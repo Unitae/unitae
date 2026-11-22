@@ -53,6 +53,7 @@ const {
   mayReadSlotFacts,
   templateItemBelongsToTemplate,
 } = await import('./events-auth.server')
+const { syncTemplateScheduleTemplates } = await import('./schedule-templates.server')
 
 beforeAll(async () => {
   const primary = await testDb.congregation.create({
@@ -197,6 +198,15 @@ beforeAll(async () => {
       data: { name: 'Sono', eventId: foreignEventId, congregationId: primaryCongId },
     })
 
+    // The template holds a part and a duty, so it has a schedule template of each kind; as Réglages does after naming
+    // responsibles, they take them (the services one to the duties alone, D31).
+    await tx.templatePart.create({
+      data: { name: 'Discours', order: 0, templateId: templateOwnedId, congregationId: primaryCongId },
+    })
+    await tx.templateServicePart.create({
+      data: { name: 'Sono', key: `sono-${ts}`, templateId: templateOwnedId, congregationId: primaryCongId },
+    })
+    await syncTemplateScheduleTemplates(tx, templateOwnedId, primaryCongId)
     // The writers hand out item ids: the mirrored item of each old row, in its event's schedule.
     await settleFixtureSchedules(tx, primaryCongId)
     ownedServicePartId = (await tx.item.findUniqueOrThrow({ where: { legacyServiceId: ownedServicePart.id } })).id
@@ -556,7 +566,8 @@ describe('responsibility scope (integration)', () => {
     expect(result).toBe(false)
   })
 
-  it('keeps the programme responsible in charge of the service parts too', async () => {
+  // canEditEvent's event-level scope, read by no fill route since 5a-1 (canFillSchedule follows D31); it goes in 5a-3.
+  it('keeps the programme scope answering a request for the service scope (event level)', async () => {
     const result = await withScope(primaryCongId, tx =>
       canEditEvent(
         tx,
@@ -720,19 +731,28 @@ describe('templateItemBelongsToTemplate (integration)', () => {
 describe('mayReadSlotFacts (integration)', () => {
   const owned = () => ({ id: ownedEventId, templateId: templateOwnedId })
 
-  it('lets the programme responsible read the facts of a slot of their event', async () => {
+  it('lets the programme responsible read the facts of a part of their event', async () => {
+    const result = await withScope(primaryCongId, tx =>
+      mayReadSlotFacts(tx, allowNone, responsibleId, owned(), primaryCongId, { kind: 'part', assignmentId: null }),
+    )
+    expect(result).toBe(true)
+  })
+
+  // D31: the template names a services responsible too, so its duties are theirs alone.
+  it('refuses the programme responsible a duty of a template that names a services responsible', async () => {
     const result = await withScope(primaryCongId, tx =>
       mayReadSlotFacts(tx, allowNone, responsibleId, owned(), primaryCongId, {
         kind: 'service',
         assignmentId: ownedServicePartId,
       }),
     )
-    expect(result).toBe(true)
+    expect(result).toBe(false)
   })
 
+  // As the duties' responsible, who may read this event's duties: only the slot's event refuses.
   it('refuses a slot that belongs to another event', async () => {
     const result = await withScope(primaryCongId, tx =>
-      mayReadSlotFacts(tx, allowNone, responsibleId, owned(), primaryCongId, {
+      mayReadSlotFacts(tx, allowNone, serviceResponsibleId, owned(), primaryCongId, {
         kind: 'service',
         assignmentId: foreignServicePartId,
       }),

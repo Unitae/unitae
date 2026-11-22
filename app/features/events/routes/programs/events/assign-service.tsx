@@ -1,16 +1,16 @@
 import { parseWithZod } from '@conform-to/zod/v4'
 import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
 import { assignServiceSchema } from '~/features/events/schemas/assign-service.schema'
 import { assignServicePart } from '~/features/events/server/event-part-assignments.server'
-import { canEditEvent, resolveEventItem } from '~/features/events/server/events-auth.server'
+import { resolveEventItem } from '~/features/events/server/events-auth.server'
 import {
   buildAssignmentContext,
   dispatchAssignmentDiffs,
   servicePartAssignmentDiffs,
 } from '~/features/events/server/notify-assignment.server'
 import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
+import { canFillSchedule } from '~/features/events/server/schedule-rights.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -19,7 +19,7 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { Permission } from '~/shared/types/permission'
+import type { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/assign-service'
 
@@ -50,17 +50,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const event = await findProgrammeEvent(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
 
-    if (
-      !(await canEditEvent(
-        db,
-        can,
-        currentUser.id,
-        event.templateId ?? null,
-        congregationId,
-        Permission.CanAssignProgramParts,
-        ResponsibilityScope.Service,
-      ))
-    ) {
+    // « Attribuer », « Gérer », or the responsible of this schedule's template (plan §10, D7).
+    if (!(await canFillSchedule(db, can, currentUser.id, event, 'service', congregationId))) {
       throw redirect('/programs')
     }
 
