@@ -139,7 +139,7 @@ about thirty non-test files; the read switch goes feature by feature.
 | 4c | Read switch: dashboard | — | none visible |
 | 4d | Read switch: board documents and links | — | none visible |
 | 4e | Read switch: the last readers (part types' usage); notifications, feed and export accounted for | — | none visible |
-| 5-0 | Status read switch: « visible » = a published schedule; `Event.status` still written | — | none |
+| 5-0 | Status read switch: visible = a published schedule, or no schedule and released (D46); `Event.status` still written | — | none |
 | 5i | Writers move to items: id flip, notices rewritten, archive (bump) | bump | none |
 | 5a | Rights per schedule (server) | — | none |
 | 5b | Per-schedule publishing (server, routes, bulk) | — | small |
@@ -454,6 +454,11 @@ Files: `model/programme-access.ts`, `server/events-auth.server.ts` (`canEditEven
 read (still written for PR 4's image, which reads it). `Event.status` is still written by PR 5 (released when any
 schedule is published): PR 4's image reads it. PR 5-0 moves the status readers to schedules; the write stops one
 release later (PR 6), T9.
+
+**5-0, visibility (D46):** an event is visible where it has a published schedule, or no schedule at all and
+`Event.status` released; an item is visible where its schedule is published. Identical to today while both schedules
+publish together. When the status write stops (PR 6) the second branch becomes « no schedule at all », the surfaces'
+kinds and audiences deciding.
 
 **Order inside PR 5 (decided 2026-11-22):** 5-0 the status readers (« visible » = has a published schedule, no
 visible change while both schedules publish together); 5i the writers move to items, in one PR because the id flip

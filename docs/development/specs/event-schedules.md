@@ -104,6 +104,7 @@ to filter out.
 | D43 | **« Tout publier »** on the event publishes every schedule the person may publish, beside each schedule's own button. |
 | D44 | **A schedule can be renamed on one event only**; its template keeps its name. |
 | D45 | **A reader sees only published schedules**, with no mention of the others. |
+| D46 | **Members see events only through surfaces** (decided 2026-11-22): a board document or a dashboard widget, each taking the kinds it shows, filtered by audience (D35). An event with schedules appears there through its published ones; an event with no schedule at all (a cleaning day, a bare date) has no publication of its own and appears wherever a surface takes its kind. |
 
 ## 4. Current implementation (verified)
 
@@ -301,6 +302,8 @@ today.
   assignees only**.
 - An event « appears » (board, dashboard, calendar feed, publisher views) through its **published
   schedules**; a draft schedule stays invisible exactly as a draft event is today.
+  An event with **no schedule at all** appears wherever a surface takes its kind (D46): it has nothing
+  to publish.
 - **Exceptions, as today:** attendance reads every event of a counted kind whether or not it has a
   published schedule — the dashboard card, the attendance page and side panel, the S-88 and spreadsheet
   exports, and the programme's « Assistance la semaine passée » line. A meeting whose programme is a
