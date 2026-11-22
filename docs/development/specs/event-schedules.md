@@ -108,6 +108,7 @@ to filter out.
 | D47 | **A schedule without a template has no responsible** (decided 2026-11-22): only « Gérer », « Attribuer » and « Publier les programmes » reach it, and nothing records who created it. Only a manager can create one. |
 | D48 | **One-time events need no right of their own** (decided 2026-11-22): D28 covers an event of a kind; an occasional event (« Grand nettoyage ») gets its kind in Réglages, suggesting the schedule template whose responsible then creates them. No « Autre » exception, no « Créer des évènements » permission. |
 | D49 | **Until per-schedule publishing (5b)** (decided 2026-11-22): publishing or unpublishing a whole event needs « Publier les programmes » or being responsible for every one of its schedules; a responsible moves an event only to kinds that suggest a schedule template they are responsible for; an event with no kind (old imports) is the managers' alone. With D31, a programme responsible of a template that also names a service responsible publishes again only once 5b publishes schedule by schedule. |
+| D50 | **Deleting needs a schedule** (decided 2026-11-22, refining D28): a responsible of a schedule template the kind suggests deletes an event only when it holds schedules and every one is theirs. An event holding none (an empty meeting the job made) is the managers' alone. D28's other rights reach the responsible of any suggested template, services included: a services responsible creates, changes and moves events of the kind. |
 
 ## 4. Current implementation (verified)
 
