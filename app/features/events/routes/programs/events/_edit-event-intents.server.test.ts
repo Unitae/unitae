@@ -129,12 +129,12 @@ describe('kindsFilledBy', () => {
     ])
   })
 
-  it('names both for applying a template, which appends parts and duties and moves both schedules', () => {
-    expect(kindsFilledBy('apply-template')).toEqual(['part', 'service'])
-  })
-
-  it('names none for changing the event itself, or an intent it does not know', () => {
+  // Applying a template fills the schedules of the template applied, not the event's current ones: mayApplyTemplate
+  // checks those (canFillTemplateSchedules).
+  it('names none for applying a template, changing the event itself, or an intent it does not know', () => {
+    expect(kindsFilledBy('apply-template')).toEqual([])
     expect(kindsFilledBy('update-event')).toEqual([])
     expect(kindsFilledBy(null)).toEqual([])
+    expect(kindsFilledBy('toString')).toEqual([])
   })
 })

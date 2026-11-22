@@ -45,7 +45,7 @@ export const DELEGATES: Record<string, { file: string; enforces: RegExp }> = {
   canEditEvent: { file: 'app/features/events/server/events-auth.server.ts', enforces: ENFORCES_PERMISSION },
   canManageAnyProgram: { file: 'app/features/events/server/events-auth.server.ts', enforces: ENFORCES_PERMISSION },
   // Filling a schedule: « Attribuer » or « Gérer », else its template's responsible (plan §10).
-  canFillSchedule: { file: 'app/features/events/server/events-auth.server.ts', enforces: ENFORCES_PERMISSION },
+  canFillSchedule: { file: 'app/features/events/server/schedule-rights.server.ts', enforces: ENFORCES_PERMISSION },
   // Pure policy: the route feeds it booleans derived from permissions and group membership.
   canManageEmergencyInfo: { file: 'app/features/publishers/model/emergency-access.ts', enforces: /hasManager/ },
   canRecordPastoralVisit: {

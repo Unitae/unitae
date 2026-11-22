@@ -566,7 +566,8 @@ describe('responsibility scope (integration)', () => {
     expect(result).toBe(false)
   })
 
-  it('keeps the programme responsible in charge of the service parts too', async () => {
+  // canEditEvent's event-level scope, read by no fill route since 5a-1 (canFillSchedule follows D31); it goes in 5a-3.
+  it('keeps the programme scope answering a request for the service scope (event level)', async () => {
     const result = await withScope(primaryCongId, tx =>
       canEditEvent(
         tx,
@@ -748,9 +749,10 @@ describe('mayReadSlotFacts (integration)', () => {
     expect(result).toBe(false)
   })
 
+  // As the duties' responsible, who may read this event's duties: only the slot's event refuses.
   it('refuses a slot that belongs to another event', async () => {
     const result = await withScope(primaryCongId, tx =>
-      mayReadSlotFacts(tx, allowNone, responsibleId, owned(), primaryCongId, {
+      mayReadSlotFacts(tx, allowNone, serviceResponsibleId, owned(), primaryCongId, {
         kind: 'service',
         assignmentId: foreignServicePartId,
       }),

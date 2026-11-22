@@ -2,7 +2,7 @@ import type { DashboardVisibility } from '~/features/dashboard/model/dashboard-v
 import { meetingForViewer } from '~/features/dashboard/model/meeting-visibility'
 import { getNextMeeting } from '~/features/dashboard/server/dashboard.server'
 import { isProgrammeOnBoardFor } from '~/features/dashboard/server/programme-board-visibility.server'
-import { canFillSchedule } from '~/features/events/server/events-auth.server'
+import { canFillSchedule } from '~/features/events/server/schedule-rights.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { Permission } from '~/shared/types/permission'
 
@@ -32,8 +32,8 @@ export interface MeetingForViewer {
 
 /**
  * The next meeting as one viewer may see it. Reading follows « could read it elsewhere »;
- * acting follows the assign route's own check (the programmes must open for them, and they must
- * hold the assign permission or answer for this meeting type).
+ * acting follows assign-part's own check: the programmes must open for them, and they must be able to fill this
+ * meeting's programme (canFillSchedule: « Attribuer », « Gérer », or its template's responsible).
  */
 export async function nextMeetingForViewer(
   db: TransactionClient,

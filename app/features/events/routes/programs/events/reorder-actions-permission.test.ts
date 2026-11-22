@@ -19,8 +19,7 @@ vi.mock('~/shared/auth/route-context.server', async importOriginal => ({
   withScopeFromContext: (_context: unknown, fn: (db: unknown) => unknown) => fn({}),
 }))
 
-vi.mock('~/features/events/server/events-auth.server', async importOriginal => ({
-  ...(await importOriginal<typeof import('~/features/events/server/events-auth.server')>()),
+vi.mock('~/features/events/server/schedule-rights.server', () => ({
   canFillSchedule: (
     _db: unknown,
     can: (permission: string) => boolean,

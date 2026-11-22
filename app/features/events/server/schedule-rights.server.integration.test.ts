@@ -4,10 +4,10 @@ import { PrismaClient } from '~/database/generated/client'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { Permission } from '~/shared/types/permission'
 
-// The rights per schedule (plan §10, D3, D7, D28, D31, D47), one `describe` per row of the plan's table. A schedule's
-// responsible is the role its template names (ScheduleTemplate.responsibleRoleId, synced from the responsibles Réglages
-// names); the congregation-wide rights reach
-// every schedule. Against the database, in a congregation of its own with the default templates, rolled back.
+// The rights per schedule (plan §10, D3, D7, D31, D47), one `describe` per row of the plan's table this slice enforces.
+// A schedule's responsible is the role its template names (ScheduleTemplate.responsibleRoleId, synced from the
+// responsibles Réglages names); the congregation-wide rights reach every schedule. Against the database, in a
+// congregation of its own with the default templates, rolled back.
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -18,7 +18,7 @@ const testDb = new PrismaClient({ adapter })
 
 const { seedDefaultTemplates } = await import('./seed-templates.server')
 const { createProgrammeOnDay } = await import('./programme-creation.server')
-const { canFillSchedule } = await import('./events-auth.server')
+const { canFillSchedule, canFillTemplateSchedules } = await import('./schedule-rights.server')
 const { syncTemplateScheduleTemplates } = await import('./schedule-templates.server')
 
 class Rollback extends Error {}
@@ -37,8 +37,13 @@ interface Fixture {
   programmeLead: number
   dutyLead: number
   nobody: number
+  /** The weekend kind's only responsible. */
+  weekendLead: number
   /** The midweek kind, its programme and duty schedule templates carrying the two roles. */
   midweekId: number
+  /** The weekend kind, whose responsible the fixture names as the programme role alone: the sync gives it the duties too. */
+  weekendId: number
+  actorId: number
   /** A midweek meeting with its programme and duties, made as the app makes it. */
   meeting: { id: number; templateId: number | null }
 }
@@ -72,6 +77,12 @@ async function inCongregation(fn: (fixture: Fixture) => Promise<void>) {
           await tx.templateResponsible.create({ data: { templateId: midweekId, roleId, scope, congregationId } })
         }
         await syncTemplateScheduleTemplates(db, midweekId, congregationId)
+        const weekendId = (await tx.eventTemplate.findFirstOrThrow({ where: { key: 'weekend-meeting' } })).id
+        const weekendRole = await tx.role.create({ data: { key: `w-${stamp}`, name: 'w', congregationId } })
+        await tx.templateResponsible.create({
+          data: { templateId: weekendId, roleId: weekendRole.id, scope: 'programme', congregationId },
+        })
+        await syncTemplateScheduleTemplates(db, weekendId, congregationId)
         const meeting = await createProgrammeOnDay(
           db,
           { templateId: midweekId, day: '2027-07-01' },
@@ -84,6 +95,9 @@ async function inCongregation(fn: (fixture: Fixture) => Promise<void>) {
           dutyLead: await account('duty', dutyRole.id),
           nobody: await account('nobody'),
           midweekId,
+          weekendId,
+          actorId,
+          weekendLead: await account('weekend', weekendRole.id),
           meeting: { id: meeting.id, templateId: midweekId },
         })
         throw new Rollback()
@@ -127,6 +141,62 @@ describe('Fill a schedule (items, assignees): « Attribuer », « Gérer », or 
     })
   })
 
+  it('refuses a responsible on an event of another kind', async () => {
+    await inCongregation(async ({ db, congregationId, programmeLead, dutyLead, weekendLead, weekendId, actorId }) => {
+      const weekend = await createProgrammeOnDay(
+        db,
+        { templateId: weekendId, day: '2027-07-04' },
+        { congregationId, timezone: 'Europe/Paris', actorId },
+      )
+      const event = { id: weekend.id, templateId: weekendId }
+      for (const lead of [programmeLead, dutyLead]) {
+        expect(await canFillSchedule(db, nothing, lead, event, 'part', congregationId)).toBe(false)
+        expect(await canFillSchedule(db, nothing, lead, event, 'service', congregationId)).toBe(false)
+      }
+      // A template naming a programme responsible alone gives them its duties too.
+      expect(await canFillSchedule(db, nothing, weekendLead, event, 'part', congregationId)).toBe(true)
+      expect(await canFillSchedule(db, nothing, weekendLead, event, 'service', congregationId)).toBe(true)
+    })
+  })
+
+  it('goes by the template the event’s schedule uses, not the one its kind suggests', async () => {
+    await inCongregation(async ({ db, congregationId, programmeLead, weekendLead, weekendId, meeting }) => {
+      const weekendProgramme = await db.scheduleTemplate.findFirstOrThrow({
+        where: { kind: 'programme', eventKinds: { some: { eventKindId: weekendId } } },
+      })
+      await db.schedule.updateMany({
+        where: { eventId: meeting.id, kind: 'programme' },
+        data: { scheduleTemplateId: weekendProgramme.id },
+      })
+      expect(await canFillSchedule(db, nothing, programmeLead, meeting, 'part', congregationId)).toBe(false)
+      expect(await canFillSchedule(db, nothing, weekendLead, meeting, 'part', congregationId)).toBe(true)
+    })
+  })
+
+  // Every writer makes one schedule of a kind today; once an event can hold two, a responsible of one must not fill
+  // both until the routes name the schedule: they must answer for every schedule of the kind.
+  it('asks a responsible to answer for every schedule of the kind when the event holds several', async () => {
+    await inCongregation(async ({ db, congregationId, dutyLead, weekendId, meeting }) => {
+      const weekendDuties = await db.scheduleTemplate.findFirstOrThrow({
+        where: { kind: 'duty', eventKinds: { some: { eventKindId: weekendId } } },
+      })
+      await db.schedule.create({
+        data: {
+          eventId: meeting.id,
+          kind: 'duty',
+          name: 'Nettoyage',
+          scheduleTemplateId: weekendDuties.id,
+          order: 9,
+          congregationId,
+        },
+      })
+      expect(await canFillSchedule(db, nothing, dutyLead, meeting, 'service', congregationId)).toBe(false)
+      expect(
+        await canFillSchedule(db, only(Permission.CanAssignProgramParts), dutyLead, meeting, 'service', congregationId),
+      ).toBe(true)
+    })
+  })
+
   it('reaches a schedule without a template through the congregation-wide rights only (D47)', async () => {
     await inCongregation(async ({ db, congregationId, programmeLead, nobody, meeting }) => {
       await db.schedule.updateMany({
@@ -141,7 +211,8 @@ describe('Fill a schedule (items, assignees): « Attribuer », « Gérer », or 
   })
 })
 
-describe('Add a schedule: « Gérer », or the responsible of that schedule template', () => {
+// The plan's row names « Gérer »; « Attribuer » starts one too, since filling a schedule is what starts it.
+describe('Add a schedule: « Attribuer », « Gérer », or the responsible of that schedule template', () => {
   it('lets a responsible start their schedule on an event of a kind suggesting its template', async () => {
     await inCongregation(async ({ db, congregationId, programmeLead, dutyLead, midweekId }) => {
       const bare = await db.event.create({
@@ -157,6 +228,7 @@ describe('Add a schedule: « Gérer », or the responsible of that schedule temp
       expect(await canFillSchedule(db, nothing, programmeLead, event, 'part', congregationId)).toBe(true)
       expect(await canFillSchedule(db, nothing, programmeLead, event, 'service', congregationId)).toBe(false)
       expect(await canFillSchedule(db, nothing, dutyLead, event, 'service', congregationId)).toBe(true)
+      expect(await canFillSchedule(db, nothing, dutyLead, event, 'part', congregationId)).toBe(false)
     })
   })
 
@@ -175,6 +247,31 @@ describe('Add a schedule: « Gérer », or the responsible of that schedule temp
       expect(
         await canFillSchedule(db, only(Permission.CanManagePrograms), programmeLead, event, 'part', congregationId),
       ).toBe(true)
+    })
+  })
+})
+
+// Applying a template appends its parts and duties and moves the event's schedules onto its schedule templates: whoever
+// applies it fills the schedules it brings, so the check reads the target template's, not the event's (plan §10, D31).
+describe('Apply a template: « Attribuer », « Gérer », or the responsible of every schedule template it brings', () => {
+  it('lets the responsible of all its schedule templates apply it, and refuses one who answers for a part of them', async () => {
+    await inCongregation(async ({ db, congregationId, programmeLead, weekendLead, midweekId, weekendId }) => {
+      expect(await canFillTemplateSchedules(db, nothing, weekendLead, weekendId, congregationId)).toBe(true)
+      // The midweek duties are the services responsible's (D31).
+      expect(await canFillTemplateSchedules(db, nothing, programmeLead, midweekId, congregationId)).toBe(false)
+      expect(await canFillTemplateSchedules(db, nothing, weekendLead, midweekId, congregationId)).toBe(false)
+    })
+  })
+
+  it('lets « Attribuer » and « Gérer » apply any template, and asks nothing for a template that brings no schedule', async () => {
+    await inCongregation(async ({ db, congregationId, nobody, midweekId }) => {
+      for (const can of [only(Permission.CanAssignProgramParts), only(Permission.CanManagePrograms)]) {
+        expect(await canFillTemplateSchedules(db, can, nobody, midweekId, congregationId)).toBe(true)
+      }
+      const empty = await db.eventTemplate.create({
+        data: { name: 'Vide', key: `empty-${congregationId}`, congregationId },
+      })
+      expect(await canFillTemplateSchedules(db, nothing, nobody, empty.id, congregationId)).toBe(true)
     })
   })
 })

@@ -9,6 +9,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { state } = vi.hoisted(() => ({
   state: {
     written: [] as { writer: string; id: number }[],
+    /** The rights the caller holds, and the schedules they answer for by their items' kind. */
+    permissions: ['can-assign-program-parts'] as string[],
+    responsibleFor: [] as ('part' | 'service')[],
   },
 }))
 
@@ -51,9 +54,15 @@ vi.mock('~/features/events/server/programme-event.queries', () => ({
   findProgrammeEvent: () => Promise.resolve({ id: 40, templateId: 3, name: 'Réunion', startDate: new Date() }),
 }))
 
-vi.mock('~/features/events/server/events-auth.server', async importOriginal => ({
-  ...(await importOriginal<typeof import('~/features/events/server/events-auth.server')>()),
-  canEditEvent: () => Promise.resolve(true),
+vi.mock('~/features/events/server/schedule-rights.server', () => ({
+  // Who may fill which schedule is canFillSchedule's own integration test; these check each route asks its own kind.
+  canFillSchedule: (
+    _db: unknown,
+    can: (permission: string) => boolean,
+    _userId: number,
+    _event: unknown,
+    kind: 'part' | 'service',
+  ) => Promise.resolve(can('can-assign-program-parts') || state.responsibleFor.includes(kind)),
 }))
 
 vi.mock('~/features/events/server/notify-assignment.server', async importOriginal => ({
@@ -80,14 +89,14 @@ const assignPart = await import('./assign-part')
 const assignService = await import('./assign-service')
 const removeAssignment = await import('./remove-assignment')
 
-const context = routeContext([Permission.CanAssignProgramParts])
 const params = { eventId: '40' }
+const context = () => routeContext(state.permissions as (typeof Permission)[keyof typeof Permission][])
 
 function postAssignPart(fields: Record<string, string>) {
   return assignPart.action({
     request: formRequest('https://unitae.example.test/programs/events/40/assign-part', { topic: '', ...fields }),
     params,
-    context,
+    context: context(),
   } as never)
 }
 
@@ -95,7 +104,7 @@ function postAssignService(fields: Record<string, string>) {
   return assignService.action({
     request: formRequest('https://unitae.example.test/programs/events/40/assign-service', fields),
     params,
-    context,
+    context: context(),
   } as never)
 }
 
@@ -105,12 +114,14 @@ function postRemove(query: string) {
       method: 'POST',
     }),
     params,
-    context,
+    context: context(),
   } as never)
 }
 
 beforeEach(() => {
   state.written = []
+  state.permissions = [Permission.CanAssignProgramParts]
+  state.responsibleFor = []
 })
 
 describe('assigning a part', () => {
@@ -170,5 +181,43 @@ describe('removing an assignment', () => {
     const response = await respond(() => postRemove('type=service&item=900'))
     expect(response.headers.get('Location')).toBe('/programs')
     expect(state.written).toEqual([])
+  })
+})
+
+// Without « Attribuer », each route asks for the schedule it writes: the duties' responsible fills the duties alone,
+// the programme's the parts alone (plan §10, D31).
+describe('whose right each route asks', () => {
+  it('lets the duties’ responsible assign and remove a duty, never a part', async () => {
+    state.permissions = []
+    state.responsibleFor = ['service']
+    await postAssignService({ itemId: '901', assigneeId: '5' })
+    await postRemove('type=service&item=901')
+    for (const refused of [
+      () => postAssignPart({ itemId: '900', assigneeId: '5' }),
+      () => postRemove('type=part&item=900'),
+    ]) {
+      expect((await respond(refused)).headers.get('Location')).toBe('/programs')
+    }
+    expect(state.written).toEqual([
+      { writer: 'assignServicePart', id: 901 },
+      { writer: 'unassignServicePart', id: 901 },
+    ])
+  })
+
+  it('lets the programme’s responsible assign and remove a part, never a duty', async () => {
+    state.permissions = []
+    state.responsibleFor = ['part']
+    await postAssignPart({ itemId: '900', assigneeId: '5' })
+    await postRemove('type=part&item=900')
+    for (const refused of [
+      () => postAssignService({ itemId: '901', assigneeId: '5' }),
+      () => postRemove('type=service&item=901'),
+    ]) {
+      expect((await respond(refused)).headers.get('Location')).toBe('/programs')
+    }
+    expect(state.written).toEqual([
+      { writer: 'assignPart', id: 900 },
+      { writer: 'unassignPart', id: 900 },
+    ])
   })
 })

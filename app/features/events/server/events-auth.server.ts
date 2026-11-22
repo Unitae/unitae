@@ -1,6 +1,5 @@
 import { SYSTEM_TEMPLATE_KEYS } from '~/features/events/model/event-template.type'
 import { ResponsibilityScope, scopesCovering } from '~/features/events/model/responsibility-scope.type'
-import { ScheduleKind } from '~/features/events/model/schedule.type'
 import { isTemplateResponsible } from '~/features/events/server/event-templates.server'
 import {
   type ItemKind,
@@ -8,6 +7,7 @@ import {
   PART_ITEMS,
   SERVICE_ITEMS,
 } from '~/features/events/server/item-projection.server'
+import { canFillSchedule } from '~/features/events/server/schedule-rights.server'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
@@ -16,22 +16,21 @@ import { Permission } from '~/shared/types/permission'
 const logger = createLogger('events-auth')
 
 /**
- * Whether the caller may act on this event.
+ * Whether the caller may act on this event as a whole: edit or delete it, apply a template, publish it. Filling one
+ * of its schedules (assigning, adding, editing, reordering items) is canFillSchedule's since 5a-1; this check moves
+ * to schedules in 5a-2 (D28, D49).
  *
- * `required` is the capability the calling route needs — assigning a part and publishing
- * a programme are different jobs, so those routes ask for their own permission rather
- * than the blanket manage one. It defaults to `CanManagePrograms` for routes that really
- * do mean "edit this event".
+ * `required` is the capability the calling route needs — publishing a programme is not editing it, so that route
+ * asks for its own permission rather than the blanket manage one. It defaults to `CanManagePrograms` for routes that
+ * really do mean "edit this event".
  *
  * The template-responsible path is checked regardless of which capability was asked for:
  * delegating a template to someone must keep working without granting them a
  * congregation-wide permission.
  *
- * `scope` says which slice of the event the route is about. It only ever widens who gets
- * through: the service-parts delegation answers `'service'` and nothing else, while the
- * whole-event one answers both. Routes that restructure the event — editing it, applying a
- * template, releasing, deleting — stay on the default and so remain closed to a service
- * responsible.
+ * `scope` says which slice of the event the route is about; no caller passes `'service'` any more, and it goes with
+ * the scopes in 5a-3. Routes that restructure the event — editing it, applying a template, releasing, deleting —
+ * stay on the default and so remain closed to a service responsible.
  */
 export async function canEditEvent(
   db: TransactionClient,
@@ -46,44 +45,6 @@ export async function canEditEvent(
   if (templateId == null) return false
   const responsible = await isTemplateResponsible(db, templateId, userId, congregationId, scope)
   return responsible != null
-}
-
-/**
- * Whether the caller may fill an event's schedule of one kind: its items and who holds them (plan §10, D3, D7, D47).
- * « Attribuer » and « Gérer » reach every schedule; otherwise the responsible of the schedule's template, through the
- * role it names. An event without a schedule of that kind yet takes the templates its kind suggests, since filling it
- * starts it (« Add a schedule »). A schedule without a template, and an event without a kind, have no responsible.
- */
-export async function canFillSchedule(
-  db: TransactionClient,
-  can: (permission: Permission) => boolean,
-  userId: number,
-  event: { id: number; templateId: number | null },
-  kind: ItemKind,
-  congregationId: number,
-): Promise<boolean> {
-  if (can(Permission.CanAssignProgramParts) || can(Permission.CanManagePrograms)) return true
-  const roleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
-  if (roleIds.length === 0) return false
-  const scheduleKind = kind === 'part' ? ScheduleKind.Programme : ScheduleKind.Duty
-  const schedules = await db.schedule.findMany({
-    where: { eventId: event.id, congregationId, kind: scheduleKind },
-    select: { scheduleTemplate: { select: { responsibleRoleId: true } } },
-  })
-  if (schedules.length > 0) {
-    return schedules.some(schedule => roleIds.includes(schedule.scheduleTemplate?.responsibleRoleId ?? -1))
-  }
-  if (event.templateId == null) return false
-  const suggested = await db.scheduleTemplate.findFirst({
-    where: {
-      congregationId,
-      kind: scheduleKind,
-      responsibleRoleId: { in: roleIds },
-      eventKinds: { some: { eventKindId: event.templateId } },
-    },
-    select: { id: true },
-  })
-  return suggested != null
 }
 
 /**
@@ -229,8 +190,8 @@ export async function templateItemBelongsToTemplate(
 
 /**
  * Whether the caller may read the facts shown while assigning a slot — absences, rotation, other duties at the
- * event. They serve whoever may assign that slot, so this follows the assign routes: the assign right or the
- * template's delegation (the services one reaching services only), and a posted slot must belong to the event.
+ * event. They serve whoever may fill that slot's schedule, so this follows the fill routes (canFillSchedule), and a
+ * posted slot must belong to the event.
  */
 export async function mayReadSlotFacts(
   db: TransactionClient,

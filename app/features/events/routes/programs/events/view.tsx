@@ -6,8 +6,9 @@ import { buildAssignmentCandidates } from '~/features/events/server/assignment-c
 import { eventHasAttendance } from '~/features/events/server/attendance.queries'
 import { buildShareTextsForEvent } from '~/features/events/server/build-share-message.server'
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
-import { canEditEvent, canFillSchedule } from '~/features/events/server/events-auth.server'
+import { canEditEvent } from '~/features/events/server/events-auth.server'
 import { listExternalSpeakerOptions } from '~/features/events/server/external-speakers.queries'
+import { canFillSchedule } from '~/features/events/server/schedule-rights.server'
 import { EventView } from '~/features/events/ui/EventView'
 import * as m from '~/i18n/paraglide/messages'
 import {

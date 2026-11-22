@@ -1,7 +1,7 @@
 import { redirect } from 'react-router'
 import { reorderPartAssignments } from '~/features/events/server/event-parts.server'
-import { canFillSchedule } from '~/features/events/server/events-auth.server'
 import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
+import { canFillSchedule } from '~/features/events/server/schedule-rights.server'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import type { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
