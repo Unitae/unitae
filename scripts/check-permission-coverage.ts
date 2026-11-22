@@ -65,6 +65,8 @@ export const POLICY_HELPERS: Record<string, string> = {
   reportAccess: 'app/features/publishers/model/group-activity-access.ts',
   // The attendance page and its write action refuse whoever holds neither entry right.
   attendanceRights: 'app/features/events/model/attendance-access.ts',
+  // Filling a schedule (plan §10): « Attribuer » or « Gérer », else its template's responsible. Takes a `can` closure.
+  canFillSchedule: 'app/features/events/server/events-auth.server.ts',
 }
 
 /**
