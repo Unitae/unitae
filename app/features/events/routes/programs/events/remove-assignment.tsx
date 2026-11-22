@@ -2,8 +2,7 @@ import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
 import { unassignPart, unassignServicePart } from '~/features/events/server/event-part-assignments.server'
-import { assignmentBelongsToEvent, canEditEvent } from '~/features/events/server/events-auth.server'
-import { itemIdFromRequest } from '~/features/events/server/item-projection.server'
+import { canEditEvent, resolveEventItem } from '~/features/events/server/events-auth.server'
 import {
   buildAssignmentContext,
   dispatchAssignmentDiffs,
@@ -36,7 +35,6 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const eventId = requireParamId(params.eventId, '/programs')
   const url = new URL(request.url)
   const type = url.searchParams.get('type')
-  // The item's id under `item` (plan T12); `id` is the old row's, from a page the previous image rendered.
   // Both derived from what is being unassigned, so the service responsible can clear a
   // sono slot without also being able to drop the public talk speaker.
   const kind = type === 'service' ? 'service' : 'part'
@@ -62,15 +60,15 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       throw redirect('/programs')
     }
 
-    const assignmentId = await itemIdFromRequest(
+    // The item's id under `item` (plan T12); `id` is the old row's, from a page the previous image rendered.
+    const assignmentId = await resolveEventItem(
       db,
       { itemId: url.searchParams.get('item'), legacyId: url.searchParams.get('id') },
       kind,
+      eventId,
       congregationId,
     )
-    if (assignmentId == null || !(await assignmentBelongsToEvent(db, kind, assignmentId, eventId, congregationId))) {
-      throw redirect('/programs')
-    }
+    if (assignmentId == null) throw redirect('/programs')
 
     const cong = context.get(congregationContext)
     // `didRemove` gates the success flash so a stale double-submit that finds

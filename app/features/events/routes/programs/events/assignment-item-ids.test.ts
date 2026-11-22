@@ -2,8 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // The assignment routes across the id flip (plan T12, 5i-b). A form of this image posts an item's id under a new name;
 // one the previous image rendered posts the old row's id under the old name, which the route translates through the
-// item's legacy key, of the kind it writes only. An id of the wrong kind or of no item is refused, never written. The
-// real translation runs over an in-memory item table; who may assign, and the writers, are faked.
+// item's legacy key, of the kind it writes only. An id of the wrong kind, of another event or of no item is refused,
+// never written. The real resolveEventItem runs, over an in-memory item table answering Prisma's where as the database
+// would (the kind is the schedule's); who may assign, and the writers, are faked.
 
 const { state } = vi.hoisted(() => ({
   state: {
@@ -11,23 +12,28 @@ const { state } = vi.hoisted(() => ({
   },
 }))
 
-// Event 40 holds a part (item 900, mirroring old part 12) and a duty (item 901, mirroring old duty 12): the two old
-// tables numbered their rows apart, so the same old id names a part in one and a duty in the other.
+// Event 40 holds a part (item 900, mirroring old part 12), a duty (item 901, mirroring old duty 12: the two old tables
+// numbered their rows apart, so the same old id names a part in one and a duty in the other), a part the app made after
+// the flip (item 902, no old row) and a duty mirroring old duty 33, a number no old part has. Event 41 holds a part.
 const ITEMS = [
-  { id: 900, eventId: 40, legacyPartId: 12, legacyServiceId: null, name: 'Lecture' },
-  { id: 901, eventId: 40, legacyPartId: null, legacyServiceId: 12, name: 'Sono' },
+  { id: 900, eventId: 40, kind: 'programme', legacyPartId: 12, legacyServiceId: null, name: 'Lecture' },
+  { id: 901, eventId: 40, kind: 'duty', legacyPartId: null, legacyServiceId: 12, name: 'Sono' },
+  { id: 902, eventId: 40, kind: 'programme', legacyPartId: null, legacyServiceId: null, name: 'Discours' },
+  { id: 903, eventId: 40, kind: 'duty', legacyPartId: null, legacyServiceId: 33, name: 'Accueil' },
+  { id: 950, eventId: 41, kind: 'programme', legacyPartId: 70, legacyServiceId: null, name: 'Prière' },
 ]
+
+type Where = Record<string, unknown> & { AND?: { schedule: { kind: string } }[] }
+const matches = (item: (typeof ITEMS)[number], where: Where) =>
+  Object.entries(where).every(([key, value]) => {
+    if (key === 'congregationId') return value === 1
+    if (key === 'AND') return (value as Where['AND'])?.every(clause => clause.schedule.kind === item.kind)
+    return item[key as keyof typeof item] === value
+  })
 
 const db = {
   item: {
-    findFirst: ({ where }: { where: Record<string, unknown> }) =>
-      Promise.resolve(
-        ITEMS.find(item =>
-          Object.entries(where).every(([key, value]) =>
-            key === 'congregationId' || key === 'AND' ? true : item[key as keyof typeof item] === value,
-          ),
-        ) ?? null,
-      ),
+    findFirst: ({ where }: { where: Where }) => Promise.resolve(ITEMS.find(item => matches(item, where)) ?? null),
   },
 }
 
@@ -45,15 +51,9 @@ vi.mock('~/features/events/server/programme-event.queries', () => ({
   findProgrammeEvent: () => Promise.resolve({ id: 40, templateId: 3, name: 'Réunion', startDate: new Date() }),
 }))
 
-vi.mock('~/features/events/server/events-auth.server', () => ({
+vi.mock('~/features/events/server/events-auth.server', async importOriginal => ({
+  ...(await importOriginal<typeof import('~/features/events/server/events-auth.server')>()),
   canEditEvent: () => Promise.resolve(true),
-  // As the real check: the item of that kind, on that event.
-  assignmentBelongsToEvent: (_db: unknown, kind: 'part' | 'service', id: number, eventId: number) =>
-    Promise.resolve(
-      ITEMS.some(
-        item => item.id === id && item.eventId === eventId && (kind === 'part') === (item.legacyPartId != null),
-      ),
-    ),
 }))
 
 vi.mock('~/features/events/server/notify-assignment.server', async importOriginal => ({
@@ -124,8 +124,13 @@ describe('assigning a part', () => {
     expect(state.written).toEqual([{ writer: 'assignPart', id: 900 }])
   })
 
-  it('refuses a duty, by its id or its old row’s, and a form naming no item', async () => {
-    const forms: Record<string, string>[] = [{ itemId: '901' }, { assignmentId: '99' }, {}]
+  it('writes a part the app made, which only its own id names', async () => {
+    await postAssignPart({ itemId: '902', assigneeId: '5' })
+    expect(state.written).toEqual([{ writer: 'assignPart', id: 902 }])
+  })
+
+  it('refuses a duty by its id or its old row’s, another event’s part, and a form naming no item', async () => {
+    const forms: Record<string, string>[] = [{ itemId: '901' }, { assignmentId: '33' }, { itemId: '950' }, {}]
     for (const fields of forms) {
       const response = await respond(() => postAssignPart({ ...fields, assigneeId: '5' }))
       expect(response.headers.get('Location')).toBe('/programs')
