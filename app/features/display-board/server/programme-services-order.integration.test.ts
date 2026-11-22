@@ -1,6 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+import { settleFixtureSchedules } from '~/tests/helpers/settle-fixture-schedules'
 
 // The board prints a meeting's services in their order, on screen and in the PDF, both read through this data. The
 // services are created in one order and ordered in another, so a reader sorting by id, by name, or not at all shows it.
@@ -55,6 +56,7 @@ beforeAll(async () => {
     ] as const) {
       await tx.eventServicePart.create({ data: { name, order, eventId: event.id, congregationId } })
     }
+    await settleFixtureSchedules(tx as never, congregationId)
   })
 })
 

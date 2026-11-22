@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { EventTemplateKey } from '~/features/events/model/event-template.type'
 import { getPersonalAssignments } from '~/features/events/server/personal-assignments.server'
+import { settleFixtureSchedules } from '~/tests/helpers/settle-fixture-schedules'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -128,6 +129,7 @@ beforeAll(async () => {
         congregationId: congAId,
       },
     })
+    await settleFixtureSchedules(tx as never, congAId)
   })
 
   await withScope(congBId, async tx => {
@@ -172,6 +174,7 @@ beforeAll(async () => {
       },
     })
     foreignAssignmentId = foreign.id
+    await settleFixtureSchedules(tx as never, congBId)
   })
 })
 

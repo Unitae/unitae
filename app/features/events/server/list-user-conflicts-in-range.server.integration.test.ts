@@ -1,6 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+import { settleFixtureSchedules } from '~/tests/helpers/settle-fixture-schedules'
 
 // An absent publisher sees the assignments their absence clashes with. Several of one meeting are listed in the
 // programme's order — its parts, then its services — not in whatever order the table returns them.
@@ -51,6 +52,7 @@ beforeAll(async () => {
     ] as const) {
       await tx.eventServicePart.create({ data: { name, order, ...clash } })
     }
+    await settleFixtureSchedules(tx as never, congregationId)
   })
 })
 
