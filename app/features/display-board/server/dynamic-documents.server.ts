@@ -14,7 +14,17 @@ import {
 // Cross-feature import via the events barrel (deep-importing another
 // feature's model directly is forbidden by the boundaries lint rule).
 import { EventStatus } from '~/features/events'
-import { type LastWeekMeeting, listLastWeekAttendance } from '~/features/events/index.server'
+import {
+  asEventPart,
+  asEventServicePart,
+  ITEM_ORIGIN_INCLUDE,
+  type LastWeekMeeting,
+  listLastWeekAttendance,
+  MIRRORED_ITEMS,
+  PART_ITEM_ORDER,
+  PART_ITEMS,
+  splitItems,
+} from '~/features/events/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { getBoolSetting } from '~/shared/domain/settings.server'
@@ -36,7 +46,6 @@ export type { AvailableDynamicType, ProgrammeDynamicConfig }
 export { parseProgrammeConfig }
 
 /** A meeting's services in their order; the id settles ties, such as rows an older version wrote at 0. */
-const SERVICE_ORDER: Prisma.EventServicePartOrderByWithRelationInput[] = [{ order: 'asc' }, { id: 'asc' }]
 
 export function startOfCurrentMonth(): Date {
   const now = new Date()
@@ -197,8 +206,9 @@ export async function getContentVersion(
           orderBy: { updatedAt: 'desc' },
           select: { updatedAt: true },
         }),
-        db.eventPart.findFirst({
+        db.item.findFirst({
           where: {
+            ...PART_ITEMS,
             congregationId,
             event: {
               templateId: { in: templateIds },
@@ -226,8 +236,9 @@ export async function getContentVersion(
           orderBy: { updatedAt: 'desc' },
           select: { updatedAt: true },
         }),
-        db.eventPart.findFirst({
+        db.item.findFirst({
           where: {
+            ...PART_ITEMS,
             congregationId,
             event: {
               template: { key: dynamicRef },
@@ -456,7 +467,35 @@ async function fetchPioneers(db: TransactionClient, congregationId: number) {
     })
 }
 
-function fetchProgrammeByIds(
+// A programme's parts, and its services when the document shows them, from items (plan T12): one list in the programme's
+// order, then each kind read as before. The parts' order is the programme page's; services, with no track nor part id,
+// fall back to their position then the old row's id, as before.
+function programmeItems(withServices: boolean) {
+  return {
+    where: withServices ? MIRRORED_ITEMS : PART_ITEMS,
+    include: {
+      ...ITEM_ORIGIN_INCLUDE,
+      assignee: { select: userSelect },
+      assistant: { select: userSelect },
+      externalSpeaker: { select: EXTERNAL_SPEAKER_LABEL_SELECT },
+    },
+    orderBy: [...PART_ITEM_ORDER, { legacyServiceId: 'asc' as const }],
+  } satisfies Prisma.Event$itemsArgs
+}
+
+type ProgrammeItem = Prisma.ItemGetPayload<{ include: ReturnType<typeof programmeItems>['include'] }>
+
+/** An event read with programmeItems, as it read with its parts and services: services only where they were asked for. */
+function withProgramme<E extends { items: ProgrammeItem[] }>({ items, ...event }: E, withServices: boolean) {
+  const { parts, services } = splitItems(items)
+  return {
+    ...event,
+    eventParts: parts.map(asEventPart),
+    eventServiceParts: withServices ? services.map(asEventServicePart) : undefined,
+  }
+}
+
+async function fetchProgrammeByIds(
   db: TransactionClient,
   congregationId: number,
   templateIds: number[],
@@ -464,32 +503,20 @@ function fetchProgrammeByIds(
 ) {
   const fromDate = startOfCurrentMonth()
 
-  return db.event.findMany({
+  const events = await db.event.findMany({
     where: {
       congregationId,
       templateId: { in: templateIds },
       startDate: { gte: fromDate },
       status: EventStatus.Released,
     },
-    include: {
-      template: true,
-      eventParts: {
-        orderBy: [{ order: 'asc' }, { trackOrder: { sort: 'asc', nulls: 'last' } }],
-        include: {
-          assignee: { select: userSelect },
-          assistant: { select: userSelect },
-          externalSpeaker: { select: EXTERNAL_SPEAKER_LABEL_SELECT },
-        },
-      },
-      eventServiceParts: includeServices
-        ? { include: { assignee: { select: userSelect } }, orderBy: SERVICE_ORDER }
-        : false,
-    },
+    include: { template: true, items: programmeItems(includeServices) },
     orderBy: { startDate: 'asc' },
   })
+  return events.map(event => withProgramme(event, includeServices))
 }
 
-function fetchProgrammeByKey(
+async function fetchProgrammeByKey(
   db: TransactionClient,
   congregationId: number,
   templateKey: string,
@@ -497,26 +524,15 @@ function fetchProgrammeByKey(
 ) {
   const fromDate = startOfCurrentMonth()
 
-  return db.event.findMany({
+  const events = await db.event.findMany({
     where: {
       congregationId,
       template: { key: templateKey },
       startDate: { gte: fromDate },
       status: EventStatus.Released,
     },
-    include: {
-      eventParts: {
-        orderBy: [{ order: 'asc' }, { trackOrder: { sort: 'asc', nulls: 'last' } }],
-        include: {
-          assignee: { select: userSelect },
-          assistant: { select: userSelect },
-          externalSpeaker: { select: EXTERNAL_SPEAKER_LABEL_SELECT },
-        },
-      },
-      eventServiceParts: showServices
-        ? { include: { assignee: { select: userSelect } }, orderBy: SERVICE_ORDER }
-        : false,
-    },
+    include: { items: programmeItems(showServices) },
     orderBy: { startDate: 'asc' },
   })
+  return events.map(event => withProgramme(event, showServices))
 }
