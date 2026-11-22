@@ -32,7 +32,7 @@ const MEETING = {
   startDate: new Date('2026-11-19T23:30:00Z'),
   createdById: null,
   origin: 'job',
-  _count: { eventParts: 0, eventServiceParts: 0 },
+  _count: { items: 0 },
 }
 
 beforeEach(() => {
@@ -77,7 +77,7 @@ describe('createMeetingProgramme', () => {
   })
 
   it('refuses a meeting that already has a programme', async () => {
-    db.event.findFirst.mockResolvedValue({ ...MEETING, _count: { eventParts: 3, eventServiceParts: 0 } })
+    db.event.findFirst.mockResolvedValue({ ...MEETING, _count: { items: 3 } })
 
     await expect(createMeetingProgramme(db as never, 55, CTX)).rejects.toBeInstanceOf(ProgrammeExistsError)
     expect(giveProgramme).not.toHaveBeenCalled()

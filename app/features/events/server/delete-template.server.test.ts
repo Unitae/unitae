@@ -70,8 +70,7 @@ describe('deleteTemplate', () => {
 
     const empty = {
       origin: 'job',
-      eventParts: { none: {} },
-      eventServiceParts: { none: {} },
+      items: { none: {} },
       attendance: { is: null },
     }
     expect(vi.mocked(db.eventTemplate.findFirst).mock.calls[0]?.[0]?.select).toMatchObject({

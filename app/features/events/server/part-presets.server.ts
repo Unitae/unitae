@@ -1,5 +1,6 @@
 import { PartPresetScope } from '~/features/events/model/part-preset.type'
 import { partPresetName } from '~/features/events/model/part-preset-defaults'
+import { PART_ITEMS } from '~/features/events/server/item-projection.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { slugify } from '~/shared/utils/slugify'
@@ -155,12 +156,17 @@ export async function deletePartPreset(
 ): Promise<DeletePartPresetResult> {
   const preset = await db.partPreset.findFirst({
     where: { id, congregationId },
-    select: { key: true, name: true, isSystem: true, _count: { select: { templateParts: true, eventParts: true } } },
+    select: {
+      key: true,
+      name: true,
+      isSystem: true,
+      _count: { select: { templateParts: true, items: { where: PART_ITEMS } } },
+    },
   })
   if (!preset) return { ok: false, reason: 'not-found' }
   if (preset.isSystem) return { ok: false, reason: 'system' }
 
-  const partCount = preset._count.templateParts + preset._count.eventParts
+  const partCount = preset._count.templateParts + preset._count.items
   if (partCount > 0) return { ok: false, reason: 'in-use', partCount }
 
   await db.partPreset.delete({ where: { id_congregationId: { id, congregationId } } })

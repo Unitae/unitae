@@ -35,7 +35,7 @@ export async function createMeetingProgramme(
       startDate: true,
       createdById: true,
       origin: true,
-      _count: { select: { eventParts: true, eventServiceParts: true } },
+      _count: { select: { items: true } },
     },
   })
   if (event?.templateId == null) return null
@@ -45,7 +45,7 @@ export async function createMeetingProgramme(
   })
   if (template == null || (template.key != null && isSystemTemplate(template.key))) return null
   if (template.parts.length === 0 && template.serviceParts.length === 0) return null
-  if (event._count.eventParts > 0 || event._count.eventServiceParts > 0) throw new ProgrammeExistsError(event.id)
+  if (event._count.items > 0) throw new ProgrammeExistsError(event.id)
 
   // Whoever gives it its programme prepares it when nobody is named; a meeting the job made is no longer the job's.
   if (event.createdById == null || event.origin === EventOrigin.Job) {

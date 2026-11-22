@@ -41,7 +41,7 @@ export async function getProgrammeCreationData(
   const ids = rows.map(row => row.id)
   // Only events with a programme: a meeting the recurring-events job created ahead is a day still to prepare, which
   // the series fills rather than starting after it.
-  const hasProgramme = { OR: [{ eventParts: { some: {} } }, { eventServiceParts: { some: {} } }] }
+  const hasProgramme = { items: { some: {} } }
   const [latest, upcoming] = await Promise.all([
     db.event.groupBy({
       by: ['templateId'],

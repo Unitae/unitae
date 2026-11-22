@@ -118,7 +118,7 @@ const WITH_PART = {
     },
   ],
 }
-const BARE = { createdById: null, origin: 'job', attendance: null, _count: { eventParts: 0, eventServiceParts: 0 } }
+const BARE = { createdById: null, origin: 'job', attendance: null, _count: { items: 0 } }
 
 describe('bare events', () => {
   it('gives a bare event of the series its programme instead of creating a second one', async () => {
@@ -143,7 +143,7 @@ describe('bare events', () => {
         id: 55,
         templateId: 270,
         startDate: new Date('2026-11-19T23:00:00Z'),
-        _count: { eventParts: 3, eventServiceParts: 0 },
+        _count: { items: 3 },
       },
     ] as never)
     recordEvents()
@@ -326,7 +326,7 @@ describe('bare events, edge cases', () => {
     vi.mocked(db.eventTemplate.findFirst).mockResolvedValue(WITH_PART as never)
     vi.mocked(db.event.findMany).mockResolvedValue([
       { id: 55, ...BARE },
-      { id: 77, createdById: 42, attendance: null, _count: { eventParts: 4, eventServiceParts: 1 } },
+      { id: 77, createdById: 42, attendance: null, _count: { items: 5 } },
     ] as never)
 
     const refusal = await createProgrammeOnDay(db, { templateId: 270, day: '2026-11-26' }, CTX).catch(error => error)
@@ -563,7 +563,7 @@ describe('createProgrammeOnDay', () => {
   it('refuses a day the template already has a programme on, naming it', async () => {
     vi.mocked(db.eventTemplate.findFirst).mockResolvedValue(MIDWEEK as never)
     vi.mocked(db.event.findMany).mockResolvedValue([
-      { id: 77, createdById: 42, attendance: null, _count: { eventParts: 4, eventServiceParts: 1 } },
+      { id: 77, createdById: 42, attendance: null, _count: { items: 5 } },
     ] as never)
 
     const refusal = await createProgrammeOnDay(db, { templateId: 270, day: '2026-11-26' }, CTX).catch(error => error)

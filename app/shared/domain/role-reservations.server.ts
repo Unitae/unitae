@@ -28,11 +28,11 @@ export function hasSoleReservations(found: SoleReservations): boolean {
 
 /** The slots (ids, with the asKind of a part) where exactly one role is allowed. */
 function soleSlotKeys(
-  counts: { _count: { roleId: number }; asKind?: string | null }[],
+  counts: { _count: { roleId: number }; asKind?: string | null; slot?: string | null }[],
   slotOf: (row: never) => number,
 ) {
   return new Set(
-    counts.filter(row => row._count.roleId === 1).map(row => `${slotOf(row as never)}|${row.asKind ?? ''}`),
+    counts.filter(row => row._count.roleId === 1).map(row => `${slotOf(row as never)}|${row.asKind ?? row.slot ?? ''}`),
   )
 }
 
@@ -92,30 +92,17 @@ export async function findSoleReservations(
   })
   const soleServices = soleSlotKeys(serviceCounts, (row: { servicePartId: number }) => row.servicePartId)
 
-  const eventPartRows = await db.eventPartAllowedRole.findMany({
-    where: { roleId, congregationId, eventPart: { event: { endDate: { gte: now } } } },
-    select: { eventPartId: true, asKind: true },
+  // An upcoming programme's slots, from items (plan T12): a part's speaker and reader, a duty's single list (`main`).
+  const itemRows = await db.itemAllowedRole.findMany({
+    where: { roleId, congregationId, item: { event: { endDate: { gte: now } } } },
+    select: { itemId: true, slot: true },
   })
-  const eventPartCounts = await db.eventPartAllowedRole.groupBy({
-    by: ['eventPartId', 'asKind'],
-    where: { eventPartId: { in: eventPartRows.map(row => row.eventPartId) }, congregationId },
+  const itemCounts = await db.itemAllowedRole.groupBy({
+    by: ['itemId', 'slot'],
+    where: { itemId: { in: itemRows.map(row => row.itemId) }, congregationId },
     _count: { roleId: true },
   })
-  const soleEventParts = soleSlotKeys(eventPartCounts, (row: { eventPartId: number }) => row.eventPartId)
-
-  const eventServiceRows = await db.eventServicePartAllowedRole.findMany({
-    where: { roleId, congregationId, eventServicePart: { event: { endDate: { gte: now } } } },
-    select: { eventServicePartId: true },
-  })
-  const eventServiceCounts = await db.eventServicePartAllowedRole.groupBy({
-    by: ['eventServicePartId'],
-    where: { eventServicePartId: { in: eventServiceRows.map(row => row.eventServicePartId) }, congregationId },
-    _count: { roleId: true },
-  })
-  const soleEventServices = soleSlotKeys(
-    eventServiceCounts,
-    (row: { eventServicePartId: number }) => row.eventServicePartId,
-  )
+  const soleItems = soleSlotKeys(itemCounts, (row: { itemId: number }) => row.itemId)
 
   // A part restricted for both its speaker and its reader is one place to settle, named once.
   const templateParts = new Map<number, { template: string; name: string }>()
@@ -134,9 +121,8 @@ export async function findSoleReservations(
         .filter(row => soleServices.has(key(row.servicePartId)))
         .map(row => ({ template: row.servicePart.template.name, name: row.servicePart.name })),
     ],
-    programmeSlots:
-      new Set(eventPartRows.filter(row => soleEventParts.has(key(row.eventPartId, row.asKind))).map(r => r.eventPartId))
-        .size + eventServiceRows.filter(row => soleEventServices.has(key(row.eventServicePartId))).length,
+    programmeSlots: new Set(itemRows.filter(row => soleItems.has(key(row.itemId, row.slot))).map(row => row.itemId))
+      .size,
   }
 }
 

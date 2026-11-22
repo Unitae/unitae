@@ -92,8 +92,7 @@ describe('importEvents', () => {
       where: {
         congregationId: 1,
         origin: 'job',
-        eventParts: { none: {} },
-        eventServiceParts: { none: {} },
+        items: { none: {} },
         attendance: { is: null },
       },
     })

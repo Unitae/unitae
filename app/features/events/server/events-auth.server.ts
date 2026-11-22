@@ -118,11 +118,15 @@ export async function assignmentBelongsToEvent(
   // Int at the driver, so it is refused here as the bad request it is.
   if (!Number.isInteger(assignmentId)) return false
 
-  const where = { id: assignmentId, eventId, congregationId }
-  const row =
-    kind === 'service'
-      ? await db.eventServicePart.findFirst({ where, select: { id: true } })
-      : await db.eventPart.findFirst({ where, select: { id: true } })
+  // The item by the id its routes carry, the old row's (plan T12), of the kind asked.
+  const row = await db.item.findFirst({
+    where: {
+      eventId,
+      congregationId,
+      ...(kind === 'service' ? { legacyServiceId: assignmentId } : { legacyPartId: assignmentId }),
+    },
+    select: { id: true },
+  })
 
   if (row == null) {
     logger.warn('assignmentBelongsToEvent: assignment does not belong to the authorised event', {
