@@ -41,8 +41,8 @@ export async function getResponsibleConflicts(
   const roleIds = isProgramManager ? [] : await resolveEffectiveRoleIds(db, userId, congregationId)
   if (!isProgramManager && roleIds.length === 0) return EMPTY
 
-  // Drafts stay off the dashboard even for managers — the events-list amber
-  // badge and the release-blocking error are their surface for those.
+  // Drafts stay off the dashboard even for managers (VISIBLE_ITEM below): the events-list amber badge and the
+  // release-blocking error are their surface for those.
   const upcoming = { startDate: { gte: now } }
   const responsibleFor = (scope: ResponsibilityScope) => ({
     ...upcoming,

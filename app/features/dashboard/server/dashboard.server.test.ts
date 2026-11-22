@@ -295,10 +295,11 @@ describe('getNextMeeting', () => {
     // happened to include the sentinels would pass without this.
     const call = vi.mocked(db.eventPart.findMany).mock.calls[0][0]
     expect(call?.select).toMatchObject({ speakerLabel: true, readerLabel: true })
-    // Only that meeting's parts and services.
-    expect(call?.where).toMatchObject({ eventId: expect.any(Number) })
+    // Only that meeting's parts and services, in published schedules.
+    expect(call?.where).toMatchObject({ eventId: expect.any(Number), schedule: { status: 'published' } })
     expect(vi.mocked(db.eventServicePart.findMany).mock.calls[0][0]?.where).toMatchObject({
       eventId: call?.where?.eventId,
+      schedule: { status: 'published' },
     })
   })
 

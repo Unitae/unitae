@@ -338,9 +338,8 @@ describe('getConflictingAssignments (integration)', () => {
           endDate: opts.endDate ?? new Date(opts.startDate.getTime() + 2 * 60 * 60 * 1000),
           createdById: opts.createdById ?? aliceAccountId,
           congregationId: cong,
-          // Every publisher-facing conflict / dashboard query filters on
-          // status='released' now that the draft/released workflow is live.
-          // Test fixtures are always public.
+          // Every publisher-facing query reads published schedules only: released, the fixture's schedules come
+          // out published when settleFixtureSchedules settles them.
           status: 'released',
         },
       })

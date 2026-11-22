@@ -10,7 +10,7 @@ const logger = createLogger('event-link')
  * The event as a document would see it, or null if none could show it.
  *
  * Matching the template is not the same as holding the event: a document
- * renders released events from the start of the current month onwards, so a
+ * renders the events members may see (D46) from the start of the current month onwards, so a
  * draft — or one that has aged out — would leave the reader on a programme
  * their assignment is not in, with nothing on the page to say why.
  */

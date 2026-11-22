@@ -255,10 +255,10 @@ describe('current pioneers month', () => {
   })
 })
 
-// --- getDynamicDocumentData: draft events hidden ---
+// --- getDynamicDocumentData: only what members may see (D46) ---
 //
-// The board is the public face of the schedule. Any query that surfaces
-// programme events to it MUST filter out drafts, otherwise a manager mid-edit
+// The board is the public face of the schedule. Any query that surfaces programme events to it reads only an event
+// with a published schedule, or with no schedule and released; otherwise a manager mid-edit
 // leaks half-baked assignments to every publisher walking past the screen.
 
 describe('getDynamicDocumentData programme draft filter', () => {

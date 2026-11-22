@@ -56,7 +56,7 @@ export async function getUpcomingAssignments(
 ): Promise<UpcomingAssignment[]> {
   const horizon = new Date(now.getTime() + FOUR_WEEKS_MS)
 
-  // Drafts stay off the publisher-facing dashboard.
+  // Drafts stay off the publisher-facing dashboard: the item queries read published schedules only (VISIBLE_ITEM).
   const eventFilter = { startDate: { gte: now, lte: horizon } }
   const eventSelect = { select: { id: true, templateId: true, name: true, startDate: true } }
 

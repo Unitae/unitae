@@ -91,12 +91,11 @@ export async function getConflictingAssignments(db: TransactionClient, userId: n
     db.item.findMany({
       where: {
         ...PART_ITEMS,
+        // Conflicts in a draft schedule are not urgent: it isn't public yet. They only surface via the events-list
+        // amber badge for managers, and block the release step.
         ...VISIBLE_ITEM,
         hasConflict: true,
         OR: [{ assigneeId: userId }, { assistantId: userId }],
-        // Conflicts on a draft event are not urgent — the schedule isn't
-        // public yet. They only surface via the events-list amber badge for
-        // managers, and block the release step.
         event: { startDate: { gte: now } },
       },
       select: {

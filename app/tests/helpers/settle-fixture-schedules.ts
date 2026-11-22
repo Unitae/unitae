@@ -5,7 +5,11 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 // outside any schedule. Readers decide what members may see by schedule (spec D46), so the fixture settles them as the
 // writers would: each item in its event's schedule of its kind, each schedule with its event's status.
 
-/** Puts every item of the congregation's events in a schedule with its event's status, as the writers do. */
+/**
+ * Puts every item of the congregation's events in a schedule with its event's status, as the writers do. Call it
+ * after the fixture's last write: it resets every schedule of the congregation to its event's status (one set by
+ * hand is lost), and an event without items gets no schedule.
+ */
 export async function settleFixtureSchedules(db: TransactionClient, congregationId: number): Promise<void> {
   const events = await db.event.findMany({ where: { congregationId }, select: { id: true } })
   await attachEventItems(
