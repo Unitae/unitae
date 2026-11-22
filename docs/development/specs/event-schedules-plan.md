@@ -513,6 +513,18 @@ through the legacy keys, `debounceKey`); the notice worker reads both kinds unti
 `item-allowed-roles.ndjson` replace the four item files; an older archive's item files are mapped by the
 backfill's rule in TypeScript (speaker → `main`, reader → `second`, a duty's list → `main`), as for schedules.
 
+**As shipped (5i-b, #601):** the writers write items and the public id is `Item.id`. Forms and links carry it
+under new names (`itemId`, `partItemId` / `serviceItemId`, `?item=`, `itemIds`). POST actions also read the old
+names as the old row's id, translated by `itemIdFromRequest` for their own kind only. GET parameters and the deep
+link read nothing under the old names. Item orders break ties on the old row's id first (`PART_TIE_BREAK` /
+`SERVICE_TIE_BREAK`), because the backfill copied rows in no set order. Notices name `Item`
+(`name_items_in_notices`), and cancelling also finds notices about old rows. Audit history keeps its old names.
+**No archive bump:** the four item files keep their shape, filled from items, and the import still writes the old
+tables, which the triggers mirror. The new item files and the bump come when the import writes items. Template
+files stay until PR 6. Still on the old tables: the demo seed, the archive import and `attachEventItems`. An item
+the app edits leaves its old row as it was. The reference suite's outputs are unchanged; three of its test files
+changed in id plumbing only.
+
 ## 11. PR 6 — Réglages: event kinds and schedule templates
 
 - Réglages › Programmes becomes two lists: **Types d’évènements** (name, colour, duration, default
