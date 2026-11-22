@@ -2,7 +2,7 @@
 // the test's own `eventPart` or `eventServicePart` mock, so a test keeps its fixtures and its assertions on results, and
 // reads its calls on those mocks (a call's `where` is the item query's). The kind comes from the schedule kind a
 // PART_ITEMS or SERVICE_ITEMS spread names (`where.AND[].schedule.kind`): a query that names neither or both throws, so a
-// reader that drops its kind filter fails here, and so does one still looking an item up by its legacy key. Mocked rows
+// reader that drops its kind filter fails here, and so does a reader still looking an item up by its legacy key. Mocked rows
 // carry no `schedule`: itemKind and splitItems cannot run on them. A fixture's id is the item's (5i-b: the public id is
 // the item's own; as Prisma, a select without `id` gets none); its legacy key is another number, far from any fixture's
 // id, so a reader handing out the old row's id instead shows. Its template part's id stays its template item's legacy

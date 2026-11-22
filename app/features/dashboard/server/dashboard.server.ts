@@ -173,7 +173,7 @@ export async function getNextMeeting(db: TransactionClient, userId: number, cong
 
   if (!event) return null
 
-  // Its parts and services from items (plan T12), each with the id its routes carry, the old row's.
+  // Its parts and services from items (plan T12), each by its item id.
   const [partItems, serviceItems] = await Promise.all([
     db.item.findMany({
       where: { eventId: event.id, ...PART_ITEMS, ...VISIBLE_ITEM },

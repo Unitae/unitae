@@ -55,7 +55,7 @@ export async function listMyAbsences(
 /** An assignment flagged as falling during its holder's absence, with what the reader needs to reach it. */
 export interface AbsenceAssignment {
   kind: AssignKind
-  /** The id publicItemId hands out (today the old part's or service's), with its kind beside it. */
+  /** The item's id (publicItemId), with its kind beside it for the `?item=` key. */
   id: number
   name: string
   eventId: number

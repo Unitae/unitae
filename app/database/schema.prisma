@@ -1595,7 +1595,8 @@ model Item {
 
   event      Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
   eventId    Int
-  // Through (scheduleId, eventId), as on the old items. Null where the old row has none, until it gets one.
+  // Through (scheduleId, eventId), as on the old items. Set by the app's writers; null only on a row the triggers copied
+  // before it had a schedule.
   schedule   Schedule? @relation(fields: [scheduleId, eventId], references: [id, eventId], onDelete: Cascade)
   scheduleId Int?
 

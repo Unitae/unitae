@@ -21,10 +21,9 @@ import {
   ITEM_ORIGIN_INCLUDE,
   type LastWeekMeeting,
   listLastWeekAttendance,
-  PART_ITEM_ORDER,
+  MIXED_ITEM_ORDER,
   PART_ITEMS,
   SCHEDULED_ITEMS,
-  SERVICE_TIE_BREAK,
   splitItems,
 } from '~/features/events/index.server'
 import * as m from '~/i18n/paraglide/messages'
@@ -471,7 +470,7 @@ async function fetchPioneers(db: TransactionClient, congregationId: number) {
 
 // A programme's parts, and its services when the document shows them, from items (plan T12): one list in the programme's
 // order, then each kind read as before. The parts' order is the programme page's; services, with no track nor part id,
-// fall back to their position then the old row's id, as before.
+// fall back to their position then the tie-breaks (the old row's id, then the item's).
 function programmeItems(withServices: boolean) {
   return {
     where: { ...(withServices ? SCHEDULED_ITEMS : PART_ITEMS), ...VISIBLE_ITEM },
@@ -482,8 +481,7 @@ function programmeItems(withServices: boolean) {
       assistant: { select: userSelect },
       externalSpeaker: { select: EXTERNAL_SPEAKER_LABEL_SELECT },
     },
-    // Parts and duties together: each kind's old rows in their order, then what the app made.
-    orderBy: [...PART_ITEM_ORDER.slice(0, -1), SERVICE_TIE_BREAK[0], { id: 'asc' as const }],
+    orderBy: MIXED_ITEM_ORDER,
   } satisfies Prisma.Event$itemsArgs
 }
 

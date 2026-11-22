@@ -1,11 +1,14 @@
 import { type EventPart, type EventServicePart, type Item, Prisma } from '~/database/generated/client'
 import { ScheduleKind } from '~/features/events/model/schedule.type'
+import { createLogger } from '~/shared/infra/logger.server'
 
-// The read switch (plan T12, PR 4): readers read `Item` but hand back today's shapes, the old row's id, so the writers,
-// routes, form fields, links and notices keep theirs. An item's kind is its schedule's: a programme holds parts, a duty
-// schedule duties. PR 5 moves the writers to `Item` and flips the id to `Item.id` (5i-b). Until then asEventPart,
-// asEventServicePart and publicItemId need the old row's key and throw without it; only the writers of 5i-b make an item
-// without one, and they ship in the same deploy as this file's flip, so no deployed reader meets such an item.
+// Parts and duties are items (plan T12). Readers read `Item` and hand out its own id, projected into today's EventPart and
+// EventServicePart shapes (`partId` / `servicePartId` being the template item's legacy key while the template side stays
+// on its tables, see templateItemsOf). An item's kind is its schedule's: a programme holds parts, a duty schedule
+// duties. The item's own legacy keys serve only to break ties in the old rows' order (PART_TIE_BREAK), to cancel notices
+// the previous image wrote, and to translate the ids a page of that image posts (itemIdFromRequest).
+
+const logger = createLogger('item-projection')
 
 interface ItemOrigin {
   legacyPartId: number | null
@@ -76,6 +79,18 @@ export const PART_ITEMS_BY_DATE = [
   { event: { startDate: 'asc' } },
   { order: 'asc' },
   ...PART_TIE_BREAK,
+] satisfies Prisma.ItemOrderByWithRelationInput[]
+
+/**
+ * Parts and duties of one list together (the board's programme with its services): by position, a part's track, then each
+ * kind's old rows in their order, then what the app made.
+ */
+export const MIXED_ITEM_ORDER = [
+  { order: 'asc' },
+  { trackOrder: { sort: 'asc', nulls: 'last' } },
+  { legacyPartId: { sort: 'asc', nulls: 'last' } },
+  { legacyServiceId: { sort: 'asc', nulls: 'last' } },
+  { id: 'asc' },
 ] satisfies Prisma.ItemOrderByWithRelationInput[]
 
 /** Services across events, the same way. */
@@ -165,7 +180,7 @@ export function splitItems<T extends WithScheduleKind>(items: T[]): { parts: T[]
   }
 }
 
-/** A part as an EventPart reads: its old id, and its template part's as `partId`. */
+/** A part as an EventPart reads: the item's id, and its template part's legacy id as `partId`. */
 export function asEventPart<T extends WithTemplateItem>(
   item: T,
 ): Omit<T, OriginKey> & { id: number; partId: number | null } {
@@ -175,7 +190,10 @@ export function asEventPart<T extends WithTemplateItem>(
   )
 }
 
-/** A duty as an EventServicePart reads: its old id, its template service's as `servicePartId`, no programme columns. */
+/**
+ * A duty as an EventServicePart reads: the item's id, its template service's legacy id as `servicePartId`, no programme
+ * columns.
+ */
 export function asEventServicePart<T extends WithTemplateItem>(
   item: T,
 ): Omit<T, OriginKey | ProgrammeKey> & { id: number; servicePartId: number | null } {
@@ -209,6 +227,13 @@ export async function templateItemsOf(
     if (row.legacyPartId != null) parts.set(row.legacyPartId, row.id)
     if (row.legacyServiceId != null) services.set(row.legacyServiceId, row.id)
   }
+  // The triggers mirror every template row, so a miss is a bug: the item is still made, without its template item,
+  // rather than fail a programme (the meetings job makes them too), and the miss is logged.
+  const missingParts = partIds.filter(id => !parts.has(id))
+  const missingServices = serviceIds.filter(id => !services.has(id))
+  if (missingParts.length > 0 || missingServices.length > 0) {
+    logger.error('Template rows without a template item', { congregationId, missingParts, missingServices })
+  }
   return { parts, services }
 }
 
@@ -217,7 +242,8 @@ export async function templateItemsOf(
  * the previous image rendered during the rollout carries the old row's id under the old name, translated here through
  * its legacy key, of the kind asked only. The two id spaces overlap, so they never share a name: an old pod given a new
  * form finds nothing, a new pod given an old form translates, and neither touches the wrong row. Answers null for a
- * missing or malformed id, which the caller refuses.
+ * missing or malformed id, or an old id no item mirrors, which the caller refuses. A new-name id is returned unchecked:
+ * resolveEventItem is the one call that reads and checks it (an item of that kind on that event).
  */
 export async function itemIdFromRequest(
   db: {
