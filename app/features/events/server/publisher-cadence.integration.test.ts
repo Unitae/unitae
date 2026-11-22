@@ -2,6 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { settleFixtureSchedules } from '~/tests/helpers/settle-fixture-schedules'
 
 // A publisher's cadence on a part and on a duty, against real rows (plan T12): the readers read items, one kind each. In
 // every meeting a part is named like the duty and a duty like the part, both held by someone else: they must never show
@@ -80,6 +81,7 @@ function snapshot() {
             })
             if (index === CURRENT) current = { event, part: part.id, duty: duty.id }
           }
+          await settleFixtureSchedules(db, congregationId)
           const ask = (anchor: { excludePartAssignmentId: number | null; excludeServiceAssignmentId: number | null }) =>
             resolvePublisherCadence(db, {
               userId: paul.id,

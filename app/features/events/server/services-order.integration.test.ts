@@ -1,6 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+import { settleFixtureSchedules } from '~/tests/helpers/settle-fixture-schedules'
 
 // Services have an order of their own, like parts: a template's services in the order its programmes start with, an
 // event's in the order they print. Every writer keeps it: a service added goes last, a copy keeps its source's order.
@@ -183,6 +184,7 @@ describe('the order of services', () => {
       ] as const) {
         await tx.eventServicePart.create({ data: { name, order, eventId: event.id, congregationId: ids.cong } })
       }
+      await settleFixtureSchedules(tx as never, ids.cong)
       const page = await getEventProgramme(tx, event.id, ids.cong)
       const template = await getTemplateById(tx, ids.template, ids.cong)
       return {
@@ -210,6 +212,7 @@ describe('the order of services', () => {
       const lead = await tx.eventPart.create({ data: { name: 'P1', order: 5, eventId: event.id, congregationId } })
       await tx.eventPart.create({ data: { name: 'P2', order: 5, eventId: event.id, congregationId } })
       await tx.eventPart.create({ data: { name: 'P0', order: 5, trackOrder: 1, eventId: event.id, congregationId } })
+      await settleFixtureSchedules(tx as never, congregationId)
       // The first row of each pair gets its item back with a newer id than the second's.
       await tx.item.deleteMany({ where: { OR: [{ legacyServiceId: first.id }, { legacyPartId: lead.id }] } })
       await tx.eventServicePart.update({ where: { id: first.id }, data: { note: '' } })

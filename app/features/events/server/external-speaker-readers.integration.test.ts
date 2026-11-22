@@ -2,6 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { settleFixtureSchedules } from '~/tests/helpers/settle-fixture-schedules'
 
 // The external speakers' readers against real rows (plan T12): they read items, a part's only. A duty named like the
 // speaker's part, in-house, sits beside it in every meeting and must never count as the speaker's visit or slot.
@@ -71,6 +72,7 @@ function snapshot(): Promise<Result> {
               data: { name: 'Discours public', eventId: event.id, assigneeId: member.id, congregationId },
             })
           }
+          await settleFixtureSchedules(db, congregationId)
           const current = await tx.event.findFirstOrThrow({ where: { startDate: new Date(`${DAYS[2]}T09:00:00Z`) } })
 
           const directory = (await listSpeakerDirectory(db, congregationId, NOW)).speakers.find(

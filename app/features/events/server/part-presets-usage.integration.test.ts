@@ -2,6 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { settleFixtureSchedules } from '~/tests/helpers/settle-fixture-schedules'
 
 // The part types' usage on the settings page, against real rows (plan T12): template parts, and programme parts read
 // from items. A duty carrying the same type is not a part and never counts.
@@ -52,6 +53,7 @@ describe('part types in use', () => {
           data: { name: 'Sono', eventId: event.id, presetId: preset.id, congregationId },
         })
 
+        await settleFixtureSchedules(tx as unknown as TransactionClient, congregationId)
         const rows = await listPartPresetsForSettings(tx as unknown as TransactionClient, congregationId)
         usage = rows.find(row => row.id === preset.id)?._count
         throw new Rollback()
