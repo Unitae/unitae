@@ -522,7 +522,9 @@ link read nothing under the old names. Item orders break ties on the old row's i
 **No archive bump:** the four item files keep their shape, filled from items, and the import still writes the old
 tables, which the triggers mirror. The new item files and the bump come when the import writes items. Template
 files stay until PR 6. Still on the old tables: the demo seed, the archive import and `attachEventItems`. An item
-the app edits leaves its old row as it was. The reference suite's outputs are unchanged; three of its test files
+the app edits leaves its old row as it was, and the event mirrors' update branch (`mirror_event_items_by_change`)
+copies only what an old row changed onto an item still in step with it, never inserting: a key Postgres sets to null
+on a lagging row neither undoes the app's edits nor brings back a deleted item. The reference suite's outputs are unchanged; three of its test files
 changed in id plumbing only.
 
 ## 11. PR 6 — Réglages: event kinds and schedule templates
