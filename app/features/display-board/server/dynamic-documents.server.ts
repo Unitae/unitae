@@ -24,6 +24,7 @@ import {
   PART_ITEM_ORDER,
   PART_ITEMS,
   SCHEDULED_ITEMS,
+  SERVICE_TIE_BREAK,
   splitItems,
 } from '~/features/events/index.server'
 import * as m from '~/i18n/paraglide/messages'
@@ -481,7 +482,8 @@ function programmeItems(withServices: boolean) {
       assistant: { select: userSelect },
       externalSpeaker: { select: EXTERNAL_SPEAKER_LABEL_SELECT },
     },
-    orderBy: [...PART_ITEM_ORDER, { legacyServiceId: 'asc' as const }],
+    // Parts and duties together: each kind's old rows in their order, then what the app made.
+    orderBy: [...PART_ITEM_ORDER.slice(0, -1), SERVICE_TIE_BREAK[0], { id: 'asc' as const }],
   } satisfies Prisma.Event$itemsArgs
 }
 

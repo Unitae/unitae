@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     userAccount: { findFirst: vi.fn() },
+    item: { findMany: vi.fn() },
+    notificationEvent: { updateMany: vi.fn() },
   },
 }))
 
@@ -14,9 +16,13 @@ vi.mock('~/features/display-board/index.server', () => ({
   resolveProgrammeLink: vi.fn(),
 }))
 
-const { dispatchAssignmentDiffs, notifyAssignment, partAssignmentDiffs, servicePartAssignmentDiffs } = await import(
-  './notify-assignment.server'
-)
+const {
+  cancelPendingAssignmentNotices,
+  dispatchAssignmentDiffs,
+  notifyAssignment,
+  partAssignmentDiffs,
+  servicePartAssignmentDiffs,
+} = await import('./notify-assignment.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 const { notify } = await import('~/features/notifications/index.server')
 const { resolveProgrammeLink } = await import('~/features/display-board/index.server')
@@ -30,7 +36,7 @@ const CTX = {
     status: 'released' as const,
   },
   assignmentName: 'Perles de la Parole',
-  entityType: 'EventPart' as const,
+  entityType: 'Item' as const,
   entityId: 100,
   congregationId: 42,
   actorId: 7,
@@ -66,7 +72,7 @@ describe('notifyAssignment', () => {
     const call = vi.mocked(notify).mock.calls[0][1]
     expect(call).toMatchObject({
       type: 'programme.assignment.assigned',
-      entityType: 'EventPart',
+      entityType: 'Item',
       entityId: 100,
       congregationId: 42,
       recipientId: 33,
@@ -233,5 +239,35 @@ describe('servicePartAssignmentDiffs (pure)', () => {
     const diffs = servicePartAssignmentDiffs({ previousAssigneeId: null }, { assigneeId: null })
     expect(diffs).toHaveLength(1)
     expect(diffs[0].role).toBe('servant')
+  })
+})
+
+describe('cancelPendingAssignmentNotices', () => {
+  it('runs no query and cancels nothing for an empty list of items', async () => {
+    expect(await cancelPendingAssignmentNotices(db as never, 42, [])).toBe(0)
+
+    expect(db.item.findMany).not.toHaveBeenCalled()
+    expect(db.notificationEvent.updateMany).not.toHaveBeenCalled()
+  })
+
+  // Item 1001 mirrors the old part row 100: a notice the previous image wrote names the old row, so both are cancelled.
+  it('cancels the notice naming an item and the notice naming the old row it mirrors', async () => {
+    vi.mocked(db.item.findMany).mockResolvedValue([{ legacyPartId: 100, legacyServiceId: null }] as never)
+    vi.mocked(db.notificationEvent.updateMany).mockResolvedValue({ count: 2 } as never)
+
+    const cancelled = await cancelPendingAssignmentNotices(db as never, 42, [1001])
+
+    expect(cancelled).toBe(2)
+    expect(db.notificationEvent.updateMany).toHaveBeenCalledWith({
+      where: {
+        congregationId: 42,
+        status: 'pending',
+        OR: [
+          { entityType: 'Item', entityId: { in: [1001] } },
+          { entityType: 'EventPart', entityId: { in: [100] } },
+        ],
+      },
+      data: { status: 'cancelled', processedAt: expect.any(Date) },
+    })
   })
 })

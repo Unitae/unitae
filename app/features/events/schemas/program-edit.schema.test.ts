@@ -16,7 +16,7 @@ function baseAddInput() {
 function baseUpdateInput() {
   return {
     intent: 'update-part',
-    partAssignmentId: 5,
+    partItemId: '5',
     partName: 'Bible reading',
     partOrder: 1,
   }
@@ -180,7 +180,7 @@ describe('managed role slots', () => {
   function partForm(fields: Record<string, string | string[]>) {
     const fd = new FormData()
     fd.set('intent', 'update-part')
-    fd.set('partAssignmentId', '9')
+    fd.set('partItemId', '9')
     fd.set('partName', 'Sujet')
     fd.set('partOrder', '1')
     for (const [key, value] of Object.entries(fields)) {

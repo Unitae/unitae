@@ -1,6 +1,7 @@
 import { SYSTEM_TEMPLATE_KEYS } from '~/features/events/model/event-template.type'
 import { ResponsibilityScope, scopesCovering } from '~/features/events/model/responsibility-scope.type'
 import { isTemplateResponsible } from '~/features/events/server/event-templates.server'
+import { PART_ITEMS, SERVICE_ITEMS } from '~/features/events/server/item-projection.server'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
@@ -118,13 +119,9 @@ export async function assignmentBelongsToEvent(
   // Int at the driver, so it is refused here as the bad request it is.
   if (!Number.isInteger(assignmentId)) return false
 
-  // The item by the id its routes carry, the old row's (plan T12), of the kind asked.
+  // The item of the kind asked: a duty's id asked as a part is not one.
   const row = await db.item.findFirst({
-    where: {
-      eventId,
-      congregationId,
-      ...(kind === 'service' ? { legacyServiceId: assignmentId } : { legacyPartId: assignmentId }),
-    },
+    where: { id: assignmentId, eventId, congregationId, ...(kind === 'service' ? SERVICE_ITEMS : PART_ITEMS) },
     select: { id: true },
   })
 

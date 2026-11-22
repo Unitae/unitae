@@ -76,7 +76,7 @@ describe.each([
   { kind: 'services' as const, action: reorderServices.action as Action },
 ])('the event’s reorder-$kind action', ({ kind, action }) => {
   it('writes the order for a caller who may assign the programme', async () => {
-    const result = await post(action, [Permission.CanAssignProgramParts], { orderedIds: [2, 1] })
+    const result = await post(action, [Permission.CanAssignProgramParts], { itemIds: [2, 1] })
 
     expect(result).toEqual({ ok: true })
     expect(state.written).toEqual([{ kind, eventId: 40, orderedIds: [2, 1] }])
@@ -85,33 +85,41 @@ describe.each([
   it('writes the order for the template’s programme responsible, without the right', async () => {
     state.delegation = 'programme'
 
-    expect(await post(action, [], { orderedIds: [2, 1] })).toEqual({ ok: true })
+    expect(await post(action, [], { itemIds: [2, 1] })).toEqual({ ok: true })
     expect(state.written).toHaveLength(1)
   })
 
   it('refuses the services-only responsible, like adding or removing a service', async () => {
     state.delegation = 'service'
 
-    const response = await respond(() => post(action, [], { orderedIds: [2, 1] }))
+    const response = await respond(() => post(action, [], { itemIds: [2, 1] }))
 
     expect(response.headers.get('Location')).toBe('/programs')
     expect(state.written).toEqual([])
   })
 
   it('refuses a caller with neither, and an event that is not a programme', async () => {
-    const refused = await respond(() => post(action, [], { orderedIds: [2, 1] }))
+    const refused = await respond(() => post(action, [], { itemIds: [2, 1] }))
     state.event = null
-    const missing = await respond(() => post(action, [Permission.CanAssignProgramParts], { orderedIds: [2, 1] }))
+    const missing = await respond(() => post(action, [Permission.CanAssignProgramParts], { itemIds: [2, 1] }))
 
     expect([refused.headers.get('Location'), missing.headers.get('Location')]).toEqual(['/programs', '/programs'])
     expect(state.written).toEqual([])
   })
 
   it('answers no, writing nothing, to an empty or malformed list', async () => {
-    const empty = await post(action, [Permission.CanAssignProgramParts], { orderedIds: [] })
-    const notAList = await post(action, [Permission.CanAssignProgramParts], { orderedIds: '2,1' })
+    const empty = await post(action, [Permission.CanAssignProgramParts], { itemIds: [] })
+    const notAList = await post(action, [Permission.CanAssignProgramParts], { itemIds: '2,1' })
 
     expect([empty, notAList]).toEqual([{ ok: false }, { ok: false }])
+    expect(state.written).toEqual([])
+  })
+
+  // A page the previous image rendered posts the old rows' ids under the old name (plan T12): never read as items.
+  it('answers no, writing nothing, to the old rows’ ids of a previous page', async () => {
+    const result = await post(action, [Permission.CanAssignProgramParts], { orderedIds: [2, 1] })
+
+    expect(result).toEqual({ ok: false })
     expect(state.written).toEqual([])
   })
 })

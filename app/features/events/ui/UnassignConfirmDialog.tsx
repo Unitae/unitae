@@ -41,7 +41,7 @@ export function UnassignConfirmDialog({ open, onOpenChange, target, eventId }: U
     if (!target) return
     fetcher.submit(null, {
       method: 'post',
-      action: `/programs/events/${eventId}/remove-assignment?type=${target.type}&id=${target.id}`,
+      action: `/programs/events/${eventId}/remove-assignment?type=${target.type}&item=${target.id}`,
     })
   }
 

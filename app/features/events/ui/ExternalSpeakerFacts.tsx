@@ -49,7 +49,7 @@ export function ExternalSpeakerFacts({
   useEffect(() => {
     if (!externalSpeakerId || externalSpeakerId === 'none') return
     const searchParams = new URLSearchParams({ externalSpeakerId })
-    if (excludePartAssignmentId != null) searchParams.set('excludePartAssignmentId', String(excludePartAssignmentId))
+    if (excludePartAssignmentId != null) searchParams.set('excludePartItemId', String(excludePartAssignmentId))
     fetcher.load(`/programs/events/${eventId}/external-speaker-info?${searchParams}`)
   }, [externalSpeakerId, eventId, excludePartAssignmentId])
 

@@ -1576,8 +1576,9 @@ model TemplateItemAllowedRole {
   @@index([congregationId])
 }
 
-// A part or a duty of one event's schedule (plan T12): one table where EventPart and EventServicePart are two. Mirrored
-// from them by triggers like TemplateItem; nothing writes it directly yet.
+// A part or a duty of one event's schedule (plan T12): one table where EventPart and EventServicePart are two. The
+// app writes it directly; the triggers still copy what the old tables receive (the previous image during a rollout, the
+// demo seed, an archive import), keyed by `legacyPartId` / `legacyServiceId`, which stay null on an item made here.
 model Item {
   id           Int     @id @default(autoincrement())
   name         String  @default("")

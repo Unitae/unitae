@@ -179,8 +179,8 @@ async function labelsOfImport(congregationId: number): Promise<Map<string, strin
           id: true,
           startDate: true,
           template: { select: { key: true } },
-          eventParts: { select: { id: true, order: true } },
-          eventServiceParts: { select: { id: true, name: true } },
+          // Items, as the app hands them out (plan T12, 5i-b): the fixture writes them, an import mirrors them.
+          items: { select: { id: true, order: true, name: true, schedule: { select: { kind: true } } } },
         },
       }),
     }))
@@ -279,10 +279,14 @@ async function labelsOfImport(congregationId: number): Promise<Map<string, strin
     row => row.key,
     row => row.key,
   )
+  const ofKind = (e: (typeof source.events)[number], kind: string) =>
+    e.items.filter(item => item.schedule?.kind === kind)
   const items = (events: typeof source.events) => ({
-    parts: events.flatMap(e => e.eventParts.map(part => ({ id: part.id, key: `${eventKey(e)} ${part.order}` }))),
+    parts: events.flatMap(e =>
+      ofKind(e, 'programme').map(part => ({ id: part.id, key: `${eventKey(e)} ${part.order}` })),
+    ),
     services: events.flatMap(e =>
-      e.eventServiceParts.map(service => ({ id: service.id, key: `${eventKey(e)} ${service.name}` })),
+      ofKind(e, 'duty').map(service => ({ id: service.id, key: `${eventKey(e)} ${service.name}` })),
     ),
   })
   match(

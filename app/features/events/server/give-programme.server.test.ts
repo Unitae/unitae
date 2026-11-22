@@ -19,13 +19,13 @@ vi.mock('~/shared/domain/audit.server', () => ({
   auditInTransaction: (...args: unknown[]) => auditInTransaction(...args),
 }))
 
+const { eventScheduleId } = await import('~/features/events/server/schedules.server')
 const { giveProgramme } = await import('./give-programme.server')
 
 const db = {
-  eventPart: { create: vi.fn() },
-  eventServicePart: { create: vi.fn() },
-  eventPartAllowedRole: { createMany: vi.fn() },
-  eventServicePartAllowedRole: { createMany: vi.fn() },
+  item: { create: vi.fn() },
+  itemAllowedRole: { createMany: vi.fn() },
+  templateItem: { findMany: vi.fn() },
 }
 
 const CTX = { congregationId: 7, timezone: 'Europe/Paris', actorId: 42 }
@@ -48,7 +48,10 @@ const TEMPLATE = {
       speakerLabel: null,
       readerLabel: null,
       presetId: 3,
-      allowedRoles: [{ roleId: 5, asKind: 'speaker' }],
+      allowedRoles: [
+        { roleId: 5, asKind: 'speaker' },
+        { roleId: 6, asKind: 'reader' },
+      ],
     },
   ],
   serviceParts: [{ id: 21, name: 'Accueil', order: 20, allowedRoles: [] }],
@@ -56,8 +59,14 @@ const TEMPLATE = {
 
 beforeEach(() => {
   vi.resetAllMocks()
-  db.eventPart.create.mockResolvedValue({ id: 700 })
-  db.eventServicePart.create.mockResolvedValue({ id: 800 })
+  // The programme's schedule is 77, the duties' 78: each item lands in the schedule of its kind.
+  vi.mocked(eventScheduleId).mockImplementation(async (_db, _eventId, kind) => (kind === 'programme' ? 77 : 78))
+  db.item.create.mockResolvedValueOnce({ id: 700 }).mockResolvedValueOnce({ id: 800 })
+  // The template items mirroring the template's part 11 and service 21.
+  db.templateItem.findMany.mockResolvedValue([
+    { id: 900, legacyPartId: 11, legacyServiceId: null },
+    { id: 901, legacyPartId: null, legacyServiceId: 21 },
+  ])
 })
 
 describe('giveProgramme', () => {
@@ -65,14 +74,25 @@ describe('giveProgramme', () => {
     const created = await giveProgramme(db as never, TEMPLATE, 55, '2026-11-19', CTX)
 
     expect(created).toEqual({ id: 55, templateId: 270, day: '2026-11-19' })
-    expect(db.eventPart.create.mock.calls[0]?.[0]).toMatchObject({
-      data: { eventId: 55, partId: 11, name: 'Discours', section: 'Joyaux', presetId: 3, congregationId: 7 },
+    expect(db.item.create.mock.calls[0]?.[0]).toMatchObject({
+      data: {
+        eventId: 55,
+        scheduleId: 77,
+        templateItemId: 900,
+        name: 'Discours',
+        section: 'Joyaux',
+        presetId: 3,
+        congregationId: 7,
+      },
     })
-    expect(db.eventPartAllowedRole.createMany.mock.calls[0]?.[0]).toMatchObject({
-      data: [{ eventPartId: 700, roleId: 5, asKind: 'speaker', congregationId: 7 }],
+    expect(db.itemAllowedRole.createMany.mock.calls[0]?.[0]).toMatchObject({
+      data: [
+        { itemId: 700, roleId: 5, slot: 'main', congregationId: 7 },
+        { itemId: 700, roleId: 6, slot: 'second', congregationId: 7 },
+      ],
     })
-    expect(db.eventServicePart.create.mock.calls[0]?.[0]).toMatchObject({
-      data: { eventId: 55, servicePartId: 21, name: 'Accueil', order: 20 },
+    expect(db.item.create.mock.calls[1]?.[0]).toMatchObject({
+      data: { eventId: 55, scheduleId: 78, templateItemId: 901, name: 'Accueil', order: 20, congregationId: 7 },
     })
   })
 

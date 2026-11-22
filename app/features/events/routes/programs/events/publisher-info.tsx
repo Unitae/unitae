@@ -30,8 +30,9 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
   const eventId = requireParamId(params.eventId, '/programs')
   const url = new URL(request.url)
   const userId = Number(url.searchParams.get('userId'))
-  const excludePartAssignmentId = parseOptionalId(url.searchParams.get('excludePartAssignmentId'))
-  const excludeServiceAssignmentId = parseOptionalId(url.searchParams.get('excludeServiceAssignmentId'))
+  // Item ids, under names of their own (plan T12).
+  const excludePartAssignmentId = parseOptionalId(url.searchParams.get('excludePartItemId'))
+  const excludeServiceAssignmentId = parseOptionalId(url.searchParams.get('excludeServiceItemId'))
   const partSlot = parsePartSlot(url.searchParams.get('partSlot'))
 
   if (!userId || Number.isNaN(userId)) return Response.json(null)

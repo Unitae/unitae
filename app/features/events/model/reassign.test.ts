@@ -48,9 +48,7 @@ describe('conflictAction', () => {
 
 describe('reassignHref', () => {
   it('opens the event on the slot to reassign, or the event alone', () => {
-    expect(reassignHref({ kind: 'service', id: 7, eventId: 31 }, 'reassign')).toBe(
-      '/programs/events/31?assign=service-7',
-    )
+    expect(reassignHref({ kind: 'service', id: 7, eventId: 31 }, 'reassign')).toBe('/programs/events/31?item=service-7')
     expect(reassignHref({ kind: 'part', id: 12, eventId: 31 }, 'view')).toBe('/programs/events/31')
     expect(reassignHref({ kind: 'part', id: 12, eventId: 31 }, null)).toBeNull()
   })

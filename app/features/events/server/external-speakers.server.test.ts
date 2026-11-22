@@ -21,7 +21,7 @@ const mockDb = {
   speakerCongregation: {
     findFirst: vi.fn(),
   },
-  eventPart: {
+  item: {
     updateMany: vi.fn(),
     count: vi.fn(),
   },
@@ -161,14 +161,14 @@ describe('deleteExternalSpeaker', () => {
 
   it('frees the planned talks, erases name and contact, and keeps the row for past programmes', async () => {
     mockDb.externalSpeaker.findFirst.mockResolvedValue({ id: 7, archivedAt: new Date('2026-01-03') })
-    mockDb.eventPart.updateMany.mockResolvedValue({ count: 1 })
-    mockDb.eventPart.count.mockResolvedValue(2)
+    mockDb.item.updateMany.mockResolvedValue({ count: 1 })
+    mockDb.item.count.mockResolvedValue(2)
     mockDb.externalSpeaker.update.mockImplementation(({ data }) => Promise.resolve({ id: 7, ...data }))
 
     const result = await deleteExternalSpeaker(mockDb as never, 7, 1, 99)
 
     expect(result).toEqual({ freedParts: 1, pastParts: 2 })
-    const freed = mockDb.eventPart.updateMany.mock.calls[0]?.[0]
+    const freed = mockDb.item.updateMany.mock.calls[0]?.[0]
     expect(freed).toMatchObject({
       where: { congregationId: 1, externalSpeakerId: 7 },
       data: { externalSpeakerId: null },

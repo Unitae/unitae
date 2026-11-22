@@ -1,3 +1,4 @@
+import { SERVICE_ITEMS } from '~/features/events/server/item-projection.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 // Dragging services: an event's (that meeting only) and a template's (the order its new programmes start with).
@@ -15,11 +16,14 @@ export async function reorderServiceAssignments(
 ): Promise<boolean> {
   // Two reorders of the congregation's event services at once would interleave their writes.
   await db.$executeRawUnsafe('SELECT pg_advisory_xact_lock($1, $2)', 1_000_004, congregationId)
-  const services = await db.eventServicePart.findMany({ where: { eventId, congregationId }, select: { id: true } })
+  const services = await db.item.findMany({
+    where: { eventId, congregationId, ...SERVICE_ITEMS },
+    select: { id: true },
+  })
   if (!isTheWholeList(orderedIds, services)) return false
 
   for (const [index, id] of orderedIds.entries()) {
-    await db.eventServicePart.update({
+    await db.item.update({
       where: { id_congregationId: { id, congregationId } },
       data: { order: index * 5 },
     })

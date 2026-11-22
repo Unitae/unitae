@@ -1,6 +1,7 @@
 // Public server-only surface of the events feature.
 
 export { releaseAccountEvents } from './server/account-events.server'
+export { kindOfSlot } from './server/allowed-roles.server'
 export { type LastWeekMeeting, listLastWeekAttendance, listMeetingsUnderWay } from './server/attendance.queries'
 export { getNextDaysOffs } from './server/days-off.server'
 export { deleteTemplate } from './server/delete-template.server'
@@ -23,11 +24,13 @@ export {
   PART_ITEM_ORDER,
   PART_ITEMS,
   PART_ITEMS_BY_DATE,
+  PART_TIE_BREAK,
   publicItemId,
   SCHEDULED_ITEMS,
   SERVICE_ITEM_ORDER,
   SERVICE_ITEMS,
   SERVICE_ITEMS_BY_DATE,
+  SERVICE_TIE_BREAK,
   splitItems,
 } from './server/item-projection.server'
 export {

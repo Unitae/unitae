@@ -1,6 +1,12 @@
 import { resolveProgrammeLink } from '~/features/display-board/index.server'
 import { partPresetReaderLabel, partPresetSpeakerLabel, VISIBLE_ITEM } from '~/features/events'
-import { PART_ITEMS, publicItemId, SERVICE_ITEMS, SERVICE_ITEMS_BY_DATE } from '~/features/events/index.server'
+import {
+  PART_ITEMS,
+  PART_TIE_BREAK,
+  publicItemId,
+  SERVICE_ITEMS,
+  SERVICE_ITEMS_BY_DATE,
+} from '~/features/events/index.server'
 import { FOUR_WEEKS_MS } from '~/shared/constants/limits'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -69,8 +75,7 @@ export async function getUpcomingAssignments(
         event: eventFilter,
       },
       select: {
-        legacyPartId: true,
-        legacyServiceId: true,
+        id: true,
         name: true,
         topic: true,
         speakerLabel: true,
@@ -85,12 +90,12 @@ export async function getUpcomingAssignments(
         assistant: { select: { firstname: true, lastname: true } },
         event: eventSelect,
       },
-      // The old row's id breaks a tie the old query left to Postgres (in practice the rows' insertion order).
-      orderBy: [{ event: { startDate: 'asc' } }, { legacyPartId: 'asc' }],
+      // The item's id breaks a tie the old query left to Postgres (in practice the rows' insertion order).
+      orderBy: [{ event: { startDate: 'asc' } }, ...PART_TIE_BREAK],
     }),
     db.item.findMany({
       where: { ...SERVICE_ITEMS, ...VISIBLE_ITEM, assigneeId: userId, event: eventFilter },
-      select: { legacyPartId: true, legacyServiceId: true, name: true, event: eventSelect },
+      select: { id: true, name: true, event: eventSelect },
       orderBy: SERVICE_ITEMS_BY_DATE,
     }),
   ])

@@ -10,6 +10,7 @@ import {
   canEditEvent,
   listApplicableTemplates,
 } from '~/features/events/server/events-auth.server'
+import { itemIdFromRequest } from '~/features/events/server/item-projection.server'
 import { listPartPresets } from '~/features/events/server/part-presets.queries'
 import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
 import { EventEditor } from '~/features/events/ui/EventEditor'
@@ -117,7 +118,15 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const timezone = context.get(congregationContext).timezone
     const result = await handleEditIntent(intent, formData, db, eventId, congregationId, currentUser.id, timezone, {
       mayApplyTemplate: templateId => canEditEvent(db, can, currentUser.id, templateId, congregationId),
-      belongsToEvent: (kind, id) => assignmentBelongsToEvent(db, kind, id, eventId, congregationId),
+      itemInEvent: async (kind, { itemId, legacyId }) => {
+        const id = await itemIdFromRequest(
+          db,
+          { itemId: itemId ?? null, legacyId: legacyId ?? null },
+          kind,
+          congregationId,
+        )
+        return id != null && (await assignmentBelongsToEvent(db, kind, id, eventId, congregationId)) ? id : null
+      },
     })
     if (result && 'reply' in result) return data(result.reply(), { status: 400 })
     if (result?.message) session.flash('success', result.message)

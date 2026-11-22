@@ -18,8 +18,7 @@ vi.mock('~/features/events/server/schedule-templates.server', () => ({
 vi.mock('~/shared/infra/db.server', () => {
   const unscopedDb = {
     event: { findFirst: vi.fn(), update: vi.fn() },
-    eventPart: { findMany: vi.fn() },
-    eventServicePart: { findMany: vi.fn() },
+    item: { findMany: vi.fn() },
     notificationEvent: { updateMany: vi.fn() },
     userAccount: { findFirst: vi.fn() },
   }
@@ -54,13 +53,35 @@ const draftEvent = {
   status: 'draft',
   startDate: new Date(2026, 3, 14),
   templateId: 7,
-  eventParts: [] as unknown[],
-  eventServiceParts: [] as unknown[],
 }
 const releasedEvent = { ...draftEvent, status: 'released' }
 
+type ItemFixture = { parts?: unknown[]; services?: unknown[]; legacy?: unknown[] }
+type ItemArgs = {
+  where: { eventId?: number; AND?: { schedule: { kind: string } }[] }
+  select?: Record<string, boolean>
+}
+
+/**
+ * Feeds the item reads of the event flow, per event. releaseEvent asks for the programme's parts, then the duties (kind
+ * in `AND`); unreleaseEvent asks for every item id of the event (no kind); the notice cancel reads the legacy keys.
+ */
+function mockItems(byEvent: Record<number, ItemFixture> = {}) {
+  vi.mocked(db.item.findMany).mockImplementation(((args: ItemArgs) => {
+    if (args.select && 'legacyPartId' in args.select) {
+      return Object.values(byEvent).flatMap(entry => entry.legacy ?? [])
+    }
+    const entry = byEvent[args.where.eventId ?? -1] ?? {}
+    const kind = args.where.AND?.[0]?.schedule?.kind
+    if (kind === 'programme') return entry.parts ?? []
+    if (kind === 'duty') return entry.services ?? []
+    return [...(entry.parts ?? []), ...(entry.services ?? [])]
+  }) as never)
+}
+
 beforeEach(() => {
   vi.resetAllMocks()
+  mockItems()
 })
 
 // releaseEvent is the tx-only half of the release flow: state flip + audit,
@@ -79,16 +100,13 @@ describe('releaseEvent (tx-only)', () => {
   it('is a no-op when the event is already released; returns the event with empty notifyTargets', async () => {
     vi.mocked(db.event.findFirst).mockResolvedValue(releasedEvent as never)
     const result = await releaseEvent(db, 42, 1, 5)
-    expect(result).toEqual({ event: releasedEvent, notifyTargets: [] })
+    expect(result).toEqual({ event: { ...releasedEvent, eventParts: [], eventServiceParts: [] }, notifyTargets: [] })
     expect(db.event.update).not.toHaveBeenCalled()
   })
 
   it('returns an error and does not update when any assignment has a conflict', async () => {
-    vi.mocked(db.event.findFirst).mockResolvedValue({
-      ...draftEvent,
-      eventParts: [{ id: 100, name: 'Perle', hasConflict: true, assigneeId: 5, assistantId: null }],
-      eventServiceParts: [],
-    } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue({ ...draftEvent } as never)
+    mockItems({ 42: { parts: [{ id: 100, name: 'Perle', hasConflict: true, assigneeId: 5, assistantId: null }] } })
 
     const result = await releaseEvent(db, 42, 1, 5)
 
@@ -167,11 +185,13 @@ describe('releaseEvent (tx-only)', () => {
   // call notifyAssignment. If it did, a Prisma error inside the notify path
   // would poison the release tx.
   it('never calls notifyAssignment (notifications happen outside the tx)', async () => {
-    vi.mocked(db.event.findFirst).mockResolvedValue({
-      ...draftEvent,
-      eventParts: [{ id: 100, name: 'Perle', hasConflict: false, assigneeId: 5, assistantId: 6 }],
-      eventServiceParts: [{ id: 200, name: 'Accueil', hasConflict: false, assigneeId: 9 }],
-    } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue({ ...draftEvent } as never)
+    mockItems({
+      42: {
+        parts: [{ id: 100, name: 'Perle', hasConflict: false, assigneeId: 5, assistantId: 6 }],
+        services: [{ id: 200, name: 'Accueil', hasConflict: false, assigneeId: 9 }],
+      },
+    })
     vi.mocked(db.event.update).mockResolvedValue(releasedEvent as never)
 
     await releaseEvent(db, 42, 1, 5)
@@ -180,21 +200,23 @@ describe('releaseEvent (tx-only)', () => {
   })
 
   it('computes notifyTargets for every populated speaker/reader/servant slot', async () => {
-    vi.mocked(db.event.findFirst).mockResolvedValue({
-      ...draftEvent,
-      eventParts: [{ id: 100, name: 'Perle', hasConflict: false, assigneeId: 5, assistantId: 6 }],
-      eventServiceParts: [{ id: 200, name: 'Accueil', hasConflict: false, assigneeId: 9 }],
-    } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue({ ...draftEvent } as never)
+    mockItems({
+      42: {
+        parts: [{ id: 100, name: 'Perle', hasConflict: false, assigneeId: 5, assistantId: 6 }],
+        services: [{ id: 200, name: 'Accueil', hasConflict: false, assigneeId: 9 }],
+      },
+    })
     vi.mocked(db.event.update).mockResolvedValue(releasedEvent as never)
 
     const result = await releaseEvent(db, 42, 1, 5)
 
     expect(result).toMatchObject({
       notifyTargets: [
-        { entityType: 'EventPart', entityId: 100, assignmentName: 'Perle', memberId: 5, role: 'speaker' },
-        { entityType: 'EventPart', entityId: 100, assignmentName: 'Perle', memberId: 6, role: 'reader' },
+        { entityType: 'Item', entityId: 100, assignmentName: 'Perle', memberId: 5, role: 'speaker' },
+        { entityType: 'Item', entityId: 100, assignmentName: 'Perle', memberId: 6, role: 'reader' },
         {
-          entityType: 'EventServicePart',
+          entityType: 'Item',
           entityId: 200,
           assignmentName: 'Accueil',
           memberId: 9,
@@ -205,11 +227,13 @@ describe('releaseEvent (tx-only)', () => {
   })
 
   it('excludes empty slots from notifyTargets', async () => {
-    vi.mocked(db.event.findFirst).mockResolvedValue({
-      ...draftEvent,
-      eventParts: [{ id: 100, name: 'Perle', hasConflict: false, assigneeId: null, assistantId: null }],
-      eventServiceParts: [{ id: 200, name: 'Accueil', hasConflict: false, assigneeId: null }],
-    } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue({ ...draftEvent } as never)
+    mockItems({
+      42: {
+        parts: [{ id: 100, name: 'Perle', hasConflict: false, assigneeId: null, assistantId: null }],
+        services: [{ id: 200, name: 'Accueil', hasConflict: false, assigneeId: null }],
+      },
+    })
     vi.mocked(db.event.update).mockResolvedValue(releasedEvent as never)
 
     const result = await releaseEvent(db, 42, 1, 5)
@@ -224,7 +248,7 @@ describe('releaseEvent (tx-only)', () => {
 describe('fireReleaseNotifications', () => {
   const eventShape = { id: 42, name: 'Réunion', startDate: new Date(2026, 3, 14), templateId: 7 }
   const speakerTarget = {
-    entityType: 'EventPart' as const,
+    entityType: 'Item' as const,
     entityId: 100,
     assignmentName: 'Perle',
     memberId: 5,
@@ -267,7 +291,7 @@ describe('fireReleaseNotifications', () => {
       [
         speakerTarget,
         {
-          entityType: 'EventServicePart',
+          entityType: 'Item' as const,
           entityId: 200,
           assignmentName: 'Accueil',
           memberId: 9,
@@ -282,12 +306,12 @@ describe('fireReleaseNotifications', () => {
     const partCtx = vi.mocked(notifyAssignment).mock.calls[0][1]
     const svcCtx = vi.mocked(notifyAssignment).mock.calls[1][1]
     expect(partCtx).toMatchObject({
-      entityType: 'EventPart',
+      entityType: 'Item',
       entityId: 100,
       assignmentName: 'Perle',
     })
     expect(svcCtx).toMatchObject({
-      entityType: 'EventServicePart',
+      entityType: 'Item',
       entityId: 200,
       assignmentName: 'Accueil',
     })
@@ -336,11 +360,7 @@ describe('unreleaseEvent', () => {
   // notification in the congregation. Skip the updateMany entirely when the
   // event has no assignments.
   it('skips the notificationEvent updateMany when the event has zero assignments', async () => {
-    vi.mocked(db.event.findFirst).mockResolvedValue({
-      ...releasedEvent,
-      eventParts: [],
-      eventServiceParts: [],
-    } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue(releasedEvent as never)
     vi.mocked(db.event.update).mockResolvedValue(draftEvent as never)
 
     await unreleaseEvent(db, 42, 1, 5)
@@ -349,11 +369,7 @@ describe('unreleaseEvent', () => {
   })
 
   it('flips status back to draft and returns the updated event', async () => {
-    vi.mocked(db.event.findFirst).mockResolvedValue({
-      ...releasedEvent,
-      eventParts: [],
-      eventServiceParts: [],
-    } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue(releasedEvent as never)
     vi.mocked(db.event.update).mockResolvedValue(draftEvent as never)
     vi.mocked(db.notificationEvent.updateMany).mockResolvedValue({ count: 0 } as never)
 
@@ -367,11 +383,20 @@ describe('unreleaseEvent', () => {
   // when the manager reverts to draft — the schedule is not public anymore, no
   // reason to send it. Mails that have already been sent are not recalled.
   it('cancels pending NotificationEvent rows for the event’s assignments', async () => {
-    vi.mocked(db.event.findFirst).mockResolvedValue({
-      ...releasedEvent,
-      eventParts: [{ id: 100 }, { id: 101 }],
-      eventServiceParts: [{ id: 200 }],
-    } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue(releasedEvent as never)
+    // Items 1001, 1002 and 2001 mirror the old rows 100, 101 and 200: a notice the previous image wrote may name
+    // either.
+    mockItems({
+      42: {
+        parts: [{ id: 1001 }, { id: 1002 }],
+        services: [{ id: 2001 }],
+        legacy: [
+          { legacyPartId: 100, legacyServiceId: null },
+          { legacyPartId: 101, legacyServiceId: null },
+          { legacyPartId: null, legacyServiceId: 200 },
+        ],
+      },
+    })
     vi.mocked(db.event.update).mockResolvedValue(draftEvent as never)
     vi.mocked(db.notificationEvent.updateMany).mockResolvedValue({ count: 2 } as never)
 
@@ -387,6 +412,7 @@ describe('unreleaseEvent', () => {
           congregationId: 1,
           status: 'pending',
           OR: [
+            { entityType: 'Item', entityId: { in: [1001, 1002, 2001] } },
             { entityType: 'EventPart', entityId: { in: [100, 101] } },
             { entityType: 'EventServicePart', entityId: { in: [200] } },
           ],
@@ -397,11 +423,7 @@ describe('unreleaseEvent', () => {
   })
 
   it('audits with action EventUnreleased on success', async () => {
-    vi.mocked(db.event.findFirst).mockResolvedValue({
-      ...releasedEvent,
-      eventParts: [],
-      eventServiceParts: [],
-    } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue(releasedEvent as never)
     vi.mocked(db.event.update).mockResolvedValue(draftEvent as never)
     vi.mocked(db.notificationEvent.updateMany).mockResolvedValue({ count: 0 } as never)
 

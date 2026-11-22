@@ -5,6 +5,7 @@ import {
   getNextDaysOffs,
   PART_ITEMS,
   PART_ITEMS_BY_DATE,
+  PART_TIE_BREAK,
   publicItemId,
   SERVICE_ITEM_ORDER,
   SERVICE_ITEMS,
@@ -99,8 +100,7 @@ export async function getConflictingAssignments(db: TransactionClient, userId: n
         event: { startDate: { gte: now } },
       },
       select: {
-        legacyPartId: true,
-        legacyServiceId: true,
+        id: true,
         name: true,
         event: { select: { startDate: true } },
       },
@@ -118,8 +118,7 @@ export async function getConflictingAssignments(db: TransactionClient, userId: n
         event: { startDate: { gte: now } },
       },
       select: {
-        legacyPartId: true,
-        legacyServiceId: true,
+        id: true,
         name: true,
         event: { select: { startDate: true } },
       },
@@ -179,8 +178,7 @@ export async function getNextMeeting(db: TransactionClient, userId: number, cong
     db.item.findMany({
       where: { eventId: event.id, ...PART_ITEMS, ...VISIBLE_ITEM },
       select: {
-        legacyPartId: true,
-        legacyServiceId: true,
+        id: true,
         name: true,
         section: true,
         // Track, duration and conflict flag feed the programme overview card.
@@ -197,33 +195,27 @@ export async function getNextMeeting(db: TransactionClient, userId: number, cong
         // A visiting speaker holds the part instead of a member: not an empty slot.
         externalSpeaker: { select: EXTERNAL_SPEAKER_LABEL_SELECT },
       },
-      // The old query's order, by position alone (never the track's, unlike PART_ITEM_ORDER), the old row's id breaking a
+      // The old query's order, by position alone (never the track's, unlike PART_ITEM_ORDER), the item's id breaking a
       // tie it left to Postgres.
-      orderBy: [{ order: 'asc' }, { legacyPartId: 'asc' }],
+      orderBy: [{ order: 'asc' }, ...PART_TIE_BREAK],
     }),
     db.item.findMany({
       where: { eventId: event.id, ...SERVICE_ITEMS, ...VISIBLE_ITEM },
       select: {
-        legacyPartId: true,
-        legacyServiceId: true,
+        id: true,
         name: true,
         assignee: { select: { id: true, firstname: true, lastname: true } },
       },
       orderBy: SERVICE_ITEM_ORDER,
     }),
   ])
-  const withPublicId = <T extends { legacyPartId: number | null; legacyServiceId: number | null }>({
-    legacyPartId,
-    legacyServiceId,
-    ...row
-  }: T) => ({ id: publicItemId({ legacyPartId, legacyServiceId }), ...row })
-  const eventServiceParts = serviceItems.map(withPublicId)
+  const eventServiceParts = serviceItems
 
   // Tag each part with the viewer's role so the UI doesn't have to reverse-
   // engineer it. `null` means "viewer has no role on this part" — the UI
   // filters on userPartIds so nulls never render, but keeping the field
   // present makes the shape uniform and typed.
-  const eventParts = partItems.map(withPublicId).map(p => ({
+  const eventParts = partItems.map(p => ({
     ...p,
     viewerRole:
       p.assignee?.id === userId ? ('speaker' as const) : p.assistant?.id === userId ? ('reader' as const) : null,

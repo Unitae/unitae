@@ -1,5 +1,5 @@
 import type { TransactionClient } from '~/shared/infra/db.server'
-import type { PartRoleKind } from './allowed-roles.server'
+import { kindOfSlot, type PartRoleKind } from './allowed-roles.server'
 
 // Read side of assignment eligibility, split from allowed-roles.server.ts so
 // the write side keeps its own budget. Resolving a whole programme at once is
@@ -24,19 +24,20 @@ const EMPTY_SLOTS = (): PartSlotRoleIds => ({ speaker: [], reader: [] })
  */
 export async function getPartAssignmentAllowedRoleIdsForParts(
   db: TransactionClient,
-  eventPartIds: number[],
+  itemIds: number[],
   congregationId: number,
 ): Promise<Map<number, PartSlotRoleIds>> {
   const resolved = new Map<number, PartSlotRoleIds>()
-  if (eventPartIds.length === 0) return resolved
-  for (const id of eventPartIds) resolved.set(id, EMPTY_SLOTS())
+  if (itemIds.length === 0) return resolved
+  for (const id of itemIds) resolved.set(id, EMPTY_SLOTS())
 
-  const rows = await db.eventPartAllowedRole.findMany({
-    where: { eventPartId: { in: eventPartIds }, congregationId },
-    select: { eventPartId: true, asKind: true, roleId: true },
+  const rows = await db.itemAllowedRole.findMany({
+    where: { itemId: { in: itemIds }, congregationId },
+    select: { itemId: true, slot: true, roleId: true },
   })
   for (const row of rows) {
-    resolved.get(row.eventPartId)?.[row.asKind as PartRoleKind].push(row.roleId)
+    const kind = kindOfSlot(row.slot)
+    resolved.get(row.itemId)?.[kind].push(row.roleId)
   }
 
   return resolved
@@ -44,18 +45,18 @@ export async function getPartAssignmentAllowedRoleIdsForParts(
 
 export async function getServicePartAssignmentAllowedRoleIdsForParts(
   db: TransactionClient,
-  eventServicePartIds: number[],
+  itemIds: number[],
   congregationId: number,
 ): Promise<Map<number, number[]>> {
   const resolved = new Map<number, number[]>()
-  if (eventServicePartIds.length === 0) return resolved
-  for (const id of eventServicePartIds) resolved.set(id, [])
+  if (itemIds.length === 0) return resolved
+  for (const id of itemIds) resolved.set(id, [])
 
-  const rows = await db.eventServicePartAllowedRole.findMany({
-    where: { eventServicePartId: { in: eventServicePartIds }, congregationId },
-    select: { eventServicePartId: true, roleId: true },
+  const rows = await db.itemAllowedRole.findMany({
+    where: { itemId: { in: itemIds }, congregationId },
+    select: { itemId: true, roleId: true },
   })
-  for (const row of rows) resolved.get(row.eventServicePartId)?.push(row.roleId)
+  for (const row of rows) resolved.get(row.itemId)?.push(row.roleId)
 
   return resolved
 }

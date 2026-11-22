@@ -1,6 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+import { settleFixtureSchedules } from '~/tests/helpers/settle-fixture-schedules'
 
 // An absence is its Absence row alone, owned by the person's record when the account has one and by the account
 // otherwise; cancelling it deletes that row.
@@ -160,9 +161,12 @@ describe('an absence', () => {
         const part = await tx.eventPart.create({
           data: { name: 'Lecture', eventId: meeting.id, assigneeId: member.id, congregationId },
         })
+        // The fixture's part lives in its meeting's schedule, as the writers put it, and the flags read the item.
+        await settleFixtureSchedules(tx as never, congregationId)
+        const item = await tx.item.findFirstOrThrow({ where: { legacyPartId: part.id }, select: { id: true } })
         const created = await createDayOff(tx, account.id, member.id, START, END, congregationId)
         const row = await tx.absence.findFirst({ where: { id: created?.absenceId }, select: { memberId: true } })
-        const flagged = (await tx.eventPart.findFirstOrThrow({ where: { id: part.id } })).hasConflict
+        const flagged = (await tx.item.findFirstOrThrow({ where: { id: item.id } })).hasConflict
         const events = await tx.event.count({ where: { id: { not: meeting.id } } })
         const cancelled = await deleteDayOff(tx, {
           absenceId: created?.absenceId as number,
@@ -170,7 +174,7 @@ describe('an absence', () => {
           memberId: member.id,
           congregationId,
         })
-        const cleared = !(await tx.eventPart.findFirstOrThrow({ where: { id: part.id } })).hasConflict
+        const cleared = !(await tx.item.findFirstOrThrow({ where: { id: item.id } })).hasConflict
         return { created, row, flagged, events, cancelled, cleared, left: await tx.absence.count() }
       })
 

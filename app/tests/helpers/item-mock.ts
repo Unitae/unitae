@@ -1,13 +1,13 @@
-// For unit tests written against the old item models (plan T12, PR 4): readers now query `db.item`, and this sends each
-// call to the test's own `eventPart` or `eventServicePart` mock, so a test keeps its fixtures and its assertions on
-// results, and reads its calls on those mocks (a call's `where` is the item query's). The kind comes from the schedule
-// kind a PART_ITEMS or SERVICE_ITEMS spread names (`where.AND[].schedule.kind`), or from a top-level lookup by a legacy
-// id: a query that names neither or both throws, so a reader that drops its kind filter fails here even when it
-// excludes a row by a legacy id. Mocked rows carry no `schedule`: itemKind and splitItems cannot run on them. A row comes back with the old
-// row's id as its legacy key, its template part's as its template item's, and an item id of its own that is never the old
-// one when its select asks for `id` (as Prisma, a select without it gets none; no other field is filtered), so a reader
-// handing out the item's id instead of the old row's shows. The legacy keys come whatever the select names: typecheck
-// is what makes a reader select them.
+// For unit tests written against the old item models (plan T12): readers query `db.item`, and this sends each call to
+// the test's own `eventPart` or `eventServicePart` mock, so a test keeps its fixtures and its assertions on results, and
+// reads its calls on those mocks (a call's `where` is the item query's). The kind comes from the schedule kind a
+// PART_ITEMS or SERVICE_ITEMS spread names (`where.AND[].schedule.kind`): a query that names neither or both throws, so a
+// reader that drops its kind filter fails here, and so does one still looking an item up by its legacy key. Mocked rows
+// carry no `schedule`: itemKind and splitItems cannot run on them. A fixture's id is the item's (5i-b: the public id is
+// the item's own; as Prisma, a select without `id` gets none); its legacy key is another number, far from any fixture's
+// id, so a reader handing out the old row's id instead shows. Its template part's id stays its template item's legacy
+// key, which readers still hand out as `partId`. The legacy keys come whatever the select names. Writers are tested
+// against a `db.item` mock of their own, never through this.
 
 type Args = { where?: Record<string, unknown>; select?: Record<string, unknown> } | undefined
 type Model = Partial<Record<'findMany' | 'findFirst', (args: Args) => unknown>>
@@ -26,9 +26,11 @@ function scheduleKindOf(where: Record<string, unknown>): string | undefined {
 function kindOf(args: Args): 'part' | 'service' {
   const where = args?.where ?? {}
   const kind = scheduleKindOf(where)
-  // A lookup by the old row's id names its kind too.
-  const part = kind === 'programme' || 'legacyPartId' in where
-  const service = kind === 'duty' || 'legacyServiceId' in where
+  if ('legacyPartId' in where || 'legacyServiceId' in where) {
+    throw new Error('A reader looks an item up by its own id, never by the legacy key of the row it mirrors')
+  }
+  const part = kind === 'programme'
+  const service = kind === 'duty'
   if (part && !service) return 'part'
   if (service && !part) return 'service'
   throw new Error(
@@ -36,29 +38,27 @@ function kindOf(args: Args): 'part' | 'service' {
   )
 }
 
-/** Far from any fixture's ids: an item id a test never mistakes for the old row's. */
-const ITEM_ID_OFFSET = 1_000_000
+/** Far from any fixture's ids: a legacy key a test never mistakes for the item's id. */
+const LEGACY_ID_OFFSET = 1_000_000
 
 function asItem(row: unknown, kind: 'part' | 'service', selectsId: boolean): unknown {
   if (row == null || typeof row !== 'object') return row
   const { id, ...rest } = row as Row
   // As Prisma does, a query whose select leaves `id` out gets no id.
-  const old: Row = selectsId ? { id, ...rest } : rest
-  const ownId = typeof id === 'number' ? id + ITEM_ID_OFFSET : id
+  const item: Row = selectsId ? { id, ...rest } : rest
+  const legacyId = typeof id === 'number' ? id + LEGACY_ID_OFFSET : null
   return kind === 'part'
     ? {
-        legacyPartId: id ?? null,
+        legacyPartId: legacyId,
         legacyServiceId: null,
-        templateItem: { legacyPartId: old.partId ?? null, legacyServiceId: null },
-        ...old,
-        ...(selectsId ? { id: ownId } : {}),
+        templateItem: { legacyPartId: item.partId ?? null, legacyServiceId: null },
+        ...item,
       }
     : {
         legacyPartId: null,
-        legacyServiceId: id ?? null,
-        templateItem: { legacyPartId: null, legacyServiceId: old.servicePartId ?? null },
-        ...old,
-        ...(selectsId ? { id: ownId } : {}),
+        legacyServiceId: legacyId,
+        templateItem: { legacyPartId: null, legacyServiceId: item.servicePartId ?? null },
+        ...item,
       }
 }
 

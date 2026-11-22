@@ -1,4 +1,5 @@
 import { normalizeSpeakerName, tidyCongregationName } from '~/features/events/model/speaker-congregation-name'
+import { PART_ITEMS } from '~/features/events/server/item-projection.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -197,11 +198,11 @@ export async function deleteExternalSpeaker(
   if (speaker.archivedAt == null) throw new ConflictError('Retire the speaker from the list before deleting it')
 
   const now = new Date()
-  const freed = await db.eventPart.updateMany({
-    where: { congregationId, externalSpeakerId: id, event: { startDate: { gte: now } } },
+  const freed = await db.item.updateMany({
+    where: { congregationId, externalSpeakerId: id, event: { startDate: { gte: now } }, ...PART_ITEMS },
     data: { externalSpeakerId: null },
   })
-  const pastParts = await db.eventPart.count({ where: { congregationId, externalSpeakerId: id } })
+  const pastParts = await db.item.count({ where: { congregationId, externalSpeakerId: id, ...PART_ITEMS } })
 
   await db.externalSpeaker.update({
     where: { id_congregationId: { id, congregationId } },

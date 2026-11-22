@@ -6,10 +6,9 @@ vi.mock('~/shared/infra/db.server', () => ({
     member: { findMany: vi.fn() },
     memberRoleAssignment: { findMany: vi.fn() },
     templatePartAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
-    eventPartAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
-    eventPart: { findFirst: vi.fn(), findMany: vi.fn() },
+    itemAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
+    item: { findFirst: vi.fn(), findMany: vi.fn() },
     templateServicePartAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
-    eventServicePartAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
   },
 }))
 
@@ -107,14 +106,26 @@ describe('setTemplatePartAllowedRoles', () => {
 })
 
 describe('setPartAssignmentAllowedRoles', () => {
-  it('writes to the assignment table with asKind', async () => {
-    vi.mocked(db.eventPartAllowedRole.findMany).mockResolvedValue([] as never)
-    vi.mocked(db.eventPartAllowedRole.createMany).mockResolvedValue({ count: 1 } as never)
+  it('writes the speaker to the item’s main slot', async () => {
+    vi.mocked(db.itemAllowedRole.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.itemAllowedRole.createMany).mockResolvedValue({ count: 1 } as never)
 
     await setPartAssignmentAllowedRoles(db, 200, 'speaker', [9], 1)
 
-    expect(db.eventPartAllowedRole.createMany).toHaveBeenCalledWith({
-      data: [{ eventPartId: 200, roleId: 9, asKind: 'speaker', congregationId: 1 }],
+    expect(db.itemAllowedRole.createMany).toHaveBeenCalledWith({
+      data: [{ itemId: 200, roleId: 9, slot: 'main', congregationId: 1 }],
+      skipDuplicates: true,
+    })
+  })
+
+  it('writes the reader to the item’s second slot', async () => {
+    vi.mocked(db.itemAllowedRole.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.itemAllowedRole.createMany).mockResolvedValue({ count: 1 } as never)
+
+    await setPartAssignmentAllowedRoles(db, 200, 'reader', [9], 1)
+
+    expect(db.itemAllowedRole.createMany).toHaveBeenCalledWith({
+      data: [{ itemId: 200, roleId: 9, slot: 'second', congregationId: 1 }],
       skipDuplicates: true,
     })
   })
@@ -139,35 +150,35 @@ describe('setTemplateServicePartAllowedRoles', () => {
 
 describe('setServicePartAssignmentAllowedRoles', () => {
   it('writes service-role-assignment rows', async () => {
-    vi.mocked(db.eventServicePartAllowedRole.findMany).mockResolvedValue([] as never)
-    vi.mocked(db.eventServicePartAllowedRole.createMany).mockResolvedValue({ count: 1 } as never)
+    vi.mocked(db.itemAllowedRole.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.itemAllowedRole.createMany).mockResolvedValue({ count: 1 } as never)
 
     await setServicePartAssignmentAllowedRoles(db, 400, [6], 1)
 
-    expect(db.eventServicePartAllowedRole.createMany).toHaveBeenCalledWith({
-      data: [{ eventServicePartId: 400, roleId: 6, congregationId: 1 }],
+    expect(db.itemAllowedRole.createMany).toHaveBeenCalledWith({
+      data: [{ itemId: 400, roleId: 6, slot: 'main', congregationId: 1 }],
       skipDuplicates: true,
     })
   })
 })
 
 describe('getPartAssignmentAllowedRoleIds', () => {
-  it("reads the part's own rows for the slot", async () => {
-    vi.mocked(db.eventPartAllowedRole.findMany).mockResolvedValue([{ roleId: 1 }, { roleId: 3 }] as never)
+  it("reads the part's own rows for the speaker's main slot", async () => {
+    vi.mocked(db.itemAllowedRole.findMany).mockResolvedValue([{ roleId: 1 }, { roleId: 3 }] as never)
 
     expect(await getPartAssignmentAllowedRoleIds(db, 9, 'speaker', 1)).toEqual([1, 3])
-    expect(db.eventPartAllowedRole.findMany).toHaveBeenCalledWith({
-      where: { eventPartId: 9, asKind: 'speaker', congregationId: 1 },
+    expect(db.itemAllowedRole.findMany).toHaveBeenCalledWith({
+      where: { itemId: 9, slot: 'main', congregationId: 1 },
       select: { roleId: true },
     })
   })
 
-  it('keeps the two slots separate', async () => {
-    vi.mocked(db.eventPartAllowedRole.findMany).mockResolvedValue([] as never)
+  it('keeps the two slots separate: the reader reads the second slot', async () => {
+    vi.mocked(db.itemAllowedRole.findMany).mockResolvedValue([] as never)
 
     await getPartAssignmentAllowedRoleIds(db, 9, 'reader', 1)
 
-    expect(vi.mocked(db.eventPartAllowedRole.findMany).mock.calls[0]?.[0]?.where?.asKind).toBe('reader')
+    expect(vi.mocked(db.itemAllowedRole.findMany).mock.calls[0]?.[0]?.where).toMatchObject({ slot: 'second' })
   })
 })
 

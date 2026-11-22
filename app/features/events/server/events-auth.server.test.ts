@@ -358,11 +358,12 @@ describe('assignmentBelongsToEvent', () => {
     const result = await assignmentBelongsToEvent(db, 'service', ASSIGNMENT_ID, EVENT_ID, CONGREGATION_ID)
 
     expect(result).toBe(true)
-    // The id its routes carry is the old row's (plan T12).
+    // The item's own id, among the duties: a part's id asked as a duty is not one.
     expect(vi.mocked(db.item.findFirst).mock.calls[0][0]?.where).toEqual({
-      legacyServiceId: ASSIGNMENT_ID,
+      id: ASSIGNMENT_ID,
       eventId: EVENT_ID,
       congregationId: CONGREGATION_ID,
+      ...{ AND: [{ schedule: { kind: 'duty' } }] },
     })
   })
 
@@ -382,7 +383,10 @@ describe('assignmentBelongsToEvent', () => {
     const result = await assignmentBelongsToEvent(db, 'part', ASSIGNMENT_ID, EVENT_ID, CONGREGATION_ID)
 
     expect(result).toBe(true)
-    expect(vi.mocked(db.item.findFirst).mock.calls[0][0]?.where).toMatchObject({ legacyPartId: ASSIGNMENT_ID })
+    expect(vi.mocked(db.item.findFirst).mock.calls[0][0]?.where).toMatchObject({
+      id: ASSIGNMENT_ID,
+      ...{ AND: [{ schedule: { kind: 'programme' } }] },
+    })
   })
 
   // `Number(url.searchParams.get('id'))` yields NaN on a missing param, which

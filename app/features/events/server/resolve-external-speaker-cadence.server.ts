@@ -1,4 +1,5 @@
 import { type CadencePayload, EMPTY_CADENCE } from '~/features/events/server/cadence-shared.server'
+import { PART_ITEMS } from '~/features/events/server/item-projection.server'
 import { listExternalSpeakerCadence } from '~/features/events/server/list-external-speaker-cadence.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -22,9 +23,8 @@ export async function resolveExternalSpeakerCadence(
 ): Promise<CadencePayload> {
   if (excludePartAssignmentId == null) return EMPTY_CADENCE
 
-  // The part by the id its routes carry, the old row's (plan T12): its item mirrors it.
   const current = await db.item.findFirst({
-    where: { legacyPartId: excludePartAssignmentId, congregationId },
+    where: { id: excludePartAssignmentId, congregationId, ...PART_ITEMS },
     select: { name: true, section: true, externalSpeakerId: true },
   })
   if (!current) return EMPTY_CADENCE

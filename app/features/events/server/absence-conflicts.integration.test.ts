@@ -1,6 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+import { settleFixtureSchedules } from '~/tests/helpers/settle-fixture-schedules'
 
 // The conflict readers read absences from their own table, by the person's record: whether someone is away when they
 // are assigned (checkDayOffConflict), the conflict flags on their assignments (refreshConflictFlags), and the absences
@@ -100,6 +101,7 @@ beforeAll(async () => {
       data: { startDate: AWAY_START, endDate: AWAY_END, accountId: withoutRecord.id, congregationId },
     })
     ids.service = (await tx.eventServicePart.create({ data: { name: 'Sono', eventId: meeting.id, congregationId } })).id
+    await settleFixtureSchedules(tx as never, congregationId)
   })
   // Another congregation, with someone away over the same days.
   ids.other = (
@@ -160,11 +162,15 @@ describe('the conflict readers and the absences table', () => {
       await refreshConflictFlags(tx, ids.paul, AWAY_START, AWAY_END, ids.cong)
       await refreshConflictFlags(tx, ids.marie, AWAY_START, AWAY_END, ids.cong)
     })
+    // The flags live on the items; the parts' items are keyed by the part they mirror, the fixture's own ids.
     const flags = await withScope(ids.cong, tx =>
-      tx.eventPart.findMany({ where: { eventId: ids.meeting }, select: { id: true, hasConflict: true } }),
+      tx.item.findMany({
+        where: { eventId: ids.meeting, schedule: { kind: 'programme' } },
+        select: { legacyPartId: true, hasConflict: true },
+      }),
     )
 
-    expect(Object.fromEntries(flags.map(part => [part.id, part.hasConflict]))).toEqual({
+    expect(Object.fromEntries(flags.map(part => [part.legacyPartId, part.hasConflict]))).toEqual({
       [ids.paulPart]: true,
       [ids.mariePart]: false,
     })

@@ -5,7 +5,7 @@ import {
   normalize,
   toCadenceStatus,
 } from '~/features/events/server/cadence-shared.server'
-import { SERVICE_ITEMS } from '~/features/events/server/item-projection.server'
+import { SERVICE_ITEMS, SERVICE_TIE_BREAK } from '~/features/events/server/item-projection.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 
@@ -38,8 +38,8 @@ export async function listUserServiceCadence(
 
   const servicesSelect = {
     where: SERVICE_ITEMS,
-    // The first matching duty names the person: in the old rows' order, as the old relation returned them.
-    orderBy: { legacyServiceId: 'asc' },
+    // The first matching duty names the person: in the items' order, as the old relation returned its rows.
+    orderBy: SERVICE_TIE_BREAK,
     select: {
       name: true,
       assigneeId: true,

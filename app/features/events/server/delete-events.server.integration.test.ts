@@ -1,6 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+import { settleFixtureSchedules } from '~/tests/helpers/settle-fixture-schedules'
 
 // What a mocked client cannot vouch for: `Attendance.eventId` cascades on delete, so only the code stands between
 // deleting a programme and losing a meeting's counts. Run for real, under the runtime role, so row-level security
@@ -47,29 +48,33 @@ function meeting(counts: { inPerson: number | null; online: number | null } | nu
     })
     const part = await tx.eventPart.create({ data: { eventId: event.id, name: 'Discours', congregationId } })
     const service = await tx.eventServicePart.create({ data: { eventId: event.id, name: 'Accueil', congregationId } })
+    // The writers hand out item ids and name items in notices: the mirrored item of each old row, in its schedule.
+    await settleFixtureSchedules(tx, congregationId)
+    const partItem = await tx.item.findUniqueOrThrow({ where: { legacyPartId: part.id } })
+    const serviceItem = await tx.item.findUniqueOrThrow({ where: { legacyServiceId: service.id } })
     const notice = await tx.notificationEvent.create({
       data: {
         type: 'part_assigned',
-        entityType: 'EventPart',
-        entityId: part.id,
-        debounceKey: `part-${part.id}`,
+        entityType: 'Item',
+        entityId: partItem.id,
+        debounceKey: `part-${partItem.id}`,
         congregationId,
       },
     })
     const serviceNotice = await tx.notificationEvent.create({
       data: {
         type: 'part_assigned',
-        entityType: 'EventServicePart',
-        entityId: service.id,
-        debounceKey: `service-${service.id}`,
+        entityType: 'Item',
+        entityId: serviceItem.id,
+        debounceKey: `service-${serviceItem.id}`,
         congregationId,
       },
     })
     if (counts) await tx.attendance.create({ data: { eventId: event.id, ...counts, congregationId } })
     return {
       eventId: event.id,
-      partId: part.id,
-      serviceId: service.id,
+      partId: partItem.id,
+      serviceId: serviceItem.id,
       noticeId: notice.id,
       serviceNoticeId: serviceNotice.id,
     }
@@ -115,8 +120,8 @@ const state = (m: Meeting) =>
   withScope(congregationId, async tx => ({
     event: await tx.event.findFirst({ where: { id: m.eventId }, select: { status: true } }),
     attendance: await tx.attendance.findFirst({ where: { eventId: m.eventId } }),
-    parts: await tx.eventPart.count({ where: { eventId: m.eventId } }),
-    services: await tx.eventServicePart.count({ where: { eventId: m.eventId } }),
+    parts: await tx.item.count({ where: { eventId: m.eventId, schedule: { kind: 'programme' } } }),
+    services: await tx.item.count({ where: { eventId: m.eventId, schedule: { kind: 'duty' } } }),
     notice: await tx.notificationEvent.findFirst({ where: { id: m.noticeId }, select: { status: true } }),
     serviceNotice: await tx.notificationEvent.findFirst({ where: { id: m.serviceNoticeId }, select: { status: true } }),
     audits: (await tx.auditLog.findMany({ where: { entityType: 'Event', entityId: m.eventId } })).map(a => a.action),

@@ -12,10 +12,10 @@ describe('computeNotifyTargets', () => {
     )
 
     expect(targets).toEqual([
-      { entityType: 'EventPart', entityId: 1, assignmentName: 'Discours', memberId: 10, role: 'speaker' },
-      { entityType: 'EventPart', entityId: 2, assignmentName: 'Lecture', memberId: 11, role: 'speaker' },
-      { entityType: 'EventPart', entityId: 2, assignmentName: 'Lecture', memberId: 12, role: 'reader' },
-      { entityType: 'EventServicePart', entityId: 7, assignmentName: 'Sono', memberId: 13, role: 'servant' },
+      { entityType: 'Item', entityId: 1, assignmentName: 'Discours', memberId: 10, role: 'speaker' },
+      { entityType: 'Item', entityId: 2, assignmentName: 'Lecture', memberId: 11, role: 'speaker' },
+      { entityType: 'Item', entityId: 2, assignmentName: 'Lecture', memberId: 12, role: 'reader' },
+      { entityType: 'Item', entityId: 7, assignmentName: 'Sono', memberId: 13, role: 'servant' },
     ])
   })
 

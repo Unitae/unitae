@@ -18,7 +18,9 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const currentUser = context.get(currentAccountContext)
   const eventId = requireParamId(params.eventId, '/programs')
 
-  const { orderedIds } = (await request.json()) as { orderedIds: number[] }
+  // Item ids, under a name of their own (plan T12): a page the previous image rendered posts the old rows' ids as
+  // `orderedIds`, refused here rather than read as items.
+  const { itemIds: orderedIds } = (await request.json()) as { itemIds: number[] }
   if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
     return { ok: false }
   }

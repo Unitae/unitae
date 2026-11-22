@@ -128,7 +128,7 @@ export function PartEditor({
     <fetcher.Form id={PART_FORM_ID} ref={formRef} method="post" className={cn('flex flex-col gap-4', className)}>
       <input type="hidden" name="intent" value={intent} />
       {mode === 'template' && part?.id && <input type="hidden" name="partId" value={part.id} />}
-      {mode === 'event' && part?.id && <input type="hidden" name="partAssignmentId" value={part.id} />}
+      {mode === 'event' && part?.id && <input type="hidden" name="partItemId" value={part.id} />}
 
       <EditorGroup title={m.programs_edit_group_identity()}>
         <Field>

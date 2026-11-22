@@ -82,8 +82,9 @@ const BY_ORDER = { orderBy: [{ order: 'asc' as const }, { id: 'asc' as const }],
 
 /** « order name » for each service: the values themselves, not only the sequence an id tie-break could produce. */
 function eventServices(tx: Tx, eventId: number) {
-  return tx.eventServicePart
-    .findMany({ where: { eventId }, ...BY_ORDER })
+  // The services of an event are its items in the duty schedule.
+  return tx.item
+    .findMany({ where: { eventId, schedule: { kind: 'duty' } }, ...BY_ORDER })
     .then(rows => rows.map(row => `${row.order} ${row.name}`))
 }
 

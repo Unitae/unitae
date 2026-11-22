@@ -26,8 +26,7 @@ export async function findUpcomingAssignmentsForMember(
 ): Promise<MemberAssignment[]> {
   const eventFilter = { congregationId, startDate: { gte: now } }
   const select = {
-    legacyPartId: true,
-    legacyServiceId: true,
+    id: true,
     name: true,
     event: { select: { id: true, name: true, startDate: true } },
   }

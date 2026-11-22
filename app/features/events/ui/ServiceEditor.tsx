@@ -48,7 +48,7 @@ export function ServiceEditor({ service, mode, fetcher, roles, formRef, classNam
     <fetcher.Form id={SERVICE_FORM_ID} ref={formRef} method="post" className={cn('flex flex-col gap-4', className)}>
       <input type="hidden" name="intent" value={intent} />
       {mode === 'template' && service?.id && <input type="hidden" name="roleId" value={service.id} />}
-      {mode === 'event' && service?.id && <input type="hidden" name="serviceAssignmentId" value={service.id} />}
+      {mode === 'event' && service?.id && <input type="hidden" name="serviceItemId" value={service.id} />}
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor={nameField}>{m.programs_edit_part_name_label()}</Label>

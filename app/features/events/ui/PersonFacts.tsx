@@ -85,9 +85,9 @@ export function PersonFacts({
   useEffect(() => {
     if (!userId || userId === 'none') return
     const searchParams = new URLSearchParams({ userId })
-    if (excludePartAssignmentId != null) searchParams.set('excludePartAssignmentId', String(excludePartAssignmentId))
+    if (excludePartAssignmentId != null) searchParams.set('excludePartItemId', String(excludePartAssignmentId))
     if (excludeServiceAssignmentId != null) {
-      searchParams.set('excludeServiceAssignmentId', String(excludeServiceAssignmentId))
+      searchParams.set('excludeServiceItemId', String(excludeServiceAssignmentId))
     }
     if (partSlot) searchParams.set('partSlot', partSlot)
     fetcher.load(`/programs/events/${eventId}/publisher-info?${searchParams}`)

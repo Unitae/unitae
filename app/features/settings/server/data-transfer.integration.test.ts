@@ -8,6 +8,7 @@ import { TerritoryKindKey } from '~/features/territories/model/territory-kind.ty
 import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 import { BUILT_IN_ROLE_KEYS } from '~/shared/domain/built-in-roles.server'
 import { PublisherType } from '~/shared/types/publisher-type'
+import { settleFixtureSchedules } from '~/tests/helpers/settle-fixture-schedules'
 import { EntityIdMap, type ManifestJson } from './data-transfer.type'
 
 // --- Test DB setup (same pattern as db.server.integration.test.ts) ---
@@ -471,6 +472,8 @@ beforeAll(async () => {
     await tx.boardSectionVisibilityRole.create({
       data: { sectionId: section.id, roleId: elderRole.id, congregationId: sourceId },
     })
+    // The parts and duties live in their meetings' schedules, as the writers put them: the export reads items.
+    await settleFixtureSchedules(tx as never, sourceId)
   })
 
   const target = await testDb.congregation.create({

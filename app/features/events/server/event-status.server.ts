@@ -1,7 +1,7 @@
-import type { Prisma } from '~/database/generated/client'
 import { isAwaitingProgramme, programmeTemplate } from '~/features/events/model/empty-meetings'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import { TEMPLATE_PROGRAMME_COUNT } from '~/features/events/server/give-programme.server'
+import { PART_ITEMS, SERVICE_ITEM_ORDER, SERVICE_ITEMS } from '~/features/events/server/item-projection.server'
 import { setEventSchedulesStatus } from '~/features/events/server/schedules.server'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import { ConflictError } from '~/shared/errors/app-error.server'
@@ -38,27 +38,26 @@ export type ReleaseResult =
 // invariant is introduced.
 export type UnreleaseResult = { event: EventWithStatus }
 
-const eventWithAssignmentsInclude = {
-  eventParts: {
-    select: {
-      id: true,
-      name: true,
-      hasConflict: true,
-      assigneeId: true,
-      assistantId: true,
-    },
-  },
-  eventServiceParts: {
-    select: {
-      id: true,
-      name: true,
-      hasConflict: true,
-      assigneeId: true,
-    },
-    orderBy: [{ order: 'asc' }, { id: 'asc' }],
-  },
-  template: { select: { key: true, ...TEMPLATE_PROGRAMME_COUNT } },
-} satisfies Prisma.EventInclude
+const ASSIGNMENT_SELECT = { id: true, name: true, hasConflict: true, assigneeId: true, assistantId: true } as const
+
+/** An event with its parts and services, read from items (plan T12), in the shape the release checks take. */
+async function eventWithAssignments(db: TransactionClient, eventId: number, congregationId: number) {
+  const event = await db.event.findFirst({
+    where: { id: eventId, congregationId },
+    include: { template: { select: { key: true, ...TEMPLATE_PROGRAMME_COUNT } } },
+  })
+  if (!event) return null
+  const [eventParts, services] = await Promise.all([
+    db.item.findMany({ where: { eventId, congregationId, ...PART_ITEMS }, select: ASSIGNMENT_SELECT }),
+    db.item.findMany({
+      where: { eventId, congregationId, ...SERVICE_ITEMS },
+      select: ASSIGNMENT_SELECT,
+      orderBy: SERVICE_ITEM_ORDER,
+    }),
+  ])
+  const eventServiceParts = services.map(({ assistantId: _assistant, ...service }) => service)
+  return { ...event, eventParts, eventServiceParts }
+}
 
 // Tx-only half of the release flow. State flip + audit happen on the tx
 // client; notification enqueue is DEFERRED to fireReleaseNotifications so a
@@ -71,10 +70,7 @@ export async function releaseEvent(
   congregationId: number,
   actorId: number,
 ): Promise<ReleaseResult | null> {
-  const event = await db.event.findFirst({
-    where: { id: eventId, congregationId },
-    include: eventWithAssignmentsInclude,
-  })
+  const event = await eventWithAssignments(db, eventId, congregationId)
   if (!event) return null
 
   // Already-released events return with empty notifyTargets so callers do
@@ -161,7 +157,7 @@ export async function fireReleaseNotifications(
       status: EventStatus.Released,
     },
     assignmentName: '',
-    entityType: 'EventPart',
+    entityType: 'Item',
     entityId: 0,
     congregationId,
     actorId,
@@ -203,13 +199,7 @@ export async function unreleaseEvent(
   congregationId: number,
   actorId: number,
 ): Promise<UnreleaseResult | null> {
-  const event = await db.event.findFirst({
-    where: { id: eventId, congregationId },
-    include: {
-      eventParts: { select: { id: true } },
-      eventServiceParts: { select: { id: true } },
-    },
-  })
+  const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
   if (!event) return null
 
   if (event.status === EventStatus.Draft) return { event }
@@ -220,11 +210,12 @@ export async function unreleaseEvent(
   })
   await setEventSchedulesStatus(db, [eventId], EventStatus.Draft, congregationId)
 
-  const partIds = event.eventParts.map(p => p.id)
-  const serviceIds = event.eventServiceParts.map(s => s.id)
+  const itemIds = (await db.item.findMany({ where: { eventId, congregationId }, select: { id: true } })).map(
+    item => item.id,
+  )
 
   // Nobody is told about assignments on a programme going back to a draft.
-  const cancelledCount = await cancelPendingAssignmentNotices(db, congregationId, { partIds, serviceIds })
+  const cancelledCount = await cancelPendingAssignmentNotices(db, congregationId, itemIds)
 
   await auditInTransaction(db, {
     action: AuditAction.EventUnreleased,
@@ -238,8 +229,7 @@ export async function unreleaseEvent(
     congregationId,
     actorId,
     cancelledCount,
-    partCount: partIds.length,
-    servicePartCount: serviceIds.length,
+    itemCount: itemIds.length,
   })
 
   return { event: updated }

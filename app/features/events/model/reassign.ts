@@ -36,14 +36,14 @@ export function conflictAction(
   return templates.includes(slot.templateId) ? 'reassign' : 'view'
 }
 
-/** `part-12`, `service-7`: the two kinds' ids come from different tables. */
+/** `part-12`, `service-7`: an item's kind and id (plan T12). */
 export function assignKey({ kind, id }: AssignTarget): string {
   return `${kind}-${id}`
 }
 
 const ASSIGN_KEY = /^(part|service)-([1-9]\d*)$/
 
-/** The slot a `?assign=` key names, or null for anything this page did not write. */
+/** The slot a `?item=` key names, or null for anything this page did not write. */
 export function parseAssignKey(value: string): AssignTarget | null {
   const match = ASSIGN_KEY.exec(value)
   if (match == null) return null
@@ -54,5 +54,5 @@ export function parseAssignKey(value: string): AssignTarget | null {
 export function reassignHref(slot: AssignTarget & { eventId: number }, action: ConflictAction | null): string | null {
   if (action == null) return null
   const event = `/programs/events/${slot.eventId}`
-  return action === 'reassign' ? `${event}?assign=${assignKey(slot)}` : event
+  return action === 'reassign' ? `${event}?item=${assignKey(slot)}` : event
 }

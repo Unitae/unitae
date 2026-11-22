@@ -21,7 +21,7 @@ export interface AssignmentNotificationContext {
   // yet. Draft events accumulate diffs silently; release re-enqueues them.
   event: { id: number; name: string; startDate: Date; templateId: number | null; status: string }
   assignmentName: string
-  entityType: 'EventPart' | 'EventServicePart'
+  entityType: 'Item'
   entityId: number
   congregationId: number
   actorId: number
@@ -37,7 +37,7 @@ export type { AssignmentChangeType, ProgrammeRole }
 export function buildAssignmentContext(args: {
   event: { id: number; name: string; startDate: Date; templateId: number | null; status: string }
   assignmentName: string | undefined
-  entityType: 'EventPart' | 'EventServicePart'
+  entityType: 'Item'
   entityId: number
   congregationId: number
   actorId: number
@@ -211,23 +211,31 @@ export async function notifyAssignment(
 }
 
 /**
- * Cancels the assignment notices still waiting for these parts and services: they are going, or going back to a
- * draft, and nobody should be told about them. Returns how many were cancelled. Never runs an empty `in: []`, which a
+ * Cancels the assignment notices still waiting for these items: they are going, or going back to a draft, and nobody
+ * should be told about them. Returns how many were cancelled. A notice the previous image wrote during the rollout
+ * names the old row (plan T12), so it is found through the items' legacy keys. Never runs an empty `in: []`, which a
  * refactor could turn into every pending notice of the congregation.
  */
 export async function cancelPendingAssignmentNotices(
   db: TransactionClient,
   congregationId: number,
-  { partIds, serviceIds }: { partIds: number[]; serviceIds: number[] },
+  itemIds: number[],
 ): Promise<number> {
-  if (partIds.length === 0 && serviceIds.length === 0) return 0
+  if (itemIds.length === 0) return 0
+  const legacy = await db.item.findMany({
+    where: { id: { in: itemIds }, congregationId },
+    select: { legacyPartId: true, legacyServiceId: true },
+  })
+  const partIds = legacy.flatMap(item => (item.legacyPartId == null ? [] : [item.legacyPartId]))
+  const serviceIds = legacy.flatMap(item => (item.legacyServiceId == null ? [] : [item.legacyServiceId]))
   const result = await db.notificationEvent.updateMany({
     where: {
       congregationId,
       status: 'pending',
       OR: [
-        { entityType: 'EventPart', entityId: { in: partIds } },
-        { entityType: 'EventServicePart', entityId: { in: serviceIds } },
+        { entityType: 'Item', entityId: { in: itemIds } },
+        ...(partIds.length > 0 ? [{ entityType: 'EventPart', entityId: { in: partIds } }] : []),
+        ...(serviceIds.length > 0 ? [{ entityType: 'EventServicePart', entityId: { in: serviceIds } }] : []),
       ],
     },
     data: { status: 'cancelled', processedAt: new Date() },

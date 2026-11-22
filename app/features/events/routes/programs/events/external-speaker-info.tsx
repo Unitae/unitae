@@ -19,7 +19,8 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
   const eventId = requireParamId(params.eventId, '/programs')
   const url = new URL(request.url)
   const externalSpeakerId = Number(url.searchParams.get('externalSpeakerId'))
-  const excludePartAssignmentId = parseOptionalId(url.searchParams.get('excludePartAssignmentId'))
+  // An item id, under a name of its own (plan T12).
+  const excludePartAssignmentId = parseOptionalId(url.searchParams.get('excludePartItemId'))
 
   if (!externalSpeakerId || Number.isNaN(externalSpeakerId)) return Response.json(null)
 

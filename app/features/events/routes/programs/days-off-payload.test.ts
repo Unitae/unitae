@@ -100,9 +100,9 @@ describe('/programs/days-off — what the page receives', () => {
     const data = await load([Permission.CanViewPrograms])
 
     expect(links(data)).toEqual([
-      ['part-12', 'reassign', '/programs/events/42?assign=part-12'],
+      ['part-12', 'reassign', '/programs/events/42?item=part-12'],
       ['part-13', 'view', '/programs/events/43'],
-      ['service-7', 'reassign', '/programs/events/37?assign=service-7'],
+      ['service-7', 'reassign', '/programs/events/37?item=service-7'],
       ['part-14', 'view', '/programs/events/44'],
     ])
   })

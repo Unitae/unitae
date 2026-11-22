@@ -33,8 +33,8 @@ export function useCandidateFacts({ eventId, slot, timeZone, referenceYear, enab
   const fetcher = useFetcher<SlotCandidateFacts | null>()
   const query =
     slot.kind === 'part'
-      ? `partAssignmentId=${slot.assignmentId}&slot=${slot.partSlot}`
-      : `serviceAssignmentId=${slot.assignmentId}`
+      ? `partItemId=${slot.assignmentId}&slot=${slot.partSlot}`
+      : `serviceItemId=${slot.assignmentId}`
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: fetcher.load is stable, adding it causes infinite loop
   useEffect(() => {

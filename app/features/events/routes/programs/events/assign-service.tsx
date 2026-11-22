@@ -5,6 +5,7 @@ import { ResponsibilityScope } from '~/features/events/model/responsibility-scop
 import { assignServiceSchema } from '~/features/events/schemas/assign-service.schema'
 import { assignServicePart } from '~/features/events/server/event-part-assignments.server'
 import { assignmentBelongsToEvent, canEditEvent } from '~/features/events/server/events-auth.server'
+import { itemIdFromRequest } from '~/features/events/server/item-projection.server'
 import {
   buildAssignmentContext,
   dispatchAssignmentDiffs,
@@ -42,7 +43,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  const { assignmentId, assigneeId } = submission.value
+  const { itemId: postedItemId, assignmentId: legacyAssignmentId, assigneeId } = submission.value
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
@@ -64,11 +65,19 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       throw redirect('/programs')
     }
 
+    const assignmentId = await itemIdFromRequest(
+      db,
+      { itemId: postedItemId ?? null, legacyId: legacyAssignmentId ?? null },
+      'service',
+      congregationId,
+    )
+    if (assignmentId == null) throw redirect('/programs')
+
     if (!(await assignmentBelongsToEvent(db, 'service', assignmentId, eventId, congregationId))) {
       throw redirect('/programs')
     }
 
-    const assignmentBefore = await db.eventServicePart.findFirst({
+    const assignmentBefore = await db.item.findFirst({
       where: { id: assignmentId, congregationId },
       select: { name: true },
     })
@@ -91,7 +100,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       buildAssignmentContext({
         event,
         assignmentName: assignmentBefore?.name,
-        entityType: 'EventServicePart',
+        entityType: 'Item',
         entityId: assignmentId,
         congregationId,
         actorId: currentUser.id,

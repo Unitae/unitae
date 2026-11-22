@@ -150,6 +150,9 @@ beforeAll(async () => {
       },
     })
     await settleFixtureSchedules(tx as never, congregationId)
+    // The slots are named by item id: the mirrored item of each old row.
+    editedPartId = (await tx.item.findUniqueOrThrow({ where: { legacyPartId: editedPartId } })).id
+    editedServiceId = (await tx.item.findUniqueOrThrow({ where: { legacyServiceId: editedServiceId } })).id
   })
 })
 
