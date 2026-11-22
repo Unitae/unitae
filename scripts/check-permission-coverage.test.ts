@@ -89,18 +89,18 @@ describe('collectEnforcedPermissions', () => {
   })
 
   it('counts a permission named inside a throwing guard, even as a call argument', () => {
-    // events/assign-part.tsx delegates to canEditEvent, passing the capability it needs.
+    // A route delegating to a helper, passing the capability it needs.
     const src = [
-      'if (!(await canEditEvent(db, can, userId, templateId, congregationId, Permission.CanAssignProgramParts))) {',
+      'if (!(await mayDoIt(db, can, userId, templateId, congregationId, Permission.CanAssignProgramParts))) {',
       "  throw redirect('/programs')",
       '}',
     ].join('\n')
     expect([...collectEnforcedPermissions(src)]).toEqual(['CanAssignProgramParts'])
   })
 
-  it('counts a permission handed to an authorisation helper that narrows a selection', () => {
-    // bulk-release.tsx never throws — it filters the ids down to the permitted ones.
-    const src = 'return filterToManageableEventIds(db, can, ids, userId, congregationId, Permission.CanPublishPrograms)'
+  it('counts a permission handed to an authorisation helper that answers without throwing', () => {
+    // An answer a route acts on later, not a guard that throws.
+    const src = 'return canManageAnyProgram(db, can, userId, congregationId, Permission.CanPublishPrograms)'
     expect([...collectEnforcedPermissions(src)]).toEqual(['CanPublishPrograms'])
   })
 

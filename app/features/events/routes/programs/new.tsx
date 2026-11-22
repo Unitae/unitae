@@ -3,7 +3,7 @@ import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { type ProgrammeCreationInput, programmeCreationSchema } from '~/features/events/schemas/program-new.schema'
 import { createFreeformEvent } from '~/features/events/server/event-parts.server'
-import { canManageAnyProgram, getResponsibleTemplateIds } from '~/features/events/server/events-auth.server'
+import { canManageAnyProgram } from '~/features/events/server/events-auth.server'
 import { getProgrammeCreationData } from '~/features/events/server/programme-creation.queries'
 import {
   type CreationContext,
@@ -11,6 +11,7 @@ import {
   createProgrammeSeries,
   ProgrammeExistsError,
 } from '~/features/events/server/programme-creation.server'
+import { responsibleKindIds } from '~/features/events/server/schedule-rights.server'
 import { ProgrammeCreationForm } from '~/features/events/ui/creation/ProgrammeCreationForm'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -43,7 +44,8 @@ export function loader({ context, request }: Route.LoaderArgs) {
   const week = new URL(request.url).searchParams.get('week')
 
   return withScopeFromContext(context, async (db, congregationId) => {
-    const templateIds = canManage ? null : await getResponsibleTemplateIds(db, accountId, congregationId)
+    // The kinds suggesting a schedule template the caller answers for (D28).
+    const templateIds = canManage ? null : await responsibleKindIds(db, accountId, congregationId)
     if (templateIds?.length === 0) throw redirect('/programs')
     const { templates, existing } = await getProgrammeCreationData(db, { congregationId, timezone, today, templateIds })
     return { templates, existing, today, canManage, week: isCalendarDay(week) ? mondayOf(week) : null }
@@ -78,9 +80,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   try {
     const next = await withScopeFromContext(context, async (db, congregationId) => {
       if (!(await canManageAnyProgram(db, can, actorId, congregationId))) throw redirect('/programs')
-      const allowed = can(Permission.CanManagePrograms)
-        ? null
-        : await getResponsibleTemplateIds(db, actorId, congregationId)
+      const allowed = can(Permission.CanManagePrograms) ? null : await responsibleKindIds(db, actorId, congregationId)
       if (!mayCreate(input, allowed)) throw redirect('/programs')
       return create(db, input, { congregationId, timezone, actorId }, session)
     })

@@ -46,7 +46,6 @@ const allowOnly = (allowed: Permission) => (p: Permission) => p === allowed
 
 const {
   assignmentBelongsToEvent,
-  canEditEvent,
   getResponsibleTemplateIds,
   canManageAnyProgram,
   listApplicableTemplates,
@@ -54,6 +53,7 @@ const {
   templateItemBelongsToTemplate,
 } = await import('./events-auth.server')
 const { syncTemplateScheduleTemplates } = await import('./schedule-templates.server')
+const { canChangeEvent, canFillSchedule } = await import('./schedule-rights.server')
 
 beforeAll(async () => {
   const primary = await testDb.congregation.create({
@@ -284,13 +284,25 @@ describe('getResponsibleTemplateIds (integration)', () => {
   })
 })
 
-describe('canEditEvent (integration)', () => {
+describe('canChangeEvent (integration)', () => {
   it('returns true for ProgramManager regardless of templateId (incl. freeform)', async () => {
     const onTemplate = await withScope(primaryCongId, tx =>
-      canEditEvent(tx, allowOnly(Permission.CanManagePrograms), managerId, templateOtherId, primaryCongId),
+      canChangeEvent(
+        tx,
+        allowOnly(Permission.CanManagePrograms),
+        managerId,
+        { id: 0, templateId: templateOtherId },
+        primaryCongId,
+      ),
     )
     const freeform = await withScope(primaryCongId, tx =>
-      canEditEvent(tx, allowOnly(Permission.CanManagePrograms), managerId, null, primaryCongId),
+      canChangeEvent(
+        tx,
+        allowOnly(Permission.CanManagePrograms),
+        managerId,
+        { id: 0, templateId: null },
+        primaryCongId,
+      ),
     )
     expect(onTemplate).toBe(true)
     expect(freeform).toBe(true)
@@ -298,10 +310,10 @@ describe('canEditEvent (integration)', () => {
 
   it('returns true for the responsible only on their own template', async () => {
     const owned = await withScope(primaryCongId, tx =>
-      canEditEvent(tx, allowNone, responsibleId, templateOwnedId, primaryCongId),
+      canChangeEvent(tx, allowNone, responsibleId, { id: 0, templateId: templateOwnedId }, primaryCongId),
     )
     const foreign = await withScope(primaryCongId, tx =>
-      canEditEvent(tx, allowNone, responsibleId, templateOtherId, primaryCongId),
+      canChangeEvent(tx, allowNone, responsibleId, { id: 0, templateId: templateOtherId }, primaryCongId),
     )
     expect(owned).toBe(true)
     expect(foreign).toBe(false)
@@ -309,12 +321,14 @@ describe('canEditEvent (integration)', () => {
 
   it('returns false for a plain non-manager user on any template', async () => {
     const owned = await withScope(primaryCongId, tx =>
-      canEditEvent(tx, allowNone, plainId, templateOwnedId, primaryCongId),
+      canChangeEvent(tx, allowNone, plainId, { id: 0, templateId: templateOwnedId }, primaryCongId),
     )
     const other = await withScope(primaryCongId, tx =>
-      canEditEvent(tx, allowNone, plainId, templateOtherId, primaryCongId),
+      canChangeEvent(tx, allowNone, plainId, { id: 0, templateId: templateOtherId }, primaryCongId),
     )
-    const freeform = await withScope(primaryCongId, tx => canEditEvent(tx, allowNone, plainId, null, primaryCongId))
+    const freeform = await withScope(primaryCongId, tx =>
+      canChangeEvent(tx, allowNone, plainId, { id: 0, templateId: null }, primaryCongId),
+    )
     expect(owned).toBe(false)
     expect(other).toBe(false)
     expect(freeform).toBe(false)
@@ -341,11 +355,12 @@ describe('listApplicableTemplates (integration)', () => {
     expect(result).toEqual([{ id: templateOwnedId, name: 'Owned Template' }])
   })
 
-  it('lists none for a service responsible, who may not restructure the event', async () => {
+  // D28, D50: the responsible of any schedule template a kind suggests changes events of it, the duties' included.
+  it('lists the kind for its services responsible, who may change its events', async () => {
     const result = await withScope(primaryCongId, tx =>
       listApplicableTemplates(tx, allowNone, serviceResponsibleId, primaryCongId),
     )
-    expect(result).toEqual([])
+    expect(result.map(template => template.id)).toEqual([templateOwnedId])
   })
 })
 
@@ -421,13 +436,22 @@ describe('handover through the role (integration)', () => {
       await tx.templateResponsible.create({
         data: { templateId: template.id, roleId: role.id, congregationId: primaryCongId },
       })
+      // As Réglages does: the template holds a part, so its programme schedule template takes the role.
+      await tx.templatePart.create({
+        data: { name: 'Discours', order: 0, templateId: template.id, congregationId: primaryCongId },
+      })
+      await syncTemplateScheduleTemplates(tx, template.id, primaryCongId)
     })
 
     expect(
-      await withScope(primaryCongId, tx => canEditEvent(tx, allowNone, outgoing.id, template.id, primaryCongId)),
+      await withScope(primaryCongId, tx =>
+        canChangeEvent(tx, allowNone, outgoing.id, { id: 0, templateId: template.id }, primaryCongId),
+      ),
     ).toBe(true)
     expect(
-      await withScope(primaryCongId, tx => canEditEvent(tx, allowNone, incoming.id, template.id, primaryCongId)),
+      await withScope(primaryCongId, tx =>
+        canChangeEvent(tx, allowNone, incoming.id, { id: 0, templateId: template.id }, primaryCongId),
+      ),
     ).toBe(false)
 
     // The handover: one write on the seat. Nothing touches TemplateResponsible.
@@ -439,10 +463,14 @@ describe('handover through the role (integration)', () => {
     })
 
     expect(
-      await withScope(primaryCongId, tx => canEditEvent(tx, allowNone, incoming.id, template.id, primaryCongId)),
+      await withScope(primaryCongId, tx =>
+        canChangeEvent(tx, allowNone, incoming.id, { id: 0, templateId: template.id }, primaryCongId),
+      ),
     ).toBe(true)
     expect(
-      await withScope(primaryCongId, tx => canEditEvent(tx, allowNone, outgoing.id, template.id, primaryCongId)),
+      await withScope(primaryCongId, tx =>
+        canChangeEvent(tx, allowNone, outgoing.id, { id: 0, templateId: template.id }, primaryCongId),
+      ),
     ).toBe(false)
 
     // The template row is untouched by the handover — that is the whole claim.
@@ -510,11 +538,18 @@ describe('deputies of the responsible role (integration)', () => {
       await tx.templateResponsible.create({
         data: { templateId: template.id, roleId: role.id, congregationId: primaryCongId },
       })
+      // As Réglages does: the template holds a part, so its programme schedule template takes the role.
+      await tx.templatePart.create({
+        data: { name: 'Discours', order: 0, templateId: template.id, congregationId: primaryCongId },
+      })
+      await syncTemplateScheduleTemplates(tx, template.id, primaryCongId)
     })
 
     for (const person of [people.leader, people.accountDeputy, people.recordDeputy]) {
       expect(
-        await withScope(primaryCongId, tx => canEditEvent(tx, allowNone, person.id, template.id, primaryCongId)),
+        await withScope(primaryCongId, tx =>
+          canChangeEvent(tx, allowNone, person.id, { id: 0, templateId: template.id }, primaryCongId),
+        ),
       ).toBe(true)
       expect(await withScope(primaryCongId, tx => getResponsibleTemplateIds(tx, person.id, primaryCongId))).toContain(
         template.id,
@@ -536,52 +571,8 @@ describe('deputies of the responsible role (integration)', () => {
 })
 
 describe('responsibility scope (integration)', () => {
-  it('lets the service responsible act on the service parts of their template', async () => {
-    const result = await withScope(primaryCongId, tx =>
-      canEditEvent(
-        tx,
-        allowNone,
-        serviceResponsibleId,
-        templateOwnedId,
-        primaryCongId,
-        Permission.CanAssignProgramParts,
-        ResponsibilityScope.Service,
-      ),
-    )
-    expect(result).toBe(true)
-  })
-
-  // The whole point of the second scope: Sam fills the sono slot and stops there.
-  it('refuses the service responsible on the programme', async () => {
-    const result = await withScope(primaryCongId, tx =>
-      canEditEvent(
-        tx,
-        allowNone,
-        serviceResponsibleId,
-        templateOwnedId,
-        primaryCongId,
-        Permission.CanAssignProgramParts,
-      ),
-    )
-    expect(result).toBe(false)
-  })
-
-  // canEditEvent's event-level scope, read by no fill route since 5a-1 (canFillSchedule follows D31); it goes in 5a-3.
-  it('keeps the programme scope answering a request for the service scope (event level)', async () => {
-    const result = await withScope(primaryCongId, tx =>
-      canEditEvent(
-        tx,
-        allowNone,
-        responsibleId,
-        templateOwnedId,
-        primaryCongId,
-        Permission.CanAssignProgramParts,
-        ResponsibilityScope.Service,
-      ),
-    )
-    expect(result).toBe(true)
-  })
-
+  // The scopes now only feed getResponsibleTemplateIds, read by the lists until 5a-3; who may fill or change what is
+  // schedule-rights.server.integration.test.ts (D28, D31).
   it('does not put the service responsible on the list that gates creating programmes', async () => {
     const programmeScoped = await withScope(primaryCongId, tx =>
       getResponsibleTemplateIds(tx, serviceResponsibleId, primaryCongId),
@@ -636,14 +627,13 @@ describe('assignmentBelongsToEvent (integration)', () => {
 
   it("refuses another event's service part posted against an authorised event", async () => {
     const authorised = await withScope(primaryCongId, tx =>
-      canEditEvent(
+      canFillSchedule(
         tx,
         allowNone,
         serviceResponsibleId,
-        templateOwnedId,
+        { id: ownedEventId, templateId: templateOwnedId },
+        'service',
         primaryCongId,
-        Permission.CanAssignProgramParts,
-        ResponsibilityScope.Service,
       ),
     )
     const belongs = await withScope(primaryCongId, tx =>

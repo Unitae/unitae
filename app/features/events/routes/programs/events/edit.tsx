@@ -5,10 +5,14 @@ import {
   getServicePartAssignmentAllowedRoleIdsForParts,
 } from '~/features/events/server/allowed-roles.queries'
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
-import { canEditEvent, listApplicableTemplates, resolveEventItem } from '~/features/events/server/events-auth.server'
+import { listApplicableTemplates, resolveEventItem } from '~/features/events/server/events-auth.server'
 import { listPartPresets } from '~/features/events/server/part-presets.queries'
 import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
-import { canFillSchedule, canFillTemplateSchedules } from '~/features/events/server/schedule-rights.server'
+import {
+  canChangeEvent,
+  canFillSchedule,
+  canFillTemplateSchedules,
+} from '~/features/events/server/schedule-rights.server'
 import { EventEditor } from '~/features/events/ui/EventEditor'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -41,7 +45,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const event = await getEventProgramme(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
 
-    if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
+    if (!(await canChangeEvent(db, can, currentUser.id, event, congregationId))) {
       throw redirect('/programs')
     }
 
@@ -118,7 +122,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const event = await findProgrammeEvent(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
 
-    if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
+    if (!(await canChangeEvent(db, can, currentUser.id, event, congregationId))) {
       throw redirect('/programs')
     }
     // On top of the event right above, an intent that writes items must also be allowed to fill their schedule (plan
@@ -129,8 +133,9 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
     const timezone = context.get(congregationContext).timezone
     const result = await handleEditIntent(intent, formData, db, eventId, congregationId, currentUser.id, timezone, {
+      // Moving the event to a kind is changing it as an event of that kind (D49), and fills what that kind brings.
       mayApplyTemplate: async templateId =>
-        (await canEditEvent(db, can, currentUser.id, templateId, congregationId)) &&
+        (await canChangeEvent(db, can, currentUser.id, { id: event.id, templateId }, congregationId)) &&
         (await canFillTemplateSchedules(db, can, currentUser.id, templateId, congregationId)),
       itemInEvent: (kind, { itemId, legacyId }) =>
         resolveEventItem(db, { itemId: itemId ?? null, legacyId: legacyId ?? null }, kind, eventId, congregationId),

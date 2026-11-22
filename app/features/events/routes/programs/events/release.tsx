@@ -1,8 +1,8 @@
 import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { fireReleaseNotifications, releaseEvent } from '~/features/events/server/event-status.server'
-import { canEditEvent } from '~/features/events/server/events-auth.server'
 import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
+import { canPublishEvent } from '~/features/events/server/schedule-rights.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -11,7 +11,7 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { Permission } from '~/shared/types/permission'
+import type { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/release'
@@ -35,16 +35,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const can = (p: Permission) => permissions.has(p)
     const event = await findProgrammeEvent(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
-    if (
-      !(await canEditEvent(
-        db,
-        can,
-        currentUser.id,
-        event.templateId ?? null,
-        congregationId,
-        Permission.CanPublishPrograms,
-      ))
-    ) {
+    // « Publier », or the responsible of every schedule of the event, until schedules publish one by one (D49).
+    if (!(await canPublishEvent(db, can, currentUser.id, event, congregationId))) {
       throw redirect('/programs')
     }
     return releaseEvent(db, eventId, congregationId, currentUser.id)

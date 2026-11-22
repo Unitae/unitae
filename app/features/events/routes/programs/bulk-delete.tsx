@@ -2,7 +2,8 @@ import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { bulkEventIdsSchema } from '~/features/events/schemas/bulk-event-ids.schema'
 import { bulkDeleteEvents } from '~/features/events/server/delete-events.server'
-import { canManageAnyProgram, filterToManageableEventIds } from '~/features/events/server/events-auth.server'
+import { canManageAnyProgram } from '~/features/events/server/events-auth.server'
+import { filterEventsByRight } from '~/features/events/server/schedule-rights.server'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
@@ -32,7 +33,8 @@ export async function action({ request, context }: Route.ActionArgs) {
     const can = (p: Permission) => permissions.has(p)
     if (!(await canManageAnyProgram(db, can, currentUser.id, congregationId))) throw redirect('/programs')
 
-    const allowedIds = await filterToManageableEventIds(db, can, ids, currentUser.id, congregationId)
+    // Each selected event by its own rule: « Gérer », or its kind's responsible when it holds their schedules alone.
+    const allowedIds = await filterEventsByRight(db, can, ids, currentUser.id, congregationId, 'delete')
     if (allowedIds.length === 0) return { ok: true, deleted: 0, emptied: 0 }
 
     const { count, emptied } = await bulkDeleteEvents(db, allowedIds, congregationId, currentUser.id)

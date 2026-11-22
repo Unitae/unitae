@@ -12,16 +12,15 @@ import {
 } from '~/features/events/server/attendance.queries'
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
 import {
-  canEditEvent,
   canManageAnyProgram,
-  filterToManageableEventIds,
   getResponsibleTemplateIds,
   listApplicableTemplates,
   mayReadSlotFacts,
 } from '~/features/events/server/events-auth.server'
 import { congregationHasProgrammes, listProgrammes } from '~/features/events/server/programme-list.queries'
+import { canChangeEvent, canFillSchedule, filterEventsByRight } from '~/features/events/server/schedule-rights.server'
 import { setProgrammeShowsAttendance } from '~/features/settings/server/programme-attendance-setting.server'
-import { Permission } from '~/shared/types/permission'
+import type { Permission } from '~/shared/types/permission'
 import {
   buildReferenceCongregation,
   deleteReferenceCongregation,
@@ -112,30 +111,34 @@ describe('programmes', () => {
       ?.eventServiceParts[0]
     if (!reading || !sound) throw new Error('the second week lacks a part or a service')
 
+    const fillableEvents = async (
+      db: Parameters<typeof canFillSchedule>[0],
+      can: (permission: Permission) => boolean,
+      eventIds: number[],
+      accountId: number,
+    ) => {
+      const kinds = await db.event.findMany({
+        where: { id: { in: eventIds }, congregationId },
+        select: { id: true, templateId: true },
+      })
+      const fillable: number[] = []
+      for (const event of kinds) {
+        if (await canFillSchedule(db, can, accountId, event, 'part', congregationId)) fillable.push(event.id)
+      }
+      return fillable
+    }
+    // An event of a kind that holds no schedule yet: the rules then read the kind's suggested schedule templates.
+    const ofKind = (templateId: number) => ({ id: 0, templateId })
     const rightsOf = (accountId: number, can: (permission: Permission) => boolean) =>
       scoped(async db => {
         const templates: Record<string, unknown> = {}
         for (const key of ['midweek', 'weekend', 'memorial'] as const) {
           const templateId = fixture.template(key)
           templates[key] = {
-            manageAsProgramme: await canEditEvent(db, can, accountId, templateId, congregationId),
-            assignAsProgramme: await canEditEvent(
-              db,
-              can,
-              accountId,
-              templateId,
-              congregationId,
-              Permission.CanAssignProgramParts,
-            ),
-            assignAsService: await canEditEvent(
-              db,
-              can,
-              accountId,
-              templateId,
-              congregationId,
-              Permission.CanAssignProgramParts,
-              ResponsibilityScope.Service,
-            ),
+            // Per kind (plan §10): changing an event of it, and filling each of its schedules on one that has none yet.
+            manageAsProgramme: await canChangeEvent(db, can, accountId, ofKind(templateId), congregationId),
+            assignAsProgramme: await canFillSchedule(db, can, accountId, ofKind(templateId), 'part', congregationId),
+            assignAsService: await canFillSchedule(db, can, accountId, ofKind(templateId), 'service', congregationId),
           }
         }
         const label = (id: number) => labelOf(fixture, 'event', id)
@@ -155,17 +158,9 @@ describe('programmes', () => {
             .map(template => labelOf(fixture, 'template', template.id))
             .sort(),
           managesAnyProgramme: await canManageAnyProgram(db, can, accountId, congregationId),
-          manageableEvents: labelled(await filterToManageableEventIds(db, can, events, accountId, congregationId)),
-          assignableEvents: labelled(
-            await filterToManageableEventIds(
-              db,
-              can,
-              events,
-              accountId,
-              congregationId,
-              Permission.CanAssignProgramParts,
-            ),
-          ),
+          // The bulk delete's rule (D28), and the events whose programme they may fill (plan §10).
+          manageableEvents: labelled(await filterEventsByRight(db, can, events, accountId, congregationId, 'delete')),
+          assignableEvents: labelled(await fillableEvents(db, can, events, accountId)),
           readsFactsOfAMidweekPart: await mayReadSlotFacts(
             db,
             can,

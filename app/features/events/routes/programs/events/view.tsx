@@ -6,9 +6,14 @@ import { buildAssignmentCandidates } from '~/features/events/server/assignment-c
 import { eventHasAttendance } from '~/features/events/server/attendance.queries'
 import { buildShareTextsForEvent } from '~/features/events/server/build-share-message.server'
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
-import { canEditEvent } from '~/features/events/server/events-auth.server'
 import { listExternalSpeakerOptions } from '~/features/events/server/external-speakers.queries'
-import { canFillSchedule } from '~/features/events/server/schedule-rights.server'
+import {
+  canChangeEvent,
+  canDeleteEvent,
+  canFillSchedule,
+  canFillTemplateSchedules,
+  canPublishEvent,
+} from '~/features/events/server/schedule-rights.server'
 import { EventView } from '~/features/events/ui/EventView'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -46,22 +51,25 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const event = await getEventProgramme(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
 
-    // Each action on the page follows the right its route checks: editing and deleting the event, publishing it, and
-    // filling each schedule — its template's responsible, or « Attribuer » / « Gérer » (plan §10).
-    const check = (required: Permission) =>
-      canEditEvent(db, can, currentUser.id, event.templateId, congregationId, required)
+    // Each action on the page follows the rule its route checks (plan §10): changing the event, deleting it, giving
+    // an empty meeting its programme, publishing it, and filling each schedule.
     const fill = (kind: 'part' | 'service') => canFillSchedule(db, can, currentUser.id, event, kind, congregationId)
-    const [canEdit, canPublish, canAssign, canAssignService] = await Promise.all([
-      check(Permission.CanManagePrograms),
-      check(Permission.CanPublishPrograms),
+    const [canEdit, canDelete, canPublish, canAssign, canAssignService, fillsKind] = await Promise.all([
+      canChangeEvent(db, can, currentUser.id, event, congregationId),
+      canDeleteEvent(db, can, currentUser.id, event, congregationId),
+      canPublishEvent(db, can, currentUser.id, event, congregationId),
       fill('part'),
       fill('service'),
+      event.templateId == null
+        ? false
+        : canFillTemplateSchedules(db, can, currentUser.id, event.templateId, congregationId),
     ])
+    const canCreateProgramme = canEdit && fillsKind
     const canAssignAnything = canAssign || canAssignService
-    refuseDraft(event.status, { canEdit, canPublish, canAssign, canAssignService })
+    refuseDraft(event.status, { canEdit: canEdit || canDelete, canPublish, canAssign, canAssignService })
 
     // The delete dialog says what deleting does: with counts, only the programme goes.
-    const hasAttendance = canEdit && (await eventHasAttendance(db, eventId, congregationId))
+    const hasAttendance = canDelete && (await eventHasAttendance(db, eventId, congregationId))
 
     const users = canAssignAnything
       ? await db.member.findMany({
@@ -100,6 +108,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
       }),
       hasAttendance,
       canEdit,
+      canDelete,
+      canCreateProgramme,
       canPublish,
       canAssign,
       canAssignService,

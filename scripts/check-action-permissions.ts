@@ -42,10 +42,15 @@ export const DELEGATES: Record<string, { file: string; enforces: RegExp }> = {
     enforces: ENFORCES_PERMISSION,
   },
   // Takes a `can` closure, so the permissions are named inside the helper, not at the call site.
-  canEditEvent: { file: 'app/features/events/server/events-auth.server.ts', enforces: ENFORCES_PERMISSION },
+
   canManageAnyProgram: { file: 'app/features/events/server/events-auth.server.ts', enforces: ENFORCES_PERMISSION },
   // Filling a schedule: « Attribuer » or « Gérer », else its template's responsible (plan §10).
   canFillSchedule: { file: 'app/features/events/server/schedule-rights.server.ts', enforces: ENFORCES_PERMISSION },
+  // The event-level rules (plan §10, D28, D49): each takes a `can` closure and names its permission inside.
+  canChangeEvent: { file: 'app/features/events/server/schedule-rights.server.ts', enforces: ENFORCES_PERMISSION },
+  canDeleteEvent: { file: 'app/features/events/server/schedule-rights.server.ts', enforces: ENFORCES_PERMISSION },
+  canPublishEvent: { file: 'app/features/events/server/schedule-rights.server.ts', enforces: ENFORCES_PERMISSION },
+  filterEventsByRight: { file: 'app/features/events/server/schedule-rights.server.ts', enforces: ENFORCES_PERMISSION },
   // Pure policy: the route feeds it booleans derived from permissions and group membership.
   canManageEmergencyInfo: { file: 'app/features/publishers/model/emergency-access.ts', enforces: /hasManager/ },
   canRecordPastoralVisit: {

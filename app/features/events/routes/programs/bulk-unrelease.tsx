@@ -2,11 +2,12 @@ import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { bulkEventIdsSchema } from '~/features/events/schemas/bulk-event-ids.schema'
 import { bulkUnreleaseEvents } from '~/features/events/server/event-status-bulk.server'
-import { canManageAnyProgram, filterToManageableEventIds } from '~/features/events/server/events-auth.server'
+import { canManageAnyProgram } from '~/features/events/server/events-auth.server'
+import { filterEventsByRight } from '~/features/events/server/schedule-rights.server'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { Permission } from '~/shared/types/permission'
+import type { Permission } from '~/shared/types/permission'
 import { joinMessages } from '~/shared/utils/join-messages'
 
 import type { Route } from './+types/bulk-unrelease'
@@ -34,7 +35,8 @@ export async function action({ request, context }: Route.ActionArgs) {
   const allowedIds = await withScopeFromContext(context, async db => {
     const can = (p: Permission) => permissions.has(p)
     if (!(await canManageAnyProgram(db, can, currentUser.id, congregationId))) throw redirect('/programs')
-    return filterToManageableEventIds(db, can, ids, currentUser.id, congregationId, Permission.CanPublishPrograms)
+    // Each selected event by its own rule: « Publier », or the responsible of its every schedule (D49).
+    return filterEventsByRight(db, can, ids, currentUser.id, congregationId, 'publish')
   })
 
   // The outer gate asks whether the caller can manage any programme at all, while the
