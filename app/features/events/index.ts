@@ -55,6 +55,7 @@ export {
   type ShareVariable,
 } from './model/share-message'
 export { normalizeCongregationName, tidyCongregationName } from './model/speaker-congregation-name'
+export { eventIsVisible, VISIBLE_EVENT, VISIBLE_ITEM } from './model/visibility'
 export { type PartPresetFormValues, partPresetSchema } from './schemas/part-preset.schema'
 export { AttendanceEntryCard } from './ui/AttendanceEntryCard'
 export {

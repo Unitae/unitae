@@ -1,6 +1,6 @@
 import { parseProgrammeConfig } from '~/features/display-board/model/dynamic-document.type'
 import { startOfCurrentMonth } from '~/features/display-board/server/dynamic-documents.server'
-import { EventStatus } from '~/features/events'
+import { eventIsVisible } from '~/features/events'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 
@@ -21,7 +21,12 @@ async function readRenderableEvent(
 ) {
   const row = await db.event.findFirst({
     where: { id: event.id, congregationId },
-    select: { status: true, startDate: true, template: { select: { key: true } } },
+    select: {
+      status: true,
+      startDate: true,
+      template: { select: { key: true } },
+      schedules: { select: { status: true } },
+    },
   })
   if (!row) {
     // The caller just persisted a write referencing this event, so its
@@ -33,7 +38,7 @@ async function readRenderableEvent(
     })
     return null
   }
-  if (row.status !== EventStatus.Released) return null
+  if (!eventIsVisible(row)) return null
   if (row.startDate < startOfCurrentMonth()) return null
   return row
 }

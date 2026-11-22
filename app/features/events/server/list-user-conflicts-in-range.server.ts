@@ -1,5 +1,5 @@
 import type { Prisma } from '~/database/generated/client'
-import { EventStatus } from '~/features/events/model/event-status.type'
+import { VISIBLE_ITEM } from '~/features/events/model/visibility'
 import {
   PART_ITEMS,
   PART_ITEMS_BY_DATE,
@@ -64,12 +64,13 @@ export async function listUserConflictsInRange(
     db.item.findMany({
       where: {
         ...PART_ITEMS,
+        ...VISIBLE_ITEM,
         hasConflict: true,
         OR: [{ assigneeId: memberId }, { assistantId: memberId }],
         // Drafts are invisible to publisher- and manager-facing conflict
         // surfaces alike; managers spot draft conflicts via the events-list
         // amber badge and the release-blocking error.
-        event: { startDate: { lte: endDate }, endDate: { gte: startDate }, status: EventStatus.Released },
+        event: { startDate: { lte: endDate }, endDate: { gte: startDate } },
       },
       select: {
         name: true,
@@ -80,9 +81,10 @@ export async function listUserConflictsInRange(
     db.item.findMany({
       where: {
         ...SERVICE_ITEMS,
+        ...VISIBLE_ITEM,
         hasConflict: true,
         assigneeId: memberId,
-        event: { startDate: { lte: endDate }, endDate: { gte: startDate }, status: EventStatus.Released },
+        event: { startDate: { lte: endDate }, endDate: { gte: startDate } },
       },
       select: {
         name: true,

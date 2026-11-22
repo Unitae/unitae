@@ -13,7 +13,7 @@ import {
 } from '~/features/display-board/server/organigram-document.server'
 // Cross-feature import via the events barrel (deep-importing another
 // feature's model directly is forbidden by the boundaries lint rule).
-import { EventStatus } from '~/features/events'
+import { VISIBLE_EVENT, VISIBLE_ITEM } from '~/features/events'
 import {
   asEventPart,
   asEventServicePart,
@@ -201,7 +201,7 @@ export async function getContentVersion(
             congregationId,
             templateId: { in: templateIds },
             startDate: { gte: fromDate },
-            status: EventStatus.Released,
+            ...VISIBLE_EVENT,
           },
           orderBy: { updatedAt: 'desc' },
           select: { updatedAt: true },
@@ -209,11 +209,11 @@ export async function getContentVersion(
         db.item.findFirst({
           where: {
             ...PART_ITEMS,
+            ...VISIBLE_ITEM,
             congregationId,
             event: {
               templateId: { in: templateIds },
               startDate: { gte: fromDate },
-              status: EventStatus.Released,
             },
           },
           orderBy: { updatedAt: 'desc' },
@@ -231,7 +231,7 @@ export async function getContentVersion(
             congregationId,
             template: { key: dynamicRef },
             startDate: { gte: fromDate },
-            status: EventStatus.Released,
+            ...VISIBLE_EVENT,
           },
           orderBy: { updatedAt: 'desc' },
           select: { updatedAt: true },
@@ -239,11 +239,11 @@ export async function getContentVersion(
         db.item.findFirst({
           where: {
             ...PART_ITEMS,
+            ...VISIBLE_ITEM,
             congregationId,
             event: {
               template: { key: dynamicRef },
               startDate: { gte: fromDate },
-              status: EventStatus.Released,
             },
           },
           orderBy: { updatedAt: 'desc' },
@@ -302,7 +302,7 @@ export async function getDynamicPreview(
         congregationId,
         ...templateFilter,
         startDate: { gte: new Date() },
-        status: EventStatus.Released,
+        ...VISIBLE_EVENT,
       },
       orderBy: { startDate: 'asc' },
       select: { startDate: true },
@@ -472,7 +472,7 @@ async function fetchPioneers(db: TransactionClient, congregationId: number) {
 // fall back to their position then the old row's id, as before.
 function programmeItems(withServices: boolean) {
   return {
-    where: withServices ? MIRRORED_ITEMS : PART_ITEMS,
+    where: { ...(withServices ? MIRRORED_ITEMS : PART_ITEMS), ...VISIBLE_ITEM },
     include: {
       ...ITEM_ORIGIN_INCLUDE,
       assignee: { select: userSelect },
@@ -508,7 +508,7 @@ async function fetchProgrammeByIds(
       congregationId,
       templateId: { in: templateIds },
       startDate: { gte: fromDate },
-      status: EventStatus.Released,
+      ...VISIBLE_EVENT,
     },
     include: { template: true, items: programmeItems(includeServices) },
     orderBy: { startDate: 'asc' },
@@ -529,7 +529,7 @@ async function fetchProgrammeByKey(
       congregationId,
       template: { key: templateKey },
       startDate: { gte: fromDate },
-      status: EventStatus.Released,
+      ...VISIBLE_EVENT,
     },
     include: { items: programmeItems(showServices) },
     orderBy: { startDate: 'asc' },

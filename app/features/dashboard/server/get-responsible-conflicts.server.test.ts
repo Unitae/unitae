@@ -43,9 +43,9 @@ describe('getResponsibleConflicts', () => {
     const partCall = vi.mocked(db.eventPart.findMany).mock.calls[0][0]
     const partWhere = partCall?.where as Record<string, unknown>
     expect(partWhere.hasConflict).toBe(true)
+    expect(partWhere.schedule).toEqual({ status: 'published' })
     expect(partWhere.event).toEqual({
       startDate: { gte: expect.any(Date) },
-      status: 'released',
       template: { responsibles: { some: { roleId: { in: [ROLE_ID] }, scope: { in: ['programme'] } } } },
     })
   })
@@ -59,9 +59,9 @@ describe('getResponsibleConflicts', () => {
 
     const serviceCall = vi.mocked(db.eventServicePart.findMany).mock.calls[0][0]
     const serviceWhere = serviceCall?.where as Record<string, unknown>
+    expect(serviceWhere.schedule).toEqual({ status: 'published' })
     expect(serviceWhere.event).toEqual({
       startDate: { gte: expect.any(Date) },
-      status: 'released',
       template: {
         responsibles: { some: { roleId: { in: [ROLE_ID] }, scope: { in: ['programme', 'service'] } } },
       },
@@ -81,15 +81,16 @@ describe('getResponsibleConflicts', () => {
   })
 
   // ProgramManager sees everything — including untemplated events (which
-  // have no responsible relation at all) — but still only released ones.
+  // have no responsible relation at all), but still only published schedules.
   // Draft-event conflicts are not urgent enough for the dashboard; managers
   // see them on the events list amber badge and get blocked at release.
-  it('drops the template filter for ProgramManager users but keeps the released filter', async () => {
+  it('drops the template filter for ProgramManager users but keeps the published filter', async () => {
     await getResponsibleConflicts(db, 100, CONGREGATION_ID, true)
 
     const partCall = vi.mocked(db.eventPart.findMany).mock.calls[0][0]
     const partWhere = partCall?.where as Record<string, unknown>
-    expect(partWhere.event).toEqual({ startDate: { gte: expect.any(Date) }, status: 'released' })
+    expect(partWhere.schedule).toEqual({ status: 'published' })
+    expect(partWhere.event).toEqual({ startDate: { gte: expect.any(Date) } })
     expect(partWhere.event).not.toHaveProperty('template')
   })
 

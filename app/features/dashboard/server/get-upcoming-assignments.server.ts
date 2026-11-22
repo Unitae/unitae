@@ -1,5 +1,5 @@
 import { resolveProgrammeLink } from '~/features/display-board/index.server'
-import { EventStatus, partPresetReaderLabel, partPresetSpeakerLabel } from '~/features/events'
+import { partPresetReaderLabel, partPresetSpeakerLabel, VISIBLE_ITEM } from '~/features/events'
 import { PART_ITEMS, publicItemId, SERVICE_ITEMS, SERVICE_ITEMS_BY_DATE } from '~/features/events/index.server'
 import { FOUR_WEEKS_MS } from '~/shared/constants/limits'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -57,15 +57,17 @@ export async function getUpcomingAssignments(
   const horizon = new Date(now.getTime() + FOUR_WEEKS_MS)
 
   // Drafts stay off the publisher-facing dashboard.
-  const eventFilter = {
-    status: EventStatus.Released,
-    startDate: { gte: now, lte: horizon },
-  }
+  const eventFilter = { startDate: { gte: now, lte: horizon } }
   const eventSelect = { select: { id: true, templateId: true, name: true, startDate: true } }
 
   const [partRows, serviceRows] = await Promise.all([
     db.item.findMany({
-      where: { ...PART_ITEMS, OR: [{ assigneeId: userId }, { assistantId: userId }], event: eventFilter },
+      where: {
+        ...PART_ITEMS,
+        ...VISIBLE_ITEM,
+        OR: [{ assigneeId: userId }, { assistantId: userId }],
+        event: eventFilter,
+      },
       select: {
         legacyPartId: true,
         legacyServiceId: true,
@@ -87,7 +89,7 @@ export async function getUpcomingAssignments(
       orderBy: [{ event: { startDate: 'asc' } }, { legacyPartId: 'asc' }],
     }),
     db.item.findMany({
-      where: { ...SERVICE_ITEMS, assigneeId: userId, event: eventFilter },
+      where: { ...SERVICE_ITEMS, ...VISIBLE_ITEM, assigneeId: userId, event: eventFilter },
       select: { legacyPartId: true, legacyServiceId: true, name: true, event: eventSelect },
       orderBy: SERVICE_ITEMS_BY_DATE,
     }),

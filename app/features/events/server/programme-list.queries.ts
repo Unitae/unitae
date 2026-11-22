@@ -1,5 +1,5 @@
 import { isAwaitingProgramme, programmeTemplate } from '~/features/events/model/empty-meetings'
-import { EventStatus } from '~/features/events/model/event-status.type'
+import { VISIBLE_EVENT } from '~/features/events/model/visibility'
 import { TEMPLATE_PROGRAMME_COUNT } from '~/features/events/server/give-programme.server'
 import { MIRRORED_ITEMS, splitItems } from '~/features/events/server/item-projection.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -96,7 +96,7 @@ export async function congregationHasProgrammes(
   { withDrafts }: { withDrafts: boolean },
 ): Promise<boolean> {
   const one = await db.event.findFirst({
-    where: { congregationId, ...(withDrafts ? {} : { status: EventStatus.Released }) },
+    where: { congregationId, ...(withDrafts ? {} : VISIBLE_EVENT) },
     select: { id: true },
   })
   return one != null

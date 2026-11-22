@@ -21,7 +21,12 @@ const { unscopedDb: db } = await import('~/shared/infra/db.server')
 const IN_WINDOW = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 5)
 
 function showable(templateKey = 'weekly-meeting') {
-  return { status: 'released', startDate: IN_WINDOW, template: { key: templateKey } }
+  return {
+    status: 'released',
+    startDate: IN_WINDOW,
+    template: { key: templateKey },
+    schedules: [{ status: 'published' }],
+  }
 }
 
 beforeEach(() => {
@@ -233,6 +238,7 @@ describe('resolveProgrammeLink only points at a document that holds the event', 
     vi.mocked(db.boardDynamicDocumentSettings.findMany).mockResolvedValue(docs({ id: 3, templateIds: [9] }) as never)
     vi.mocked(db.event.findFirst).mockResolvedValue({
       status: 'draft',
+      schedules: [{ status: 'draft' }],
       startDate: NEXT_MONTH,
       template: { key: 'weekend' },
     } as never)
@@ -244,6 +250,7 @@ describe('resolveProgrammeLink only points at a document that holds the event', 
     vi.mocked(db.boardDynamicDocumentSettings.findMany).mockResolvedValue(docs({ id: 3, templateIds: [9] }) as never)
     vi.mocked(db.event.findFirst).mockResolvedValue({
       status: 'released',
+      schedules: [{ status: 'published' }],
       startDate: LAST_MONTH,
       template: { key: 'weekend' },
     } as never)
@@ -255,6 +262,7 @@ describe('resolveProgrammeLink only points at a document that holds the event', 
     vi.mocked(db.boardDynamicDocumentSettings.findMany).mockResolvedValue(docs({ id: 3, templateIds: [9] }) as never)
     vi.mocked(db.event.findFirst).mockResolvedValue({
       status: 'released',
+      schedules: [{ status: 'published' }],
       startDate: NEXT_MONTH,
       template: { key: 'weekend' },
     } as never)
@@ -271,6 +279,7 @@ describe('resolveProgrammeLink only points at a document that holds the event', 
     )
     vi.mocked(db.event.findFirst).mockResolvedValue({
       status: 'released',
+      schedules: [{ status: 'published' }],
       startDate: NEXT_MONTH,
       template: { key: 'weekend' },
     } as never)
@@ -284,6 +293,7 @@ describe('resolveProgrammeLink only points at a document that holds the event', 
     )
     vi.mocked(db.event.findFirst).mockResolvedValue({
       status: 'released',
+      schedules: [{ status: 'published' }],
       startDate: NEXT_MONTH,
       template: { key: 'weekend' },
     } as never)

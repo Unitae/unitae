@@ -1,5 +1,5 @@
 import type { Absence, Event, EventPart, EventServicePart } from '~/database/generated/client'
-import { EventStatus } from '~/features/events/model/event-status.type'
+import { VISIBLE_ITEM } from '~/features/events/model/visibility'
 import { absencesOf } from '~/features/events/server/absences.queries'
 import {
   asEventPart,
@@ -46,9 +46,10 @@ export async function getPersonalAssignments(
       ? db.item.findMany({
           where: {
             ...PART_ITEMS,
+            ...VISIBLE_ITEM,
             OR: [{ assigneeId: memberId }, { assistantId: memberId }],
             // Drafts stay off the publisher's calendar and ICS feed.
-            event: { startDate: { gte: since }, status: EventStatus.Released },
+            event: { startDate: { gte: since } },
           },
           include: { ...ITEM_ORIGIN_INCLUDE, event: true },
         })
@@ -57,8 +58,9 @@ export async function getPersonalAssignments(
       ? db.item.findMany({
           where: {
             ...SERVICE_ITEMS,
+            ...VISIBLE_ITEM,
             assigneeId: memberId,
-            event: { startDate: { gte: since }, status: EventStatus.Released },
+            event: { startDate: { gte: since } },
           },
           include: { ...ITEM_ORIGIN_INCLUDE, event: true },
         })

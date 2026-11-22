@@ -1,5 +1,5 @@
+import { VISIBLE_ITEM } from '~/features/events'
 import { PART_ITEMS, SERVICE_ITEMS } from '~/features/events/index.server'
-import { EventStatus } from '~/features/events/model/event-status.type'
 import { ResponsibilityScope, scopesCovering } from '~/features/events/model/responsibility-scope.type'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -43,7 +43,7 @@ export async function getResponsibleConflicts(
 
   // Drafts stay off the dashboard even for managers — the events-list amber
   // badge and the release-blocking error are their surface for those.
-  const upcoming = { startDate: { gte: now }, status: EventStatus.Released }
+  const upcoming = { startDate: { gte: now } }
   const responsibleFor = (scope: ResponsibilityScope) => ({
     ...upcoming,
     template: { responsibles: { some: { roleId: { in: roleIds }, scope: { in: scopesCovering(scope) } } } },
@@ -53,7 +53,7 @@ export async function getResponsibleConflicts(
 
   const [partRows, serviceRows] = await Promise.all([
     db.item.findMany({
-      where: { ...PART_ITEMS, hasConflict: true, event: partEventFilter },
+      where: { ...PART_ITEMS, ...VISIBLE_ITEM, hasConflict: true, event: partEventFilter },
       select: {
         eventId: true,
         assigneeId: true,
@@ -63,7 +63,7 @@ export async function getResponsibleConflicts(
       },
     }),
     db.item.findMany({
-      where: { ...SERVICE_ITEMS, hasConflict: true, event: serviceEventFilter },
+      where: { ...SERVICE_ITEMS, ...VISIBLE_ITEM, hasConflict: true, event: serviceEventFilter },
       select: {
         eventId: true,
         assigneeId: true,

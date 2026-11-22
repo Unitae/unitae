@@ -114,7 +114,7 @@ describe('listProgrammes', () => {
 describe('congregationHasProgrammes', () => {
   it('answers whether a programme exists, drafts counted only when asked', async () => {
     vi.mocked(db.event.findFirst).mockImplementation((({ where }: { where: Record<string, unknown> }) =>
-      Promise.resolve(where.status === 'released' ? null : { id: 1 })) as never)
+      Promise.resolve(where.OR == null ? { id: 1 } : null)) as never)
 
     expect(await congregationHasProgrammes(db, 1, { withDrafts: true })).toBe(true)
     expect(await congregationHasProgrammes(db, 1, { withDrafts: false })).toBe(false)

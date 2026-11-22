@@ -114,9 +114,17 @@ describe('listCongregationAbsences', () => {
         assigneeId: 5,
         assistantId: null,
         event: meeting(31, '2026-11-12T18:00:00Z'),
+        schedule: { status: 'published' },
       },
       // Élodie's part the week after her absence: not during it.
-      { id: 13, name: 'Prière', assigneeId: 5, assistantId: null, event: meeting(32, '2026-11-19T18:00:00Z') },
+      {
+        id: 13,
+        name: 'Prière',
+        assigneeId: 5,
+        assistantId: null,
+        event: meeting(32, '2026-11-19T18:00:00Z'),
+        schedule: { status: 'published' },
+      },
       // Paul as the assistant of someone else's part.
       {
         id: 14,
@@ -124,10 +132,17 @@ describe('listCongregationAbsences', () => {
         assigneeId: 9,
         assistantId: 7,
         event: meeting(40, '2026-12-27T09:00:00Z', null, 'draft'),
+        schedule: { status: 'draft' },
       },
     ] as never)
     vi.mocked(db.eventServicePart.findMany).mockResolvedValue([
-      { id: 7, name: 'Sonorisation', assigneeId: 7, event: meeting(39, '2026-12-24T18:00:00Z') },
+      {
+        id: 7,
+        name: 'Sonorisation',
+        assigneeId: 7,
+        event: meeting(39, '2026-12-24T18:00:00Z'),
+        schedule: { status: 'published' },
+      },
     ] as never)
 
     const result = await listCongregationAbsences(db, { congregationId: 1, from: FROM, to: TO })

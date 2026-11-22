@@ -1,5 +1,5 @@
-import { EventStatus } from '~/features/events/model/event-status.type'
 import type { MemberAbsence, MemberAssignment } from '~/features/events/model/member-engagement.type'
+import { VISIBLE_ITEM } from '~/features/events/model/visibility'
 import {
   PART_ITEMS,
   PART_ITEMS_BY_DATE,
@@ -24,11 +24,7 @@ export async function findUpcomingAssignmentsForMember(
   congregationId: CongregationId,
   now: Date = new Date(),
 ): Promise<MemberAssignment[]> {
-  const eventFilter = {
-    congregationId,
-    status: EventStatus.Released,
-    startDate: { gte: now },
-  }
+  const eventFilter = { congregationId, startDate: { gte: now } }
   const select = {
     legacyPartId: true,
     legacyServiceId: true,
@@ -38,13 +34,18 @@ export async function findUpcomingAssignmentsForMember(
 
   const [parts, serviceParts] = await Promise.all([
     db.item.findMany({
-      where: { ...PART_ITEMS, OR: [{ assigneeId: memberId }, { assistantId: memberId }], event: eventFilter },
+      where: {
+        ...PART_ITEMS,
+        ...VISIBLE_ITEM,
+        OR: [{ assigneeId: memberId }, { assistantId: memberId }],
+        event: eventFilter,
+      },
       select,
       orderBy: PART_ITEMS_BY_DATE,
       take: MAX_ASSIGNMENTS,
     }),
     db.item.findMany({
-      where: { ...SERVICE_ITEMS, assigneeId: memberId, event: eventFilter },
+      where: { ...SERVICE_ITEMS, ...VISIBLE_ITEM, assigneeId: memberId, event: eventFilter },
       select,
       orderBy: SERVICE_ITEMS_BY_DATE,
       take: MAX_ASSIGNMENTS,
@@ -105,19 +106,20 @@ export async function findLastAssignmentsForMembers(
 
   const since = new Date(now)
   since.setMonth(since.getMonth() - LAST_ASSIGNMENT_WINDOW_MONTHS)
-  const event = {
-    congregationId,
-    status: EventStatus.Released,
-    startDate: { gte: since, lt: now },
-  }
+  const event = { congregationId, startDate: { gte: since, lt: now } }
   const [parts, serviceParts] = await Promise.all([
     db.item.findMany({
-      where: { ...PART_ITEMS, OR: [{ assigneeId: { in: memberIds } }, { assistantId: { in: memberIds } }], event },
+      where: {
+        ...PART_ITEMS,
+        ...VISIBLE_ITEM,
+        OR: [{ assigneeId: { in: memberIds } }, { assistantId: { in: memberIds } }],
+        event,
+      },
       select: { name: true, assigneeId: true, assistantId: true, event: { select: { startDate: true } } },
       orderBy: PART_ITEMS_BY_DATE,
     }),
     db.item.findMany({
-      where: { ...SERVICE_ITEMS, assigneeId: { in: memberIds }, event },
+      where: { ...SERVICE_ITEMS, ...VISIBLE_ITEM, assigneeId: { in: memberIds }, event },
       select: { name: true, assigneeId: true, event: { select: { startDate: true } } },
       orderBy: SERVICE_ITEMS_BY_DATE,
     }),

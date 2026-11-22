@@ -27,17 +27,19 @@ describe('getPersonalAssignments', () => {
     const partsCall = (db as never as { eventPart: { findMany: { mock: { calls: unknown[][] } } } }).eventPart.findMany
       .mock.calls[0][0] as { where: Record<string, unknown> }
     // Personal calendar / ICS is publisher-facing — drafts must not appear
-    // there. Only released events flow through.
+    // there. Only published schedules flow through.
     expect(partsCall.where).toMatchObject({
       OR: [{ assigneeId: 42 }, { assistantId: 42 }],
-      event: { startDate: { gte: since }, status: 'released' },
+      schedule: { status: 'published' },
+      event: { startDate: { gte: since } },
     })
 
     const rolesCall = (db as never as { eventServicePart: { findMany: { mock: { calls: unknown[][] } } } })
       .eventServicePart.findMany.mock.calls[0][0] as { where: Record<string, unknown> }
     expect(rolesCall.where).toMatchObject({
       assigneeId: 42,
-      event: { startDate: { gte: since }, status: 'released' },
+      schedule: { status: 'published' },
+      event: { startDate: { gte: since } },
     })
 
     // The person's absences: by their record (42 here), the account's when there is none.
