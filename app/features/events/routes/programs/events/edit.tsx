@@ -25,7 +25,7 @@ import { listRoles } from '~/shared/domain/roles.server'
 import { Permission } from '~/shared/types/permission'
 import { distinct } from '~/shared/utils/distinct'
 import { requireParamId } from '~/shared/utils/params.server'
-import { FILL_INTENT_KIND, handleEditIntent } from './_edit-event-intents.server'
+import { handleEditIntent, kindsFilledBy } from './_edit-event-intents.server'
 
 import type { Route } from './+types/edit'
 
@@ -114,11 +114,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
       throw redirect('/programs')
     }
-    // Adding, editing or deleting a part or a duty fills its schedule: its template's responsible, or « Attribuer » /
-    // « Gérer » (plan §10, D31: a programme responsible no longer fills the duties of a template that names another).
-    const fillKind = FILL_INTENT_KIND[String(intent)]
-    if (fillKind != null && !(await canFillSchedule(db, can, currentUser.id, event, fillKind, congregationId))) {
-      throw redirect('/programs')
+    // An intent that writes items fills their schedules: each one's template responsible, or « Attribuer » / « Gérer »
+    // (plan §10, D31: a programme responsible no longer fills the duties of a template that names another).
+    for (const kind of kindsFilledBy(intent)) {
+      if (!(await canFillSchedule(db, can, currentUser.id, event, kind, congregationId))) throw redirect('/programs')
     }
 
     const timezone = context.get(congregationContext).timezone

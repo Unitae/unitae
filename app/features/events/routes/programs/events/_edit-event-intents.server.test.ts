@@ -12,7 +12,7 @@ vi.mock('~/features/events/server/event-parts.server', () => ({
 
 vi.mock('~/features/events/server/apply-template.server', () => ({ applyTemplateToEvent: vi.fn() }))
 
-const { handleEditIntent } = await import('./_edit-event-intents.server')
+const { handleEditIntent, kindsFilledBy } = await import('./_edit-event-intents.server')
 const { applyTemplateToEvent } = await import('~/features/events/server/apply-template.server')
 const { deletePartAssignment, deleteServicePartAssignment, updatePartAssignment, updateServicePartAssignment } =
   await import('~/features/events/server/event-parts.server')
@@ -115,5 +115,26 @@ describe('handleEditIntent — parts and services', () => {
   it.each(INTENTS)('%s refuses a form naming no item', async intent => {
     const result = await post({ intent, partName: 'Lecture de la Bible', serviceName: 'Sono' })
     expect(result != null && 'reply' in result).toBe(true)
+  })
+})
+
+// The schedules an intent fills, whose right the route checks on top of the event's (plan §10, D31).
+describe('kindsFilledBy', () => {
+  it('names the schedule a part or a duty intent fills', () => {
+    expect(['add-part', 'update-part', 'delete-part'].map(kindsFilledBy)).toEqual([['part'], ['part'], ['part']])
+    expect(['add-service', 'update-service', 'delete-service'].map(kindsFilledBy)).toEqual([
+      ['service'],
+      ['service'],
+      ['service'],
+    ])
+  })
+
+  it('names both for applying a template, which appends parts and duties and moves both schedules', () => {
+    expect(kindsFilledBy('apply-template')).toEqual(['part', 'service'])
+  })
+
+  it('names none for changing the event itself, or an intent it does not know', () => {
+    expect(kindsFilledBy('update-event')).toEqual([])
+    expect(kindsFilledBy(null)).toEqual([])
   })
 })
