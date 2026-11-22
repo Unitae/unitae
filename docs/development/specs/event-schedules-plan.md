@@ -138,7 +138,7 @@ about thirty non-test files; the read switch goes feature by feature.
 | 4b | Read switch: assignments, conflicts, candidates, cadence, engagement | — | none visible |
 | 4c | Read switch: dashboard | — | none visible |
 | 4d | Read switch: board documents and links | — | none visible |
-| 4e | Read switch: notifications, calendar feed, account export | — | none visible |
+| 4e | Read switch: the last readers (part types' usage); notifications, feed and export accounted for | — | none visible |
 | 5a | Rights per schedule (server) | — | none |
 | 5b | Per-schedule publishing (server, routes, bulk) | — | small |
 | 5c | Event view, editor and creation form by schedule | — | yes |
@@ -411,6 +411,14 @@ the spec. PR 5 starts on the user's go.
 No visible change: one programme and one services schedule per event publish together until PR 5.
 **Tests:** every touched query keeps its tests green unchanged: their fixtures write the old tables, the
 triggers fill `Item`, the readers read it. The events snapshot diff is empty before and after.
+
+**As shipped (4a–4e, 2026-11-22):** the event view, programme list, external speakers (4a); a person's assignments
+and feed, conflicts, candidates, cadences, engagement (4b); the dashboard (4c); the board's programme documents
+(4d); the part types' usage count (4e). Notifications read only their stored payloads, so none moved; the calendar
+feed moved with the assignments in 4b. The account export is the control plane's: it reads the old tables through
+its own schema copy and must move to items before PR 9 drops them. What still reads the old tables in the app
+feeds a write or a permission (`EMPTY_MEETING`, the delete guards, `events-auth`, the archive export) and moves
+with the writers in PR 5.
 
 ## 10. PR 5 — Per-schedule publishing, event view, rights
 
