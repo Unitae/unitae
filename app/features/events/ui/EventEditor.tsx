@@ -42,6 +42,9 @@ interface EventEditorProps {
   timezone: string
   /** Links to the programmes follow their own guard: a template responsible may lack it. */
   canViewPrograms: boolean
+  /** Whether the caller may fill the programme and the duties: each section is read-only otherwise (plan §10). */
+  canFillParts: boolean
+  canFillServices: boolean
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: the page wires three panels, a docked or sheet editor and their guards
@@ -54,6 +57,8 @@ export function EventEditor({
   trackSuggestions,
   timezone,
   canViewPrograms,
+  canFillParts,
+  canFillServices,
 }: EventEditorProps) {
   const infoFetcher = useFetcher()
   const partFetcher = useFetcher()
@@ -191,6 +196,7 @@ export function EventEditor({
             onEditPart={(part, trigger) => panel.request({ kind: 'part', id: part.id, trigger })}
             onDeletePart={target => setDeleteTarget({ type: 'part', ...target })}
             onDragEnd={handlePartDragEnd}
+            readOnly={!canFillParts}
           />
           <EventServicesPanel
             services={event.eventServiceParts}
@@ -200,6 +206,7 @@ export function EventEditor({
             onEditService={(service, trigger) => panel.request({ kind: 'service', id: service.id, trigger })}
             onDeleteService={target => setDeleteTarget({ type: 'service', ...target })}
             onDragEnd={handleServiceDragEnd}
+            readOnly={!canFillServices}
           />
         </div>
 
