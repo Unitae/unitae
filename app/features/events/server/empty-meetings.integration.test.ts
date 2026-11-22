@@ -208,11 +208,11 @@ describe('empty meetings against the database', () => {
     const event = await withScope(congregationId, tx =>
       tx.event.findFirst({
         where: { id: ids.week1 },
-        select: { createdById: true, origin: true, _count: { select: { eventParts: true } } },
+        select: { createdById: true, origin: true, _count: { select: { items: true } } },
       }),
     )
     // Prepared by someone: theirs from now on, even emptied again or once their account goes.
-    expect(event).toEqual({ createdById: actorId, origin: 'manual', _count: { eventParts: 1 } })
+    expect(event).toEqual({ createdById: actorId, origin: 'manual', _count: { items: 1 } })
 
     await expect(
       withScope(congregationId, tx =>

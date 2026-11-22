@@ -1,5 +1,10 @@
 import { normalize, type PartSlot } from '~/features/events/server/cadence-shared.server'
-import { PART_ITEMS, SERVICE_ITEMS } from '~/features/events/server/item-projection.server'
+import {
+  PART_ITEMS,
+  PART_TIE_BREAK,
+  SERVICE_ITEMS,
+  SERVICE_TIE_BREAK,
+} from '~/features/events/server/item-projection.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 /** The slot being assigned: one of a part's two people, or a service. */
@@ -134,16 +139,16 @@ async function alreadyAtEvent(
   target: SlotTarget,
 ): Promise<SlotCandidateFacts['elsewhere']> {
   // The whole edited row is left out, as listUserSameEventAssignments does: the person in the other slot of the
-  // same part is not « elsewhere ». The edited row by the id its routes carry, the old row's (plan T12).
+  // same part is not « elsewhere ».
   const [parts, services] = await Promise.all([
     db.item.findMany({
       where: {
         ...PART_ITEMS,
         eventId: event.id,
         congregationId,
-        ...(target.kind === 'part' ? { NOT: { legacyPartId: target.assignmentId } } : {}),
+        ...(target.kind === 'part' ? { NOT: { id: target.assignmentId } } : {}),
       },
-      orderBy: [{ order: 'asc' }, { legacyPartId: 'asc' }],
+      orderBy: [{ order: 'asc' }, ...PART_TIE_BREAK],
       select: { name: true, assigneeId: true, assistantId: true },
     }),
     db.item.findMany({
@@ -151,9 +156,9 @@ async function alreadyAtEvent(
         ...SERVICE_ITEMS,
         eventId: event.id,
         congregationId,
-        ...(target.kind === 'service' ? { NOT: { legacyServiceId: target.assignmentId } } : {}),
+        ...(target.kind === 'service' ? { NOT: { id: target.assignmentId } } : {}),
       },
-      orderBy: { legacyServiceId: 'asc' },
+      orderBy: SERVICE_TIE_BREAK,
       select: { name: true, assigneeId: true },
     }),
   ])
@@ -200,9 +205,9 @@ async function speakerFacts(
         eventId: event.id,
         congregationId,
         externalSpeakerId: { not: null },
-        NOT: { legacyPartId: target.assignmentId },
+        NOT: { id: target.assignmentId },
       },
-      orderBy: [{ order: 'asc' }, { legacyPartId: 'asc' }],
+      orderBy: [{ order: 'asc' }, ...PART_TIE_BREAK],
       select: { name: true, externalSpeakerId: true },
     }),
   ])

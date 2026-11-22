@@ -32,10 +32,11 @@ export interface IntentChecks {
   /** Whether the caller may edit events of this template: applying one moves the event onto it. */
   mayApplyTemplate: (templateId: number) => Promise<boolean>
   /**
-   * Whether a posted part or service belongs to the event the caller was authorised on. The writers find it by its
-   * id alone, so an id from another event of the congregation would otherwise ride on this event's check.
+   * The item a form names (its id, or the old row's from a form of the previous image), when it belongs to the event
+   * the caller was authorised on; null otherwise. The writers find it by its id alone, so an id from another event of
+   * the congregation would otherwise ride on this event's check.
    */
-  belongsToEvent: (kind: 'part' | 'service', id: number) => Promise<boolean>
+  itemInEvent: (kind: 'part' | 'service', posted: { itemId?: string; legacyId?: string }) => Promise<number | null>
 }
 
 /** The reply refusing a part or service of another event. */
@@ -149,10 +150,13 @@ async function handleUpdatePart(
 ): Promise<IntentResult> {
   const submission = parseWithZod(formData, { schema: updatePartSchema })
   if (submission.status !== 'success') return submission
-  if (!(await checks.belongsToEvent('part', submission.value.partAssignmentId))) return notInEvent(submission)
+  const partAssignmentId = await checks.itemInEvent('part', {
+    itemId: submission.value.partItemId,
+    legacyId: submission.value.partAssignmentId,
+  })
+  if (partAssignmentId == null) return notInEvent(submission)
 
   const {
-    partAssignmentId,
     partName,
     partSection,
     partTrack,
@@ -197,9 +201,13 @@ async function handleDeletePart(
 ): Promise<IntentResult> {
   const submission = parseWithZod(formData, { schema: deletePartSchema })
   if (submission.status !== 'success') return submission
-  if (!(await checks.belongsToEvent('part', submission.value.partAssignmentId))) return notInEvent(submission)
+  const partAssignmentId = await checks.itemInEvent('part', {
+    itemId: submission.value.partItemId,
+    legacyId: submission.value.partAssignmentId,
+  })
+  if (partAssignmentId == null) return notInEvent(submission)
 
-  await deletePartAssignment(db, submission.value.partAssignmentId, congregationId)
+  await deletePartAssignment(db, partAssignmentId, congregationId)
   return { message: m.programs_edit_part_deleted() }
 }
 
@@ -235,11 +243,15 @@ async function handleUpdateService(
 ): Promise<IntentResult> {
   const submission = parseWithZod(formData, { schema: updateServiceSchema })
   if (submission.status !== 'success') return submission
-  if (!(await checks.belongsToEvent('service', submission.value.serviceAssignmentId))) return notInEvent(submission)
+  const serviceAssignmentId = await checks.itemInEvent('service', {
+    itemId: submission.value.serviceItemId,
+    legacyId: submission.value.serviceAssignmentId,
+  })
+  if (serviceAssignmentId == null) return notInEvent(submission)
 
   await updateServicePartAssignment(
     db,
-    submission.value.serviceAssignmentId,
+    serviceAssignmentId,
     { name: submission.value.serviceName, allowedRoleIds: submission.value.allowedRoleIds },
     congregationId,
     actorId,
@@ -255,9 +267,13 @@ async function handleDeleteService(
 ): Promise<IntentResult> {
   const submission = parseWithZod(formData, { schema: deleteServiceSchema })
   if (submission.status !== 'success') return submission
-  if (!(await checks.belongsToEvent('service', submission.value.serviceAssignmentId))) return notInEvent(submission)
+  const serviceAssignmentId = await checks.itemInEvent('service', {
+    itemId: submission.value.serviceItemId,
+    legacyId: submission.value.serviceAssignmentId,
+  })
+  if (serviceAssignmentId == null) return notInEvent(submission)
 
-  await deleteServicePartAssignment(db, submission.value.serviceAssignmentId, congregationId)
+  await deleteServicePartAssignment(db, serviceAssignmentId, congregationId)
   return { message: m.programs_edit_service_deleted() }
 }
 

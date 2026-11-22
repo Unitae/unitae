@@ -30,15 +30,15 @@ vi.mock('~/shared/infra/db.server', () => ({
       update: vi.fn(),
       deleteMany: vi.fn(),
     },
-    eventPart: { create: vi.fn() },
-    eventServicePart: { create: vi.fn() },
-    eventPartAllowedRole: { createMany: vi.fn() },
-    eventServicePartAllowedRole: { createMany: vi.fn() },
+    item: { create: vi.fn() },
+    itemAllowedRole: { createMany: vi.fn() },
+    templateItem: { findMany: vi.fn() },
     $queryRaw: vi.fn(),
     $executeRaw: vi.fn(),
   },
 }))
 
+const { eventScheduleId } = await import('~/features/events/server/schedules.server')
 const { createProgrammeOnDay, createProgrammeSeries, ProgrammeExistsError } = await import(
   './programme-creation.server'
 )
@@ -48,6 +48,9 @@ const { NotFoundError } = await import('~/shared/errors/app-error.server')
 
 const MARTINIQUE = 'America/Martinique'
 const CTX = { congregationId: 7, timezone: MARTINIQUE, actorId: 42 }
+// Each kind of item lands in its event's schedule; the ids are sentinels, told apart from the item ids.
+const PROGRAMME_SCHEDULE = 500
+const DUTY_SCHEDULE = 600
 
 const MIDWEEK = {
   id: 270,
@@ -95,9 +98,22 @@ beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(db.event.findMany).mockResolvedValue([] as never)
   vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
-  vi.mocked(db.eventPart.create).mockResolvedValue({ id: 700 } as never)
-  vi.mocked(db.eventServicePart.create).mockResolvedValue({ id: 800 } as never)
+  vi.mocked(eventScheduleId).mockImplementation(async (_db, _eventId, kind) =>
+    kind === 'programme' ? PROGRAMME_SCHEDULE : DUTY_SCHEDULE,
+  )
+  // A part is item 700, a service item 800.
+  vi.mocked(db.item.create).mockImplementation((({ data }: { data: { scheduleId: number } }) =>
+    Promise.resolve({ id: data.scheduleId === DUTY_SCHEDULE ? 800 : 700 })) as never)
+  vi.mocked(db.templateItem.findMany).mockResolvedValue([] as never)
 })
+
+/** The data of the items created in one schedule, in creation order. */
+function itemsCreatedIn(scheduleId: number) {
+  return vi
+    .mocked(db.item.create)
+    .mock.calls.map(([arg]) => (arg as { data: { scheduleId: number } }).data)
+    .filter(data => data.scheduleId === scheduleId)
+}
 
 const WITH_PART = {
   ...MIDWEEK,
@@ -123,6 +139,9 @@ const BARE = { createdById: null, origin: 'job', attendance: null, _count: { ite
 describe('bare events', () => {
   it('gives a bare event of the series its programme instead of creating a second one', async () => {
     vi.mocked(db.eventTemplate.findMany).mockResolvedValue([WITH_PART] as never)
+    vi.mocked(db.templateItem.findMany).mockResolvedValue([
+      { id: 900, legacyPartId: 11, legacyServiceId: null },
+    ] as never)
     vi.mocked(db.event.findMany).mockResolvedValue([
       { id: 55, templateId: 270, startDate: new Date('2026-11-19T23:00:00Z'), ...BARE },
     ] as never)
@@ -131,7 +150,9 @@ describe('bare events', () => {
     const result = await createProgrammeSeries(db, { templateIds: [270], from: '2026-11-16', to: '2026-11-22' }, CTX)
 
     expect(events).toEqual([])
-    expect(vi.mocked(db.eventPart.create).mock.calls[0]?.[0]).toMatchObject({ data: { eventId: 55, partId: 11 } })
+    expect(vi.mocked(db.item.create).mock.calls[0]?.[0]).toMatchObject({
+      data: { eventId: 55, scheduleId: PROGRAMME_SCHEDULE, templateItemId: 900 },
+    })
     expect(result.created).toEqual([{ id: 55, templateId: 270, day: '2026-11-19' }])
     expect(result.existing).toBe(0)
   })
@@ -150,7 +171,7 @@ describe('bare events', () => {
 
     const result = await createProgrammeSeries(db, { templateIds: [270], from: '2026-11-16', to: '2026-11-22' }, CTX)
 
-    expect(db.eventPart.create).not.toHaveBeenCalled()
+    expect(db.item.create).not.toHaveBeenCalled()
     expect(result.existing).toBe(1)
   })
 
@@ -163,7 +184,7 @@ describe('bare events', () => {
 
     expect(created).toEqual({ id: 77, templateId: 270, day: '2026-11-26' })
     expect(db.event.create).not.toHaveBeenCalled()
-    expect(vi.mocked(db.eventPart.create).mock.calls[0]?.[0]).toMatchObject({ data: { eventId: 77 } })
+    expect(vi.mocked(db.item.create).mock.calls[0]?.[0]).toMatchObject({ data: { eventId: 77 } })
   })
 })
 
@@ -184,7 +205,7 @@ describe('bare events, edge cases', () => {
     expect(db.event.deleteMany).toHaveBeenCalledWith({
       where: expect.objectContaining({ id: 55, congregationId: 7, origin: 'job' }),
     })
-    expect(db.eventPart.create).not.toHaveBeenCalled()
+    expect(db.item.create).not.toHaveBeenCalled()
     expect(result).toMatchObject({ created: [], skipped: 1 })
   })
 
@@ -276,7 +297,7 @@ describe('bare events, edge cases', () => {
     await createProgrammeSeries(db, { templateIds: [270], from: '2026-11-16', to: '2026-11-22' }, CTX)
 
     expect(db.event.update).not.toHaveBeenCalled()
-    expect(db.eventPart.create).toHaveBeenCalled()
+    expect(db.item.create).toHaveBeenCalled()
   })
 
   it('never deletes a meeting with counts on a day the series passes, though it has no programme', async () => {
@@ -293,7 +314,7 @@ describe('bare events, edge cases', () => {
     )
 
     expect(db.event.deleteMany).not.toHaveBeenCalled()
-    expect(db.eventPart.create).not.toHaveBeenCalled()
+    expect(db.item.create).not.toHaveBeenCalled()
     expect(result).toMatchObject({ created: [], skipped: 1 })
   })
 
@@ -307,7 +328,7 @@ describe('bare events, edge cases', () => {
     const created = await createProgrammeOnDay(db, { templateId: 270, day: '2026-11-26' }, CTX)
 
     expect(created.id).toBe(56)
-    expect(db.eventPart.create).toHaveBeenCalled()
+    expect(db.item.create).toHaveBeenCalled()
   })
 
   it('never reports a programme created when the template has nothing to give', async () => {
@@ -633,11 +654,11 @@ describe('what a programme takes from its template', () => {
 
     await createProgrammeOnDay(db, { templateId: 271, day: '2026-11-22' }, CTX)
 
-    const parts = vi.mocked(db.eventPart.create).mock.calls.map(([arg]) => (arg as { data: unknown }).data)
+    const parts = itemsCreatedIn(PROGRAMME_SCHEDULE)
     expect(parts).toEqual([
       expect.objectContaining({
         eventId: 100,
-        partId: 10,
+        templateItemId: null,
         name: 'Discours public',
         allowExternalSpeaker: true,
         speakerLabel: 'SPEAKER-SENTINEL-P1',
@@ -646,7 +667,7 @@ describe('what a programme takes from its template', () => {
         congregationId: 7,
       }),
       expect.objectContaining({
-        partId: 11,
+        templateItemId: null,
         allowExternalSpeaker: false,
         speakerLabel: 'SPEAKER-SENTINEL-P2',
         readerLabel: 'READER-SENTINEL-P2',
@@ -686,23 +707,21 @@ describe('what a programme takes from its template', () => {
 
     await createProgrammeOnDay(db, { templateId: 270, day: '2026-11-26' }, CTX)
 
-    expect(vi.mocked(db.eventServicePart.create).mock.calls.map(([arg]) => (arg as { data: unknown }).data)).toEqual([
-      { eventId: 100, servicePartId: 40, name: 'Son', congregationId: 7 },
-      { eventId: 100, servicePartId: 41, name: 'Accueil', congregationId: 7 },
+    expect(itemsCreatedIn(DUTY_SCHEDULE)).toEqual([
+      { eventId: 100, scheduleId: DUTY_SCHEDULE, templateItemId: null, name: 'Son', congregationId: 7 },
+      { eventId: 100, scheduleId: DUTY_SCHEDULE, templateItemId: null, name: 'Accueil', congregationId: 7 },
     ])
-    expect(vi.mocked(db.eventPartAllowedRole.createMany).mock.calls).toEqual([
+    expect(vi.mocked(db.itemAllowedRole.createMany).mock.calls).toEqual([
       [
         {
           data: [
-            { eventPartId: 700, roleId: 7, asKind: 'speaker', congregationId: 7 },
-            { eventPartId: 700, roleId: 8, asKind: 'reader', congregationId: 7 },
+            { itemId: 700, roleId: 7, slot: 'main', congregationId: 7 },
+            { itemId: 700, roleId: 8, slot: 'second', congregationId: 7 },
           ],
           skipDuplicates: true,
         },
       ],
-    ])
-    expect(vi.mocked(db.eventServicePartAllowedRole.createMany).mock.calls).toEqual([
-      [{ data: [{ eventServicePartId: 800, roleId: 9, congregationId: 7 }], skipDuplicates: true }],
+      [{ data: [{ itemId: 800, roleId: 9, slot: 'main', congregationId: 7 }], skipDuplicates: true }],
     ])
   })
 })

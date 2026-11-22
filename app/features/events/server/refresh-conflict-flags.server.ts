@@ -1,3 +1,4 @@
+import { PART_ITEMS, SERVICE_ITEMS } from '~/features/events/server/item-projection.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 /**
@@ -33,8 +34,9 @@ export async function refreshConflictFlags(
   // Fetch every affected row up front rather than per event. The previous shape issued
   // one parts query, one services query and two absence lookups PER EVENT PER ROW, so a
   // single absence edit could fan out into dozens of round trips.
-  const parts = await db.eventPart.findMany({
+  const parts = await db.item.findMany({
     where: {
+      ...PART_ITEMS,
       eventId: { in: eventIds },
       congregationId,
       OR: [{ assigneeId: memberId }, { assistantId: memberId }],
@@ -43,8 +45,8 @@ export async function refreshConflictFlags(
   })
 
   // Service-role rows have a single assignee, so no co-participant to consider.
-  const services = await db.eventServicePart.findMany({
-    where: { eventId: { in: eventIds }, assigneeId: memberId, congregationId },
+  const services = await db.item.findMany({
+    where: { ...SERVICE_ITEMS, eventId: { in: eventIds }, assigneeId: memberId, congregationId },
     select: { id: true, eventId: true, assigneeId: true },
   })
 
@@ -120,26 +122,13 @@ export async function refreshConflictFlags(
     ;(isAbsent(service.assigneeId, service.eventId) ? servicesInConflict : servicesClear).push(service.id)
   }
 
-  // Two writes per table at most, instead of one per row.
-  if (partsInConflict.length > 0) {
-    await db.eventPart.updateMany({
-      where: { id: { in: partsInConflict }, congregationId },
-      data: { hasConflict: true },
-    })
+  // Two writes at most, instead of one per row: parts and duties are items alike.
+  const inConflict = [...partsInConflict, ...servicesInConflict]
+  const clear = [...partsClear, ...servicesClear]
+  if (inConflict.length > 0) {
+    await db.item.updateMany({ where: { id: { in: inConflict }, congregationId }, data: { hasConflict: true } })
   }
-  if (partsClear.length > 0) {
-    await db.eventPart.updateMany({ where: { id: { in: partsClear }, congregationId }, data: { hasConflict: false } })
-  }
-  if (servicesInConflict.length > 0) {
-    await db.eventServicePart.updateMany({
-      where: { id: { in: servicesInConflict }, congregationId },
-      data: { hasConflict: true },
-    })
-  }
-  if (servicesClear.length > 0) {
-    await db.eventServicePart.updateMany({
-      where: { id: { in: servicesClear }, congregationId },
-      data: { hasConflict: false },
-    })
+  if (clear.length > 0) {
+    await db.item.updateMany({ where: { id: { in: clear }, congregationId }, data: { hasConflict: false } })
   }
 }

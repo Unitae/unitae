@@ -1576,8 +1576,9 @@ model TemplateItemAllowedRole {
   @@index([congregationId])
 }
 
-// A part or a duty of one event's schedule (plan T12): one table where EventPart and EventServicePart are two. Mirrored
-// from them by triggers like TemplateItem; nothing writes it directly yet.
+// A part or a duty of one event's schedule (plan T12): one table where EventPart and EventServicePart are two. The
+// app writes it directly; the triggers still copy what the old tables receive (the previous image during a rollout, the
+// demo seed, an archive import), keyed by `legacyPartId` / `legacyServiceId`, which stay null on an item made here.
 model Item {
   id           Int     @id @default(autoincrement())
   name         String  @default("")
@@ -1594,7 +1595,8 @@ model Item {
 
   event      Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
   eventId    Int
-  // Through (scheduleId, eventId), as on the old items. Null where the old row has none, until it gets one.
+  // Through (scheduleId, eventId), as on the old items. Set by the app's writers; null only on a row the triggers copied
+  // before it had a schedule.
   schedule   Schedule? @relation(fields: [scheduleId, eventId], references: [id, eventId], onDelete: Cascade)
   scheduleId Int?
 

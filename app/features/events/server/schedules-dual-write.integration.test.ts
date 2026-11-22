@@ -94,13 +94,14 @@ async function inCongregation(fn: (fixture: Fixture) => Promise<void>) {
               orderBy: { order: 'asc' },
               include: {
                 scheduleTemplate: { select: { eventKinds: { select: { eventKindId: true } } } },
-                _count: { select: { parts: true, serviceParts: true } },
+                // The writers put the items themselves in their schedule: count the items, not the old rows.
+                _count: { select: { items: true } },
               },
             })
             return rows.map(row => ({
               kind: row.kind,
               status: row.status,
-              items: row._count.parts + row._count.serviceParts,
+              items: row._count.items,
               madeFrom: row.scheduleTemplate?.eventKinds[0]?.eventKindId ?? null,
             }))
           },

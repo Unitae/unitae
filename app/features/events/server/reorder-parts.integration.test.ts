@@ -1,6 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+import { settleFixtureSchedules } from '~/tests/helpers/settle-fixture-schedules'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -65,6 +66,15 @@ beforeAll(async () => {
       await tx.eventPart.create({ data: { name: 'Elsewhere', order: 0, eventId: otherEventId, congregationId } })
     ).id
 
+    // The parts are named by item id: settle them into their schedule, then take the mirrored items.
+    await settleFixtureSchedules(tx as never, congregationId)
+    const itemOf = async (legacyPartId: number) =>
+      (await tx.item.findUniqueOrThrow({ where: { legacyPartId }, select: { id: true } })).id
+    const itemIds: number[] = []
+    for (const legacyId of eventParts) itemIds.push(await itemOf(legacyId))
+    eventParts = itemIds
+    otherEventPart = await itemOf(otherEventPart)
+
     templateId = (await tx.eventTemplate.create({ data: { name: 'This template', key: `this-${ts}`, congregationId } }))
       .id
     otherTemplateId = (
@@ -98,7 +108,7 @@ afterAll(async () => {
 
 const eventOrder = () =>
   withScope(congregationId, tx =>
-    tx.eventPart.findMany({ where: { congregationId }, orderBy: { id: 'asc' }, select: { id: true, order: true } }),
+    tx.item.findMany({ where: { congregationId }, orderBy: { id: 'asc' }, select: { id: true, order: true } }),
   )
 const templateOrder = () =>
   withScope(congregationId, tx =>

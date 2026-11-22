@@ -6,7 +6,7 @@ import {
   type PartSlot,
   toCadenceStatus,
 } from '~/features/events/server/cadence-shared.server'
-import { PART_ITEMS } from '~/features/events/server/item-projection.server'
+import { PART_ITEMS, PART_TIE_BREAK } from '~/features/events/server/item-projection.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 
@@ -43,8 +43,8 @@ export async function listUserCadence(
 
   const partsSelect = {
     where: PART_ITEMS,
-    // The first matching part names the person: in the old rows' order, as the old relation returned them.
-    orderBy: { legacyPartId: 'asc' },
+    // The first matching part names the person: in the items' order, as the old relation returned its rows.
+    orderBy: PART_TIE_BREAK,
     select: {
       name: true,
       section: true,

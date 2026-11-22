@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { ScheduleKind } from '~/features/events/model/schedule.type'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     event: { findMany: vi.fn() },
     absence: { findMany: vi.fn() },
-    eventPart: { findMany: vi.fn(), updateMany: vi.fn() },
-    eventServicePart: { findMany: vi.fn(), updateMany: vi.fn() },
+    item: { findMany: vi.fn(), updateMany: vi.fn() },
   },
 }))
 
@@ -15,6 +15,34 @@ const { unscopedDb: db } = await import('~/shared/infra/db.server')
 beforeEach(() => {
   vi.resetAllMocks()
 })
+
+// Parts and duties are both items: the writer reads them through the same `item.findMany`, told apart by the kind of
+// the schedule in the where clause (PART_ITEMS / SERVICE_ITEMS).
+function kindOf(args: unknown): string | undefined {
+  return (args as { where?: { AND?: { schedule?: { kind?: string } }[] } })?.where?.AND?.[0]?.schedule?.kind
+}
+
+// The reads of one kind, in call order.
+function readsOf(kind: ScheduleKind) {
+  return vi
+    .mocked(db.item.findMany)
+    .mock.calls.map(c => c[0])
+    .filter(args => kindOf(args) === kind)
+}
+
+// The batched writes group rows by outcome, so a row's flag is read off whichever
+// updateMany carried it rather than off a per-row update call.
+function writes() {
+  return vi.mocked(db.item.updateMany).mock.calls.map(c => c[0])
+}
+
+function flagWrittenFor(calls: { where?: unknown; data?: unknown }[] | undefined, rowId: number): boolean | undefined {
+  for (const call of calls ?? []) {
+    const ids = (call?.where as { id?: { in?: number[] } })?.id?.in ?? []
+    if (ids.includes(rowId)) return (call?.data as { hasConflict?: boolean })?.hasConflict
+  }
+  return undefined
+}
 
 describe('refreshConflictFlags', () => {
   // The overlapping events come from `db.event.findMany`, the absences from `db.absence.findMany` in one batched query.
@@ -35,63 +63,30 @@ describe('refreshConflictFlags', () => {
     }) as never)
   }
 
-  // The batched writes group rows by outcome, so a row's flag is read off whichever
-  // updateMany carried it rather than off a per-row update call.
-  function flagWrittenFor(
-    calls: { where?: unknown; data?: unknown }[] | undefined,
-    rowId: number,
-  ): boolean | undefined {
-    for (const call of calls ?? []) {
-      const ids = (call?.where as { id?: { in?: number[] } })?.id?.in ?? []
-      if (ids.includes(rowId)) return (call?.data as { hasConflict?: boolean })?.hasConflict
-    }
-    return undefined
+  // The parts and the duties the writer finds, whichever order it asks for them in.
+  function stubItems(parts: unknown[], services: unknown[]) {
+    vi.mocked(db.item.findMany).mockImplementation(((args: unknown) =>
+      Promise.resolve(kindOf(args) === ScheduleKind.Duty ? services : parts)) as never)
   }
 
   it('writes hasConflict:true when the member has an overlapping day-off', async () => {
     stubEventsAndAbsences([{ id: 1, startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) }], [5])
-    vi.mocked(db.eventPart.findMany).mockResolvedValue([
-      { id: 100, eventId: 1, assigneeId: 5, assistantId: null },
-    ] as never)
-    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([{ id: 200, eventId: 1, assigneeId: 5 }] as never)
+    stubItems([{ id: 100, eventId: 1, assigneeId: 5, assistantId: null }], [{ id: 200, eventId: 1, assigneeId: 5 }])
 
     await refreshConflictFlags(db, 5, new Date(2026, 3, 13), new Date(2026, 3, 15), 1)
 
-    expect(
-      flagWrittenFor(
-        vi.mocked(db.eventPart.updateMany).mock.calls.map(c => c[0]),
-        100,
-      ),
-    ).toBe(true)
-    expect(
-      flagWrittenFor(
-        vi.mocked(db.eventServicePart.updateMany).mock.calls.map(c => c[0]),
-        200,
-      ),
-    ).toBe(true)
+    expect(flagWrittenFor(writes(), 100)).toBe(true)
+    expect(flagWrittenFor(writes(), 200)).toBe(true)
   })
 
   it('writes hasConflict:false when the member no longer has an overlapping day-off', async () => {
     stubEventsAndAbsences([{ id: 1, startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) }], [])
-    vi.mocked(db.eventPart.findMany).mockResolvedValue([
-      { id: 100, eventId: 1, assigneeId: 5, assistantId: null },
-    ] as never)
-    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([{ id: 200, eventId: 1, assigneeId: 5 }] as never)
+    stubItems([{ id: 100, eventId: 1, assigneeId: 5, assistantId: null }], [{ id: 200, eventId: 1, assigneeId: 5 }])
 
     await refreshConflictFlags(db, 5, new Date(2026, 3, 13), new Date(2026, 3, 15), 1)
 
-    expect(
-      flagWrittenFor(
-        vi.mocked(db.eventPart.updateMany).mock.calls.map(c => c[0]),
-        100,
-      ),
-    ).toBe(false)
-    expect(
-      flagWrittenFor(
-        vi.mocked(db.eventServicePart.updateMany).mock.calls.map(c => c[0]),
-        200,
-      ),
-    ).toBe(false)
+    expect(flagWrittenFor(writes(), 100)).toBe(false)
+    expect(flagWrittenFor(writes(), 200)).toBe(false)
   })
 
   // The absence lookup must be a single batched query, not one per (participant, event).
@@ -104,11 +99,13 @@ describe('refreshConflictFlags', () => {
       ],
       [6],
     )
-    vi.mocked(db.eventPart.findMany).mockResolvedValue([
-      { id: 100, eventId: 1, assigneeId: 5, assistantId: 6 },
-      { id: 101, eventId: 2, assigneeId: 5, assistantId: 7 },
-    ] as never)
-    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([] as never)
+    stubItems(
+      [
+        { id: 100, eventId: 1, assigneeId: 5, assistantId: 6 },
+        { id: 101, eventId: 2, assigneeId: 5, assistantId: 7 },
+      ],
+      [],
+    )
 
     await refreshConflictFlags(db, 5, new Date(2026, 3, 13), new Date(2026, 3, 16), 1)
 
@@ -122,18 +119,8 @@ describe('refreshConflictFlags', () => {
     expect([...(absenceWhere.memberId?.in ?? [])].sort()).toEqual([5, 6, 7])
 
     // The per-row outcome still respects each row's own participants.
-    expect(
-      flagWrittenFor(
-        vi.mocked(db.eventPart.updateMany).mock.calls.map(c => c[0]),
-        100,
-      ),
-    ).toBe(true)
-    expect(
-      flagWrittenFor(
-        vi.mocked(db.eventPart.updateMany).mock.calls.map(c => c[0]),
-        101,
-      ),
-    ).toBe(false)
+    expect(flagWrittenFor(writes(), 100)).toBe(true)
+    expect(flagWrittenFor(writes(), 101)).toBe(false)
   })
 
   // An absence must only flag events it actually overlaps. The batched query widens to the
@@ -148,17 +135,18 @@ describe('refreshConflictFlags', () => {
     vi.mocked(db.absence.findMany).mockResolvedValue([
       { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14), memberId: 5 },
     ] as never)
-    vi.mocked(db.eventPart.findMany).mockResolvedValue([
-      { id: 100, eventId: 1, assigneeId: 5, assistantId: null },
-      { id: 101, eventId: 2, assigneeId: 5, assistantId: null },
-    ] as never)
-    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([] as never)
+    stubItems(
+      [
+        { id: 100, eventId: 1, assigneeId: 5, assistantId: null },
+        { id: 101, eventId: 2, assigneeId: 5, assistantId: null },
+      ],
+      [],
+    )
 
     await refreshConflictFlags(db, 5, new Date(2026, 3, 13), new Date(2026, 3, 21), 1)
 
-    const calls = vi.mocked(db.eventPart.updateMany).mock.calls.map(c => c[0])
-    expect(flagWrittenFor(calls, 100)).toBe(true) // same day as the absence
-    expect(flagWrittenFor(calls, 101)).toBe(false) // six days later
+    expect(flagWrittenFor(writes(), 100)).toBe(true) // same day as the absence
+    expect(flagWrittenFor(writes(), 101)).toBe(false) // six days later
   })
 
   // The clobber that #250's shape allowed: two members share a part
@@ -171,39 +159,23 @@ describe('refreshConflictFlags', () => {
     // Alice(5) = speaker (assigneeId), Bob(6) = reader (assistantId).
     // Alice: no absence. Bob: absence present.
     stubEventsAndAbsences([{ id: 1, startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) }], [6])
-    vi.mocked(db.eventPart.findMany).mockResolvedValue([
-      { id: 100, eventId: 1, assigneeId: 5, assistantId: 6 },
-    ] as never)
-    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([] as never)
+    stubItems([{ id: 100, eventId: 1, assigneeId: 5, assistantId: 6 }], [])
 
     // Refresh for Alice (her absence just got cleared).
     await refreshConflictFlags(db, 5, new Date(2026, 3, 13), new Date(2026, 3, 15), 1)
 
-    expect(
-      flagWrittenFor(
-        vi.mocked(db.eventPart.updateMany).mock.calls.map(c => c[0]),
-        100,
-      ),
-    ).toBe(true)
+    expect(flagWrittenFor(writes(), 100)).toBe(true)
   })
 
   // Symmetric case: the refreshed member is fine as reader; speaker is fine
   // too. Both slots clear → flag must go false.
   it('writes hasConflict:false only when both participants are clear', async () => {
     stubEventsAndAbsences([{ id: 1, startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) }], [])
-    vi.mocked(db.eventPart.findMany).mockResolvedValue([
-      { id: 100, eventId: 1, assigneeId: 5, assistantId: 6 },
-    ] as never)
-    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([] as never)
+    stubItems([{ id: 100, eventId: 1, assigneeId: 5, assistantId: 6 }], [])
 
     await refreshConflictFlags(db, 5, new Date(2026, 3, 13), new Date(2026, 3, 15), 1)
 
-    expect(
-      flagWrittenFor(
-        vi.mocked(db.eventPart.updateMany).mock.calls.map(c => c[0]),
-        100,
-      ),
-    ).toBe(false)
+    expect(flagWrittenFor(writes(), 100)).toBe(false)
   })
 
   it('does nothing when no overlapping events', async () => {
@@ -211,9 +183,8 @@ describe('refreshConflictFlags', () => {
 
     await refreshConflictFlags(db, 5, new Date(2026, 3, 13), new Date(2026, 3, 15), 1)
 
-    expect(db.eventPart.updateMany).not.toHaveBeenCalled()
-    expect(db.eventServicePart.updateMany).not.toHaveBeenCalled()
-    expect(db.eventPart.findMany).not.toHaveBeenCalled()
+    expect(db.item.updateMany).not.toHaveBeenCalled()
+    expect(db.item.findMany).not.toHaveBeenCalled()
   })
 
   // Every overlapping event must be reconciled, not just the first. The old shape looped
@@ -228,24 +199,24 @@ describe('refreshConflictFlags', () => {
       ],
       [5],
     )
-    vi.mocked(db.eventPart.findMany).mockResolvedValue([
-      { id: 10, eventId: 1, assigneeId: 5, assistantId: null },
-      { id: 20, eventId: 2, assigneeId: 5, assistantId: null },
-      { id: 30, eventId: 3, assigneeId: 5, assistantId: null },
-    ] as never)
-    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([] as never)
+    stubItems(
+      [
+        { id: 10, eventId: 1, assigneeId: 5, assistantId: null },
+        { id: 20, eventId: 2, assigneeId: 5, assistantId: null },
+        { id: 30, eventId: 3, assigneeId: 5, assistantId: null },
+      ],
+      [],
+    )
 
     await refreshConflictFlags(db, 5, new Date(2026, 3, 13), new Date(2026, 3, 17), 1)
 
     // One parts query, scoped to all three events rather than one per event.
-    expect(vi.mocked(db.eventPart.findMany).mock.calls).toHaveLength(1)
-    const partsWhere = vi.mocked(db.eventPart.findMany).mock.calls[0][0]?.where as {
-      eventId?: { in?: number[] }
-    }
+    expect(readsOf(ScheduleKind.Programme)).toHaveLength(1)
+    const partsWhere = readsOf(ScheduleKind.Programme)[0]?.where as { eventId?: { in?: number[] } }
     expect(partsWhere.eventId?.in).toEqual([1, 2, 3])
 
     // All three rows reconciled, in a single grouped write.
-    const calls = vi.mocked(db.eventPart.updateMany).mock.calls.map(c => c[0])
+    const calls = writes()
     expect(calls).toHaveLength(1)
     expect((calls[0]?.where as { id?: { in?: number[] } } | undefined)?.id?.in).toEqual([10, 20, 30])
     expect(calls[0]?.data).toEqual({ hasConflict: true })
@@ -258,18 +229,15 @@ describe('refreshConflictFlags', () => {
     vi.mocked(db.event.findMany).mockResolvedValue([
       { id: 1, startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     ] as never)
-    vi.mocked(db.eventPart.findMany).mockResolvedValue([] as never)
-    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([] as never)
+    stubItems([], [])
 
     const memberId = 5000
     await refreshConflictFlags(db, memberId, new Date(2026, 3, 13), new Date(2026, 3, 15), 1)
 
-    const partCall = vi.mocked(db.eventPart.findMany).mock.calls[0][0]
-    const partWhere = partCall?.where as Record<string, unknown>
+    const partWhere = readsOf(ScheduleKind.Programme)[0]?.where as Record<string, unknown>
     expect(partWhere.OR).toEqual([{ assigneeId: memberId }, { assistantId: memberId }])
 
-    const serviceCall = vi.mocked(db.eventServicePart.findMany).mock.calls[0][0]
-    const serviceWhere = serviceCall?.where as Record<string, unknown>
+    const serviceWhere = readsOf(ScheduleKind.Duty)[0]?.where as Record<string, unknown>
     expect(serviceWhere.assigneeId).toBe(memberId)
   })
 

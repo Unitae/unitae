@@ -104,13 +104,13 @@ describe('programme creation west of UTC (integration)', () => {
     const created = await testDb.event.findMany({
       where: { id: { in: result.created.map(programme => programme.id) } },
       orderBy: { startDate: 'asc' },
-      select: { startDate: true, _count: { select: { eventParts: true } } },
+      select: { startDate: true, _count: { select: { items: true } } },
     })
     expect(created.map(event => event.startDate.toISOString())).toEqual([
       '2026-11-12T23:00:00.000Z',
       '2026-11-26T23:00:00.000Z',
     ])
-    expect(created.map(event => event._count.eventParts)).toEqual([1, 1])
+    expect(created.map(event => event._count.items)).toEqual([1, 1])
 
     const audit = await testDb.auditLog.findMany({
       where: { congregationId: congId, action: 'event.created' },

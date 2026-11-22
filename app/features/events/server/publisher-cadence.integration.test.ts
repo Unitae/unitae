@@ -82,6 +82,9 @@ function snapshot() {
             if (index === CURRENT) current = { event, part: part.id, duty: duty.id }
           }
           await settleFixtureSchedules(db, congregationId)
+          // The readers and the cadence exclusions take item ids: the mirrored item of each old row.
+          const partItemId = (await tx.item.findUniqueOrThrow({ where: { legacyPartId: current.part } })).id
+          const dutyItemId = (await tx.item.findUniqueOrThrow({ where: { legacyServiceId: current.duty } })).id
           const ask = (anchor: { excludePartAssignmentId: number | null; excludeServiceAssignmentId: number | null }) =>
             resolvePublisherCadence(db, {
               userId: paul.id,
@@ -91,8 +94,8 @@ function snapshot() {
               ...anchor,
             })
           result = {
-            part: await ask({ excludePartAssignmentId: current.part, excludeServiceAssignmentId: null }),
-            duty: await ask({ excludePartAssignmentId: null, excludeServiceAssignmentId: current.duty }),
+            part: await ask({ excludePartAssignmentId: partItemId, excludeServiceAssignmentId: null }),
+            duty: await ask({ excludePartAssignmentId: null, excludeServiceAssignmentId: dutyItemId }),
           }
           throw new Rollback()
         },

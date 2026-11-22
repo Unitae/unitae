@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
 import { Permission } from '~/shared/types/permission'
+import { settleFixtureSchedules } from '~/tests/helpers/settle-fixture-schedules'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -192,11 +193,14 @@ beforeAll(async () => {
     const ownedServicePart = await tx.eventServicePart.create({
       data: { name: 'Sono', eventId: ownedEventId, congregationId: primaryCongId },
     })
-    ownedServicePartId = ownedServicePart.id
     const foreignServicePart = await tx.eventServicePart.create({
       data: { name: 'Sono', eventId: foreignEventId, congregationId: primaryCongId },
     })
-    foreignServicePartId = foreignServicePart.id
+
+    // The writers hand out item ids: the mirrored item of each old row, in its event's schedule.
+    await settleFixtureSchedules(tx, primaryCongId)
+    ownedServicePartId = (await tx.item.findUniqueOrThrow({ where: { legacyServiceId: ownedServicePart.id } })).id
+    foreignServicePartId = (await tx.item.findUniqueOrThrow({ where: { legacyServiceId: foreignServicePart.id } })).id
   })
 
   await withScope(otherCongId, async tx => {
@@ -645,7 +649,9 @@ describe('assignmentBelongsToEvent (integration)', () => {
       const part = await tx.eventPart.create({
         data: { name: 'Discours', eventId: ownedEventId, congregationId: primaryCongId },
       })
-      const belongs = await assignmentBelongsToEvent(tx, 'part', part.id, ownedEventId, primaryCongId)
+      await settleFixtureSchedules(tx, primaryCongId)
+      const item = await tx.item.findUniqueOrThrow({ where: { legacyPartId: part.id } })
+      const belongs = await assignmentBelongsToEvent(tx, 'part', item.id, ownedEventId, primaryCongId)
       await tx.eventPart.delete({ where: { id: part.id } })
       return belongs
     })

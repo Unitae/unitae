@@ -1,7 +1,10 @@
 import { z } from 'zod'
 
 export const assignServiceSchema = z.object({
-  assignmentId: z.coerce.number(),
+  // The item's id (plan T12). `assignmentId` is the old row's, from a form the previous image rendered during the
+  // rollout: the route translates it.
+  itemId: z.string().optional(),
+  assignmentId: z.string().optional(),
   assigneeId: z
     .string()
     .optional()

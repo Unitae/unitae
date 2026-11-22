@@ -27,8 +27,7 @@ const auditModule = await import('~/shared/domain/audit.server')
 
 const mockDb = {
   event: { delete: vi.fn(), deleteMany: vi.fn(), updateMany: vi.fn() },
-  eventPart: { deleteMany: vi.fn(), findMany: vi.fn() },
-  eventServicePart: { deleteMany: vi.fn(), findMany: vi.fn() },
+  item: { deleteMany: vi.fn(), findMany: vi.fn() },
   attendance: { findMany: vi.fn() },
   notificationEvent: { updateMany: vi.fn() },
   absence: { deleteMany: vi.fn() },
@@ -38,10 +37,8 @@ const mockDb = {
 beforeEach(() => {
   vi.resetAllMocks()
   mockDb.attendance.findMany.mockResolvedValue([])
-  mockDb.eventPart.deleteMany.mockResolvedValue({ count: 0 })
-  mockDb.eventServicePart.deleteMany.mockResolvedValue({ count: 0 })
-  mockDb.eventPart.findMany.mockResolvedValue([])
-  mockDb.eventServicePart.findMany.mockResolvedValue([])
+  mockDb.item.deleteMany.mockResolvedValue({ count: 0 })
+  mockDb.item.findMany.mockResolvedValue([])
   mockDb.notificationEvent.updateMany.mockResolvedValue({ count: 0 })
 })
 
@@ -113,10 +110,7 @@ describe('bulkDeleteEvents', () => {
     const result = await bulkDeleteEvents(mockDb as never, [10, 11, 12], 42, 7)
 
     expect(mockDb.event.deleteMany).toHaveBeenCalledWith({ where: { id: { in: [10, 12] }, congregationId: 42 } })
-    expect(mockDb.eventPart.deleteMany).toHaveBeenCalledWith({ where: { eventId: { in: [11] }, congregationId: 42 } })
-    expect(mockDb.eventServicePart.deleteMany).toHaveBeenCalledWith({
-      where: { eventId: { in: [11] }, congregationId: 42 },
-    })
+    expect(mockDb.item.deleteMany).toHaveBeenCalledWith({ where: { eventId: { in: [11] }, congregationId: 42 } })
     // Back to a draft, as a meeting without a programme is: nothing empty shows on the board.
     expect(mockDb.event.updateMany).toHaveBeenCalledWith({
       where: { id: { in: [11] }, congregationId: 42 },
@@ -160,10 +154,16 @@ describe('bulkDeleteEvents', () => {
     expect(where.OR).toEqual([{ inPerson: { not: null } }, { online: { not: null } }])
   })
 
+  // Items 1001 and 2001 are the programme's part and duty; the notices of the old rows they mirror (100, 200) go too.
   it('cancels the pending assignment notices of the parts it removes', async () => {
     mockDb.attendance.findMany.mockResolvedValue([{ eventId: 11 }])
-    mockDb.eventPart.findMany.mockResolvedValue([{ id: 100 }])
-    mockDb.eventServicePart.findMany.mockResolvedValue([{ id: 200 }])
+    mockDb.item.findMany.mockImplementation(((args: { select: Record<string, boolean> }) =>
+      'legacyPartId' in args.select
+        ? [
+            { legacyPartId: 100, legacyServiceId: null },
+            { legacyPartId: null, legacyServiceId: 200 },
+          ]
+        : [{ id: 1001 }, { id: 2001 }]) as never)
     mockDb.event.deleteMany.mockResolvedValue({ count: 0 })
 
     await bulkDeleteEvents(mockDb as never, [11], 42, 7)
@@ -173,6 +173,7 @@ describe('bulkDeleteEvents', () => {
         congregationId: 42,
         status: 'pending',
         OR: [
+          { entityType: 'Item', entityId: { in: [1001, 2001] } },
           { entityType: 'EventPart', entityId: { in: [100] } },
           { entityType: 'EventServicePart', entityId: { in: [200] } },
         ],
@@ -206,7 +207,7 @@ describe('deleteEvent', () => {
 
     expect(result).toEqual({ kept: true })
     expect(mockDb.event.delete).not.toHaveBeenCalled()
-    expect(mockDb.eventPart.deleteMany).toHaveBeenCalledWith({ where: { eventId: { in: [3] }, congregationId: 10 } })
+    expect(mockDb.item.deleteMany).toHaveBeenCalledWith({ where: { eventId: { in: [3] }, congregationId: 10 } })
     expect(vi.mocked(auditModule.auditInTransaction)).toHaveBeenCalledWith(
       mockDb,
       expect.objectContaining({ action: 'event.programme_removed', entityId: 3 }),

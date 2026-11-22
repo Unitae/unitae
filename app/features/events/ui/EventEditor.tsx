@@ -89,7 +89,7 @@ export function EventEditor({
     const reordered = reorderPartIds(ids, Number(dragEvent.active.id), Number(dragEvent.over.id))
     if (reordered === ids) return
     reorderFetcher.submit(
-      { orderedIds: reordered },
+      { itemIds: reordered },
       { method: 'POST', action: `/programs/events/${event.id}/reorder-parts`, encType: 'application/json' },
     )
   }
@@ -100,7 +100,7 @@ export function EventEditor({
     const reordered = reorderPartIds(ids, Number(dragEvent.active.id), Number(dragEvent.over.id))
     if (reordered === ids) return
     reorderFetcher.submit(
-      { orderedIds: reordered },
+      { itemIds: reordered },
       { method: 'POST', action: `/programs/events/${event.id}/reorder-services`, encType: 'application/json' },
     )
   }
@@ -110,10 +110,10 @@ export function EventEditor({
     const formData = new FormData()
     if (deleteTarget.type === 'part') {
       formData.set('intent', 'delete-part')
-      formData.set('partAssignmentId', String(deleteTarget.id))
+      formData.set('partItemId', String(deleteTarget.id))
     } else {
       formData.set('intent', 'delete-service')
-      formData.set('serviceAssignmentId', String(deleteTarget.id))
+      formData.set('serviceItemId', String(deleteTarget.id))
     }
     if (editing?.kind === deleteTarget.type && editing.id === deleteTarget.id) panel.close()
     deleteFetcher.submit(formData, { method: 'post' })

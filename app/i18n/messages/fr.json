@@ -6036,6 +6036,7 @@
     "audit_log_entity_template_service": "Service d’un modèle",
     "audit_log_entity_event_part": "Partie d’un programme",
     "audit_log_entity_event_service": "Service d’un programme",
+    "audit_log_entity_item": "Élément d’un programme",
     "audit_log_entity_campaign": "Campagne",
     "audit_log_entity_pioneer_enrolment": "Inscription de pionnier",
     "audit_log_entity_pioneer_goal": "Objectif des pionniers",

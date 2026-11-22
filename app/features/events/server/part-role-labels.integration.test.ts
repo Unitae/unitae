@@ -138,7 +138,7 @@ describe('per-part role labels — end-to-end', () => {
 
     await withScope(congId, tx => applyTemplateToEvent(tx, event.id, templateId, congId, managerAccountId))
 
-    const assignments = await testDb.eventPart.findMany({
+    const assignments = await testDb.item.findMany({
       where: { eventId: event.id, congregationId: congId },
       orderBy: { order: 'asc' },
       select: { name: true, speakerLabel: true, readerLabel: true },
@@ -164,7 +164,7 @@ describe('per-part role labels — end-to-end', () => {
     )
     expect(created.length).toBeGreaterThan(0)
 
-    const assignments = await testDb.eventPart.findMany({
+    const assignments = await testDb.item.findMany({
       where: { eventId: created[0].id, congregationId: congId },
       orderBy: { order: 'asc' },
       select: { name: true, speakerLabel: true, readerLabel: true },

@@ -98,12 +98,11 @@ function payloadOf(raw: string) {
   )
 }
 
-const ITEM_TABLES: Record<string, string> = { EventPart: 'eventPart', EventServicePart: 'eventServicePart' }
-
+// A notice names its item (plan T12, 5i-b); the fixture labels an item as a part or a service, by the item's id.
 function entityOf(entityType: string, entityId: number): string {
-  const table = ITEM_TABLES[entityType]
-  if (!table) throw new Error(`a notice about an unexpected entity: ${entityType}`)
-  return labelOf(fixture, table, entityId)
+  if (entityType !== 'Item') throw new Error(`a notice about an unexpected entity: ${entityType}`)
+  const part = fixture.labels.get(`eventPart:${entityId}`)
+  return part ?? labelOf(fixture, 'eventServicePart', entityId)
 }
 
 /**
@@ -161,11 +160,7 @@ async function serviceOf(name: string, serviceName: string) {
   return service
 }
 
-async function dispatch(
-  name: string,
-  item: { entityType: 'EventPart' | 'EventServicePart'; id: number; name: string },
-  diffs: AssignmentDiff[],
-) {
+async function dispatch(name: string, item: { entityType: 'Item'; id: number; name: string }, diffs: AssignmentDiff[]) {
   const { congregationId, adminId } = fixture
   await scoped(async db => {
     const event = await db.event.findFirstOrThrow({ where: { id: fixture.event(name), congregationId } })
@@ -191,7 +186,7 @@ async function assignPartLikeTheRoute(name: string, order: number, assigneeId: n
   if ('error' in result) return result
   await dispatch(
     name,
-    { entityType: 'EventPart', id: part.id, name: part.name },
+    { entityType: 'Item', id: part.id, name: part.name },
     partAssignmentDiffs(
       { previousAssigneeId: result.previousAssigneeId, previousAssistantId: result.previousAssistantId },
       { assigneeId, assistantId: part.assistantId },
@@ -206,7 +201,7 @@ async function assignServiceLikeTheRoute(name: string, serviceName: string, assi
   if ('error' in result) return result
   await dispatch(
     name,
-    { entityType: 'EventServicePart', id: service.id, name: service.name },
+    { entityType: 'Item', id: service.id, name: service.name },
     servicePartAssignmentDiffs({ previousAssigneeId: result.previousAssigneeId }, { assigneeId }),
   )
   return { hasConflict: result.assignment.hasConflict }
@@ -219,7 +214,7 @@ async function unassignPartLikeTheRoute(name: string, order: number) {
   if (!result) throw new Error(`could not unassign part ${order} of ${name}`)
   await dispatch(
     name,
-    { entityType: 'EventPart', id: part.id, name: part.name },
+    { entityType: 'Item', id: part.id, name: part.name },
     partAssignmentDiffs(
       { previousAssigneeId: result.previousAssigneeId, previousAssistantId: result.previousAssistantId },
       { assigneeId: null, assistantId: null },
@@ -234,7 +229,7 @@ async function unassignServiceLikeTheRoute(name: string, serviceName: string) {
   if (!result) throw new Error(`could not unassign ${serviceName} on ${name}`)
   await dispatch(
     name,
-    { entityType: 'EventServicePart', id: service.id, name: service.name },
+    { entityType: 'Item', id: service.id, name: service.name },
     servicePartAssignmentDiffs({ previousAssigneeId: result.previousAssigneeId }, { assigneeId: null }),
   )
   return { removed: true }

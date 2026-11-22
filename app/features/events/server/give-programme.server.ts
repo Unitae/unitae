@@ -1,5 +1,7 @@
 import type { Prisma } from '~/database/generated/client'
 import { ScheduleKind } from '~/features/events/model/schedule.type'
+import { ITEM_SLOT, type PartRoleKind } from '~/features/events/server/allowed-roles.server'
+import { templateItemsOf } from '~/features/events/server/item-projection.server'
 import type { CreatedProgramme, CreationContext } from '~/features/events/server/programme-creation.server'
 import { eventScheduleId } from '~/features/events/server/schedules.server'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
@@ -69,12 +71,18 @@ export async function giveProgramme(
     template.parts.length > 0 ? await eventScheduleId(db, eventId, ScheduleKind.Programme, congregationId) : null
   const dutiesId =
     template.serviceParts.length > 0 ? await eventScheduleId(db, eventId, ScheduleKind.Duty, congregationId) : null
+  // Each item points at the template item its template part or service is mirrored into (plan T12).
+  const templates = await templateItemsOf(
+    db,
+    { partIds: template.parts.map(part => part.id), serviceIds: template.serviceParts.map(service => service.id) },
+    congregationId,
+  )
   for (const part of template.parts) {
-    const assignment = await db.eventPart.create({
+    const assignment = await db.item.create({
       data: {
         eventId: event.id,
         scheduleId: programmeId,
-        partId: part.id,
+        templateItemId: templates.parts.get(part.id) ?? null,
         name: part.name,
         section: part.section,
         track: part.track,
@@ -91,11 +99,11 @@ export async function giveProgramme(
       },
     })
     if (part.allowedRoles.length > 0) {
-      await db.eventPartAllowedRole.createMany({
+      await db.itemAllowedRole.createMany({
         data: part.allowedRoles.map(role => ({
-          eventPartId: assignment.id,
+          itemId: assignment.id,
           roleId: role.roleId,
-          asKind: role.asKind,
+          slot: ITEM_SLOT[role.asKind as PartRoleKind],
           congregationId,
         })),
         skipDuplicates: true,
@@ -104,20 +112,21 @@ export async function giveProgramme(
   }
 
   for (const service of template.serviceParts) {
-    const assignment = await db.eventServicePart.create({
+    const assignment = await db.item.create({
       data: {
         eventId: event.id,
         scheduleId: dutiesId,
-        servicePartId: service.id,
+        templateItemId: templates.services.get(service.id) ?? null,
         name: service.name,
         order: service.order,
         congregationId,
       },
     })
     if (service.allowedRoles.length > 0) {
-      await db.eventServicePartAllowedRole.createMany({
+      await db.itemAllowedRole.createMany({
         data: service.allowedRoles.map(role => ({
-          eventServicePartId: assignment.id,
+          itemId: assignment.id,
+          slot: 'main',
           roleId: role.roleId,
           congregationId,
         })),

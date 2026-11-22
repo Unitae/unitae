@@ -15,6 +15,9 @@ const adapter = new PrismaPg({
 })
 const testDb = new PrismaClient({ adapter })
 
+// An item's allowed roles name their slot: 'main' is the speaker, 'second' the reader.
+const ASK_KIND: Record<string, string> = { main: 'speaker', second: 'reader' }
+
 type Tx = Parameters<Parameters<typeof testDb.$transaction>[0]>[0]
 
 function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promise<T> {
@@ -326,19 +329,22 @@ describe('createProgrammeOnDay copies allowed roles (integration)', () => {
     )
 
     const partAllowed = await withScope(primaryCongId, tx =>
-      tx.eventPartAllowedRole.findMany({
-        where: { eventPart: { eventId: event.id } },
-        orderBy: { asKind: 'asc' },
+      tx.itemAllowedRole.findMany({
+        where: { item: { eventId: event.id, schedule: { kind: 'programme' } } },
+        orderBy: { slot: 'asc' },
       }),
     )
-    expect(partAllowed.map(r => ({ asKind: r.asKind, roleId: r.roleId }))).toEqual([
+    const byKind = partAllowed
+      .map(r => ({ asKind: ASK_KIND[r.slot], roleId: r.roleId }))
+      .sort((a, b) => a.asKind.localeCompare(b.asKind))
+    expect(byKind).toEqual([
       { asKind: 'reader', roleId: publisherRoleId },
       { asKind: 'speaker', roleId: elderRoleId },
     ])
 
     const serviceAllowed = await withScope(primaryCongId, tx =>
-      tx.eventServicePartAllowedRole.findMany({
-        where: { eventServicePart: { eventId: event.id } },
+      tx.itemAllowedRole.findMany({
+        where: { item: { eventId: event.id, schedule: { kind: 'duty' } } },
       }),
     )
     expect(serviceAllowed.map(r => r.roleId)).toEqual([elderRoleId])
@@ -362,12 +368,12 @@ describe('applyTemplateToEvent copies allowed roles (integration)', () => {
     })
 
     const partAllowed = await withScope(primaryCongId, tx =>
-      tx.eventPartAllowedRole.findMany({
-        where: { eventPart: { eventId: freeform.id } },
-        orderBy: { asKind: 'asc' },
+      tx.itemAllowedRole.findMany({
+        where: { item: { eventId: freeform.id, schedule: { kind: 'programme' } } },
+        orderBy: { slot: 'asc' },
       }),
     )
-    expect(partAllowed.map(r => r.asKind).sort()).toEqual(['reader', 'speaker'])
+    expect(partAllowed.map(r => ASK_KIND[r.slot]).sort()).toEqual(['reader', 'speaker'])
   })
 })
 
@@ -382,7 +388,7 @@ describe('updatePartAssignment + updateServicePartAssignment update allowed role
     )
 
     const partAssignment = await withScope(primaryCongId, tx =>
-      tx.eventPart.findFirst({ where: { eventId: event.id } }),
+      tx.item.findFirst({ where: { eventId: event.id, schedule: { kind: 'programme' } } }),
     )
     if (!partAssignment) throw new Error('part assignment missing')
 
@@ -406,13 +412,13 @@ describe('updatePartAssignment + updateServicePartAssignment update allowed role
     )
 
     const after = await withScope(primaryCongId, tx =>
-      tx.eventPartAllowedRole.findMany({
-        where: { eventPartId: partAssignment.id },
-        orderBy: { asKind: 'asc' },
+      tx.itemAllowedRole.findMany({
+        where: { itemId: partAssignment.id },
+        orderBy: { slot: 'asc' },
       }),
     )
     expect(after).toEqual([
-      { eventPartId: partAssignment.id, roleId: publisherRoleId, asKind: 'speaker', congregationId: primaryCongId },
+      { itemId: partAssignment.id, roleId: publisherRoleId, slot: 'main', congregationId: primaryCongId },
     ])
   })
 
@@ -426,7 +432,7 @@ describe('updatePartAssignment + updateServicePartAssignment update allowed role
     )
 
     const serviceAssignment = await withScope(primaryCongId, tx =>
-      tx.eventServicePart.findFirst({ where: { eventId: event.id } }),
+      tx.item.findFirst({ where: { eventId: event.id, schedule: { kind: 'duty' } } }),
     )
     if (!serviceAssignment) throw new Error('service assignment missing')
 
@@ -441,7 +447,7 @@ describe('updatePartAssignment + updateServicePartAssignment update allowed role
     )
 
     const after = await withScope(primaryCongId, tx =>
-      tx.eventServicePartAllowedRole.findMany({ where: { eventServicePartId: serviceAssignment.id } }),
+      tx.itemAllowedRole.findMany({ where: { itemId: serviceAssignment.id } }),
     )
     expect(after).toEqual([])
   })

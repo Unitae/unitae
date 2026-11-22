@@ -15,6 +15,7 @@ vi.mock('~/shared/infra/db.server', () => ({
 
 const {
   assignmentBelongsToEvent,
+  resolveEventItem,
   canEditEvent,
   getResponsibleTemplateIds,
   canManageAnyProgram,
@@ -358,11 +359,12 @@ describe('assignmentBelongsToEvent', () => {
     const result = await assignmentBelongsToEvent(db, 'service', ASSIGNMENT_ID, EVENT_ID, CONGREGATION_ID)
 
     expect(result).toBe(true)
-    // The id its routes carry is the old row's (plan T12).
+    // The item's own id, among the duties: a part's id asked as a duty is not one.
     expect(vi.mocked(db.item.findFirst).mock.calls[0][0]?.where).toEqual({
-      legacyServiceId: ASSIGNMENT_ID,
+      id: ASSIGNMENT_ID,
       eventId: EVENT_ID,
       congregationId: CONGREGATION_ID,
+      ...{ AND: [{ schedule: { kind: 'duty' } }] },
     })
   })
 
@@ -382,7 +384,10 @@ describe('assignmentBelongsToEvent', () => {
     const result = await assignmentBelongsToEvent(db, 'part', ASSIGNMENT_ID, EVENT_ID, CONGREGATION_ID)
 
     expect(result).toBe(true)
-    expect(vi.mocked(db.item.findFirst).mock.calls[0][0]?.where).toMatchObject({ legacyPartId: ASSIGNMENT_ID })
+    expect(vi.mocked(db.item.findFirst).mock.calls[0][0]?.where).toMatchObject({
+      id: ASSIGNMENT_ID,
+      ...{ AND: [{ schedule: { kind: 'programme' } }] },
+    })
   })
 
   // `Number(url.searchParams.get('id'))` yields NaN on a missing param, which
@@ -392,5 +397,36 @@ describe('assignmentBelongsToEvent', () => {
 
     expect(result).toBe(false)
     expect(db.item.findFirst).not.toHaveBeenCalled()
+  })
+})
+
+// The id a request names, read and checked in one call (plan T12, 5i-b): an item id under the new name, or the old row's
+// under the old name, translated through its legacy key, and only when it is an item of that kind on that event.
+describe('resolveEventItem', () => {
+  const EVENT = 31
+  // Item 900 is a part on the event, mirroring old part 12; nothing else exists.
+  function answer(where: Record<string, unknown>) {
+    const kindOf = (where.AND as { schedule: { kind: string } }[] | undefined)?.[0]?.schedule.kind
+    if ('legacyPartId' in where) return where.legacyPartId === 12 ? { id: 900 } : null
+    if ('legacyServiceId' in where) return null
+    return where.id === 900 && where.eventId === EVENT && kindOf === 'programme' ? { id: 900 } : null
+  }
+
+  beforeEach(() => {
+    vi.mocked(db.item.findFirst).mockImplementation((async ({ where }: { where: Record<string, unknown> }) =>
+      answer(where)) as never)
+  })
+
+  it('takes an item of the kind asked on the event, by its id or its old row’s', async () => {
+    expect(await resolveEventItem(db, { itemId: '900', legacyId: null }, 'part', EVENT, CONGREGATION_ID)).toBe(900)
+    expect(await resolveEventItem(db, { itemId: null, legacyId: '12' }, 'part', EVENT, CONGREGATION_ID)).toBe(900)
+  })
+
+  it('refuses the same item asked as the other kind, on another event, or an id naming nothing', async () => {
+    expect(await resolveEventItem(db, { itemId: '900', legacyId: null }, 'service', EVENT, CONGREGATION_ID)).toBeNull()
+    expect(await resolveEventItem(db, { itemId: null, legacyId: '12' }, 'service', EVENT, CONGREGATION_ID)).toBeNull()
+    expect(await resolveEventItem(db, { itemId: '900', legacyId: null }, 'part', 32, CONGREGATION_ID)).toBeNull()
+    expect(await resolveEventItem(db, { itemId: null, legacyId: null }, 'part', EVENT, CONGREGATION_ID)).toBeNull()
+    expect(await resolveEventItem(db, { itemId: 'x', legacyId: '12' }, 'part', EVENT, CONGREGATION_ID)).toBeNull()
   })
 })

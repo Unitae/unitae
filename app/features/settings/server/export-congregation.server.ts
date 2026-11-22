@@ -1,5 +1,6 @@
 import type { Job } from 'bullmq'
 import JsZip from 'jszip'
+import { kindOfSlot, PART_ITEMS, SERVICE_ITEMS } from '~/features/events/index.server'
 import { EXPORT_PROGRESS_CAP } from '~/shared/constants/limits'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { type TransactionClient, withScope } from '~/shared/infra/db.server'
@@ -665,10 +666,14 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
           orderBy: [{ eventId: 'asc' }, { order: 'asc' }, { id: 'asc' }],
         }),
     },
+    // The four item files keep their shape (plan T12): filled from items now that the writers write them, an item's
+    // id standing for the old row's and its template item's legacy key for the template part or service. An importer
+    // of any supported version reads them as before.
     {
       name: 'programme-part-assignments',
-      export: () =>
-        db.eventPart.findMany({
+      export: async () => {
+        const items = await db.item.findMany({
+          where: PART_ITEMS,
           select: {
             id: true,
             topic: true,
@@ -681,32 +686,49 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
             order: true,
             durationMin: true,
             eventId: true,
-            partId: true,
             presetId: true,
             assigneeId: true,
             assistantId: true,
             allowExternalSpeaker: true,
             externalSpeakerId: true,
             scheduleId: true,
+            templateItem: { select: { legacyPartId: true } },
           },
-        }),
+          orderBy: { id: 'asc' },
+        })
+        // In the file's own key order: `partId` after `eventId`, as the old rows' columns came.
+        return items.map(({ templateItem, eventId, presetId, ...item }) => {
+          const { assigneeId, assistantId, allowExternalSpeaker, externalSpeakerId, scheduleId, ...head } = item
+          return {
+            ...head,
+            eventId,
+            partId: templateItem?.legacyPartId ?? null,
+            presetId,
+            assigneeId,
+            assistantId,
+            allowExternalSpeaker,
+            externalSpeakerId,
+            scheduleId,
+          }
+        })
+      },
     },
     {
       name: 'programme-part-assignment-allowed-roles',
-      // Renaming `eventPartId` back to `assignmentId` on write keeps the NDJSON
-      // format stable for pre-2.1 importers — the column was renamed in the
-      // 20260720400000 migration, but the archive schema stays frozen.
+      // `assignmentId` and `asKind` are the archive's frozen names: the item and its slot read back as the old kind.
       export: async () => {
-        const rows = await db.eventPartAllowedRole.findMany({
-          select: { eventPartId: true, roleId: true, asKind: true },
+        const rows = await db.itemAllowedRole.findMany({
+          where: { item: PART_ITEMS },
+          select: { itemId: true, roleId: true, slot: true },
         })
-        return rows.map(r => ({ assignmentId: r.eventPartId, roleId: r.roleId, asKind: r.asKind }))
+        return rows.map(r => ({ assignmentId: r.itemId, roleId: r.roleId, asKind: kindOfSlot(r.slot) }))
       },
     },
     {
       name: 'programme-service-role-assignments',
-      export: () =>
-        db.eventServicePart.findMany({
+      export: async () => {
+        const items = await db.item.findMany({
+          where: SERVICE_ITEMS,
           select: {
             id: true,
             note: true,
@@ -714,23 +736,30 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
             name: true,
             order: true,
             eventId: true,
-            servicePartId: true,
             presetId: true,
             assigneeId: true,
             scheduleId: true,
+            templateItem: { select: { legacyServiceId: true } },
           },
           orderBy: [{ eventId: 'asc' }, { order: 'asc' }, { id: 'asc' }],
-        }),
+        })
+        return items.map(({ templateItem, presetId, assigneeId, scheduleId, ...head }) => ({
+          ...head,
+          servicePartId: templateItem?.legacyServiceId ?? null,
+          presetId,
+          assigneeId,
+          scheduleId,
+        }))
+      },
     },
     {
       name: 'programme-service-role-assignment-allowed-roles',
-      // See comment on programme-part-assignment-allowed-roles above — archive
-      // field name stays `assignmentId` even after the column rename.
       export: async () => {
-        const rows = await db.eventServicePartAllowedRole.findMany({
-          select: { eventServicePartId: true, roleId: true },
+        const rows = await db.itemAllowedRole.findMany({
+          where: { item: SERVICE_ITEMS },
+          select: { itemId: true, roleId: true },
         })
-        return rows.map(r => ({ assignmentId: r.eventServicePartId, roleId: r.roleId }))
+        return rows.map(r => ({ assignmentId: r.itemId, roleId: r.roleId }))
       },
     },
     {

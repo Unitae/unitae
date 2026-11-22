@@ -54,7 +54,7 @@ export function AssignServiceEditor({
       action={`/programs/events/${eventId}/assign-service`}
       className={cn('flex flex-col gap-2.5', className)}
     >
-      <input type="hidden" name="assignmentId" value={service.id} />
+      <input type="hidden" name="itemId" value={service.id} />
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="serviceAssigneeId">{m.programs_assign_service_publisher_label()}</Label>
         <PersonDropdown

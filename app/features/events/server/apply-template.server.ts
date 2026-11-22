@@ -1,4 +1,6 @@
 import { ScheduleKind } from '~/features/events/model/schedule.type'
+import { ITEM_SLOT, type PartRoleKind } from '~/features/events/server/allowed-roles.server'
+import { templateItemsOf } from '~/features/events/server/item-projection.server'
 import { syncTemplateScheduleTemplates } from '~/features/events/server/schedule-templates.server'
 import { alignEventSchedules, eventScheduleId } from '~/features/events/server/schedules.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -39,12 +41,18 @@ export async function applyTemplateToEvent(
   const dutiesId =
     template.serviceParts.length > 0 ? await eventScheduleId(db, eventId, ScheduleKind.Duty, congregationId) : null
 
+  // Each item points at the template item its template part or service is mirrored into (plan T12).
+  const templates = await templateItemsOf(
+    db,
+    { partIds: template.parts.map(part => part.id), serviceIds: template.serviceParts.map(role => role.id) },
+    congregationId,
+  )
   for (const part of template.parts) {
-    const assignment = await db.eventPart.create({
+    const assignment = await db.item.create({
       data: {
         eventId,
         scheduleId: programmeId,
-        partId: part.id,
+        templateItemId: templates.parts.get(part.id) ?? null,
         name: part.name,
         section: part.section,
         track: part.track,
@@ -58,11 +66,11 @@ export async function applyTemplateToEvent(
       },
     })
     if (part.allowedRoles.length > 0) {
-      await db.eventPartAllowedRole.createMany({
+      await db.itemAllowedRole.createMany({
         data: part.allowedRoles.map(r => ({
-          eventPartId: assignment.id,
+          itemId: assignment.id,
           roleId: r.roleId,
-          asKind: r.asKind,
+          slot: ITEM_SLOT[r.asKind as PartRoleKind],
           congregationId,
         })),
         skipDuplicates: true,
@@ -71,11 +79,11 @@ export async function applyTemplateToEvent(
   }
 
   for (const role of template.serviceParts) {
-    const assignment = await db.eventServicePart.create({
+    const assignment = await db.item.create({
       data: {
         eventId,
         scheduleId: dutiesId,
-        servicePartId: role.id,
+        templateItemId: templates.services.get(role.id) ?? null,
         name: role.name,
         presetId: role.presetId,
         order: role.order,
@@ -83,9 +91,10 @@ export async function applyTemplateToEvent(
       },
     })
     if (role.allowedRoles.length > 0) {
-      await db.eventServicePartAllowedRole.createMany({
+      await db.itemAllowedRole.createMany({
         data: role.allowedRoles.map(r => ({
-          eventServicePartId: assignment.id,
+          itemId: assignment.id,
+          slot: 'main',
           roleId: r.roleId,
           congregationId,
         })),

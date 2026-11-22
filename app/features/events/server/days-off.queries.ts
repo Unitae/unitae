@@ -55,7 +55,7 @@ export async function listMyAbsences(
 /** An assignment flagged as falling during its holder's absence, with what the reader needs to reach it. */
 export interface AbsenceAssignment {
   kind: AssignKind
-  /** The id publicItemId hands out (today the old part's or service's), with its kind beside it. */
+  /** The item's id (publicItemId), with its kind beside it for the `?item=` key. */
   id: number
   name: string
   eventId: number
@@ -130,8 +130,7 @@ export async function listCongregationAbsences(
         OR: [{ assigneeId: { in: memberIds } }, { assistantId: { in: memberIds } }],
       },
       select: {
-        legacyPartId: true,
-        legacyServiceId: true,
+        id: true,
         name: true,
         assigneeId: true,
         assistantId: true,
@@ -142,7 +141,7 @@ export async function listCongregationAbsences(
     }),
     db.item.findMany({
       where: { ...SERVICE_ITEMS, congregationId, hasConflict: true, event: span, assigneeId: { in: memberIds } },
-      select: { legacyPartId: true, legacyServiceId: true, name: true, assigneeId: true, event, schedule },
+      select: { id: true, name: true, assigneeId: true, event, schedule },
       orderBy: SERVICE_ITEMS_BY_DATE,
     }),
   ])

@@ -417,8 +417,8 @@ async function fillParts(
   speakerId: number | null,
 ) {
   const speakers = ['paul', 'jean', 'luc', 'pierre'].map(person)
-  const parts = await db.eventPart.findMany({
-    where: { eventId, congregationId },
+  const parts = await db.item.findMany({
+    where: { eventId, congregationId, schedule: { kind: 'programme' } },
     orderBy: [{ order: 'asc' }, { id: 'asc' }],
     select: { id: true, allowExternalSpeaker: true },
   })
@@ -464,9 +464,10 @@ async function fillServices(
   eventId: number,
   person: (key: string) => number,
 ) {
-  const services = await db.eventServicePart.findMany({
-    where: { eventId, congregationId },
+  const services = await db.item.findMany({
+    where: { eventId, congregationId, schedule: { kind: 'duty' } },
     select: { id: true, name: true },
+    orderBy: { id: 'asc' },
   })
   if (services.length === 0) throw new Error(`the fixture found no service on event ${eventId}`)
   for (const service of services) {
@@ -479,7 +480,9 @@ async function fillServices(
 
 /**
  * Labels every part and service of the fixture's events: its meeting's label and its order for a part
- * (`midweek-2/part-3`), its name for a service (`midweek-2/service-Audio-vidéo`).
+ * (`midweek-2/part-3`), its name for a service (`midweek-2/service-Audio-vidéo`). Keyed by the item's id, the one the
+ * app hands out since the writers moved to items (plan T12, 5i-b); the `eventPart` / `eventServicePart` namespaces stay,
+ * so the reference files read as before.
  */
 async function labelItems(fixture: ReferenceCongregation) {
   const { congregationId, labels } = fixture
@@ -489,13 +492,13 @@ async function labelItems(fixture: ReferenceCongregation) {
     return name
   }
   await withScope(congregationId, async db => {
-    const parts = await db.eventPart.findMany({
-      where: { congregationId },
+    const parts = await db.item.findMany({
+      where: { congregationId, schedule: { kind: 'programme' } },
       select: { id: true, eventId: true, order: true },
     })
     for (const part of parts) labels.set(`eventPart:${part.id}`, `${event(part.eventId)}/part-${part.order}`)
-    const services = await db.eventServicePart.findMany({
-      where: { congregationId },
+    const services = await db.item.findMany({
+      where: { congregationId, schedule: { kind: 'duty' } },
       select: { id: true, eventId: true, name: true },
     })
     for (const service of services)

@@ -17,6 +17,7 @@ const ENTITY_LABEL: Record<string, () => string> = {
   EventServicePart: m.audit_log_entity_event_service,
   EventTemplate: m.audit_log_entity_event_template,
   ExternalSpeaker: m.audit_log_entity_external_speaker,
+  Item: m.audit_log_entity_item,
   Member: m.audit_log_entity_member,
   PartPreset: m.audit_log_entity_part_preset,
   PioneerEnrolment: m.audit_log_entity_pioneer_enrolment,

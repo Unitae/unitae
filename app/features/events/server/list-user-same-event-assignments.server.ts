@@ -17,14 +17,13 @@ export async function listUserSameEventAssignments(
   db: TransactionClient,
   { userId, eventId, congregationId, excludePartAssignmentId, excludeServiceAssignmentId }: Options,
 ): Promise<SameEventAssignment[]> {
-  // Both exclusions go by the id the routes carry, the old row's (plan T12).
   const parts = await db.item.findMany({
     where: {
       ...PART_ITEMS,
       eventId,
       congregationId,
       OR: [{ assigneeId: userId }, { assistantId: userId }],
-      ...(excludePartAssignmentId != null && { NOT: { legacyPartId: excludePartAssignmentId } }),
+      ...(excludePartAssignmentId != null && { NOT: { id: excludePartAssignmentId } }),
     },
     select: { name: true, section: true },
   })
@@ -35,7 +34,7 @@ export async function listUserSameEventAssignments(
       eventId,
       congregationId,
       assigneeId: userId,
-      ...(excludeServiceAssignmentId != null && { NOT: { legacyServiceId: excludeServiceAssignmentId } }),
+      ...(excludeServiceAssignmentId != null && { NOT: { id: excludeServiceAssignmentId } }),
     },
     select: { name: true },
   })

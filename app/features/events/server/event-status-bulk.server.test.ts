@@ -16,6 +16,7 @@ vi.mock('~/features/events/server/schedule-templates.server', () => ({
 vi.mock('~/shared/infra/db.server', () => {
   const unscopedDb = {
     event: { findFirst: vi.fn(), update: vi.fn() },
+    item: { findMany: vi.fn() },
     notificationEvent: { updateMany: vi.fn() },
     userAccount: { findFirst: vi.fn() },
   }
@@ -49,13 +50,35 @@ const draftEvent = {
   status: 'draft',
   startDate: new Date(2026, 3, 14),
   templateId: 7,
-  eventParts: [] as unknown[],
-  eventServiceParts: [] as unknown[],
 }
 const releasedEvent = { ...draftEvent, status: 'released' }
 
+type ItemFixture = { parts?: unknown[]; services?: unknown[]; legacy?: unknown[] }
+type ItemArgs = {
+  where: { eventId?: number; AND?: { schedule: { kind: string } }[] }
+  select?: Record<string, boolean>
+}
+
+/**
+ * Feeds the item reads of the event flow, per event. releaseEvent asks for the programme's parts, then the duties (kind
+ * in `AND`); unreleaseEvent asks for every item id of the event (no kind); the notice cancel reads the legacy keys.
+ */
+function mockItems(byEvent: Record<number, ItemFixture> = {}) {
+  vi.mocked(db.item.findMany).mockImplementation(((args: ItemArgs) => {
+    if (args.select && 'legacyPartId' in args.select) {
+      return Object.values(byEvent).flatMap(entry => entry.legacy ?? [])
+    }
+    const entry = byEvent[args.where.eventId ?? -1] ?? {}
+    const kind = args.where.AND?.[0]?.schedule?.kind
+    if (kind === 'programme') return entry.parts ?? []
+    if (kind === 'duty') return entry.services ?? []
+    return [...(entry.parts ?? []), ...(entry.services ?? [])]
+  }) as never)
+}
+
 beforeEach(() => {
   vi.resetAllMocks()
+  mockItems()
 })
 
 describe('bulkReleaseEvents (per-event scope + post-tx notifications)', () => {
@@ -65,16 +88,12 @@ describe('bulkReleaseEvents (per-event scope + post-tx notifications)', () => {
     vi.mocked(db.event.findFirst).mockImplementation(((args: any) => {
       const id = args?.where?.id as number
       if (id === 10) return Promise.resolve(null)
-      if (id === 20) {
-        return Promise.resolve({
-          ...draftEvent,
-          id: 20,
-          eventParts: [{ id: 100, name: 'Part', hasConflict: true, assigneeId: 5, assistantId: null }],
-          eventServiceParts: [],
-        })
-      }
+      if (id === 20) return Promise.resolve({ ...draftEvent, id: 20 })
       return Promise.resolve({ ...draftEvent, id: 30 })
     }) as never)
+    mockItems({
+      20: { parts: [{ id: 100, name: 'Part', hasConflict: true, assigneeId: 5, assistantId: null }] },
+    })
     vi.mocked(db.event.update).mockResolvedValue({ ...releasedEvent, id: 30 } as never)
 
     const result = await bulkReleaseEvents([10, 20, 30], 1, 5, nctx)
@@ -124,11 +143,8 @@ describe('bulkReleaseEvents (per-event scope + post-tx notifications)', () => {
   // that after a successful release, notifyAssignment is invoked for every
   // computed target.
   it('fires notifyAssignment for each target of every released event', async () => {
-    vi.mocked(db.event.findFirst).mockResolvedValue({
-      ...draftEvent,
-      eventParts: [{ id: 100, name: 'Perle', hasConflict: false, assigneeId: 5, assistantId: null }],
-      eventServiceParts: [],
-    } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue({ ...draftEvent } as never)
+    mockItems({ 42: { parts: [{ id: 100, name: 'Perle', hasConflict: false, assigneeId: 5, assistantId: null }] } })
     vi.mocked(db.event.update).mockResolvedValue(releasedEvent as never)
 
     await bulkReleaseEvents([42], 1, 5, nctx)
@@ -150,7 +166,7 @@ describe('bulkUnreleaseEvents (per-event scope)', () => {
     vi.mocked(db.event.findFirst).mockImplementation(((args: any) => {
       const id = args?.where?.id as number
       if (id === 10) return Promise.resolve(null)
-      return Promise.resolve({ ...releasedEvent, id, eventParts: [], eventServiceParts: [] })
+      return Promise.resolve({ ...releasedEvent, id })
     }) as never)
     vi.mocked(db.event.update).mockResolvedValue(draftEvent as never)
 
@@ -163,11 +179,7 @@ describe('bulkUnreleaseEvents (per-event scope)', () => {
 
   it('lands per-event withScope failures in the `failed` bucket without aborting the batch', async () => {
     const { withScope } = await import('~/shared/infra/db.server')
-    vi.mocked(db.event.findFirst).mockResolvedValue({
-      ...releasedEvent,
-      eventParts: [],
-      eventServiceParts: [],
-    } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue(releasedEvent as never)
     vi.mocked(db.event.update).mockResolvedValue(draftEvent as never)
     vi.mocked(withScope)
       .mockImplementationOnce(((_cid: number, fn: (tx: unknown) => unknown) => fn(db)) as never)

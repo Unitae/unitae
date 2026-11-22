@@ -111,7 +111,7 @@ export function AssignPartEditor({
       action={`/programs/events/${eventId}/assign-part`}
       className={cn('flex flex-col gap-[18px]', className)}
     >
-      <input type="hidden" name="assignmentId" value={part.id} />
+      <input type="hidden" name="itemId" value={part.id} />
 
       <div className="grid grid-cols-[1fr_6.5rem] gap-2.5">
         <div className="flex min-w-0 flex-col gap-1.5">

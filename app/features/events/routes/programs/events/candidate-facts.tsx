@@ -1,4 +1,5 @@
 import { mayReadSlotFacts } from '~/features/events/server/events-auth.server'
+import { PART_ITEMS, SERVICE_ITEMS } from '~/features/events/server/item-projection.server'
 import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
 import { listSlotCandidateFacts, type SlotTarget } from '~/features/events/server/slot-candidate-facts.server'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -22,8 +23,10 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
   const currentUser = context.get(currentAccountContext)
   const eventId = requireParamId(params.eventId, '/programs')
   const url = new URL(request.url)
-  const partAssignmentId = parseOptionalId(url.searchParams.get('partAssignmentId'))
-  const serviceAssignmentId = parseOptionalId(url.searchParams.get('serviceAssignmentId'))
+  // Item ids, under names of their own (plan T12): a page the previous image rendered asks under the old names and
+  // reads nothing, never another item's facts.
+  const partAssignmentId = parseOptionalId(url.searchParams.get('partItemId'))
+  const serviceAssignmentId = parseOptionalId(url.searchParams.get('serviceItemId'))
   const slot = url.searchParams.get('slot') === 'assistant' ? 'assistant' : 'assignee'
 
   // One slot per request: the check and the data must be about the same one.
@@ -43,16 +46,15 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
 
     let target: SlotTarget
     if (kind === 'part') {
-      // The slot by the id its routes carry, the old row's (plan T12): its item mirrors it.
       const part = await db.item.findFirst({
-        where: { legacyPartId: assignmentId, congregationId },
+        where: { id: assignmentId, congregationId, ...PART_ITEMS },
         select: { name: true, section: true },
       })
       if (!part) return Response.json(null, { status: 404 })
       target = { kind, assignmentId, partName: part.name, partSection: part.section, slot }
     } else {
       const service = await db.item.findFirst({
-        where: { legacyServiceId: assignmentId, congregationId },
+        where: { id: assignmentId, congregationId, ...SERVICE_ITEMS },
         select: { name: true },
       })
       if (!service) return Response.json(null, { status: 404 })

@@ -19,6 +19,7 @@ vi.mock('~/shared/infra/logger.server', () => ({
 }))
 
 vi.mock('~/features/events/server/allowed-roles.server', () => ({
+  ITEM_SLOT: { speaker: 'main', reader: 'second' },
   setPartAssignmentAllowedRoles: vi.fn().mockResolvedValue({ added: [], removed: [] }),
   setServicePartAssignmentAllowedRoles: vi.fn().mockResolvedValue({ added: [], removed: [] }),
 }))
@@ -36,6 +37,7 @@ vi.mock('~/shared/domain/audit.server', () => ({
   },
 }))
 
+const { eventScheduleId } = await import('~/features/events/server/schedules.server')
 const { applyTemplateToEvent } = await import('./apply-template.server')
 
 const mockDb = {
@@ -46,19 +48,13 @@ const mockDb = {
     update: vi.fn(),
     updateMany: vi.fn(),
   },
-  eventPart: {
-    create: vi.fn(),
-    delete: vi.fn(),
-    deleteMany: vi.fn(),
-    findMany: vi.fn(),
-    update: vi.fn(),
-  },
-  eventServicePart: {
+  item: {
     aggregate: vi.fn(),
     create: vi.fn(),
     delete: vi.fn(),
     deleteMany: vi.fn(),
     findMany: vi.fn(),
+    update: vi.fn(),
   },
   attendance: {
     findMany: vi.fn(),
@@ -67,11 +63,11 @@ const mockDb = {
     updateMany: vi.fn(),
   },
   $queryRaw: vi.fn(),
-  eventPartAllowedRole: {
+  itemAllowedRole: {
     createMany: vi.fn(),
   },
-  eventServicePartAllowedRole: {
-    createMany: vi.fn(),
+  templateItem: {
+    findMany: vi.fn(),
   },
   eventTemplate: {
     findFirst: vi.fn(),
@@ -86,11 +82,11 @@ beforeEach(() => {
   vi.mocked(allowedRoles.setServicePartAssignmentAllowedRoles).mockResolvedValue({ added: [], removed: [] })
   mockDb.attendance.findMany.mockResolvedValue([])
   mockDb.notificationEvent.updateMany.mockResolvedValue({ count: 0 })
-  mockDb.eventServicePart.aggregate.mockResolvedValue({ _max: { order: null } })
-  mockDb.eventPart.deleteMany.mockResolvedValue({ count: 0 })
-  mockDb.eventServicePart.deleteMany.mockResolvedValue({ count: 0 })
-  mockDb.eventPart.findMany.mockResolvedValue([])
-  mockDb.eventServicePart.findMany.mockResolvedValue([])
+  vi.mocked(eventScheduleId).mockImplementation(async (_db, _eventId, kind) => (kind === 'programme' ? 77 : 78))
+  mockDb.templateItem.findMany.mockResolvedValue([])
+  mockDb.item.aggregate.mockResolvedValue({ _max: { order: null } })
+  mockDb.item.deleteMany.mockResolvedValue({ count: 0 })
+  mockDb.item.findMany.mockResolvedValue([])
 })
 
 describe('applyTemplateToEvent', () => {
@@ -135,8 +131,15 @@ describe('applyTemplateToEvent', () => {
     }
     mockDb.eventTemplate.findFirst.mockResolvedValue(template)
     mockDb.event.update.mockResolvedValue({})
-    mockDb.eventPart.create.mockResolvedValue({ id: 999 })
-    mockDb.eventServicePart.create.mockResolvedValue({ id: 998 })
+    mockDb.templateItem.findMany.mockResolvedValue([
+      { id: 900, legacyPartId: 10, legacyServiceId: null },
+      { id: 901, legacyPartId: 11, legacyServiceId: null },
+      { id: 902, legacyPartId: null, legacyServiceId: 20 },
+    ])
+    mockDb.item.create
+      .mockResolvedValueOnce({ id: 999 })
+      .mockResolvedValueOnce({ id: 1000 })
+      .mockResolvedValueOnce({ id: 998 })
 
     const result = await applyTemplateToEvent(mockDb as never, 1, 5, 10, 42)
 
@@ -145,11 +148,13 @@ describe('applyTemplateToEvent', () => {
       where: { id_congregationId: { id: 1, congregationId: 10 } },
       data: { templateId: 5 },
     })
-    expect(mockDb.eventPart.create).toHaveBeenCalledTimes(2)
-    expect(mockDb.eventPart.create).toHaveBeenCalledWith({
+    // Two parts and one service.
+    expect(mockDb.item.create).toHaveBeenCalledTimes(3)
+    expect(mockDb.item.create).toHaveBeenCalledWith({
       data: {
         eventId: 1,
-        partId: 10,
+        scheduleId: 77,
+        templateItemId: 900,
         name: 'Cantique',
         section: 'intro',
         track: 'A',
@@ -160,8 +165,8 @@ describe('applyTemplateToEvent', () => {
         congregationId: 10,
       },
     })
-    expect(mockDb.eventServicePart.create).toHaveBeenCalledWith({
-      data: { eventId: 1, servicePartId: 20, name: 'Son', congregationId: 10 },
+    expect(mockDb.item.create).toHaveBeenCalledWith({
+      data: { eventId: 1, scheduleId: 78, templateItemId: 902, name: 'Son', congregationId: 10 },
     })
   })
 
@@ -203,11 +208,11 @@ describe('applyTemplateToEvent', () => {
     }
     mockDb.eventTemplate.findFirst.mockResolvedValue(template)
     mockDb.event.update.mockResolvedValue({})
-    mockDb.eventPart.create.mockResolvedValue({ id: 999 })
+    mockDb.item.create.mockResolvedValue({ id: 999 })
 
     await applyTemplateToEvent(mockDb as never, 1, 5, 10, 42)
 
-    const calls = mockDb.eventPart.create.mock.calls
+    const calls = mockDb.item.create.mock.calls
     expect(calls.length).toBe(2)
     expect(calls[0][0].data).toMatchObject({ speakerLabel: 'STUDENT-SENTINEL-P1', readerLabel: null })
     expect(calls[1][0].data).toMatchObject({
@@ -256,11 +261,11 @@ describe('applyTemplateToEvent', () => {
     }
     mockDb.eventTemplate.findFirst.mockResolvedValue(template)
     mockDb.event.update.mockResolvedValue({})
-    mockDb.eventPart.create.mockResolvedValue({ id: 999 })
+    mockDb.item.create.mockResolvedValue({ id: 999 })
 
     await applyTemplateToEvent(mockDb as never, 1, 5, 10, 42)
 
-    const calls = mockDb.eventPart.create.mock.calls
+    const calls = mockDb.item.create.mock.calls
     expect(calls[0][0].data.presetId).toBe(7101)
     expect(calls[1][0].data.presetId).toBeNull()
   })
@@ -290,25 +295,23 @@ describe('applyTemplateToEvent', () => {
     }
     mockDb.eventTemplate.findFirst.mockResolvedValue(template)
     mockDb.event.update.mockResolvedValue({})
-    mockDb.eventPart.create.mockResolvedValue({ id: 555 })
-    mockDb.eventServicePart.create.mockResolvedValue({ id: 666 })
-    mockDb.eventPartAllowedRole.createMany.mockResolvedValue({ count: 3 })
-    mockDb.eventServicePartAllowedRole.createMany.mockResolvedValue({ count: 2 })
+    mockDb.item.create.mockResolvedValueOnce({ id: 555 }).mockResolvedValueOnce({ id: 666 })
+    mockDb.itemAllowedRole.createMany.mockResolvedValue({ count: 3 })
 
     await applyTemplateToEvent(mockDb as never, 1, 5, 10, 42)
 
-    expect(mockDb.eventPartAllowedRole.createMany).toHaveBeenCalledWith({
+    expect(mockDb.itemAllowedRole.createMany).toHaveBeenCalledWith({
       data: [
-        { eventPartId: 555, roleId: 100, asKind: 'speaker', congregationId: 10 },
-        { eventPartId: 555, roleId: 101, asKind: 'speaker', congregationId: 10 },
-        { eventPartId: 555, roleId: 200, asKind: 'reader', congregationId: 10 },
+        { itemId: 555, roleId: 100, slot: 'main', congregationId: 10 },
+        { itemId: 555, roleId: 101, slot: 'main', congregationId: 10 },
+        { itemId: 555, roleId: 200, slot: 'second', congregationId: 10 },
       ],
       skipDuplicates: true,
     })
-    expect(mockDb.eventServicePartAllowedRole.createMany).toHaveBeenCalledWith({
+    expect(mockDb.itemAllowedRole.createMany).toHaveBeenCalledWith({
       data: [
-        { eventServicePartId: 666, roleId: 300, congregationId: 10 },
-        { eventServicePartId: 666, roleId: 301, congregationId: 10 },
+        { itemId: 666, roleId: 300, slot: 'main', congregationId: 10 },
+        { itemId: 666, roleId: 301, slot: 'main', congregationId: 10 },
       ],
       skipDuplicates: true,
     })
@@ -335,12 +338,10 @@ describe('applyTemplateToEvent', () => {
     }
     mockDb.eventTemplate.findFirst.mockResolvedValue(template)
     mockDb.event.update.mockResolvedValue({})
-    mockDb.eventPart.create.mockResolvedValue({ id: 555 })
-    mockDb.eventServicePart.create.mockResolvedValue({ id: 666 })
+    mockDb.item.create.mockResolvedValue({ id: 555 })
 
     await applyTemplateToEvent(mockDb as never, 1, 5, 10, 42)
 
-    expect(mockDb.eventPartAllowedRole.createMany).not.toHaveBeenCalled()
-    expect(mockDb.eventServicePartAllowedRole.createMany).not.toHaveBeenCalled()
+    expect(mockDb.itemAllowedRole.createMany).not.toHaveBeenCalled()
   })
 })

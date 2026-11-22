@@ -1,6 +1,12 @@
 import { SYSTEM_TEMPLATE_KEYS } from '~/features/events/model/event-template.type'
 import { ResponsibilityScope, scopesCovering } from '~/features/events/model/responsibility-scope.type'
 import { isTemplateResponsible } from '~/features/events/server/event-templates.server'
+import {
+  type ItemKind,
+  itemIdFromRequest,
+  PART_ITEMS,
+  SERVICE_ITEMS,
+} from '~/features/events/server/item-projection.server'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
@@ -97,8 +103,7 @@ export async function listApplicableTemplates(
  * Whether an assignment row actually belongs to the event the caller was authorised on.
  *
  * `canEditEvent` answers "may you act on THIS event", keyed off the event id in the URL, while
- * the writers in event-part-assignments.server.ts look their row up by (assignmentId,
- * congregationId) alone. Nothing pairs the two, so without this check a caller authorised on
+ * the writers look their item up by (id, congregationId) and kind, never by event. Nothing pairs the two, so without this check a caller authorised on
  * one event can post an assignment id belonging to another event in the same congregation and
  * the write goes through — which defeats per-template delegation, the service/programme split
  * included.
@@ -109,7 +114,7 @@ export async function listApplicableTemplates(
  */
 export async function assignmentBelongsToEvent(
   db: TransactionClient,
-  kind: 'part' | 'service',
+  kind: ItemKind,
   assignmentId: number,
   eventId: number,
   congregationId: number,
@@ -118,13 +123,9 @@ export async function assignmentBelongsToEvent(
   // Int at the driver, so it is refused here as the bad request it is.
   if (!Number.isInteger(assignmentId)) return false
 
-  // The item by the id its routes carry, the old row's (plan T12), of the kind asked.
+  // The item of the kind asked: a duty's id asked as a part is not one.
   const row = await db.item.findFirst({
-    where: {
-      eventId,
-      congregationId,
-      ...(kind === 'service' ? { legacyServiceId: assignmentId } : { legacyPartId: assignmentId }),
-    },
+    where: { id: assignmentId, eventId, congregationId, ...(kind === 'service' ? SERVICE_ITEMS : PART_ITEMS) },
     select: { id: true },
   })
 
@@ -137,6 +138,23 @@ export async function assignmentBelongsToEvent(
     })
   }
   return row != null
+}
+
+/**
+ * The item a request names, when it is an item of that kind on the event the caller was authorised on; null otherwise
+ * (plan T12, 5i-b). Reading the id and checking it are one call, so no route can take the first without the second:
+ * an id under the new name is the item's, unchecked until here; one under the old name is the old row's, translated.
+ */
+export async function resolveEventItem(
+  db: TransactionClient,
+  posted: { itemId: string | null; legacyId: string | null },
+  kind: ItemKind,
+  eventId: number,
+  congregationId: number,
+): Promise<number | null> {
+  const id = await itemIdFromRequest(db, posted, kind, congregationId)
+  if (id == null) return null
+  return (await assignmentBelongsToEvent(db, kind, id, eventId, congregationId)) ? id : null
 }
 
 /**

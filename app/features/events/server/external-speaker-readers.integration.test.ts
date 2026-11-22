@@ -73,6 +73,12 @@ function snapshot(): Promise<Result> {
             })
           }
           await settleFixtureSchedules(db, congregationId)
+          // The app takes items: each part's item, the one its old row mirrors.
+          const items = await tx.item.findMany({
+            where: { legacyPartId: { in: parts } },
+            select: { id: true, legacyPartId: true },
+          })
+          const itemOf = (partId: number) => items.find(item => item.legacyPartId === partId)?.id
           const current = await tx.event.findFirstOrThrow({ where: { startDate: new Date(`${DAYS[2]}T09:00:00Z`) } })
 
           const directory = (await listSpeakerDirectory(db, congregationId, NOW)).speakers.find(
@@ -83,7 +89,7 @@ function snapshot(): Promise<Result> {
             externalSpeakerId: speaker.id,
             event: current,
             congregationId,
-            excludePartAssignmentId: parts[2],
+            excludePartAssignmentId: itemOf(parts[2]) ?? null,
           })
           result = {
             speakerId: speaker.id,

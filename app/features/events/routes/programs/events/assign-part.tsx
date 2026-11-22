@@ -3,7 +3,7 @@ import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { assignPartSchema } from '~/features/events/schemas/assign-part.schema'
 import { assignPart } from '~/features/events/server/event-part-assignments.server'
-import { assignmentBelongsToEvent, canEditEvent } from '~/features/events/server/events-auth.server'
+import { canEditEvent, resolveEventItem } from '~/features/events/server/events-auth.server'
 import {
   buildAssignmentContext,
   dispatchAssignmentDiffs,
@@ -41,7 +41,16 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  const { assignmentId, speakerType, assigneeId, assistantId, externalSpeakerId, topic, durationMin } = submission.value
+  const {
+    itemId: postedItemId,
+    assignmentId: legacyAssignmentId,
+    speakerType,
+    assigneeId,
+    assistantId,
+    externalSpeakerId,
+    topic,
+    durationMin,
+  } = submission.value
 
   const resolvedExternalSpeakerId = speakerType === 'external' ? externalSpeakerId : null
   const resolvedAssigneeId = speakerType === 'external' ? null : assigneeId
@@ -66,11 +75,17 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       throw redirect('/programs')
     }
 
-    if (!(await assignmentBelongsToEvent(db, 'part', assignmentId, eventId, congregationId))) {
-      throw redirect('/programs')
-    }
+    // The item's id, or the old row's from a form the previous image rendered (plan T12), of this kind on this event.
+    const assignmentId = await resolveEventItem(
+      db,
+      { itemId: postedItemId ?? null, legacyId: legacyAssignmentId ?? null },
+      'part',
+      eventId,
+      congregationId,
+    )
+    if (assignmentId == null) throw redirect('/programs')
 
-    const assignmentBefore = await db.eventPart.findFirst({
+    const assignmentBefore = await db.item.findFirst({
       where: { id: assignmentId, congregationId },
       select: { name: true },
     })
@@ -100,7 +115,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const notifyCtx = buildAssignmentContext({
       event,
       assignmentName: assignmentBefore?.name,
-      entityType: 'EventPart',
+      entityType: 'Item',
       entityId: assignmentId,
       congregationId,
       actorId: currentUser.id,

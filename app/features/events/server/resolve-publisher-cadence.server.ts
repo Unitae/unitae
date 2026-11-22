@@ -1,4 +1,5 @@
 import { type CadencePayload, EMPTY_CADENCE, type PartSlot } from '~/features/events/server/cadence-shared.server'
+import { PART_ITEMS, SERVICE_ITEMS } from '~/features/events/server/item-projection.server'
 import { listUserCadence } from '~/features/events/server/list-user-cadence.server'
 import { listUserServiceCadence } from '~/features/events/server/list-user-service-cadence.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -25,9 +26,8 @@ export async function resolvePublisherCadence(
   { userId, event, congregationId, excludePartAssignmentId, excludeServiceAssignmentId, partSlot }: Options,
 ): Promise<CadencePayload> {
   if (excludePartAssignmentId != null) {
-    // The part by the id its routes carry, the old row's (plan T12): its item mirrors it.
     const current = await db.item.findFirst({
-      where: { legacyPartId: excludePartAssignmentId, congregationId },
+      where: { id: excludePartAssignmentId, congregationId, ...PART_ITEMS },
       select: { name: true, section: true, assigneeId: true, assistantId: true },
     })
     if (!current) return EMPTY_CADENCE
@@ -48,7 +48,7 @@ export async function resolvePublisherCadence(
 
   if (excludeServiceAssignmentId != null) {
     const current = await db.item.findFirst({
-      where: { legacyServiceId: excludeServiceAssignmentId, congregationId },
+      where: { id: excludeServiceAssignmentId, congregationId, ...SERVICE_ITEMS },
       select: { name: true, assigneeId: true },
     })
     if (!current) return EMPTY_CADENCE

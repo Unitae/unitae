@@ -1,6 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+import { settleFixtureSchedules } from '~/tests/helpers/settle-fixture-schedules'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -71,6 +72,15 @@ beforeAll(async () => {
         data: { name: 'Elsewhere', key: 'elsewhere', templateId: otherTemplateId, congregationId },
       })
     ).id
+
+    // The event's services are named by item id: settle them into their schedule, then take the mirrored items.
+    await settleFixtureSchedules(tx as never, congregationId)
+    const itemOf = async (legacyServiceId: number) =>
+      (await tx.item.findUniqueOrThrow({ where: { legacyServiceId }, select: { id: true } })).id
+    const itemIds: number[] = []
+    for (const legacyId of eventServices) itemIds.push(await itemOf(legacyId))
+    eventServices = itemIds
+    otherEventService = await itemOf(otherEventService)
   })
 })
 
@@ -89,7 +99,7 @@ afterAll(async () => {
 beforeEach(async () => {
   await withScope(congregationId, async tx => {
     for (const [index, id] of eventServices.entries()) {
-      await tx.eventServicePart.update({ where: { id }, data: { order: index * 5 } })
+      await tx.item.update({ where: { id }, data: { order: index * 5 } })
     }
     for (const [index, id] of templateServices.entries()) {
       await tx.templateServicePart.update({ where: { id }, data: { order: index * 5 } })
@@ -100,7 +110,7 @@ beforeEach(async () => {
 /** The orders of these three services, in the order they were created. */
 const eventOrder = () =>
   withScope(congregationId, tx =>
-    tx.eventServicePart.findMany({ where: { eventId }, orderBy: { id: 'asc' }, select: { order: true } }),
+    tx.item.findMany({ where: { eventId }, orderBy: { id: 'asc' }, select: { order: true } }),
   ).then(rows => rows.map(row => row.order))
 const templateOrder = () =>
   withScope(congregationId, tx =>

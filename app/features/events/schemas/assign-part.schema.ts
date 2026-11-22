@@ -1,7 +1,10 @@
 import { z } from 'zod'
 
 export const assignPartSchema = z.object({
-  assignmentId: z.coerce.number(),
+  // The item's id (plan T12). `assignmentId` is the old row's, from a form the previous image rendered during the
+  // rollout: the route translates it.
+  itemId: z.string().optional(),
+  assignmentId: z.string().optional(),
   speakerType: z.enum(['internal', 'external']).default('internal'),
   assigneeId: z
     .string()

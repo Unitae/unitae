@@ -32,12 +32,8 @@ import { sanitizeText } from '~/shared/utils/sanitize-text'
 //
 // SELECT on a non-existent row returns zero rows without blocking, so the
 // caller's `findFirst`-then-branch shape still works.
-async function lockPartAssignmentRow(db: TransactionClient, id: number, congregationId: number): Promise<void> {
-  await db.$executeRaw`SELECT id FROM "EventPart" WHERE id = ${id} AND "congregationId" = ${congregationId} FOR UPDATE`
-}
-
-async function lockServicePartAssignmentRow(db: TransactionClient, id: number, congregationId: number): Promise<void> {
-  await db.$executeRaw`SELECT id FROM "EventServicePart" WHERE id = ${id} AND "congregationId" = ${congregationId} FOR UPDATE`
+async function lockItemRow(db: TransactionClient, id: number, congregationId: number): Promise<void> {
+  await db.$executeRaw`SELECT id FROM "Item" WHERE id = ${id} AND "congregationId" = ${congregationId} FOR UPDATE`
 }
 
 export async function getEventProgramme(db: TransactionClient, eventId: number, congregationId: number) {
@@ -110,9 +106,9 @@ export async function assignPart(
   congregationId: number,
   durationMin: number | null = null,
 ) {
-  await lockPartAssignmentRow(db, assignmentId, congregationId)
-  const existing = await db.eventPart.findFirst({
-    where: { id: assignmentId, congregationId },
+  await lockItemRow(db, assignmentId, congregationId)
+  const existing = await db.item.findFirst({
+    where: { id: assignmentId, congregationId, ...PART_ITEMS },
     include: { event: true },
   })
   // Inlined so TS narrows `existing` for the rest of the writer; the shared
@@ -135,7 +131,7 @@ export async function assignPart(
     const invalidSpeaker = checkExternalSpeakerValid(speaker, existing.externalSpeakerId === externalSpeakerId)
     if (invalidSpeaker) return invalidSpeaker
 
-    const assignment = await db.eventPart.update({
+    const assignment = await db.item.update({
       where: { id_congregationId: { id: assignmentId, congregationId } },
       data: {
         assigneeId: null,
@@ -181,7 +177,7 @@ export async function assignPart(
 
   const hasConflict = speakerCheck.hasConflict || readerCheck.hasConflict
 
-  const assignment = await db.eventPart.update({
+  const assignment = await db.item.update({
     where: { id_congregationId: { id: assignmentId, congregationId } },
     data: { assigneeId, assistantId, externalSpeakerId: null, topic: cleanTopic, hasConflict, durationMin },
   })
@@ -195,9 +191,9 @@ export async function assignServicePart(
   assigneeId: number | null,
   congregationId: number,
 ) {
-  await lockServicePartAssignmentRow(db, assignmentId, congregationId)
-  const existing = await db.eventServicePart.findFirst({
-    where: { id: assignmentId, congregationId },
+  await lockItemRow(db, assignmentId, congregationId)
+  const existing = await db.item.findFirst({
+    where: { id: assignmentId, congregationId, ...SERVICE_ITEMS },
     include: { event: true },
   })
   if (!existing) return { error: PROGRAMME_ASSIGNMENT_ERRORS.assignmentNotFound }
@@ -218,7 +214,7 @@ export async function assignServicePart(
     }
   }
 
-  const assignment = await db.eventServicePart.update({
+  const assignment = await db.item.update({
     where: { id_congregationId: { id: assignmentId, congregationId } },
     data: { assigneeId, hasConflict },
   })
@@ -227,14 +223,14 @@ export async function assignServicePart(
 }
 
 export async function unassignPart(db: TransactionClient, assignmentId: number, congregationId: number) {
-  await lockPartAssignmentRow(db, assignmentId, congregationId)
-  const existing = await db.eventPart.findFirst({
-    where: { id: assignmentId, congregationId },
+  await lockItemRow(db, assignmentId, congregationId)
+  const existing = await db.item.findFirst({
+    where: { id: assignmentId, congregationId, ...PART_ITEMS },
     select: { assigneeId: true, assistantId: true },
   })
   if (!existing) return null
 
-  const assignment = await db.eventPart.update({
+  const assignment = await db.item.update({
     where: {
       id_congregationId: { id: assignmentId, congregationId },
     },
@@ -245,14 +241,14 @@ export async function unassignPart(db: TransactionClient, assignmentId: number, 
 }
 
 export async function unassignServicePart(db: TransactionClient, assignmentId: number, congregationId: number) {
-  await lockServicePartAssignmentRow(db, assignmentId, congregationId)
-  const existing = await db.eventServicePart.findFirst({
-    where: { id: assignmentId, congregationId },
+  await lockItemRow(db, assignmentId, congregationId)
+  const existing = await db.item.findFirst({
+    where: { id: assignmentId, congregationId, ...SERVICE_ITEMS },
     select: { assigneeId: true },
   })
   if (!existing) return null
 
-  const assignment = await db.eventServicePart.update({
+  const assignment = await db.item.update({
     where: {
       id_congregationId: { id: assignmentId, congregationId },
     },

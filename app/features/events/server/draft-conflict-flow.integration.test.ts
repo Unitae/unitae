@@ -14,6 +14,7 @@ import { afterAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { createDayOff, deleteDayOff } from '~/features/events/server/days-off.server'
 import { releaseEvent } from '~/features/events/server/event-status.server'
+import { settleFixtureSchedules } from '~/tests/helpers/settle-fixture-schedules'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -106,6 +107,8 @@ async function provisionCongregation(suffix: string) {
         congregationId: cong.id,
       },
     })
+    // The fixture writes the old table: settled, the part is an item in the draft's schedule, as the writers leave it.
+    await settleFixtureSchedules(tx as never, cong.id)
 
     return {
       congId: cong.id,
@@ -197,9 +200,10 @@ describe('refreshConflictFlags co-participant preservation (integration)', () =>
       })
     })
 
+    // The flag lives on the item the old row mirrors: refreshConflictFlags writes the item.
     const still = await withScope(congId, tx =>
-      tx.eventPart.findFirstOrThrow({
-        where: { id: partAssignmentId, congregationId: congId },
+      tx.item.findFirstOrThrow({
+        where: { legacyPartId: partAssignmentId, congregationId: congId },
         select: { hasConflict: true },
       }),
     )
@@ -223,8 +227,8 @@ describe('Draft-event conflict flow (integration)', () => {
     )
 
     const refreshed = await withScope(congId, tx =>
-      tx.eventPart.findFirstOrThrow({
-        where: { id: partAssignmentId, congregationId: congId },
+      tx.item.findFirstOrThrow({
+        where: { legacyPartId: partAssignmentId, congregationId: congId },
         select: { hasConflict: true },
       }),
     )

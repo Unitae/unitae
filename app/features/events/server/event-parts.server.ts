@@ -5,6 +5,7 @@ import {
   setPartAssignmentAllowedRoles,
   setServicePartAssignmentAllowedRoles,
 } from '~/features/events/server/allowed-roles.server'
+import { PART_ITEMS, SERVICE_ITEMS } from '~/features/events/server/item-projection.server'
 import { cancelPendingAssignmentNotices } from '~/features/events/server/notify-assignment.server'
 import { eventScheduleId } from '~/features/events/server/schedules.server'
 import { AuditAction, audit, auditInTransaction } from '~/shared/domain/audit.server'
@@ -90,16 +91,16 @@ const NO_ROLE_CHANGE = { added: [] as number[], removed: [] as number[] }
  */
 async function writePartAllowedRoles(
   db: TransactionClient,
-  eventPartId: number,
+  itemId: number,
   desired: { speaker?: number[]; reader?: number[] },
   congregationId: number,
   actorId: number,
 ): Promise<void> {
   const speakerDiff = desired.speaker
-    ? await setPartAssignmentAllowedRoles(db, eventPartId, 'speaker', desired.speaker, congregationId)
+    ? await setPartAssignmentAllowedRoles(db, itemId, 'speaker', desired.speaker, congregationId)
     : NO_ROLE_CHANGE
   const readerDiff = desired.reader
-    ? await setPartAssignmentAllowedRoles(db, eventPartId, 'reader', desired.reader, congregationId)
+    ? await setPartAssignmentAllowedRoles(db, itemId, 'reader', desired.reader, congregationId)
     : NO_ROLE_CHANGE
 
   if (
@@ -115,8 +116,8 @@ async function writePartAllowedRoles(
     action: AuditAction.PartAllowedRolesChanged,
     congregationId,
     actorId,
-    entityType: 'EventPart',
-    entityId: eventPartId,
+    entityType: 'Item',
+    entityId: itemId,
     metadata: { speaker: speakerDiff, reader: readerDiff },
   })
 }
@@ -147,7 +148,7 @@ export async function addPartAssignment(
 ) {
   const { allowedSpeakerRoleIds, allowedReaderRoleIds, ...createData } = data
   const scheduleId = await eventScheduleId(db, data.eventId, ScheduleKind.Programme, data.congregationId)
-  const assignment = await db.eventPart.create({ data: { ...createData, scheduleId } })
+  const assignment = await db.item.create({ data: { ...createData, scheduleId } })
 
   await writePartAllowedRoles(
     db,
@@ -162,8 +163,8 @@ export async function addPartAssignment(
 
 /** Removes a part, with the notices still waiting for it. */
 export async function deletePartAssignment(db: TransactionClient, id: number, congregationId: number) {
-  await cancelPendingAssignmentNotices(db, congregationId, { partIds: [id], serviceIds: [] })
-  return db.eventPart.delete({ where: { id_congregationId: { id, congregationId } } })
+  await cancelPendingAssignmentNotices(db, congregationId, [id])
+  return db.item.delete({ where: { id_congregationId: { id, congregationId } } })
 }
 
 export async function addServicePartAssignment(
@@ -178,13 +179,13 @@ export async function addServicePartAssignment(
 ) {
   const { allowedRoleIds, ...createData } = data
   // After the services the event has: a new one goes last.
-  const last = await db.eventServicePart.aggregate({
-    where: { eventId: data.eventId, congregationId: data.congregationId },
+  const last = await db.item.aggregate({
+    where: { eventId: data.eventId, congregationId: data.congregationId, ...SERVICE_ITEMS },
     _max: { order: true },
   })
   const order = last._max.order == null ? 0 : last._max.order + 5
   const scheduleId = await eventScheduleId(db, data.eventId, ScheduleKind.Duty, data.congregationId)
-  const assignment = await db.eventServicePart.create({ data: { ...createData, order, scheduleId } })
+  const assignment = await db.item.create({ data: { ...createData, order, scheduleId } })
 
   const diff = await setServicePartAssignmentAllowedRoles(db, assignment.id, allowedRoleIds, data.congregationId)
   if (diff.added.length > 0 || diff.removed.length > 0) {
@@ -192,7 +193,7 @@ export async function addServicePartAssignment(
       action: AuditAction.ServicePartAllowedRolesChanged,
       congregationId: data.congregationId,
       actorId,
-      entityType: 'EventServicePart',
+      entityType: 'Item',
       entityId: assignment.id,
       metadata: { added: diff.added, removed: diff.removed },
     })
@@ -223,7 +224,7 @@ export async function updatePartAssignment(
   actorId: number,
 ) {
   const { allowedSpeakerRoleIds, allowedReaderRoleIds, ...updateData } = data
-  const assignment = await db.eventPart.update({
+  const assignment = await db.item.update({
     where: { id_congregationId: { id, congregationId } },
     data: updateData,
   })
@@ -246,7 +247,7 @@ export async function updateServicePartAssignment(
   congregationId: number,
   actorId: number,
 ) {
-  const assignment = await db.eventServicePart.update({
+  const assignment = await db.item.update({
     where: { id_congregationId: { id, congregationId } },
     data: { name: data.name },
   })
@@ -257,7 +258,7 @@ export async function updateServicePartAssignment(
       action: AuditAction.ServicePartAllowedRolesChanged,
       congregationId,
       actorId,
-      entityType: 'EventServicePart',
+      entityType: 'Item',
       entityId: id,
       metadata: { added: diff.added, removed: diff.removed },
     })
@@ -268,8 +269,8 @@ export async function updateServicePartAssignment(
 
 /** Removes a service, with the notices still waiting for it. */
 export async function deleteServicePartAssignment(db: TransactionClient, id: number, congregationId: number) {
-  await cancelPendingAssignmentNotices(db, congregationId, { partIds: [], serviceIds: [id] })
-  return db.eventServicePart.delete({ where: { id_congregationId: { id, congregationId } } })
+  await cancelPendingAssignmentNotices(db, congregationId, [id])
+  return db.item.delete({ where: { id_congregationId: { id, congregationId } } })
 }
 
 /**
@@ -283,11 +284,11 @@ export async function reorderPartAssignments(
   orderedIds: number[],
 ): Promise<boolean> {
   await db.$executeRawUnsafe('SELECT pg_advisory_xact_lock($1, $2)', 1_000_003, congregationId)
-  const owned = await db.eventPart.count({ where: { id: { in: orderedIds }, eventId, congregationId } })
+  const owned = await db.item.count({ where: { id: { in: orderedIds }, eventId, congregationId, ...PART_ITEMS } })
   if (owned !== orderedIds.length || new Set(orderedIds).size !== orderedIds.length) return false
 
   for (let i = 0; i < orderedIds.length; i++) {
-    await db.eventPart.update({
+    await db.item.update({
       where: {
         id_congregationId: { id: orderedIds[i], congregationId },
       },

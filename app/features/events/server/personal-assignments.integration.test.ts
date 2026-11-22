@@ -173,8 +173,11 @@ beforeAll(async () => {
         congregationId: congBId,
       },
     })
-    foreignAssignmentId = foreign.id
     await settleFixtureSchedules(tx as never, congBId)
+    // The reader hands out the item's id, the one the old row mirrors.
+    foreignAssignmentId = (
+      await tx.item.findFirstOrThrow({ where: { legacyPartId: foreign.id }, select: { id: true } })
+    ).id
   })
 })
 

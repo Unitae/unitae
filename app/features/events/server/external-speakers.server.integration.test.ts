@@ -1,6 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+import { settleFixtureSchedules } from '~/tests/helpers/settle-fixture-schedules'
 
 vi.mock('~/shared/domain/audit.server', async importOriginal => ({
   ...(await importOriginal<typeof import('~/shared/domain/audit.server')>()),
@@ -70,8 +71,12 @@ beforeAll(async () => {
       return (await tx.eventPart.create({ data: { eventId: event.id, externalSpeakerId: paul, congregationId } })).id
     }
     const day = 24 * 60 * 60 * 1000
-    pastPart = await part(new Date(Date.now() - 60 * day))
-    futurePart = await part(new Date(Date.now() + 30 * day))
+    const pastRow = await part(new Date(Date.now() - 60 * day))
+    const futureRow = await part(new Date(Date.now() + 30 * day))
+    // The parts live in their meetings' schedules, as the writers put them; the app reads and hands out items.
+    await settleFixtureSchedules(tx as never, congregationId)
+    pastPart = (await tx.item.findFirstOrThrow({ where: { legacyPartId: pastRow }, select: { id: true } })).id
+    futurePart = (await tx.item.findFirstOrThrow({ where: { legacyPartId: futureRow }, select: { id: true } })).id
   })
 })
 
@@ -141,8 +146,8 @@ describe('deleteExternalSpeaker', () => {
 
     expect(result).toEqual({ freedParts: 1, pastParts: 1 })
     const after = await withScope(congregationId, async tx => ({
-      past: await tx.eventPart.findFirst({ where: { id: pastPart }, select: { externalSpeakerId: true } }),
-      future: await tx.eventPart.findFirst({ where: { id: futurePart }, select: { externalSpeakerId: true } }),
+      past: await tx.item.findFirst({ where: { id: pastPart }, select: { externalSpeakerId: true } }),
+      future: await tx.item.findFirst({ where: { id: futurePart }, select: { externalSpeakerId: true } }),
       speaker: await tx.externalSpeaker.findFirst({
         where: { id: paul },
         select: { name: true, phone: true, anonymizedAt: true, speakerCongregationId: true },

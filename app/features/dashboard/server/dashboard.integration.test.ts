@@ -20,6 +20,12 @@ function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promi
   })
 }
 
+// The readers hand out item ids: a part or a service written to the old tables is read as the item it mirrors.
+const itemIdOfPart = async (tx: Tx, legacyPartId: number) =>
+  (await tx.item.findUniqueOrThrow({ where: { legacyPartId }, select: { id: true } })).id
+const itemIdOfService = async (tx: Tx, legacyServiceId: number) =>
+  (await tx.item.findUniqueOrThrow({ where: { legacyServiceId }, select: { id: true } })).id
+
 const ts = Date.now()
 let congregationId: number
 let aliceId: number
@@ -375,7 +381,11 @@ describe('getConflictingAssignments (integration)', () => {
         }),
       )
       await settleFixtureSchedules(tx as never, cong)
-      return { eventId: event.id, partIds, servicePartIds }
+      return {
+        eventId: event.id,
+        partIds: await Promise.all(partIds.map(id => itemIdOfPart(tx, id))),
+        servicePartIds: await Promise.all(servicePartIds.map(id => itemIdOfService(tx, id))),
+      }
     })
   }
 
@@ -616,7 +626,14 @@ describe('getConflictingAssignments (integration)', () => {
         },
       })
       await settleFixtureSchedules(tx as never, congregationId)
-      return { templateId: template.id, eventId: event.id, partId: part.id, servicePartId: servicePart.id }
+      return {
+        templateId: template.id,
+        eventId: event.id,
+        partId: await itemIdOfPart(tx, part.id),
+        servicePartId: await itemIdOfService(tx, servicePart.id),
+        oldPartId: part.id,
+        oldServicePartId: servicePart.id,
+      }
     })
 
     try {
@@ -633,14 +650,15 @@ describe('getConflictingAssignments (integration)', () => {
         ),
       )
 
+      // refreshConflictFlags writes the item, which the old rows no longer follow.
       const partFlag = await withScope(congregationId, tx =>
-        tx.eventPart.findUniqueOrThrow({
+        tx.item.findUniqueOrThrow({
           where: { id_congregationId: { id: setup.partId, congregationId } },
           select: { hasConflict: true },
         }),
       )
       const serviceFlag = await withScope(congregationId, tx =>
-        tx.eventServicePart.findUniqueOrThrow({
+        tx.item.findUniqueOrThrow({
           where: { id_congregationId: { id: setup.servicePartId, congregationId } },
           select: { hasConflict: true },
         }),
@@ -653,10 +671,10 @@ describe('getConflictingAssignments (integration)', () => {
     } finally {
       await withScope(congregationId, async tx => {
         await tx.eventServicePart.delete({
-          where: { id_congregationId: { id: setup.servicePartId, congregationId } },
+          where: { id_congregationId: { id: setup.oldServicePartId, congregationId } },
         })
         await tx.eventPart.delete({
-          where: { id_congregationId: { id: setup.partId, congregationId } },
+          where: { id_congregationId: { id: setup.oldPartId, congregationId } },
         })
         await tx.event.delete({ where: { id_congregationId: { id: setup.eventId, congregationId } } })
         await tx.eventTemplate.delete({

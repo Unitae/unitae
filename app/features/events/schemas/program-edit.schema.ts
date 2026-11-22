@@ -69,7 +69,9 @@ export const addPartSchema = z.object({
 
 export const deletePartSchema = z.object({
   intent: z.literal('delete-part'),
-  partAssignmentId: z.coerce.number(),
+  // The item's id (plan T12); `partAssignmentId` is the old row's, from a form the previous image rendered.
+  partItemId: z.string().optional(),
+  partAssignmentId: z.string().optional(),
 })
 
 export const addServiceSchema = z.object({
@@ -80,12 +82,16 @@ export const addServiceSchema = z.object({
 
 export const deleteServiceSchema = z.object({
   intent: z.literal('delete-service'),
-  serviceAssignmentId: z.coerce.number(),
+  // The item's id (plan T12); `serviceAssignmentId` is the old row's, from a form the previous image rendered.
+  serviceItemId: z.string().optional(),
+  serviceAssignmentId: z.string().optional(),
 })
 
 export const updatePartSchema = z.object({
   intent: z.literal('update-part'),
-  partAssignmentId: z.coerce.number(),
+  // The item's id (plan T12); `partAssignmentId` is the old row's, from a form the previous image rendered.
+  partItemId: z.string().optional(),
+  partAssignmentId: z.string().optional(),
   partName: z.string().min(1),
   partSection: z.string().optional().default(''),
   partTrack: z.string().optional().default(''),
@@ -106,7 +112,9 @@ export const updatePartSchema = z.object({
 
 export const updateServiceSchema = z.object({
   intent: z.literal('update-service'),
-  serviceAssignmentId: z.coerce.number(),
+  // The item's id (plan T12); `serviceAssignmentId` is the old row's, from a form the previous image rendered.
+  serviceItemId: z.string().optional(),
+  serviceAssignmentId: z.string().optional(),
   serviceName: z.string().min(1),
   allowedRoleIds: roleIdsField.default([]),
 })

@@ -102,8 +102,9 @@ export function EventView({
         event.eventServiceParts.map(item => item.id),
       )
 
-  // `?assign=part-12` opens that slot's panel: the absences page links here to reassign a part someone is away for.
-  useOpenParam('assign', value => {
+  // `?item=part-12` opens that item's panel: the absences page links here to reassign a part someone is away for. It
+  // was `?assign=` with the old rows' ids (plan T12); such a link now opens the event alone, never another slot.
+  useOpenParam('item', value => {
     const slot = parseAssignKey(value)
     if (slot != null && (slot.kind === 'part' ? canAssign : canAssignService)) panel.open({ ...slot, trigger: null })
   })

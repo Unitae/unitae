@@ -29,7 +29,7 @@ describe('listUserSameEventAssignments', () => {
     })
 
     const call = vi.mocked(db.eventPart.findMany).mock.calls[0][0]
-    expect(call?.where).toMatchObject({ NOT: { legacyPartId: 42 } })
+    expect(call?.where).toMatchObject({ NOT: { id: 42 } })
   })
 
   it('does not filter the part query when excludePartAssignmentId is omitted', async () => {
@@ -48,7 +48,7 @@ describe('listUserSameEventAssignments', () => {
     })
 
     const call = vi.mocked(db.eventServicePart.findMany).mock.calls[0][0]
-    expect(call?.where).toMatchObject({ NOT: { legacyServiceId: 77 } })
+    expect(call?.where).toMatchObject({ NOT: { id: 77 } })
   })
 
   it('does not filter the service query when excludeServiceAssignmentId is omitted', async () => {

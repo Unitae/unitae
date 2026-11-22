@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useSearchParams } from 'react-router'
 
 /**
- * Opens what one address parameter names (`?panel=emergency` on the publisher record, `?assign=part-12` on an event's
+ * Opens what one address parameter names (`?panel=emergency` on the publisher record, `?item=part-12` on an event's
  * page), then drops it, so a reload does not open it again.
  */
 export function useOpenParam(name: string, onOpen: (value: string) => void) {

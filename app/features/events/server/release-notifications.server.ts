@@ -4,7 +4,7 @@
 // notification when the event flips to released. Computed from the event
 // under the release tx and fired OUTSIDE the tx by fireReleaseNotifications.
 export type NotifyTarget = {
-  entityType: 'EventPart' | 'EventServicePart'
+  entityType: 'Item'
   entityId: number
   assignmentName: string
   memberId: number
@@ -20,7 +20,7 @@ export function computeNotifyTargets(parts: PartRow[], services: ServicePartRow[
   for (const part of parts) {
     if (part.assigneeId != null) {
       targets.push({
-        entityType: 'EventPart',
+        entityType: 'Item',
         entityId: part.id,
         assignmentName: part.name,
         memberId: part.assigneeId,
@@ -29,7 +29,7 @@ export function computeNotifyTargets(parts: PartRow[], services: ServicePartRow[
     }
     if (part.assistantId != null) {
       targets.push({
-        entityType: 'EventPart',
+        entityType: 'Item',
         entityId: part.id,
         assignmentName: part.name,
         memberId: part.assistantId,
@@ -40,7 +40,7 @@ export function computeNotifyTargets(parts: PartRow[], services: ServicePartRow[
   for (const service of services) {
     if (service.assigneeId != null) {
       targets.push({
-        entityType: 'EventServicePart',
+        entityType: 'Item',
         entityId: service.id,
         assignmentName: service.name,
         memberId: service.assigneeId,

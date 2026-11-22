@@ -1,11 +1,14 @@
 import { type EventPart, type EventServicePart, type Item, Prisma } from '~/database/generated/client'
 import { ScheduleKind } from '~/features/events/model/schedule.type'
+import { createLogger } from '~/shared/infra/logger.server'
 
-// The read switch (plan T12, PR 4): readers read `Item` but hand back today's shapes, the old row's id, so the writers,
-// routes, form fields, links and notices keep theirs. An item's kind is its schedule's: a programme holds parts, a duty
-// schedule duties. PR 5 moves the writers to `Item` and flips the id to `Item.id` (5i-b). Until then asEventPart,
-// asEventServicePart and publicItemId need the old row's key and throw without it; only the writers of 5i-b make an item
-// without one, and they ship in the same deploy as this file's flip, so no deployed reader meets such an item.
+// Parts and duties are items (plan T12). Readers read `Item` and hand out its own id, projected into today's EventPart and
+// EventServicePart shapes (`partId` / `servicePartId` being the template item's legacy key while the template side stays
+// on its tables, see templateItemsOf). An item's kind is its schedule's: a programme holds parts, a duty schedule
+// duties. The item's own legacy keys serve only to break ties in the old rows' order (PART_TIE_BREAK), to cancel notices
+// the previous image wrote, and to translate the ids a page of that image posts (itemIdFromRequest).
+
+const logger = createLogger('item-projection')
 
 interface ItemOrigin {
   legacyPartId: number | null
@@ -13,10 +16,15 @@ interface ItemOrigin {
 }
 
 interface WithTemplateItem extends ItemOrigin {
+  id: number
   templateItem: ItemOrigin | null
 }
 
 export type ItemKind = 'part' | 'service'
+
+interface WithTemplateItemIds extends ItemOrigin {
+  id: number
+}
 
 interface WithScheduleKind {
   schedule: { kind: string } | null
@@ -39,37 +47,63 @@ export const SCHEDULED_ITEMS = { scheduleId: { not: null } } satisfies Prisma.It
 export const ITEM_KIND = { schedule: { select: { kind: true } } } satisfies Prisma.ItemInclude
 
 /**
+ * The last tie-breaks of every item order: the old row's id, then the item's. The backfill copied the old rows in no
+ * set order, so item ids need not follow theirs; an item mirroring an old row keeps the place that row had, and one the
+ * app made (no old row, 5i-b) comes after them, in the order it was made.
+ */
+export const PART_TIE_BREAK = [
+  { legacyPartId: { sort: 'asc', nulls: 'last' } },
+  { id: 'asc' },
+] satisfies Prisma.ItemOrderByWithRelationInput[]
+export const SERVICE_TIE_BREAK = [
+  { legacyServiceId: { sort: 'asc', nulls: 'last' } },
+  { id: 'asc' },
+] satisfies Prisma.ItemOrderByWithRelationInput[]
+
+/**
  * Today's order of a programme's parts. The old query left its last ties to Postgres (in practice the rows' insertion
- * order); items sit in another physical order, so the old row's id makes that order explicit.
+ * order), which the tie-breaks make explicit.
  */
 export const PART_ITEM_ORDER = [
   { order: 'asc' },
   { trackOrder: { sort: 'asc', nulls: 'last' } },
-  { legacyPartId: 'asc' },
+  ...PART_TIE_BREAK,
 ] satisfies Prisma.ItemOrderByWithRelationInput[]
 
 /**
- * Parts across events in the programme's order: by event date, then position in the programme, the old row's id breaking
- * ties so the order never depends on how Postgres stores the rows. A reader that lists parts then services and sorts the
+ * Parts across events in the programme's order: by event date, then position in the programme, the tie-breaks making
+ * sure the order never depends on how Postgres stores the rows. A reader that lists parts then services and sorts the
  * whole by date (a stable sort) shows each meeting's parts, then its services, each in theirs.
  */
 export const PART_ITEMS_BY_DATE = [
   { event: { startDate: 'asc' } },
   { order: 'asc' },
-  { legacyPartId: 'asc' },
+  ...PART_TIE_BREAK,
+] satisfies Prisma.ItemOrderByWithRelationInput[]
+
+/**
+ * Parts and duties of one list together (the board's programme with its services): by position, a part's track, then each
+ * kind's old rows in their order, then what the app made.
+ */
+export const MIXED_ITEM_ORDER = [
+  { order: 'asc' },
+  { trackOrder: { sort: 'asc', nulls: 'last' } },
+  { legacyPartId: { sort: 'asc', nulls: 'last' } },
+  { legacyServiceId: { sort: 'asc', nulls: 'last' } },
+  { id: 'asc' },
 ] satisfies Prisma.ItemOrderByWithRelationInput[]
 
 /** Services across events, the same way. */
 export const SERVICE_ITEMS_BY_DATE = [
   { event: { startDate: 'asc' } },
   { order: 'asc' },
-  { legacyServiceId: 'asc' },
+  ...SERVICE_TIE_BREAK,
 ] satisfies Prisma.ItemOrderByWithRelationInput[]
 
 /** Today's order of an event's services. */
 export const SERVICE_ITEM_ORDER = [
   { order: 'asc' },
-  { legacyServiceId: 'asc' },
+  ...SERVICE_TIE_BREAK,
 ] satisfies Prisma.ItemOrderByWithRelationInput[]
 
 const ORIGIN_KEYS = [
@@ -133,14 +167,9 @@ export function itemKind(item: WithScheduleKind): ItemKind {
   throw new Error('An item outside a schedule has no kind: read SCHEDULED_ITEMS only')
 }
 
-/**
- * The id a reader hands out for an item: the old row's, until PR 5. A part and a service can share one, so it always
- * travels with its kind.
- */
-export function publicItemId(item: ItemOrigin): number {
-  const id = item.legacyPartId ?? item.legacyServiceId
-  if (id == null) throw new Error('An item that mirrors no part or service has no id this image can hand out')
-  return id
+/** The id a reader hands out for an item: its own (plan T12). A part and a duty never share one. */
+export function publicItemId(item: { id: number }): number {
+  return item.id
 }
 
 /** The parts and the duties of a list of items, each kind in the list's order. */
@@ -151,28 +180,91 @@ export function splitItems<T extends WithScheduleKind>(items: T[]): { parts: T[]
   }
 }
 
-/** A part as an EventPart reads: its old id, and its template part's as `partId`. */
+/** A part as an EventPart reads: the item's id, and its template part's legacy id as `partId`. */
 export function asEventPart<T extends WithTemplateItem>(
   item: T,
 ): Omit<T, OriginKey> & { id: number; partId: number | null } {
-  if (item.legacyPartId == null) throw new Error('Not a part')
   return inColumnOrder(
-    { ...without(item, ORIGIN_KEYS), id: item.legacyPartId, partId: item.templateItem?.legacyPartId ?? null },
+    { ...without(item, ORIGIN_KEYS), id: item.id, partId: item.templateItem?.legacyPartId ?? null },
     EVENT_PART_COLUMNS,
   )
 }
 
-/** A duty as an EventServicePart reads: its old id, its template service's as `servicePartId`, no programme columns. */
+/**
+ * A duty as an EventServicePart reads: the item's id, its template service's legacy id as `servicePartId`, no programme
+ * columns.
+ */
 export function asEventServicePart<T extends WithTemplateItem>(
   item: T,
 ): Omit<T, OriginKey | ProgrammeKey> & { id: number; servicePartId: number | null } {
-  if (item.legacyServiceId == null) throw new Error('Not a service')
   return inColumnOrder(
     {
       ...without(item, [...ORIGIN_KEYS, ...PROGRAMME_KEYS]),
-      id: item.legacyServiceId,
+      id: item.id,
       servicePartId: item.templateItem?.legacyServiceId ?? null,
     },
     EVENT_SERVICE_PART_COLUMNS,
   )
+}
+
+/**
+ * The template items that mirror these template parts and services (the template side stays on its tables until PR 6;
+ * triggers copy them), by the old row's id: what an item made from a template points at.
+ */
+export async function templateItemsOf(
+  db: { templateItem: { findMany: (args: Prisma.TemplateItemFindManyArgs) => Promise<WithTemplateItemIds[]> } },
+  { partIds, serviceIds }: { partIds: number[]; serviceIds: number[] },
+  congregationId: number,
+): Promise<{ parts: Map<number, number>; services: Map<number, number> }> {
+  const parts = new Map<number, number>()
+  const services = new Map<number, number>()
+  if (partIds.length === 0 && serviceIds.length === 0) return { parts, services }
+  const rows = await db.templateItem.findMany({
+    where: { congregationId, OR: [{ legacyPartId: { in: partIds } }, { legacyServiceId: { in: serviceIds } }] },
+    select: { id: true, legacyPartId: true, legacyServiceId: true },
+  })
+  for (const row of rows) {
+    if (row.legacyPartId != null) parts.set(row.legacyPartId, row.id)
+    if (row.legacyServiceId != null) services.set(row.legacyServiceId, row.id)
+  }
+  // The triggers mirror every template row, so a miss is a bug: the item is still made, without its template item,
+  // rather than fail a programme (the meetings job makes them too), and the miss is logged.
+  const missingParts = partIds.filter(id => !parts.has(id))
+  const missingServices = serviceIds.filter(id => !services.has(id))
+  if (missingParts.length > 0 || missingServices.length > 0) {
+    logger.error('Template rows without a template item', { congregationId, missingParts, missingServices })
+  }
+  return { parts, services }
+}
+
+/**
+ * The item a request names (plan T12, 5i-b). A form or link of this image carries the item's id under a new name; one
+ * the previous image rendered during the rollout carries the old row's id under the old name, translated here through
+ * its legacy key, of the kind asked only. The two id spaces overlap, so they never share a name: an old pod given a new
+ * form finds nothing, a new pod given an old form translates, and neither touches the wrong row. Answers null for a
+ * missing or malformed id, or an old id no item mirrors, which the caller refuses. A new-name id is returned unchecked:
+ * resolveEventItem is the one call that reads and checks it (an item of that kind on that event).
+ */
+export async function itemIdFromRequest(
+  db: {
+    item: {
+      findFirst: (args: { where: Prisma.ItemWhereInput; select: { id: true } }) => Promise<{ id: number } | null>
+    }
+  },
+  { itemId, legacyId }: { itemId: string | null; legacyId: string | null },
+  kind: ItemKind,
+  congregationId: number,
+): Promise<number | null> {
+  if (itemId != null) {
+    const id = Number(itemId)
+    return Number.isInteger(id) && id > 0 ? id : null
+  }
+  if (legacyId == null) return null
+  const old = Number(legacyId)
+  if (!Number.isInteger(old) || old <= 0) return null
+  const item = await db.item.findFirst({
+    where: { congregationId, ...(kind === 'part' ? { legacyPartId: old } : { legacyServiceId: old }) },
+    select: { id: true },
+  })
+  return item?.id ?? null
 }
