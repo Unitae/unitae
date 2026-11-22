@@ -1,8 +1,9 @@
 // For unit tests written against the old item models (plan T12, PR 4): readers now query `db.item`, and this sends each
 // call to the test's own `eventPart` or `eventServicePart` mock, so a test keeps its fixtures and its assertions on
-// results, and reads its calls on those mocks (a call's `where` is the item query's). The kind comes from the query's
-// top-level filter only (PART_ITEMS, SERVICE_ITEMS or a legacy id): a query that names neither or both throws, so a
-// reader that drops its kind filter fails here even when it excludes a row by a legacy id. A row comes back with the old
+// results, and reads its calls on those mocks (a call's `where` is the item query's). The kind comes from the schedule
+// kind a PART_ITEMS or SERVICE_ITEMS spread names (`where.AND[].schedule.kind`), or from a top-level lookup by a legacy
+// id: a query that names neither or both throws, so a reader that drops its kind filter fails here even when it
+// excludes a row by a legacy id. Mocked rows carry no `schedule`: itemKind and splitItems cannot run on them. A row comes back with the old
 // row's id as its legacy key, its template part's as its template item's, and an item id of its own that is never the old
 // one when its select asks for `id` (as Prisma, a select without it gets none; no other field is filtered), so a reader
 // handing out the item's id instead of the old row's shows. The legacy keys come whatever the select names: typecheck
@@ -12,10 +13,22 @@ type Args = { where?: Record<string, unknown>; select?: Record<string, unknown> 
 type Model = Partial<Record<'findMany' | 'findFirst', (args: Args) => unknown>>
 type Row = Record<string, unknown>
 
+/** The kind its schedule gives, from a PART_ITEMS or SERVICE_ITEMS spread (`AND: [{ schedule: { kind } }]`). */
+function scheduleKindOf(where: Record<string, unknown>): string | undefined {
+  const and = Array.isArray(where.AND) ? (where.AND as Record<string, unknown>[]) : []
+  for (const clause of and) {
+    const schedule = clause.schedule as { kind?: string } | undefined
+    if (schedule?.kind) return schedule.kind
+  }
+  return undefined
+}
+
 function kindOf(args: Args): 'part' | 'service' {
   const where = args?.where ?? {}
-  const part = 'legacyPartId' in where
-  const service = 'legacyServiceId' in where
+  const kind = scheduleKindOf(where)
+  // A lookup by the old row's id names its kind too.
+  const part = kind === 'programme' || 'legacyPartId' in where
+  const service = kind === 'duty' || 'legacyServiceId' in where
   if (part && !service) return 'part'
   if (service && !part) return 'service'
   throw new Error(

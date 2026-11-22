@@ -14,12 +14,17 @@ interface Slot {
 }
 
 /** A table of allowed roles answering `findMany` (with the slot it names) and `groupBy` counts per slot. */
-function allowedTable(rows: Slot[], slotKey: string, describeSlot: (slotId: number) => Record<string, unknown>) {
+function allowedTable(
+  rows: Slot[],
+  slotKey: string,
+  describeSlot: (slotId: number) => Record<string, unknown>,
+  kindKey: 'asKind' | 'slot' = 'asKind',
+) {
   return {
     findMany: async ({ where }: { where: { roleId: number } }) =>
       rows
         .filter(row => row.roleId === where.roleId)
-        .map(row => ({ [slotKey]: row.slotId, asKind: row.asKind, ...describeSlot(row.slotId) })),
+        .map(row => ({ [slotKey]: row.slotId, [kindKey]: row.asKind, ...describeSlot(row.slotId) })),
     groupBy: async ({ where }: { where: Record<string, { in: number[] }> }) => {
       const ids = where[slotKey]?.in ?? []
       const counts = new Map<string, { slot: number; asKind?: string; count: number }>()
@@ -29,7 +34,7 @@ function allowedTable(rows: Slot[], slotKey: string, describeSlot: (slotId: numb
         entry.count += 1
         counts.set(key, entry)
       }
-      return [...counts.values()].map(e => ({ [slotKey]: e.slot, asKind: e.asKind, _count: { roleId: e.count } }))
+      return [...counts.values()].map(e => ({ [slotKey]: e.slot, [kindKey]: e.asKind, _count: { roleId: e.count } }))
     },
   }
 }
@@ -48,8 +53,17 @@ function db(tables: Partial<Record<string, Slot[]>>) {
     templateServicePartAllowedRole: allowedTable(tables.services ?? [], 'servicePartId', id => ({
       servicePart: { name: `Service ${id}`, template: { name: 'Réunion du week-end' } },
     })),
-    eventPartAllowedRole: allowedTable(tables.eventParts ?? [], 'eventPartId', () => ({})),
-    eventServicePartAllowedRole: allowedTable(tables.eventServices ?? [], 'eventServicePartId', () => ({})),
+    // A programme's parts and duties are items (plan T12): a speaker is the main slot, a reader the second, a duty's
+    // single list the main slot. Duties take ids of their own, apart from the parts'.
+    itemAllowedRole: allowedTable(
+      [
+        ...(tables.eventParts ?? []).map(row => ({ ...row, asKind: row.asKind === 'reader' ? 'second' : 'main' })),
+        ...(tables.eventServices ?? []).map(row => ({ ...row, slotId: 1000 + row.slotId, asKind: 'main' })),
+      ],
+      'itemId',
+      () => ({}),
+      'slot',
+    ),
   } as never
 }
 

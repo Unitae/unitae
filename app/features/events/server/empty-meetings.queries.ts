@@ -11,8 +11,7 @@ import { addDays, dayOf, startOfDay } from '~/shared/utils/calendar-day'
  */
 export const EMPTY_MEETING = {
   origin: EventOrigin.Job,
-  eventParts: { none: {} },
-  eventServiceParts: { none: {} },
+  items: { none: {} },
   attendance: { is: null },
 }
 

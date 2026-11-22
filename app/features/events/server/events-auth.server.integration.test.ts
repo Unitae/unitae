@@ -640,6 +640,18 @@ describe('assignmentBelongsToEvent (integration)', () => {
     expect(belongs).toBe(false)
   })
 
+  it('accepts the programme part that really sits on the event', async () => {
+    const result = await withScope(primaryCongId, async tx => {
+      const part = await tx.eventPart.create({
+        data: { name: 'Discours', eventId: ownedEventId, congregationId: primaryCongId },
+      })
+      const belongs = await assignmentBelongsToEvent(tx, 'part', part.id, ownedEventId, primaryCongId)
+      await tx.eventPart.delete({ where: { id: part.id } })
+      return belongs
+    })
+    expect(result).toBe(true)
+  })
+
   it('does not accept a service part id when asked about a programme part', async () => {
     const result = await withScope(primaryCongId, tx =>
       assignmentBelongsToEvent(tx, 'part', ownedServicePartId, ownedEventId, primaryCongId),

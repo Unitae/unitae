@@ -229,19 +229,19 @@ const EVENT_STATE = {
   createdById: true,
   origin: true,
   attendance: { select: { id: true } },
-  _count: { select: { eventParts: true, eventServiceParts: true } },
+  _count: { select: { items: true } },
 } as const
 
 interface EventState {
   createdById?: number | null
   origin?: string
   attendance?: { id: number } | null
-  _count?: { eventParts: number; eventServiceParts: number }
+  _count?: { items: number }
 }
 
 /** The event has a programme: parts or services. One without is filled when someone asks for its programme. */
 function hasParts(event: EventState): boolean {
-  return event._count == null || event._count.eventParts > 0 || event._count.eventServiceParts > 0
+  return event._count == null || event._count.items > 0
 }
 
 /**

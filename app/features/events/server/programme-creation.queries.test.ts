@@ -110,7 +110,7 @@ describe('getProgrammeCreationData', () => {
       templateIds: null,
     })
 
-    const hasProgramme = { OR: [{ eventParts: { some: {} } }, { eventServiceParts: { some: {} } }] }
+    const hasProgramme = { items: { some: {} } }
     expect(vi.mocked(db.event.groupBy).mock.calls[0]?.[0]).toMatchObject({ where: hasProgramme })
     expect(vi.mocked(db.event.findMany).mock.calls[0]?.[0]).toMatchObject({ where: hasProgramme })
   })

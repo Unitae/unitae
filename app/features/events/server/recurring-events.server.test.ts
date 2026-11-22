@@ -185,8 +185,7 @@ describe('reanchorEmptyMeetings', () => {
     expect(where).toMatchObject({
       congregationId: 1,
       origin: 'job',
-      eventParts: { none: {} },
-      eventServiceParts: { none: {} },
+      items: { none: {} },
       attendance: { is: null },
     })
     expect(mockDb.event.update).toHaveBeenCalledWith({

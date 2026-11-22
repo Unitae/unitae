@@ -115,7 +115,7 @@ describe('listPartPresetsForSettings', () => {
 
     expect(db.partPreset.findMany.mock.calls[0][0].include._count.select).toEqual({
       templateParts: true,
-      items: { where: { legacyPartId: { not: null } } },
+      items: { where: { AND: [{ schedule: { kind: 'programme' } }] } },
     })
   })
 })

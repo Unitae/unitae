@@ -2,6 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { dayOf } from '~/shared/utils/calendar-day'
+import { settleFixtureSchedules } from '~/tests/helpers/settle-fixture-schedules'
 
 vi.mock('~/shared/domain/audit.server', async importOriginal => ({
   ...(await importOriginal<typeof import('~/shared/domain/audit.server')>()),
@@ -105,6 +106,7 @@ beforeAll(async () => {
     ).id
     // The template now meets on Thursday.
     await tx.eventTemplate.update({ where: { id: templateId }, data: { weekDay: 4 } })
+    await settleFixtureSchedules(tx as never, congregationId)
   })
 })
 

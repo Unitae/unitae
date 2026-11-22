@@ -17,12 +17,13 @@ import { VISIBLE_EVENT, VISIBLE_ITEM } from '~/features/events'
 import {
   asEventPart,
   asEventServicePart,
+  ITEM_KIND,
   ITEM_ORIGIN_INCLUDE,
   type LastWeekMeeting,
   listLastWeekAttendance,
-  MIRRORED_ITEMS,
   PART_ITEM_ORDER,
   PART_ITEMS,
+  SCHEDULED_ITEMS,
   splitItems,
 } from '~/features/events/index.server'
 import * as m from '~/i18n/paraglide/messages'
@@ -472,9 +473,10 @@ async function fetchPioneers(db: TransactionClient, congregationId: number) {
 // fall back to their position then the old row's id, as before.
 function programmeItems(withServices: boolean) {
   return {
-    where: { ...(withServices ? MIRRORED_ITEMS : PART_ITEMS), ...VISIBLE_ITEM },
+    where: { ...(withServices ? SCHEDULED_ITEMS : PART_ITEMS), ...VISIBLE_ITEM },
     include: {
       ...ITEM_ORIGIN_INCLUDE,
+      ...ITEM_KIND,
       assignee: { select: userSelect },
       assistant: { select: userSelect },
       externalSpeaker: { select: EXTERNAL_SPEAKER_LABEL_SELECT },

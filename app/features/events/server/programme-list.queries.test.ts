@@ -9,18 +9,15 @@ const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 const FROM = new Date('2026-11-08T23:00:00Z')
 const TO = new Date('2026-12-31T22:59:59.999Z')
-// The rows the items read as (plan T12): a part or a service by the old row each mirrors.
-let legacyId = 100
+// The rows the items read as (plan T12): a part or a service by the kind of its schedule.
 const part = (assigneeId: number | null, externalSpeakerId: number | null = null, hasConflict = false) => ({
-  legacyPartId: legacyId++,
-  legacyServiceId: null,
+  schedule: { kind: 'programme' },
   assigneeId,
   externalSpeakerId,
   hasConflict,
 })
 const service = (assigneeId: number | null, hasConflict = false) => ({
-  legacyPartId: null,
-  legacyServiceId: legacyId++,
+  schedule: { kind: 'duty' },
   assigneeId,
   externalSpeakerId: null,
   hasConflict,

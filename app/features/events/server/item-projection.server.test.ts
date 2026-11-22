@@ -31,6 +31,7 @@ const part = {
   legacyPartId: 40,
   legacyServiceId: null,
   templateItem: { legacyPartId: 4, legacyServiceId: null },
+  schedule: { kind: 'programme' },
 }
 const service = {
   ...base,
@@ -43,16 +44,23 @@ const service = {
   legacyPartId: null,
   legacyServiceId: 60,
   templateItem: null,
+  schedule: { kind: 'duty' },
 }
 
 describe('item projection', () => {
-  it('tells a part from a duty by the row it mirrors', () => {
+  it('tells a part from a duty by the kind of its schedule', () => {
     expect(itemKind(part)).toBe('part')
     expect(itemKind(service)).toBe('service')
   })
 
-  it('refuses an item that mirrors no row, which no reader can name yet', () => {
-    expect(() => itemKind({ legacyPartId: null, legacyServiceId: null })).toThrow()
+  it('takes the kind from the schedule, whatever row the item mirrors', () => {
+    const moved = { ...part, schedule: { kind: 'duty' } }
+    expect(itemKind(moved)).toBe('service')
+    expect(splitItems([moved, service])).toEqual({ parts: [], services: [moved, service] })
+  })
+
+  it('refuses an item outside a schedule, which has no kind', () => {
+    expect(() => itemKind({ schedule: null })).toThrow()
   })
 
   it("hands out the old row's id as an item's, and none for an item that mirrors no row", () => {
@@ -67,7 +75,7 @@ describe('item projection', () => {
   })
 
   it("reads a part as today's EventPart: its own id and its template part's", () => {
-    const { legacyPartId, legacyServiceId, templateItem, templateItemId, ...columns } = part
+    const { legacyPartId, legacyServiceId, templateItem, templateItemId, schedule, ...columns } = part
     expect(asEventPart(part)).toEqual({ ...columns, id: 40, partId: 4 })
   })
 

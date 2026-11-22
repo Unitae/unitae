@@ -2,6 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { EventTemplateKey } from '~/features/events/model/event-template.type'
+import { settleFixtureSchedules } from '~/tests/helpers/settle-fixture-schedules'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -148,6 +149,7 @@ beforeAll(async () => {
         congregationId,
       },
     })
+    await settleFixtureSchedules(tx as never, congregationId)
   })
 })
 

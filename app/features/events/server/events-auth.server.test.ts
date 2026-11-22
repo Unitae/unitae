@@ -9,6 +9,7 @@ vi.mock('~/shared/infra/db.server', () => ({
     event: { findMany: vi.fn() },
     eventPart: { findFirst: vi.fn() },
     eventServicePart: { findFirst: vi.fn() },
+    item: { findFirst: vi.fn() },
   },
 }))
 
@@ -352,13 +353,14 @@ describe('assignmentBelongsToEvent', () => {
   const ASSIGNMENT_ID = 55
 
   it('accepts a service assignment that sits on the authorised event', async () => {
-    vi.mocked(db.eventServicePart.findFirst).mockResolvedValue({ id: ASSIGNMENT_ID } as never)
+    vi.mocked(db.item.findFirst).mockResolvedValue({ id: 1 } as never)
 
     const result = await assignmentBelongsToEvent(db, 'service', ASSIGNMENT_ID, EVENT_ID, CONGREGATION_ID)
 
     expect(result).toBe(true)
-    expect(vi.mocked(db.eventServicePart.findFirst).mock.calls[0][0]?.where).toEqual({
-      id: ASSIGNMENT_ID,
+    // The id its routes carry is the old row's (plan T12).
+    expect(vi.mocked(db.item.findFirst).mock.calls[0][0]?.where).toEqual({
+      legacyServiceId: ASSIGNMENT_ID,
       eventId: EVENT_ID,
       congregationId: CONGREGATION_ID,
     })
@@ -367,20 +369,20 @@ describe('assignmentBelongsToEvent', () => {
   // The exploit this closes: authorised on your own event, posting an assignment
   // id from someone else's. The row exists, it just is not on this event.
   it('refuses an assignment that belongs to another event', async () => {
-    vi.mocked(db.eventServicePart.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.item.findFirst).mockResolvedValue(null as never)
 
     const result = await assignmentBelongsToEvent(db, 'service', ASSIGNMENT_ID, EVENT_ID, CONGREGATION_ID)
 
     expect(result).toBe(false)
   })
 
-  it('queries the part table for a part assignment', async () => {
-    vi.mocked(db.eventPart.findFirst).mockResolvedValue({ id: ASSIGNMENT_ID } as never)
+  it('looks a part assignment up among the parts', async () => {
+    vi.mocked(db.item.findFirst).mockResolvedValue({ id: 1 } as never)
 
     const result = await assignmentBelongsToEvent(db, 'part', ASSIGNMENT_ID, EVENT_ID, CONGREGATION_ID)
 
     expect(result).toBe(true)
-    expect(db.eventServicePart.findFirst).not.toHaveBeenCalled()
+    expect(vi.mocked(db.item.findFirst).mock.calls[0][0]?.where).toMatchObject({ legacyPartId: ASSIGNMENT_ID })
   })
 
   // `Number(url.searchParams.get('id'))` yields NaN on a missing param, which
@@ -389,6 +391,6 @@ describe('assignmentBelongsToEvent', () => {
     const result = await assignmentBelongsToEvent(db, 'part', Number.NaN, EVENT_ID, CONGREGATION_ID)
 
     expect(result).toBe(false)
-    expect(db.eventPart.findFirst).not.toHaveBeenCalled()
+    expect(db.item.findFirst).not.toHaveBeenCalled()
   })
 })
