@@ -1,5 +1,6 @@
 import { SYSTEM_TEMPLATE_KEYS } from '~/features/events/model/event-template.type'
 import { ResponsibilityScope, scopesCovering } from '~/features/events/model/responsibility-scope.type'
+import { ScheduleKind } from '~/features/events/model/schedule.type'
 import { isTemplateResponsible } from '~/features/events/server/event-templates.server'
 import {
   type ItemKind,
@@ -45,6 +46,44 @@ export async function canEditEvent(
   if (templateId == null) return false
   const responsible = await isTemplateResponsible(db, templateId, userId, congregationId, scope)
   return responsible != null
+}
+
+/**
+ * Whether the caller may fill an event's schedule of one kind: its items and who holds them (plan §10, D3, D7, D47).
+ * « Attribuer » and « Gérer » reach every schedule; otherwise the responsible of the schedule's template, through the
+ * role it names. An event without a schedule of that kind yet takes the templates its kind suggests, since filling it
+ * starts it (« Add a schedule »). A schedule without a template, and an event without a kind, have no responsible.
+ */
+export async function canFillSchedule(
+  db: TransactionClient,
+  can: (permission: Permission) => boolean,
+  userId: number,
+  event: { id: number; templateId: number | null },
+  kind: ItemKind,
+  congregationId: number,
+): Promise<boolean> {
+  if (can(Permission.CanAssignProgramParts) || can(Permission.CanManagePrograms)) return true
+  const roleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
+  if (roleIds.length === 0) return false
+  const scheduleKind = kind === 'part' ? ScheduleKind.Programme : ScheduleKind.Duty
+  const schedules = await db.schedule.findMany({
+    where: { eventId: event.id, congregationId, kind: scheduleKind },
+    select: { scheduleTemplate: { select: { responsibleRoleId: true } } },
+  })
+  if (schedules.length > 0) {
+    return schedules.some(schedule => roleIds.includes(schedule.scheduleTemplate?.responsibleRoleId ?? -1))
+  }
+  if (event.templateId == null) return false
+  const suggested = await db.scheduleTemplate.findFirst({
+    where: {
+      congregationId,
+      kind: scheduleKind,
+      responsibleRoleId: { in: roleIds },
+      eventKinds: { some: { eventKindId: event.templateId } },
+    },
+    select: { id: true },
+  })
+  return suggested != null
 }
 
 /**
@@ -201,17 +240,7 @@ export async function mayReadSlotFacts(
   congregationId: number,
   slot: { kind: 'part' | 'service'; assignmentId: number | null },
 ): Promise<boolean> {
-  const scope = slot.kind === 'service' ? ResponsibilityScope.Service : ResponsibilityScope.Programme
-  const allowed = await canEditEvent(
-    db,
-    can,
-    userId,
-    event.templateId,
-    congregationId,
-    Permission.CanAssignProgramParts,
-    scope,
-  )
-  if (!allowed) return false
+  if (!(await canFillSchedule(db, can, userId, event, slot.kind, congregationId))) return false
   if (slot.assignmentId == null) return true
   return assignmentBelongsToEvent(db, slot.kind, slot.assignmentId, event.id, congregationId)
 }
