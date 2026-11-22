@@ -5,6 +5,7 @@ import {
   partPresetReaderLabel,
   partPresetSpeakerLabel,
 } from '~/features/events/model/part-preset-defaults'
+import { PART_ITEMS } from '~/features/events/server/item-projection.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 /**
@@ -59,8 +60,9 @@ export function listPartPresetsForSettings(db: TransactionClient, congregationId
   return db.partPreset.findMany({
     where: { congregationId, scope: PartPresetScope.Part },
     orderBy: [{ isSystem: 'desc' }, { name: 'asc' }],
+    // Programme parts counted from items (plan T12); template parts until the templates move to schedule templates.
     // biome-ignore lint/style/useNamingConvention: _count is Prisma's own key
-    include: { _count: { select: { templateParts: true, eventParts: true } } },
+    include: { _count: { select: { templateParts: true, items: { where: PART_ITEMS } } } },
   })
 }
 

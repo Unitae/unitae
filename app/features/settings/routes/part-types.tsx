@@ -58,7 +58,7 @@ export function loader({ context }: Route.LoaderArgs) {
           id: preset.id,
           isSystem: preset.isSystem,
           name: partPresetName(preset),
-          usage: preset._count.templateParts + preset._count.eventParts,
+          usage: preset._count.templateParts + preset._count.items,
           // Stored values only: a blank field keeps the catalogue's wording, which the placeholders show.
           values: {
             name: preset.name ?? '',
