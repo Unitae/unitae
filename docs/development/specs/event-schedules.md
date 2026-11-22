@@ -105,6 +105,9 @@ to filter out.
 | D44 | **A schedule can be renamed on one event only**; its template keeps its name. |
 | D45 | **A reader sees only published schedules**, with no mention of the others. |
 | D46 | **Members see events only through surfaces** (decided 2026-11-22): a board document or a dashboard widget, each taking the kinds it shows, filtered by audience (D35). An event with schedules appears there through its published ones; an event with no schedule at all (a cleaning day, a bare date) has no publication of its own and appears wherever a surface takes its kind. |
+| D47 | **A schedule without a template has no responsible** (decided 2026-11-22): only « Gérer », « Attribuer » and « Publier les programmes » reach it, and nothing records who created it. Only a manager can create one. |
+| D48 | **One-time events need no right of their own** (decided 2026-11-22): D28 covers an event of a kind; an occasional event (« Grand nettoyage ») gets its kind in Réglages, suggesting the schedule template whose responsible then creates them. No « Autre » exception, no « Créer des évènements » permission. |
+| D49 | **Until per-schedule publishing (5b)** (decided 2026-11-22): publishing or unpublishing a whole event needs « Publier les programmes » or being responsible for every one of its schedules; a responsible moves an event only to kinds that suggest a schedule template they are responsible for; an event with no kind (old imports) is the managers' alone. With D31, a programme responsible of a template that also names a service responsible publishes again only once 5b publishes schedule by schedule. |
 
 ## 4. Current implementation (verified)
 

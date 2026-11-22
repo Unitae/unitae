@@ -455,6 +455,14 @@ read (still written for PR 4's image, which reads it). `Event.status` is still w
 schedule is published): PR 4's image reads it. PR 5-0 moves the status readers to schedules; the write stops one
 release later (PR 6), T9.
 
+**5a, in three slices (decided 2026-11-22, D47–D49):** 5a-1 the fill checks per schedule (assign, remove, reorder,
+the editor's item intents, slot facts): « Attribuer » / « Gérer », or the responsible of the schedule's template, read
+from `ScheduleTemplate.responsibleRoleId` (the sync writes it from `TemplateResponsible`); `canEditEvent` keeps its
+signature and reads the event's schedule of the kind asked. 5a-2 the event-level rights (edit, apply a kind, delete,
+release and unrelease per D49, the bulk filters, `listApplicableTemplates`). 5a-3 the readers move to `ScheduleViewer`;
+`responsibility-scope.type.ts` goes and `TemplateResponsible` is no longer read. Prod on 2026-11-22: no schedule without
+a template; 6 templates name both responsibles (our own tenants), the D31 case.
+
 **5-0, visibility (D46):** an event is visible where it has a published schedule, or no schedule at all and
 `Event.status` released; an item is visible where its schedule is published. Identical to today while both schedules
 publish together. When the status write stops (PR 6) the second branch becomes « no schedule at all », the surfaces'
