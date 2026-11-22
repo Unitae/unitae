@@ -26,7 +26,7 @@ export function hasSoleReservations(found: SoleReservations): boolean {
   )
 }
 
-/** The slots (ids, with the asKind of a part) where exactly one role is allowed. */
+/** The slots (ids, with a template part's asKind or an item's slot) where exactly one role is allowed. */
 function soleSlotKeys(
   counts: { _count: { roleId: number }; asKind?: string | null; slot?: string | null }[],
   slotOf: (row: never) => number,

@@ -1,9 +1,11 @@
 import { type EventPart, type EventServicePart, type Item, Prisma } from '~/database/generated/client'
 import { ScheduleKind } from '~/features/events/model/schedule.type'
 
-// The read switch (plan T12, PR 4): readers read `Item` but hand back today's shapes, the old row's id and kind, so the
-// writers, routes, form fields, links and notices keep theirs. PR 5 moves the writers to `Item` and flips this file: the
-// public id becomes `Item.id`. An item's kind is its schedule's: a programme holds parts, a duty schedule duties.
+// The read switch (plan T12, PR 4): readers read `Item` but hand back today's shapes, the old row's id, so the writers,
+// routes, form fields, links and notices keep theirs. An item's kind is its schedule's: a programme holds parts, a duty
+// schedule duties. PR 5 moves the writers to `Item` and flips the id to `Item.id` (5i-b). Until then asEventPart,
+// asEventServicePart and publicItemId need the old row's key and throw without it; only the writers of 5i-b make an item
+// without one, and they ship in the same deploy as this file's flip, so no deployed reader meets such an item.
 
 interface ItemOrigin {
   legacyPartId: number | null
@@ -26,11 +28,12 @@ export const ITEM_ORIGIN_INCLUDE = {
 } satisfies Prisma.ItemInclude
 
 // The kinds go through `AND`, so that VISIBLE_ITEM (which sets `schedule`) spreads beside them without either losing.
+// A reader writes no top-level `AND` of its own beside them: one would replace the other.
 /** A programme's parts: the items of a programme schedule. */
 export const PART_ITEMS = { AND: [{ schedule: { kind: ScheduleKind.Programme } }] } satisfies Prisma.ItemWhereInput
 /** The duties: the items of a duty schedule. */
 export const SERVICE_ITEMS = { AND: [{ schedule: { kind: ScheduleKind.Duty } }] } satisfies Prisma.ItemWhereInput
-/** Every item of an event, parts and duties: every item sits in a schedule. */
+/** The items in a schedule, parts and duties. A row the previous image wrote before its backfill has none, and no kind. */
 export const SCHEDULED_ITEMS = { scheduleId: { not: null } } satisfies Prisma.ItemWhereInput
 /** What a reader includes or selects to tell an item's kind with itemKind or splitItems. */
 export const ITEM_KIND = { schedule: { select: { kind: true } } } satisfies Prisma.ItemInclude

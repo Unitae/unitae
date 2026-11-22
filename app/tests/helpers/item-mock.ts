@@ -1,9 +1,9 @@
 // For unit tests written against the old item models (plan T12, PR 4): readers now query `db.item`, and this sends each
-// call to the test's own `eventPart` or `eventServicePart` mock (by the kind its where's schedule names, or by the old
-// row's id it looks up), so a test keeps its fixtures and its assertions on
-// results, and reads its calls on those mocks (a call's `where` is the item query's). The kind comes from the query's
-// top-level filter only (PART_ITEMS, SERVICE_ITEMS or a legacy id): a query that names neither or both throws, so a
-// reader that drops its kind filter fails here even when it excludes a row by a legacy id. A row comes back with the old
+// call to the test's own `eventPart` or `eventServicePart` mock, so a test keeps its fixtures and its assertions on
+// results, and reads its calls on those mocks (a call's `where` is the item query's). The kind comes from the schedule
+// kind a PART_ITEMS or SERVICE_ITEMS spread names (`where.AND[].schedule.kind`), or from a top-level lookup by a legacy
+// id: a query that names neither or both throws, so a reader that drops its kind filter fails here even when it
+// excludes a row by a legacy id. Mocked rows carry no `schedule`: itemKind and splitItems cannot run on them. A row comes back with the old
 // row's id as its legacy key, its template part's as its template item's, and an item id of its own that is never the old
 // one when its select asks for `id` (as Prisma, a select without it gets none; no other field is filtered), so a reader
 // handing out the item's id instead of the old row's shows. The legacy keys come whatever the select names: typecheck

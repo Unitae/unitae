@@ -53,6 +53,12 @@ describe('item projection', () => {
     expect(itemKind(service)).toBe('service')
   })
 
+  it('takes the kind from the schedule, whatever row the item mirrors', () => {
+    const moved = { ...part, schedule: { kind: 'duty' } }
+    expect(itemKind(moved)).toBe('service')
+    expect(splitItems([moved, service])).toEqual({ parts: [], services: [moved, service] })
+  })
+
   it('refuses an item outside a schedule, which has no kind', () => {
     expect(() => itemKind({ schedule: null })).toThrow()
   })

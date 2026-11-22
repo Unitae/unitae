@@ -241,9 +241,21 @@ describe('deletePartPreset', () => {
     expect(db.partPreset.delete).not.toHaveBeenCalled()
   })
 
+  // Programme parts count from items, parts only: a duty carrying the type never blocks it.
+  it('counts template parts and programme parts, never duties', async () => {
+    const db = makeDb()
+    db.partPreset.findFirst.mockResolvedValue(null as never)
+
+    await deletePartPreset(db as never, 5, 1, 7)
+
+    expect(db.partPreset.findFirst.mock.calls[0][0].select._count).toEqual({
+      select: { templateParts: true, items: { where: { AND: [{ schedule: { kind: 'programme' } }] } } },
+    })
+  })
+
   it.each([
     ['a single template part', { templateParts: 1, items: 0 }, 1],
-    ['a single event part', { templateParts: 0, items: 1 }, 1],
+    ['a single programme part, counted from items', { templateParts: 0, items: 1 }, 1],
   ])('refuses deletion for %s', async (_label, counts, expected) => {
     // The boundary matters: one referencing part is enough to lose a kind, and
     // both sides of the sum must count.
