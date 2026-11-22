@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-// Dragging a part or a service on an event posts its new order. The action checks what the editor's handles promise:
-// the assign right, or the template's whole-programme delegation — not its services-only one, which cannot restructure
-// the event. The real canEditEvent runs; only who holds which delegation is faked. Reorders land in an in-memory list,
-// so the tests assert on whether one was written.
+// Dragging a part or a duty on an event posts its new order, which fills that schedule (plan §10): « Attribuer »,
+// « Gérer », or the responsible of that schedule's template; the other schedule's responsible is refused (D31). Who may
+// fill which schedule is faked (canFillSchedule has its own integration test); the route must ask about the schedule it
+// reorders. Reorders land in an in-memory list, so the tests assert on whether one was written.
 
 const { state } = vi.hoisted(() => ({
   state: {
-    /** The caller's delegation on the event's template. */
-    delegation: null as 'programme' | 'service' | null,
+    /** The schedules the caller is responsible for, by their items' kind. */
+    responsibleFor: [] as ('part' | 'service')[],
     event: { id: 40, templateId: 3 } as { id: number; templateId: number | null } | null,
     written: [] as { kind: 'parts' | 'services'; eventId: number; orderedIds: number[] }[],
   },
@@ -19,12 +19,17 @@ vi.mock('~/shared/auth/route-context.server', async importOriginal => ({
   withScopeFromContext: (_context: unknown, fn: (db: unknown) => unknown) => fn({}),
 }))
 
-vi.mock('~/features/events/server/event-templates.server', async importOriginal => ({
-  ...(await importOriginal<typeof import('~/features/events/server/event-templates.server')>()),
-  // A programme delegation answers both scopes, a services one only its own.
-  isTemplateResponsible: (_db: unknown, _templateId: number, _userId: number, _cong: number, scope = 'programme') =>
+vi.mock('~/features/events/server/events-auth.server', async importOriginal => ({
+  ...(await importOriginal<typeof import('~/features/events/server/events-auth.server')>()),
+  canFillSchedule: (
+    _db: unknown,
+    can: (permission: string) => boolean,
+    _userId: number,
+    _event: unknown,
+    kind: 'part' | 'service',
+  ) =>
     Promise.resolve(
-      state.delegation === 'programme' || state.delegation === scope ? { roleId: 1, roleName: 'Responsable' } : null,
+      can('can-assign-program-parts') || can('can-manage-programs') || state.responsibleFor.includes(kind),
     ),
 }))
 
@@ -66,15 +71,25 @@ function post(action: Action, permissions: Granted[], body: unknown) {
 }
 
 beforeEach(() => {
-  state.delegation = null
+  state.responsibleFor = []
   state.event = { id: 40, templateId: 3 }
   state.written = []
 })
 
 describe.each([
-  { kind: 'parts' as const, action: reorderParts.action as unknown as Action },
-  { kind: 'services' as const, action: reorderServices.action as Action },
-])('the event’s reorder-$kind action', ({ kind, action }) => {
+  {
+    kind: 'parts' as const,
+    schedule: 'part' as const,
+    other: 'service' as const,
+    action: reorderParts.action as unknown as Action,
+  },
+  {
+    kind: 'services' as const,
+    schedule: 'service' as const,
+    other: 'part' as const,
+    action: reorderServices.action as Action,
+  },
+])('the event’s reorder-$kind action', ({ kind, schedule, other, action }) => {
   it('writes the order for a caller who may assign the programme', async () => {
     const result = await post(action, [Permission.CanAssignProgramParts], { itemIds: [2, 1] })
 
@@ -82,15 +97,15 @@ describe.each([
     expect(state.written).toEqual([{ kind, eventId: 40, orderedIds: [2, 1] }])
   })
 
-  it('writes the order for the template’s programme responsible, without the right', async () => {
-    state.delegation = 'programme'
+  it('writes the order for the responsible of this schedule, without the right', async () => {
+    state.responsibleFor = [schedule]
 
     expect(await post(action, [], { itemIds: [2, 1] })).toEqual({ ok: true })
     expect(state.written).toHaveLength(1)
   })
 
-  it('refuses the services-only responsible, like adding or removing a service', async () => {
-    state.delegation = 'service'
+  it('refuses the responsible of the other schedule only (D31)', async () => {
+    state.responsibleFor = [other]
 
     const response = await respond(() => post(action, [], { itemIds: [2, 1] }))
 

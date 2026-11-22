@@ -27,6 +27,16 @@ import { combineLocalDateTime } from '~/shared/utils/event-time'
 
 export type IntentResult = { message: string | null } | { reply: () => unknown }
 
+/** The schedule an intent fills, for the intents that add, edit or delete one of its items (plan §10). */
+export const FILL_INTENT_KIND: Readonly<Partial<Record<string, 'part' | 'service'>>> = {
+  'add-part': 'part',
+  'update-part': 'part',
+  'delete-part': 'part',
+  'add-service': 'service',
+  'update-service': 'service',
+  'delete-service': 'service',
+}
+
 /** The decisions that depend on who is asking, made by the route. */
 export interface IntentChecks {
   /** Whether the caller may edit events of this template: applying one moves the event onto it. */

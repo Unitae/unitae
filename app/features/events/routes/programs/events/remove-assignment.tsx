@@ -1,8 +1,7 @@
 import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
 import { unassignPart, unassignServicePart } from '~/features/events/server/event-part-assignments.server'
-import { canEditEvent, resolveEventItem } from '~/features/events/server/events-auth.server'
+import { canFillSchedule, resolveEventItem } from '~/features/events/server/events-auth.server'
 import {
   buildAssignmentContext,
   dispatchAssignmentDiffs,
@@ -18,7 +17,7 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { Permission } from '~/shared/types/permission'
+import type { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/remove-assignment'
@@ -35,10 +34,9 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const eventId = requireParamId(params.eventId, '/programs')
   const url = new URL(request.url)
   const type = url.searchParams.get('type')
-  // Both derived from what is being unassigned, so the service responsible can clear a
-  // sono slot without also being able to drop the public talk speaker.
+  // What is being unassigned decides whose right is checked: the duties' responsible can clear a sono slot without
+  // being able to drop the public talk speaker.
   const kind = type === 'service' ? 'service' : 'part'
-  const scope = type === 'service' ? ResponsibilityScope.Service : ResponsibilityScope.Programme
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
@@ -46,17 +44,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const event = await findProgrammeEvent(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
 
-    if (
-      !(await canEditEvent(
-        db,
-        can,
-        currentUser.id,
-        event.templateId ?? null,
-        congregationId,
-        Permission.CanAssignProgramParts,
-        scope,
-      ))
-    ) {
+    // « Attribuer », « Gérer », or the responsible of this schedule's template (plan §10, D7).
+    if (!(await canFillSchedule(db, can, currentUser.id, event, kind, congregationId))) {
       throw redirect('/programs')
     }
 

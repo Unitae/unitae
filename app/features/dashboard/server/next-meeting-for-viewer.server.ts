@@ -2,8 +2,7 @@ import type { DashboardVisibility } from '~/features/dashboard/model/dashboard-v
 import { meetingForViewer } from '~/features/dashboard/model/meeting-visibility'
 import { getNextMeeting } from '~/features/dashboard/server/dashboard.server'
 import { isProgrammeOnBoardFor } from '~/features/dashboard/server/programme-board-visibility.server'
-import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
-import { canEditEvent } from '~/features/events/server/events-auth.server'
+import { canFillSchedule } from '~/features/events/server/events-auth.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { Permission } from '~/shared/types/permission'
 
@@ -49,16 +48,7 @@ export async function nextMeetingForViewer(
     audience === 'programmes' ||
     (audience === 'board' && (await isProgrammeOnBoardFor(db, meeting.link, accountId, congregationId)))
   const canAct =
-    can(Permission.CanViewPrograms) &&
-    (await canEditEvent(
-      db,
-      can,
-      accountId,
-      meeting.templateId,
-      congregationId,
-      Permission.CanAssignProgramParts,
-      ResponsibilityScope.Programme,
-    ))
+    can(Permission.CanViewPrograms) && (await canFillSchedule(db, can, accountId, meeting, 'part', congregationId))
 
   return {
     meeting: meetingForViewer(meeting, { schedule, conflicts: canAct }),

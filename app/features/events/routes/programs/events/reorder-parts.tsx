@@ -1,9 +1,9 @@
 import { redirect } from 'react-router'
 import { reorderPartAssignments } from '~/features/events/server/event-parts.server'
-import { canEditEvent } from '~/features/events/server/events-auth.server'
+import { canFillSchedule } from '~/features/events/server/events-auth.server'
 import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { Permission } from '~/shared/types/permission'
+import type { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/reorder-parts'
@@ -31,16 +31,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const event = await findProgrammeEvent(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
 
-    if (
-      !(await canEditEvent(
-        db,
-        can,
-        currentUser.id,
-        event.templateId ?? null,
-        congregationId,
-        Permission.CanAssignProgramParts,
-      ))
-    ) {
+    // « Attribuer », « Gérer », or the responsible of this schedule's template (plan §10, D7).
+    if (!(await canFillSchedule(db, can, currentUser.id, event, 'part', congregationId))) {
       throw redirect('/programs')
     }
 

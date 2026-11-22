@@ -4,12 +4,12 @@ import { Permission } from '~/shared/types/permission'
 
 vi.mock('./dashboard.server', () => ({ getNextMeeting: vi.fn() }))
 vi.mock('./programme-board-visibility.server', () => ({ isProgrammeOnBoardFor: vi.fn() }))
-vi.mock('~/features/events/server/events-auth.server', () => ({ canEditEvent: vi.fn() }))
+vi.mock('~/features/events/server/events-auth.server', () => ({ canFillSchedule: vi.fn() }))
 
 const { nextMeetingForViewer } = await import('./next-meeting-for-viewer.server')
 const { getNextMeeting } = await import('./dashboard.server')
 const { isProgrammeOnBoardFor } = await import('./programme-board-visibility.server')
-const { canEditEvent } = await import('~/features/events/server/events-auth.server')
+const { canFillSchedule } = await import('~/features/events/server/events-auth.server')
 
 const db = {} as never
 const meeting = {
@@ -33,7 +33,7 @@ function viewer(permissions: Permission[], audience: 'programmes' | 'board' | nu
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(getNextMeeting).mockResolvedValue(meeting as never)
-  vi.mocked(canEditEvent).mockResolvedValue(false)
+  vi.mocked(canFillSchedule).mockResolvedValue(false)
   vi.mocked(isProgrammeOnBoardFor).mockResolvedValue(false)
 })
 
@@ -64,7 +64,7 @@ describe('nextMeetingForViewer', () => {
   })
 
   it('gives whoever may fill this meeting its absence flags and the way to act', async () => {
-    vi.mocked(canEditEvent).mockResolvedValue(true)
+    vi.mocked(canFillSchedule).mockResolvedValue(true)
     const result = await nextMeetingForViewer(
       db,
       viewer([Permission.CanViewPrograms, Permission.CanAssignProgramParts], 'programmes'),
@@ -75,7 +75,7 @@ describe('nextMeetingForViewer', () => {
 
   it('never lets someone act on a meeting whose programmes they cannot open', async () => {
     vi.mocked(isProgrammeOnBoardFor).mockResolvedValue(true)
-    vi.mocked(canEditEvent).mockResolvedValue(true)
+    vi.mocked(canFillSchedule).mockResolvedValue(true)
     const result = await nextMeetingForViewer(db, viewer([Permission.CanViewBoard], 'board'))
     expect(result?.canAct).toBe(false)
   })

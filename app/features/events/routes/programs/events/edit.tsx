@@ -5,7 +5,12 @@ import {
   getServicePartAssignmentAllowedRoleIdsForParts,
 } from '~/features/events/server/allowed-roles.queries'
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
-import { canEditEvent, listApplicableTemplates, resolveEventItem } from '~/features/events/server/events-auth.server'
+import {
+  canEditEvent,
+  canFillSchedule,
+  listApplicableTemplates,
+  resolveEventItem,
+} from '~/features/events/server/events-auth.server'
 import { listPartPresets } from '~/features/events/server/part-presets.queries'
 import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
 import { EventEditor } from '~/features/events/ui/EventEditor'
@@ -20,7 +25,7 @@ import { listRoles } from '~/shared/domain/roles.server'
 import { Permission } from '~/shared/types/permission'
 import { distinct } from '~/shared/utils/distinct'
 import { requireParamId } from '~/shared/utils/params.server'
-import { handleEditIntent } from './_edit-event-intents.server'
+import { FILL_INTENT_KIND, handleEditIntent } from './_edit-event-intents.server'
 
 import type { Route } from './+types/edit'
 
@@ -107,6 +112,12 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     if (!event) throw redirect('/programs')
 
     if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
+      throw redirect('/programs')
+    }
+    // Adding, editing or deleting a part or a duty fills its schedule: its template's responsible, or « Attribuer » /
+    // « Gérer » (plan §10, D31: a programme responsible no longer fills the duties of a template that names another).
+    const fillKind = FILL_INTENT_KIND[String(intent)]
+    if (fillKind != null && !(await canFillSchedule(db, can, currentUser.id, event, fillKind, congregationId))) {
       throw redirect('/programs')
     }
 

@@ -2,12 +2,11 @@ import { redirect } from 'react-router'
 import { resolveProgrammeLink } from '~/features/display-board/index.server'
 import { isAwaitingProgramme, programmeTemplate } from '~/features/events/model/empty-meetings'
 import { mayOpenEvent } from '~/features/events/model/programme-access'
-import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
 import { buildAssignmentCandidates } from '~/features/events/server/assignment-candidates.server'
 import { eventHasAttendance } from '~/features/events/server/attendance.queries'
 import { buildShareTextsForEvent } from '~/features/events/server/build-share-message.server'
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
-import { canEditEvent } from '~/features/events/server/events-auth.server'
+import { canEditEvent, canFillSchedule } from '~/features/events/server/events-auth.server'
 import { listExternalSpeakerOptions } from '~/features/events/server/external-speakers.queries'
 import { EventView } from '~/features/events/ui/EventView'
 import * as m from '~/i18n/paraglide/messages'
@@ -46,15 +45,16 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const event = await getEventProgramme(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
 
-    // Each action on the page follows the right its route checks: editing and deleting the event, publishing it,
-    // assigning the parts, and assigning the services — the narrower delegation a service responsible holds.
-    const check = (required: Permission, scope?: ResponsibilityScope) =>
-      canEditEvent(db, can, currentUser.id, event.templateId, congregationId, required, scope)
+    // Each action on the page follows the right its route checks: editing and deleting the event, publishing it, and
+    // filling each schedule — its template's responsible, or « Attribuer » / « Gérer » (plan §10).
+    const check = (required: Permission) =>
+      canEditEvent(db, can, currentUser.id, event.templateId, congregationId, required)
+    const fill = (kind: 'part' | 'service') => canFillSchedule(db, can, currentUser.id, event, kind, congregationId)
     const [canEdit, canPublish, canAssign, canAssignService] = await Promise.all([
       check(Permission.CanManagePrograms),
       check(Permission.CanPublishPrograms),
-      check(Permission.CanAssignProgramParts),
-      check(Permission.CanAssignProgramParts, ResponsibilityScope.Service),
+      fill('part'),
+      fill('service'),
     ])
     const canAssignAnything = canAssign || canAssignService
     refuseDraft(event.status, { canEdit, canPublish, canAssign, canAssignService })
