@@ -37,6 +37,8 @@ interface Meeting {
   serviceId: number
   noticeId: number
   serviceNoticeId: number
+  /** Notices the previous image wrote about the old rows during a rollout (plan T12, 5i-b). */
+  legacyNoticeIds: number[]
 }
 
 /** A published meeting with one part, one service and a pending notice for its part; counts as given. */
@@ -70,6 +72,22 @@ function meeting(counts: { inPerson: number | null; online: number | null } | nu
         congregationId,
       },
     })
+    const legacyNotices = await Promise.all(
+      [
+        ['EventPart', part.id],
+        ['EventServicePart', service.id],
+      ].map(([entityType, entityId]) =>
+        tx.notificationEvent.create({
+          data: {
+            type: 'part_assigned',
+            entityType: entityType as string,
+            entityId: entityId as number,
+            debounceKey: `${entityType}:${entityId}:user:1`,
+            congregationId,
+          },
+        }),
+      ),
+    )
     if (counts) await tx.attendance.create({ data: { eventId: event.id, ...counts, congregationId } })
     return {
       eventId: event.id,
@@ -77,6 +95,7 @@ function meeting(counts: { inPerson: number | null; online: number | null } | nu
       serviceId: serviceItem.id,
       noticeId: notice.id,
       serviceNoticeId: serviceNotice.id,
+      legacyNoticeIds: legacyNotices.map(legacy => legacy.id),
     }
   })
 }
@@ -124,10 +143,29 @@ const state = (m: Meeting) =>
     services: await tx.item.count({ where: { eventId: m.eventId, schedule: { kind: 'duty' } } }),
     notice: await tx.notificationEvent.findFirst({ where: { id: m.noticeId }, select: { status: true } }),
     serviceNotice: await tx.notificationEvent.findFirst({ where: { id: m.serviceNoticeId }, select: { status: true } }),
+    legacyNotices: (
+      await tx.notificationEvent.findMany({ where: { id: { in: m.legacyNoticeIds } }, select: { status: true } })
+    ).map(row => row.status),
     audits: (await tx.auditLog.findMany({ where: { entityType: 'Event', entityId: m.eventId } })).map(a => a.action),
   }))
 
 describe('bulkDeleteEvents', () => {
+  it('cancels the notices the previous image wrote about the old rows of a programme it removes', async () => {
+    const counted = await meeting({ inPerson: 80, online: 12 })
+    const plain = await meeting(null)
+
+    await withScope(congregationId, tx =>
+      bulkDeleteEvents(tx, [counted.eventId, plain.eventId], congregationId, actorId),
+    )
+
+    expect((await state(counted)).legacyNotices).toEqual(['cancelled', 'cancelled'])
+    const left = await withScope(congregationId, tx =>
+      tx.notificationEvent.findMany({ where: { id: { in: plain.legacyNoticeIds } }, select: { status: true } }),
+    )
+    // A deleted event's notices are cancelled before it goes; they stay as history.
+    expect(left.map(row => row.status)).toEqual(['cancelled', 'cancelled'])
+  })
+
   it('keeps a meeting with counts as a draft without its programme, and deletes the others', async () => {
     const counted = await meeting({ inPerson: 98, online: 21 })
     const plain = await meeting(null)
