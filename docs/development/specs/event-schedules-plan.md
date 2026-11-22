@@ -139,6 +139,8 @@ about thirty non-test files; the read switch goes feature by feature.
 | 4c | Read switch: dashboard | — | none visible |
 | 4d | Read switch: board documents and links | — | none visible |
 | 4e | Read switch: the last readers (part types' usage); notifications, feed and export accounted for | — | none visible |
+| 5-0 | Status read switch: « visible » = a published schedule; `Event.status` still written | — | none |
+| 5i | Writers move to items: id flip, notices rewritten, archive (bump) | bump | none |
 | 5a | Rights per schedule (server) | — | none |
 | 5b | Per-schedule publishing (server, routes, bulk) | — | small |
 | 5c | Event view, editor and creation form by schedule | — | yes |
@@ -418,7 +420,7 @@ and feed, conflicts, candidates, cadences, engagement (4b); the dashboard (4c); 
 feed moved with the assignments in 4b. The account export is the control plane's: it reads the old tables through
 its own schema copy and must move to items before PR 9 drops them. What still reads the old tables in the app
 feeds a write or a permission (`EMPTY_MEETING`, the delete guards, `events-auth`, the archive export) and moves
-with the writers in PR 5.
+with the writers in PR 5. The status readers did not move: they still filter on `Event.status` (PR 5-0).
 
 ## 10. PR 5 — Per-schedule publishing, event view, rights
 
@@ -449,8 +451,22 @@ Files: `model/programme-access.ts`, `server/events-auth.server.ts` (`canEditEven
 `programs/new.tsx`, every `routes/programs/events/*.tsx`, dashboard `next-meeting-for-viewer`,
 `load-dashboard` (open parts), `get-responsible-conflicts`, settings `settings-access.server.ts`.
 `responsibility-scope.type.ts` and `scopesCovering` are deleted; `TemplateResponsible` is no longer
-read (still written for PR 4's image, which reads it). `Event.status` is no longer written: PR 4's
-image already reads schedules (T9).
+read (still written for PR 4's image, which reads it). `Event.status` is still written by PR 5 (released when any
+schedule is published): PR 4's image reads it. PR 5-0 moves the status readers to schedules; the write stops one
+release later (PR 6), T9.
+
+**Order inside PR 5 (decided 2026-11-22):** 5-0 the status readers (« visible » = has a published schedule, no
+visible change while both schedules publish together); 5i the writers move to items, in one PR because the id flip
+is atomic; one deploy for both, with the control-plane PR that pins it; then 5a rights, 5b publishing, 5c the
+event view and editor.
+
+**5i, the id flip across the rollout:** the two id spaces overlap. A form of the new image posts an item id under a
+new field name the previous image's actions do not read; the new image's actions also accept the old name, as a
+legacy id they translate through `legacyPartId` / `legacyServiceId`. An old pod given a new form refuses; a new pod
+given an old form translates; never the wrong row. The events snapshot diff is no longer empty at this deploy (ids
+flip: compare with ids ignored); calendar-feed uids change once, replaced on the subscriber's next sync. The
+control plane's GDPR export and congregation deletion move to items in the same control-plane PR that pins 5i:
+from then the old tables stop receiving new rows.
 
 **Publishing.** `publishSchedule` / `unpublishSchedule` (new `schedule-status.server.ts`, TDD) replace
 `releaseEvent` / `unreleaseEvent`: refusal on a schedule with a conflict or an empty programme,
