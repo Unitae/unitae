@@ -479,6 +479,9 @@ notification targets from that schedule's items only, pending notices of that sc
 unpublish. Assignment writers hard-fail on a published schedule, flag on a draft one (today's rule per
 event). Routes: `events/:eventId/schedules/:scheduleId/publish` and `/unpublish`; the bulk routes take
 schedule ids. The old routes redirect.
+The board documents' « à jour » stamp (`getContentVersion`) takes the schedules' `updatedAt` too: publishing one
+schedule touches no event any more. The share message's draft check and the managers' draft labels follow the
+schedule's status.
 
 **Creation** (D12): the form pre-selects the kind's suggested schedules, each untickable; a
 responsible sees their own ticked and the others as drafts created with it. `programs/new.tsx`,
