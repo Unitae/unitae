@@ -202,7 +202,7 @@ describe('the order of services', () => {
 
   // Ties go by the old row's id (order_services), and a programme's parts with the same order and track position too,
   // even where the items were written in another order than the rows they mirror.
-  it('breaks ties by the order the rows were created in, whatever order their items were written in', async () => {
+  it('breaks ties by the order the old rows were created in, whatever their items’ ids, then the app’s own items', async () => {
     const read = await withScope(ids.cong, async tx => {
       const event = await newEvent(tx, 'Égalités')
       const congregationId = ids.cong
@@ -214,10 +214,18 @@ describe('the order of services', () => {
       await tx.eventPart.create({ data: { name: 'P2', order: 5, eventId: event.id, congregationId } })
       await tx.eventPart.create({ data: { name: 'P0', order: 5, trackOrder: 1, eventId: event.id, congregationId } })
       await settleFixtureSchedules(tx as never, congregationId)
-      // The first row of each pair gets its item back with a newer id than the second's.
-      await tx.item.deleteMany({ where: { OR: [{ legacyServiceId: first.id }, { legacyPartId: lead.id }] } })
-      await tx.eventServicePart.update({ where: { id: first.id }, data: { note: '' } })
-      await tx.eventPart.update({ where: { id: lead.id }, data: { note: '' } })
+      // A duty the app made (no old row), tied with A and B, written before the copies below: its id is lower than theirs.
+      const b = await tx.item.findFirstOrThrow({ where: { eventId: event.id, name: 'B' } })
+      await tx.item.create({
+        data: { name: 'C', order: 0, eventId: event.id, scheduleId: b.scheduleId, congregationId },
+      })
+      // The first row of each pair gets its item copied to a newer id than the second's, as a backfill in another order
+      // would have left it.
+      for (const where of [{ legacyServiceId: first.id }, { legacyPartId: lead.id }]) {
+        const { id: _id, ...item } = await tx.item.findUniqueOrThrow({ where })
+        await tx.item.delete({ where })
+        await tx.item.create({ data: item })
+      }
       const page = await getEventProgramme(tx, event.id, congregationId)
       return {
         services: page?.eventServiceParts.map(service => service.name),
@@ -225,7 +233,7 @@ describe('the order of services', () => {
       }
     })
 
-    expect(read).toEqual({ services: ['A', 'B'], parts: ['P0', 'P1', 'P2'] })
+    expect(read).toEqual({ services: ['A', 'B', 'C'], parts: ['P0', 'P1', 'P2'] })
   })
 
   it('seeds the services of a new congregation in the order they are listed', async () => {

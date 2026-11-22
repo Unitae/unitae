@@ -25,6 +25,7 @@ const { applyTemplateToEvent } = await import('./apply-template.server')
 const { bulkDeleteEvents } = await import('./delete-events.server')
 const { duplicateTemplate } = await import('./duplicate-template.server')
 const { deleteTemplate } = await import('./delete-template.server')
+const { attachEventItems } = await import('./schedules.server')
 const { setPartAssignmentAllowedRoles, setServicePartAssignmentAllowedRoles, setTemplatePartAllowedRoles } =
   await import('./allowed-roles.server')
 
@@ -310,6 +311,106 @@ describe('old item tables mirrored into the new ones', () => {
       await inStep()
       expect(await db.item.count({ where: { eventId: { in: [first, second] } } })).toBe(0)
       expect(await db.templateItem.count({ where: { templateId: copy.id } })).toBe(0)
+    })
+  })
+
+  // From 5i-b the app edits and deletes items alone, so an old row can lag behind its item, or outlive it. Postgres still
+  // updates old rows by itself (a foreign key set to null when a template part, a preset, a speaker or a member goes):
+  // such an update must neither undo the app's edits nor bring a deleted item back.
+  it('keeps what the app wrote over an old row that lags behind, when a key of that row is set to null', async () => {
+    await inCongregation(async ({ db, congregationId, actorId, templateId, roleId }) => {
+      const midweek = await templateId('midweek-meeting')
+      const templatePart = await db.templatePart.findFirstOrThrow({ where: { templateId: midweek } })
+      const templateService = await db.templateServicePart.findFirstOrThrow({ where: { templateId: midweek } })
+      const paul = await db.member.create({ data: { firstname: 'Paul', lastname: 'MARTIN', congregationId } })
+      const jean = await db.member.create({ data: { firstname: 'Jean', lastname: 'PETIT', congregationId } })
+      const { partId, serviceId } = await oldRowProgramme(db, {
+        congregationId,
+        actorId,
+        roleId,
+        templateId: midweek,
+        partId: templatePart.id,
+        servicePartId: templateService.id,
+        day: '2027-05-06',
+      })
+      // Before the flip: Paul on both, written to the old rows and mirrored.
+      await db.eventPart.update({ where: { id: partId }, data: { assigneeId: paul.id } })
+      await db.eventServicePart.update({ where: { id: serviceId }, data: { assigneeId: paul.id } })
+      // After it: the app gives both to Jean and renames the part, on the items alone.
+      await db.item.update({
+        where: { legacyPartId: partId },
+        data: { assigneeId: jean.id, name: 'Discours public', topic: 'Sujet' },
+      })
+      await db.item.update({ where: { legacyServiceId: serviceId }, data: { assigneeId: jean.id } })
+
+      await db.templatePart.delete({ where: { id: templatePart.id } })
+      await db.templateServicePart.delete({ where: { id: templateService.id } })
+      await db.member.delete({ where: { id: paul.id } })
+
+      expect(
+        await db.item.findUniqueOrThrow({
+          where: { legacyPartId: partId },
+          select: { assigneeId: true, name: true, topic: true, templateItemId: true },
+        }),
+      ).toEqual({ assigneeId: jean.id, name: 'Discours public', topic: 'Sujet', templateItemId: null })
+      expect(
+        await db.item.findUniqueOrThrow({
+          where: { legacyServiceId: serviceId },
+          select: { assigneeId: true, templateItemId: true },
+        }),
+      ).toEqual({ assigneeId: jean.id, templateItemId: null })
+    })
+  })
+
+  it('never brings back an item the app deleted when its old row is updated', async () => {
+    await inCongregation(async ({ db, congregationId, actorId, templateId, roleId }) => {
+      const midweek = await templateId('midweek-meeting')
+      const templatePart = await db.templatePart.findFirstOrThrow({ where: { templateId: midweek } })
+      const templateService = await db.templateServicePart.findFirstOrThrow({ where: { templateId: midweek } })
+      const { eventId, partId, serviceId } = await oldRowProgramme(db, {
+        congregationId,
+        actorId,
+        roleId,
+        templateId: midweek,
+        partId: templatePart.id,
+        servicePartId: templateService.id,
+        day: '2027-05-13',
+      })
+      await db.item.delete({ where: { legacyPartId: partId } })
+      await db.item.delete({ where: { legacyServiceId: serviceId } })
+
+      await db.templatePart.delete({ where: { id: templatePart.id } })
+      await db.templateServicePart.delete({ where: { id: templateService.id } })
+
+      expect(await db.item.count({ where: { eventId } })).toBe(0)
+    })
+  })
+
+  it('still carries an old row’s change to an item that mirrors it, and a schedule given to an old row', async () => {
+    await inCongregation(async ({ db, congregationId, actorId, templateId }) => {
+      const midweek = await templateId('midweek-meeting')
+      const member = await db.member.create({ data: { firstname: 'Luc', lastname: 'ROUX', congregationId } })
+      // An old row written without a schedule, as the previous image's demo or an import leaves one.
+      const event = await db.event.create({
+        data: {
+          name: 'Réunion',
+          startDate: new Date('2027-05-20T17:00:00Z'),
+          endDate: new Date('2027-05-20T19:00:00Z'),
+          templateId: midweek,
+          createdById: actorId,
+          congregationId,
+        },
+      })
+      const part = await db.eventPart.create({ data: { eventId: event.id, name: 'Lecture', order: 2, congregationId } })
+      await attachEventItems(db, [event.id], congregationId)
+      await db.eventPart.update({ where: { id: part.id }, data: { assigneeId: member.id, topic: 'Actes 2' } })
+
+      expect(
+        await db.item.findUniqueOrThrow({
+          where: { legacyPartId: part.id },
+          select: { assigneeId: true, topic: true, scheduleId: true },
+        }),
+      ).toMatchObject({ assigneeId: member.id, topic: 'Actes 2', scheduleId: expect.any(Number) })
     })
   })
 
