@@ -64,12 +64,11 @@ export async function listUserConflictsInRange(
     db.item.findMany({
       where: {
         ...PART_ITEMS,
+        // Drafts are invisible to publisher- and manager-facing conflict surfaces alike; managers spot draft
+        // conflicts via the events-list amber badge and the release-blocking error.
         ...VISIBLE_ITEM,
         hasConflict: true,
         OR: [{ assigneeId: memberId }, { assistantId: memberId }],
-        // Drafts are invisible to publisher- and manager-facing conflict
-        // surfaces alike; managers spot draft conflicts via the events-list
-        // amber badge and the release-blocking error.
         event: { startDate: { lte: endDate }, endDate: { gte: startDate } },
       },
       select: {

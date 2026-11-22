@@ -46,9 +46,9 @@ export async function getPersonalAssignments(
       ? db.item.findMany({
           where: {
             ...PART_ITEMS,
+            // Drafts stay off the publisher's calendar and ICS feed.
             ...VISIBLE_ITEM,
             OR: [{ assigneeId: memberId }, { assistantId: memberId }],
-            // Drafts stay off the publisher's calendar and ICS feed.
             event: { startDate: { gte: since } },
           },
           include: { ...ITEM_ORIGIN_INCLUDE, event: true },

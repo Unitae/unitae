@@ -62,7 +62,7 @@ export interface AbsenceAssignment {
   eventDate: Date
   /** Who may reassign it follows the event's template. */
   templateId: number | null
-  /** Its programme is published: people already rely on it. */
+  /** Its schedule is published: people already rely on it. */
   published: boolean
 }
 

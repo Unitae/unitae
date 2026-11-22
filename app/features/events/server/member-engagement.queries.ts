@@ -13,7 +13,7 @@ import type { CongregationId, MemberId } from '~/shared/types/branded'
 const MAX_ASSIGNMENTS = 5
 
 /**
- * Upcoming released parts and service parts a member holds (as assignee or
+ * Upcoming published parts and service parts a member holds (as assignee or
  * assistant), for the publisher record page. Read-only companion to the
  * dashboard's getUpcomingAssignments, keyed by an arbitrary member instead of
  * the signed-in one.
@@ -92,7 +92,7 @@ export interface LastAssignment {
 }
 
 /**
- * Each member's latest released part before now (as assignee or assistant, or on a service part),
+ * Each member's latest published part before now (as assignee or assistant, or on a service part),
  * within the last twelve months, for the publisher list. Members with none are absent from the map.
  */
 export async function findLastAssignmentsForMembers(
