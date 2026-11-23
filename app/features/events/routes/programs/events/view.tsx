@@ -67,6 +67,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const rights = { canEdit, canPublish, canAssign, canAssignService }
     refuseDraft(event.status, rights)
     // A draft schedule reaches only whoever may act on it (spec §5.3, D45): the others' items never leave the server.
+    // By kind, while an event holds one schedule of each (see maySeeSchedule).
     const hidden = new Set(event.schedules.filter(schedule => !maySeeSchedule(schedule, rights)).map(s => s.kind))
     // Not even that a hidden schedule exists: its status leaves with neither its items nor the list of schedules.
     const shown = {
