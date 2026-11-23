@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     userAccount: { findFirst: vi.fn() },
-    item: { findMany: vi.fn() },
+    item: { findMany: vi.fn(), findFirst: vi.fn() },
     notificationEvent: { updateMany: vi.fn() },
   },
 }))
@@ -33,7 +33,6 @@ const CTX = {
     name: 'Weekly meeting',
     startDate: new Date('2026-07-20T18:30:00Z'),
     templateId: 9,
-    status: 'released' as const,
   },
   assignmentName: 'Perles de la Parole',
   entityType: 'Item' as const,
@@ -131,6 +130,13 @@ describe('notifyAssignment', () => {
 })
 
 describe('dispatchAssignmentDiffs', () => {
+  // The item's own schedule decides (plan §10, 5b): published by default here.
+  const scheduleOfItem = (status: string | null) =>
+    vi
+      .mocked(db.item.findFirst)
+      .mockResolvedValue((status == null ? { schedule: null } : { schedule: { status } }) as never)
+  beforeEach(() => scheduleOfItem('published'))
+
   it('fires nothing when the diff is a no-op (same person before and after)', async () => {
     await dispatchAssignmentDiffs(db, CTX, [{ role: 'speaker', previousMemberId: 5, newMemberId: 5 }])
     expect(notify).not.toHaveBeenCalled()
@@ -170,29 +176,38 @@ describe('dispatchAssignmentDiffs', () => {
     expect(notify).toHaveBeenCalledTimes(2)
   })
 
-  // Only released events fire notifications. Anything else — 'draft' today,
-  // whatever future status the schema grows tomorrow — must be silent, so a
-  // typo or an unhandled state cannot silently spam publishers.
-  it('does not fire notifications when the event is still a draft', async () => {
+  // Only a published schedule fires notifications. Anything else — 'draft' today, whatever status the schema grows
+  // tomorrow, an item without a schedule or gone — must be silent, so a typo or an unhandled state cannot spam
+  // publishers.
+  it.each([
+    ['still a draft', 'draft'],
+    ['of an unknown status', 'archived'],
+  ])('does not fire notifications when the item’s schedule is %s', async (_name, status) => {
     vi.mocked(db.userAccount.findFirst).mockResolvedValue({ id: 33 } as never)
-    const draftCtx = { ...CTX, event: { ...CTX.event, status: 'draft' as const } }
-    await dispatchAssignmentDiffs(db, draftCtx, [
+    scheduleOfItem(status)
+    await dispatchAssignmentDiffs(db, CTX, [
       { role: 'speaker', previousMemberId: null, newMemberId: 5 },
       { role: 'reader', previousMemberId: 8, newMemberId: null },
     ])
     expect(notify).not.toHaveBeenCalled()
   })
 
-  // Whitelist guard: any status that is not 'released' must be silent. If we
-  // ever grow a third status without updating this gate, a blacklist would
-  // silently notify.
-  it('does not fire notifications for an unknown / future event status', async () => {
+  it.each([
+    ['without a schedule', () => scheduleOfItem(null)],
+    ['gone', () => vi.mocked(db.item.findFirst).mockResolvedValue(null)],
+  ])('does not fire notifications for an item %s', async (_name, arrange) => {
     vi.mocked(db.userAccount.findFirst).mockResolvedValue({ id: 33 } as never)
-    // A hypothetical future status. TypeScript will complain on the cast, but
-    // the runtime code must still refuse to notify.
-    const unknownCtx = { ...CTX, event: { ...CTX.event, status: 'archived' as unknown as 'released' } }
-    await dispatchAssignmentDiffs(db, unknownCtx, [{ role: 'speaker', previousMemberId: null, newMemberId: 5 }])
+    arrange()
+    await dispatchAssignmentDiffs(db, CTX, [{ role: 'speaker', previousMemberId: null, newMemberId: 5 }])
     expect(notify).not.toHaveBeenCalled()
+  })
+
+  it('reads the status of the item it notifies about, in its congregation', async () => {
+    vi.mocked(db.userAccount.findFirst).mockResolvedValue({ id: 33 } as never)
+    await dispatchAssignmentDiffs(db, CTX, [{ role: 'speaker', previousMemberId: null, newMemberId: 5 }])
+    expect(db.item.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: CTX.entityId, congregationId: CTX.congregationId } }),
+    )
   })
 })
 

@@ -32,7 +32,7 @@ const ASSIGNMENT_PAYLOAD = z.object({
 // A publisher (or their linked UserAccount) gets a new part or service-role
 // assignment. Debounced 30 min — a safety net that lets a manager cancel an
 // accidental release before the mail leaves. The long 2h window is no longer
-// needed now that draft events don't notify at all.
+// needed now that draft schedules don't notify at all.
 const programmeAssignmentAssigned = defineNotificationType({
   type: PROGRAMME_ASSIGNMENT_TYPE.assigned,
   category: PROGRAMME_CATEGORY,

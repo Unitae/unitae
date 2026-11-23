@@ -2,7 +2,7 @@ import { ScheduleKind } from '~/features/events/model/schedule.type'
 import { ITEM_SLOT, type PartRoleKind } from '~/features/events/server/allowed-roles.server'
 import { templateItemsOf } from '~/features/events/server/item-projection.server'
 import { syncTemplateScheduleTemplates } from '~/features/events/server/schedule-templates.server'
-import { alignEventSchedules, eventScheduleId } from '~/features/events/server/schedules.server'
+import { alignEventSchedules, eventSchedulesOf } from '~/features/events/server/schedules.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 
@@ -36,10 +36,11 @@ export async function applyTemplateToEvent(
   })
   // Its schedules follow it onto the new template, and the template's items go into them.
   await alignEventSchedules(db, eventId, congregationId)
-  const programmeId =
-    template.parts.length > 0 ? await eventScheduleId(db, eventId, ScheduleKind.Programme, congregationId) : null
-  const dutiesId =
-    template.serviceParts.length > 0 ? await eventScheduleId(db, eventId, ScheduleKind.Duty, congregationId) : null
+  const kinds = [
+    ...(template.parts.length > 0 ? [ScheduleKind.Programme] : []),
+    ...(template.serviceParts.length > 0 ? [ScheduleKind.Duty] : []),
+  ]
+  const { programme: programmeId, duty: dutiesId } = await eventSchedulesOf(db, eventId, kinds, congregationId)
 
   // Each item points at the template item its template part or service is mirrored into (plan T12).
   const templates = await templateItemsOf(

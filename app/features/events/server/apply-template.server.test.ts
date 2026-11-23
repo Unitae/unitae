@@ -6,6 +6,7 @@ vi.mock('~/features/events/server/schedules.server', () => ({
   attachEventItems: vi.fn(),
   deleteEventSchedules: vi.fn(),
   eventScheduleId: vi.fn(),
+  eventSchedulesOf: vi.fn(),
   setEventSchedulesStatus: vi.fn(),
 }))
 vi.mock('~/features/events/server/schedule-templates.server', () => ({
@@ -37,7 +38,7 @@ vi.mock('~/shared/domain/audit.server', () => ({
   },
 }))
 
-const { eventScheduleId } = await import('~/features/events/server/schedules.server')
+const { eventSchedulesOf } = await import('~/features/events/server/schedules.server')
 const { applyTemplateToEvent } = await import('./apply-template.server')
 
 const mockDb = {
@@ -82,7 +83,10 @@ beforeEach(() => {
   vi.mocked(allowedRoles.setServicePartAssignmentAllowedRoles).mockResolvedValue({ added: [], removed: [] })
   mockDb.attendance.findMany.mockResolvedValue([])
   mockDb.notificationEvent.updateMany.mockResolvedValue({ count: 0 })
-  vi.mocked(eventScheduleId).mockImplementation(async (_db, _eventId, kind) => (kind === 'programme' ? 77 : 78))
+  vi.mocked(eventSchedulesOf).mockImplementation(async (_db, _eventId, kinds) => ({
+    programme: kinds.includes('programme') ? 77 : null,
+    duty: kinds.includes('duty') ? 78 : null,
+  }))
   mockDb.templateItem.findMany.mockResolvedValue([])
   mockDb.item.aggregate.mockResolvedValue({ _max: { order: null } })
   mockDb.item.deleteMany.mockResolvedValue({ count: 0 })

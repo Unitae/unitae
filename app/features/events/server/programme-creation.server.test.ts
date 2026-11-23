@@ -7,6 +7,7 @@ vi.mock('~/features/events/server/schedules.server', () => ({
   attachEventItems: vi.fn(),
   deleteEventSchedules: vi.fn(),
   eventScheduleId: vi.fn(),
+  eventSchedulesOf: vi.fn(),
   setEventSchedulesStatus: vi.fn(),
 }))
 vi.mock('~/features/events/server/schedule-templates.server', () => ({
@@ -38,7 +39,7 @@ vi.mock('~/shared/infra/db.server', () => ({
   },
 }))
 
-const { eventScheduleId } = await import('~/features/events/server/schedules.server')
+const { eventSchedulesOf } = await import('~/features/events/server/schedules.server')
 const { createProgrammeOnDay, createProgrammeSeries, ProgrammeExistsError } = await import(
   './programme-creation.server'
 )
@@ -98,9 +99,10 @@ beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(db.event.findMany).mockResolvedValue([] as never)
   vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
-  vi.mocked(eventScheduleId).mockImplementation(async (_db, _eventId, kind) =>
-    kind === 'programme' ? PROGRAMME_SCHEDULE : DUTY_SCHEDULE,
-  )
+  vi.mocked(eventSchedulesOf).mockImplementation(async (_db, _eventId, kinds) => ({
+    programme: kinds.includes('programme') ? PROGRAMME_SCHEDULE : null,
+    duty: kinds.includes('duty') ? DUTY_SCHEDULE : null,
+  }))
   // A part is item 700, a service item 800.
   vi.mocked(db.item.create).mockImplementation((({ data }: { data: { scheduleId: number } }) =>
     Promise.resolve({ id: data.scheduleId === DUTY_SCHEDULE ? 800 : 700 })) as never)

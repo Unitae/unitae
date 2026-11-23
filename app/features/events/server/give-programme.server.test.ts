@@ -6,6 +6,7 @@ vi.mock('~/features/events/server/schedules.server', () => ({
   attachEventItems: vi.fn(),
   deleteEventSchedules: vi.fn(),
   eventScheduleId: vi.fn(),
+  eventSchedulesOf: vi.fn(),
   setEventSchedulesStatus: vi.fn(),
 }))
 vi.mock('~/features/events/server/schedule-templates.server', () => ({
@@ -19,7 +20,7 @@ vi.mock('~/shared/domain/audit.server', () => ({
   auditInTransaction: (...args: unknown[]) => auditInTransaction(...args),
 }))
 
-const { eventScheduleId } = await import('~/features/events/server/schedules.server')
+const { eventSchedulesOf } = await import('~/features/events/server/schedules.server')
 const { giveProgramme } = await import('./give-programme.server')
 
 const db = {
@@ -60,7 +61,10 @@ const TEMPLATE = {
 beforeEach(() => {
   vi.resetAllMocks()
   // The programme's schedule is 77, the duties' 78: each item lands in the schedule of its kind.
-  vi.mocked(eventScheduleId).mockImplementation(async (_db, _eventId, kind) => (kind === 'programme' ? 77 : 78))
+  vi.mocked(eventSchedulesOf).mockImplementation(async (_db, _eventId, kinds) => ({
+    programme: kinds.includes('programme') ? 77 : null,
+    duty: kinds.includes('duty') ? 78 : null,
+  }))
   db.item.create.mockResolvedValueOnce({ id: 700 }).mockResolvedValueOnce({ id: 800 })
   // The template items mirroring the template's part 11 and service 21.
   db.templateItem.findMany.mockResolvedValue([
