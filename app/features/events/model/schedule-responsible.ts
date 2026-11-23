@@ -10,7 +10,8 @@ interface Holder {
 /** What the event page shows of a schedule's responsible: names only, « vous » worked out here (D37). */
 export interface PageResponsible {
   role: { key: string; name: string | null }
-  holders: { firstname: string | null; lastname: string | null; seat: Holder['seat']; you: boolean }[]
+  /** `key`: stable for the page's list, saying nothing of who the holder is. */
+  holders: { key: string; firstname: string | null; lastname: string | null; seat: Holder['seat']; you: boolean }[]
   /** The reader holds the role, named among the holders or not: what lets them fill and publish it. */
   youHoldIt: boolean
 }
@@ -33,7 +34,8 @@ export function responsibleForPage(
     (holder.memberId != null && holder.memberId === viewer.memberId) || holder.accountId === viewer.accountId
   return {
     role: responsible.role,
-    holders: shown.map(holder => ({
+    holders: shown.map((holder, index) => ({
+      key: `${holder.seat}-${index}`,
       firstname: holder.firstname,
       lastname: holder.lastname,
       seat: holder.seat,

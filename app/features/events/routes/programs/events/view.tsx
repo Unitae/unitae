@@ -112,6 +112,13 @@ export function loader({ params, context }: Route.LoaderArgs) {
       services: shown.eventServiceParts.length,
       template: programmeTemplate(event.template),
     })
+    // Publishing goes by the meeting itself, not by what this reader sees of it: a duties responsible who cannot see the
+    // draft programme still publishes their duties beside it.
+    const awaitsInFact = isAwaitingProgramme({
+      parts: event.eventParts.length,
+      services: event.eventServiceParts.length,
+      template: programmeTemplate(event.template),
+    })
     const schedules = shown.schedules.map(schedule => {
       const roleId = roleOf(schedule)
       const responsible = roleId == null ? undefined : responsibles.get(roleId)
@@ -129,7 +136,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
         // Never offered what publishing would refuse: a programme still to give (programmeAwaits, as publishSchedule).
         // A meeting still awaiting its programme offers « Créer le programme », never publishing (as before schedules).
         publishable:
-          !awaitingProgramme &&
+          !awaitsInFact &&
           mayPublish &&
           schedule.status === ScheduleStatus.Draft &&
           !programmeAwaits({ kind: schedule.kind, items }, event.template),

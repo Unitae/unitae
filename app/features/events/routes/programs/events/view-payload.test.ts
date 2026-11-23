@@ -227,6 +227,31 @@ describe('what the page offers to publish, case by case', () => {
   })
 })
 
+describe('a duties responsible’s publishing', () => {
+  it('publishes their own draft duties, the draft programme hidden from them', async () => {
+    state.statuses = { programme: 'draft', duty: 'draft' }
+    state.rights.service = true
+    state.mine = [2]
+    const data = (await loader({ params: { eventId: '40' }, context: readerContext() } as never)) as {
+      event: { schedules: { id: number; publishable: boolean }[] }
+      publishAll: { count: number; everyone: boolean }
+    }
+    expect(data.event.schedules.map(schedule => [schedule.id, schedule.publishable])).toEqual([[2, true]])
+    expect(data.publishAll).toEqual({ count: 1, everyone: false })
+  })
+
+  it('publishes their empty duties beside a programme with parts they cannot see: the meeting awaits nothing', async () => {
+    state.statuses = { programme: 'draft', duty: 'draft' }
+    state.rights.service = true
+    state.mine = [2]
+    state.services = []
+    const data = (await loader({ params: { eventId: '40' }, context: readerContext() } as never)) as {
+      event: { schedules: { id: number; publishable: boolean }[] }
+    }
+    expect(data.event.schedules.map(schedule => [schedule.id, schedule.publishable])).toEqual([[2, true]])
+  })
+})
+
 describe('the event page’s schedules', () => {
   it('sends a reader the published duties and nothing of the draft programme', async () => {
     expect(await load()).toEqual({ parts: [], services: [2], schedules: ['duty'] })
