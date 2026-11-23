@@ -4,8 +4,9 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 
-// Who may fill a schedule (plan §10, D3, D7, D31, D47): the congregation-wide rights reach every one; otherwise the
-// role its template names (ScheduleTemplate.responsibleRoleId, synced from the responsibles Réglages names).
+// Who may fill a schedule, and the event-level rules that follow from schedules (plan §10, D3, D7, D28, D31, D47–D50):
+// the congregation-wide rights reach every one; otherwise the role a schedule's template names
+// (ScheduleTemplate.responsibleRoleId, synced from the responsibles Réglages names).
 
 const logger = createLogger('schedule-rights')
 
@@ -82,15 +83,18 @@ export async function canFillTemplateSchedules(
 }
 
 /**
- * The kinds (event templates) suggesting a schedule template the caller is responsible for: those whose events they
- * may create, change and move an event to (D28, D49). Sorted.
+ * The kinds (event templates) suggesting a schedule template the caller is responsible for (D28, D49): the kinds whose
+ * events they create and change, and the kinds they may move an event to. Sorted.
  */
 export async function responsibleKindIds(
   db: TransactionClient,
   userId: number,
   congregationId: number,
 ): Promise<number[]> {
-  const roleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
+  return kindsAnsweredFor(db, await resolveEffectiveRoleIds(db, userId, congregationId), congregationId)
+}
+
+async function kindsAnsweredFor(db: TransactionClient, roleIds: number[], congregationId: number): Promise<number[]> {
   if (roleIds.length === 0) return []
   const links = await db.eventKindScheduleTemplate.findMany({
     where: { congregationId, scheduleTemplate: { responsibleRoleId: { in: roleIds } } },
@@ -99,35 +103,97 @@ export async function responsibleKindIds(
   return [...new Set(links.map(link => link.eventKindId))].sort((a, b) => a - b)
 }
 
-/** Whether the caller may change an event — its date, hours, fields, kind — and open its editor (D28). */
+/**
+ * Whether the caller may change events of a kind — their date, hours, fields — and move an event to it (D28, D49):
+ * « Gérer », or a responsible of a schedule template the kind suggests. No kind (old imports) is the managers' alone.
+ */
+export async function canChangeEventsOfKind(
+  db: TransactionClient,
+  can: (permission: Permission) => boolean,
+  userId: number,
+  kindId: number | null,
+  congregationId: number,
+): Promise<boolean> {
+  if (can(Permission.CanManagePrograms)) return true
+  if (kindId == null) return false
+  return (await responsibleKindIds(db, userId, congregationId)).includes(kindId)
+}
+
+/**
+ * Whether the caller may change an event and open its editor: changing events of its kind. Moving it to another kind
+ * also asks the target (canChangeEventsOfKind, and canFillTemplateSchedules for what it brings).
+ */
 export async function canChangeEvent(
   db: TransactionClient,
   can: (permission: Permission) => boolean,
   userId: number,
-  event: { id: number; templateId: number | null },
+  event: { templateId: number | null },
   congregationId: number,
 ): Promise<boolean> {
   if (can(Permission.CanManagePrograms)) return true
+  return canChangeEventsOfKind(db, can, userId, event.templateId, congregationId)
+}
+
+/** Every one of these is the caller's: never true of none, which "all the caller's" would wrongly grant. */
+const answersForEvery = (responsibles: readonly (number | null)[], roleIds: readonly number[]) =>
+  responsibles.length > 0 && responsibles.every(role => role != null && roleIds.includes(role))
+
+/** What the event rules read of the events they judge, in one pass for all of them. */
+interface EventFacts {
+  /** The responsible role of each schedule the event holds; none for a schedule without a template (D47). */
+  schedules: (number | null)[]
+  /** The responsible role of each schedule template its kind suggests. */
+  suggested: (number | null)[]
+}
+
+async function eventFacts(
+  db: TransactionClient,
+  events: readonly { id: number; templateId: number | null }[],
+  congregationId: number,
+): Promise<Map<number, EventFacts>> {
+  const ids = events.map(event => event.id)
+  const kindIds = [...new Set(events.flatMap(event => (event.templateId == null ? [] : [event.templateId])))]
+  const [schedules, links] = await Promise.all([
+    db.schedule.findMany({
+      where: { eventId: { in: ids }, congregationId },
+      select: { eventId: true, scheduleTemplate: { select: { responsibleRoleId: true } } },
+    }),
+    kindIds.length === 0
+      ? []
+      : db.eventKindScheduleTemplate.findMany({
+          where: { eventKindId: { in: kindIds }, congregationId },
+          select: { eventKindId: true, scheduleTemplate: { select: { responsibleRoleId: true } } },
+        }),
+  ])
+  const facts = new Map(events.map(event => [event.id, { schedules: [], suggested: [] } as EventFacts]))
+  for (const schedule of schedules) {
+    facts.get(schedule.eventId)?.schedules.push(schedule.scheduleTemplate?.responsibleRoleId ?? null)
+  }
+  for (const event of events) {
+    const own = facts.get(event.id)
+    if (own == null) continue
+    for (const link of links) {
+      if (link.eventKindId === event.templateId) own.suggested.push(link.scheduleTemplate.responsibleRoleId)
+    }
+  }
+  return facts
+}
+
+/** D28, D50: a responsible of its kind, when it holds schedules and every one is theirs. */
+function deletes(event: { templateId: number | null }, facts: EventFacts, roleIds: number[], kinds: number[]) {
+  return event.templateId != null && kinds.includes(event.templateId) && answersForEvery(facts.schedules, roleIds)
+}
+
+/** D49: the responsible of every schedule it holds — of every template its kind suggests while it holds none. */
+function publishes(event: { templateId: number | null }, facts: EventFacts, roleIds: number[]) {
   if (event.templateId == null) return false
-  return (await responsibleKindIds(db, userId, congregationId)).includes(event.templateId)
+  return answersForEvery(facts.schedules.length > 0 ? facts.schedules : facts.suggested, roleIds)
 }
-
-/** The responsible role of each schedule the event holds; none for a schedule without a template (D47). */
-async function scheduleResponsibles(db: TransactionClient, eventId: number, congregationId: number) {
-  const schedules = await db.schedule.findMany({
-    where: { eventId, congregationId },
-    select: { scheduleTemplate: { select: { responsibleRoleId: true } } },
-  })
-  return schedules.map(schedule => schedule.scheduleTemplate?.responsibleRoleId ?? null)
-}
-
-const answersForAll = (responsibles: (number | null)[], roleIds: number[]) =>
-  responsibles.every(role => role != null && roleIds.includes(role))
 
 /**
  * Whether the caller may delete an event (D28, D50): « Gérer », or a responsible of a schedule template its kind
  * suggests when the event holds schedules and every one is theirs. An event holding none (an empty meeting the job
- * made) is no one's: the managers' alone.
+ * made) is no one's: the managers' alone. Implies canChangeEvent, which the event page relies on.
  */
 export async function canDeleteEvent(
   db: TransactionClient,
@@ -137,15 +203,13 @@ export async function canDeleteEvent(
   congregationId: number,
 ): Promise<boolean> {
   if (can(Permission.CanManagePrograms)) return true
-  if (!(await canChangeEvent(db, can, userId, event, congregationId))) return false
-  const roleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
-  const responsibles = await scheduleResponsibles(db, event.id, congregationId)
-  return responsibles.length > 0 && answersForAll(responsibles, roleIds)
+  return (await filterEventsByRight(db, can, [event.id], userId, congregationId, 'delete')).length === 1
 }
 
 /**
  * Whether the caller may publish or unpublish a whole event, until schedules publish one by one (D49): « Publier »,
  * or the responsible of every schedule it holds — of every schedule template its kind suggests while it holds none.
+ * An event with no kind is the managers' alone.
  */
 export async function canPublishEvent(
   db: TransactionClient,
@@ -155,23 +219,13 @@ export async function canPublishEvent(
   congregationId: number,
 ): Promise<boolean> {
   if (can(Permission.CanPublishPrograms)) return true
-  if (event.templateId == null) return false
-  const roleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
-  if (roleIds.length === 0) return false
-  let responsibles = await scheduleResponsibles(db, event.id, congregationId)
-  if (responsibles.length === 0) {
-    const suggested = await db.scheduleTemplate.findMany({
-      where: { congregationId, eventKinds: { some: { eventKindId: event.templateId } } },
-      select: { responsibleRoleId: true },
-    })
-    responsibles = suggested.map(template => template.responsibleRoleId)
-  }
-  return responsibles.length > 0 && answersForAll(responsibles, roleIds)
+  return (await filterEventsByRight(db, can, [event.id], userId, congregationId, 'publish')).length === 1
 }
 
 /**
- * The selected events the caller may publish (or unpublish) or delete, each by the rule above; ids of no event of the
- * congregation drop out. Shared by the bulk routes.
+ * The selected events the caller may publish and unpublish (`'publish'`, canPublishEvent's rule) or delete
+ * (`'delete'`, canDeleteEvent's), in a fixed number of queries whatever the selection. Ids of no event of the
+ * congregation drop out; what is dropped, and why, is logged for support.
  */
 export async function filterEventsByRight(
   db: TransactionClient,
@@ -186,10 +240,34 @@ export async function filterEventsByRight(
     where: { id: { in: eventIds }, congregationId },
     select: { id: true, templateId: true },
   })
-  const check = right === 'publish' ? canPublishEvent : canDeleteEvent
-  const allowed: number[] = []
-  for (const event of events) {
-    if (await check(db, can, userId, event, congregationId)) allowed.push(event.id)
+  const foreign = eventIds.length - events.length
+  const holds = right === 'publish' ? can(Permission.CanPublishPrograms) : can(Permission.CanManagePrograms)
+  let allowed: number[]
+  if (holds) {
+    allowed = events.map(event => event.id)
+  } else {
+    const roleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
+    const [facts, kinds] = await Promise.all([
+      roleIds.length === 0 ? new Map<number, EventFacts>() : eventFacts(db, events, congregationId),
+      right === 'delete' ? kindsAnsweredFor(db, roleIds, congregationId) : [],
+    ])
+    allowed = events
+      .filter(event => {
+        const own = facts.get(event.id)
+        if (own == null) return false
+        return right === 'publish' ? publishes(event, own, roleIds) : deletes(event, own, roleIds, kinds)
+      })
+      .map(event => event.id)
+  }
+  if (foreign > 0 || allowed.length < events.length) {
+    logger.warn(`filterEventsByRight: dropped events the caller may not ${right}`, {
+      userId,
+      congregationId,
+      submitted: eventIds.length,
+      allowed: allowed.length,
+      droppedForeign: foreign,
+      droppedRefused: events.length - allowed.length,
+    })
   }
   return allowed
 }

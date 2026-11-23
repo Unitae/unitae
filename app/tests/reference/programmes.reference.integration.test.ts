@@ -18,7 +18,11 @@ import {
   mayReadSlotFacts,
 } from '~/features/events/server/events-auth.server'
 import { congregationHasProgrammes, listProgrammes } from '~/features/events/server/programme-list.queries'
-import { canChangeEvent, canFillSchedule, filterEventsByRight } from '~/features/events/server/schedule-rights.server'
+import {
+  canChangeEventsOfKind,
+  canFillSchedule,
+  filterEventsByRight,
+} from '~/features/events/server/schedule-rights.server'
 import { setProgrammeShowsAttendance } from '~/features/settings/server/programme-attendance-setting.server'
 import type { Permission } from '~/shared/types/permission'
 import {
@@ -135,8 +139,10 @@ describe('programmes', () => {
         for (const key of ['midweek', 'weekend', 'memorial'] as const) {
           const templateId = fixture.template(key)
           templates[key] = {
-            // Per kind (plan §10): changing an event of it, and filling each of its schedules on one that has none yet.
-            manageAsProgramme: await canChangeEvent(db, can, accountId, ofKind(templateId), congregationId),
+            // Per kind (plan §10). The keys keep their first names so the reference reads as before: `manageAsProgramme`
+            // is changing events of the kind (D28), the two `assignAs` filling each of its schedules on an event that
+            // has none yet.
+            manageAsProgramme: await canChangeEventsOfKind(db, can, accountId, templateId, congregationId),
             assignAsProgramme: await canFillSchedule(db, can, accountId, ofKind(templateId), 'part', congregationId),
             assignAsService: await canFillSchedule(db, can, accountId, ofKind(templateId), 'service', congregationId),
           }
@@ -158,7 +164,8 @@ describe('programmes', () => {
             .map(template => labelOf(fixture, 'template', template.id))
             .sort(),
           managesAnyProgramme: await canManageAnyProgram(db, can, accountId, congregationId),
-          // The bulk delete's rule (D28), and the events whose programme they may fill (plan §10).
+          // `manageableEvents` is the bulk delete's rule (D28, D50: an empty meeting is the managers'), `assignableEvents`
+          // the events whose programme they may fill (plan §10).
           manageableEvents: labelled(await filterEventsByRight(db, can, events, accountId, congregationId, 'delete')),
           assignableEvents: labelled(await fillableEvents(db, can, events, accountId)),
           readsFactsOfAMidweekPart: await mayReadSlotFacts(

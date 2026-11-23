@@ -20,6 +20,7 @@ const { seedDefaultTemplates } = await import('./seed-templates.server')
 const { createProgrammeOnDay } = await import('./programme-creation.server')
 const {
   canChangeEvent,
+  canChangeEventsOfKind,
   canDeleteEvent,
   canFillSchedule,
   canFillTemplateSchedules,
@@ -330,6 +331,14 @@ describe('Create an event of a kind: « Gérer », or a responsible of a schedul
 })
 
 describe('Change its date, hours, fields, kind: the same (D28)', () => {
+  it('answers by kind, which is what moving an event to another kind asks', async () => {
+    await inCongregation(async ({ db, congregationId, dutyLead, weekendLead, midweekId, weekendId }) => {
+      expect(await canChangeEventsOfKind(db, nothing, dutyLead, midweekId, congregationId)).toBe(true)
+      expect(await canChangeEventsOfKind(db, nothing, dutyLead, weekendId, congregationId)).toBe(false)
+      expect(await canChangeEventsOfKind(db, nothing, weekendLead, null, congregationId)).toBe(false)
+    })
+  })
+
   it('lets « Gérer » and a responsible of a template its kind suggests change it, and no one else', async () => {
     await inCongregation(async ({ db, congregationId, programmeLead, dutyLead, weekendLead, nobody, meeting }) => {
       expect(await canChangeEvent(db, only(Permission.CanManagePrograms), nobody, meeting, congregationId)).toBe(true)
@@ -352,14 +361,12 @@ describe('Change its date, hours, fields, kind: the same (D28)', () => {
           congregationId,
         },
       })
-      expect(await canChangeEvent(db, nothing, programmeLead, { id: bare.id, templateId: null }, congregationId)).toBe(
-        false,
-      )
+      expect(await canChangeEvent(db, nothing, programmeLead, { templateId: null }, congregationId)).toBe(false)
     })
   })
 })
 
-describe('Delete it: « Gérer », or such a responsible when the event has no schedule but theirs (D28)', () => {
+describe('Delete it: « Gérer », or such a responsible when it holds schedules and every one is theirs (D28, D50)', () => {
   it('lets a responsible delete an event holding their schedules alone, never one holding another’s', async () => {
     await inCongregation(async fixture => {
       const { db, congregationId, programmeLead, dutyLead, weekendLead, nobody, meeting } = fixture
@@ -374,6 +381,26 @@ describe('Delete it: « Gérer », or such a responsible when the event has no s
       const bare = await midweekEventWith(fixture, [], '2027-07-29')
       expect(await canDeleteEvent(db, nothing, dutyLead, bare, congregationId)).toBe(false)
       expect(await canDeleteEvent(db, only(Permission.CanManagePrograms), nobody, bare, congregationId)).toBe(true)
+    })
+  })
+
+  it('asks for the kind as well: an event of none, holding the caller’s schedule alone, is the managers’', async () => {
+    await inCongregation(async fixture => {
+      const { db, congregationId, programmeLead } = fixture
+      const programmeOnly = await midweekEventWith(fixture, ['programme'], '2027-08-05')
+      await db.event.update({ where: { id: programmeOnly.id }, data: { templateId: null } })
+      const noKind = { id: programmeOnly.id, templateId: null }
+      expect(await canDeleteEvent(db, nothing, programmeLead, noKind, congregationId)).toBe(false)
+    })
+  })
+
+  it('refuses delete and publish on a schedule without a template, which has no responsible (D47)', async () => {
+    await inCongregation(async fixture => {
+      const { db, congregationId, programmeLead } = fixture
+      const programmeOnly = await midweekEventWith(fixture, ['programme'], '2027-08-12')
+      await db.schedule.updateMany({ where: { eventId: programmeOnly.id }, data: { scheduleTemplateId: null } })
+      expect(await canDeleteEvent(db, nothing, programmeLead, programmeOnly, congregationId)).toBe(false)
+      expect(await canPublishEvent(db, nothing, programmeLead, programmeOnly, congregationId)).toBe(false)
     })
   })
 })
@@ -400,6 +427,20 @@ describe('Publish / unpublish, until per-schedule publishing: « Publier », or 
       const { db, congregationId, programmeLead } = fixture
       const bare = await midweekEventWith(fixture, [], '2027-07-29')
       expect(await canPublishEvent(db, nothing, programmeLead, bare, congregationId)).toBe(false)
+      // The weekend responsible answers for every template its kind suggests: they publish its empty meeting.
+      const { weekendLead, weekendId } = fixture
+      const bareWeekend = await db.event.create({
+        data: {
+          name: 'Réunion',
+          startDate: new Date('2027-08-01T08:00:00Z'),
+          endDate: new Date('2027-08-01T10:00:00Z'),
+          templateId: weekendId,
+          congregationId,
+        },
+      })
+      expect(
+        await canPublishEvent(db, nothing, weekendLead, { id: bareWeekend.id, templateId: weekendId }, congregationId),
+      ).toBe(true)
       const noKind = await db.event.create({
         data: {
           name: 'Import',
@@ -432,6 +473,11 @@ describe('Bulk publish and delete: per selected event, by the rule above', () =>
         await filterEventsByRight(db, only(Permission.CanPublishPrograms), ids, nobody, congregationId, 'delete'),
       ).toEqual([])
       expect(await filterEventsByRight(db, nothing, [], weekendLead, congregationId, 'publish')).toEqual([])
+      expect(
+        (
+          await filterEventsByRight(db, only(Permission.CanManagePrograms), ids, nobody, congregationId, 'delete')
+        ).sort(),
+      ).toEqual([meeting.id, weekend.id].sort())
     })
   })
 })
