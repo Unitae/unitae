@@ -36,12 +36,24 @@
       },
       "schedules": [
         {
+          "id": "<id>",
           "kind": "programme",
-          "status": "draft"
+          "status": "draft",
+          "name": "Réunion de semaine",
+          "key": null,
+          "scheduleTemplate": {
+            "responsibleRoleId": "<id>"
+          }
         },
         {
+          "id": "<id>",
           "kind": "duty",
-          "status": "draft"
+          "status": "draft",
+          "name": null,
+          "key": "services",
+          "scheduleTemplate": {
+            "responsibleRoleId": "<id>"
+          }
         }
       ],
       "eventParts": [

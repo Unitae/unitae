@@ -34,12 +34,24 @@
     },
     "schedules": [
       {
+        "id": "<id>",
         "kind": "programme",
-        "status": "draft"
+        "status": "draft",
+        "name": "Mémorial",
+        "key": null,
+        "scheduleTemplate": {
+          "responsibleRoleId": null
+        }
       },
       {
+        "id": "<id>",
         "kind": "duty",
-        "status": "draft"
+        "status": "draft",
+        "name": null,
+        "key": "services",
+        "scheduleTemplate": {
+          "responsibleRoleId": null
+        }
       }
     ],
     "eventParts": [
@@ -347,12 +359,24 @@
     },
     "schedules": [
       {
+        "id": "<id>",
         "kind": "programme",
-        "status": "published"
+        "status": "published",
+        "name": "Réunion de semaine",
+        "key": null,
+        "scheduleTemplate": {
+          "responsibleRoleId": "<id>"
+        }
       },
       {
+        "id": "<id>",
         "kind": "duty",
-        "status": "published"
+        "status": "published",
+        "name": null,
+        "key": "services",
+        "scheduleTemplate": {
+          "responsibleRoleId": "<id>"
+        }
       }
     ],
     "eventParts": [
@@ -1378,12 +1402,24 @@
     },
     "schedules": [
       {
+        "id": "<id>",
         "kind": "programme",
-        "status": "draft"
+        "status": "draft",
+        "name": "Réunion de semaine",
+        "key": null,
+        "scheduleTemplate": {
+          "responsibleRoleId": "<id>"
+        }
       },
       {
+        "id": "<id>",
         "kind": "duty",
-        "status": "draft"
+        "status": "draft",
+        "name": null,
+        "key": "services",
+        "scheduleTemplate": {
+          "responsibleRoleId": "<id>"
+        }
       }
     ],
     "eventParts": [
@@ -2409,12 +2445,24 @@
     },
     "schedules": [
       {
+        "id": "<id>",
         "kind": "programme",
-        "status": "draft"
+        "status": "draft",
+        "name": "Réunion de semaine",
+        "key": null,
+        "scheduleTemplate": {
+          "responsibleRoleId": "<id>"
+        }
       },
       {
+        "id": "<id>",
         "kind": "duty",
-        "status": "draft"
+        "status": "draft",
+        "name": null,
+        "key": "services",
+        "scheduleTemplate": {
+          "responsibleRoleId": "<id>"
+        }
       }
     ],
     "eventParts": [
@@ -3166,12 +3214,24 @@
     },
     "schedules": [
       {
+        "id": "<id>",
         "kind": "programme",
-        "status": "published"
+        "status": "published",
+        "name": "Réunion du week-end",
+        "key": null,
+        "scheduleTemplate": {
+          "responsibleRoleId": null
+        }
       },
       {
+        "id": "<id>",
         "kind": "duty",
-        "status": "published"
+        "status": "published",
+        "name": null,
+        "key": "services",
+        "scheduleTemplate": {
+          "responsibleRoleId": "<id>"
+        }
       }
     ],
     "eventParts": [
@@ -3741,12 +3801,24 @@
     },
     "schedules": [
       {
+        "id": "<id>",
         "kind": "programme",
-        "status": "draft"
+        "status": "draft",
+        "name": "Réunion du week-end",
+        "key": null,
+        "scheduleTemplate": {
+          "responsibleRoleId": null
+        }
       },
       {
+        "id": "<id>",
         "kind": "duty",
-        "status": "draft"
+        "status": "draft",
+        "name": null,
+        "key": "services",
+        "scheduleTemplate": {
+          "responsibleRoleId": "<id>"
+        }
       }
     ],
     "eventParts": [
@@ -4324,12 +4396,24 @@
     },
     "schedules": [
       {
+        "id": "<id>",
         "kind": "programme",
-        "status": "draft"
+        "status": "draft",
+        "name": "Réunion du week-end",
+        "key": null,
+        "scheduleTemplate": {
+          "responsibleRoleId": null
+        }
       },
       {
+        "id": "<id>",
         "kind": "duty",
-        "status": "draft"
+        "status": "draft",
+        "name": null,
+        "key": "services",
+        "scheduleTemplate": {
+          "responsibleRoleId": "<id>"
+        }
       }
     ],
     "eventParts": [
