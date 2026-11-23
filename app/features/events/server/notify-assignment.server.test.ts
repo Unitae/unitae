@@ -192,13 +192,22 @@ describe('dispatchAssignmentDiffs', () => {
     expect(notify).not.toHaveBeenCalled()
   })
 
-  it('does not fire notifications for an item without a schedule, or gone', async () => {
+  it.each([
+    ['without a schedule', () => scheduleOfItem(null)],
+    ['gone', () => vi.mocked(db.item.findFirst).mockResolvedValue(null)],
+  ])('does not fire notifications for an item %s', async (_name, arrange) => {
     vi.mocked(db.userAccount.findFirst).mockResolvedValue({ id: 33 } as never)
-    scheduleOfItem(null)
-    await dispatchAssignmentDiffs(db, CTX, [{ role: 'speaker', previousMemberId: null, newMemberId: 5 }])
-    vi.mocked(db.item.findFirst).mockResolvedValue(null)
+    arrange()
     await dispatchAssignmentDiffs(db, CTX, [{ role: 'speaker', previousMemberId: null, newMemberId: 5 }])
     expect(notify).not.toHaveBeenCalled()
+  })
+
+  it('reads the status of the item it notifies about, in its congregation', async () => {
+    vi.mocked(db.userAccount.findFirst).mockResolvedValue({ id: 33 } as never)
+    await dispatchAssignmentDiffs(db, CTX, [{ role: 'speaker', previousMemberId: null, newMemberId: 5 }])
+    expect(db.item.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: CTX.entityId, congregationId: CTX.congregationId } }),
+    )
   })
 })
 
