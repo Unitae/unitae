@@ -43,7 +43,11 @@ export async function getEventProgramme(db: TransactionClient, eventId: number, 
   const event = await db.event.findFirst({
     where: { id: eventId, congregationId },
     // With the counts of its template: they say whether an empty event waits for its programme (isAwaitingProgramme).
-    include: { template: { include: { _count: { select: { parts: true, serviceParts: true } } } } },
+    // And its schedules' statuses: the page shows a reader only those they may see (maySeeSchedule).
+    include: {
+      template: { include: { _count: { select: { parts: true, serviceParts: true } } } },
+      schedules: { select: { kind: true, status: true } },
+    },
   })
   if (!event) return null
   const [parts, services] = await Promise.all([
