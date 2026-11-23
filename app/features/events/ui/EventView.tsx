@@ -50,7 +50,10 @@ interface EventViewProps {
   canDelete: boolean
   /** Give an empty meeting its programme: whoever may change it, as creating an event of its kind (D28). */
   canCreateProgramme: boolean
-  canPublish: boolean
+  /** « Tout publier »: a schedule of the reader's is still a draft, even on an event that reads published (D52). */
+  canRelease: boolean
+  /** « Tout retirer »: a schedule of the reader's is published. */
+  canUnrelease: boolean
   canAssign: boolean
   canAssignService: boolean
   canViewPublishers: boolean
@@ -75,7 +78,8 @@ export function EventView({
   canEdit,
   canDelete,
   canCreateProgramme,
-  canPublish,
+  canRelease,
+  canUnrelease,
   canAssign,
   canAssignService,
   canViewPublishers,
@@ -197,11 +201,16 @@ export function EventView({
         }
         breadcrumbs={[{ label: m.sidebar_programs(), to: '/programs' }, { label: event.name }]}
         actions={
-          (canPublish || canEdit) && (
+          (canRelease || canUnrelease || canEdit) && (
             <>
-              {awaitingProgramme
-                ? canCreateProgramme && <CreateProgrammeButton eventId={event.id} />
-                : canPublish && <ReleaseToggleButton status={event.status} eventId={event.id} />}
+              {awaitingProgramme ? (
+                canCreateProgramme && <CreateProgrammeButton eventId={event.id} />
+              ) : (
+                <>
+                  {canRelease && <PublishButton eventId={event.id} release />}
+                  {canUnrelease && <PublishButton eventId={event.id} release={false} />}
+                </>
+              )}
               {canEdit && (
                 <>
                   <Button variant="outline" asChild>
@@ -362,17 +371,17 @@ function CreateProgrammeButton({ eventId }: { eventId: number }) {
   )
 }
 
-function ReleaseToggleButton({ status, eventId }: { status: string; eventId: number }) {
+/** « Publier » (every draft schedule of the reader's) or « Retirer » (every published one), D43. */
+function PublishButton({ eventId, release }: { eventId: number; release: boolean }) {
   const fetcher = useFetcher<{ ok: boolean }>()
-  const isDraft = status === EventStatus.Draft
-  const action = isDraft ? `/programs/events/${eventId}/release` : `/programs/events/${eventId}/unrelease`
-  const label = isDraft ? m.programs_event_release_button() : m.programs_event_unrelease_button()
-  const Icon = isDraft ? Send : FileText
+  const action = release ? `/programs/events/${eventId}/release` : `/programs/events/${eventId}/unrelease`
+  const label = release ? m.programs_event_release_button() : m.programs_event_unrelease_button()
+  const Icon = release ? Send : FileText
   const inFlight = fetcher.state !== 'idle'
 
   return (
     <Button
-      variant={isDraft ? 'default' : 'outline'}
+      variant={release ? 'default' : 'outline'}
       onClick={() => fetcher.submit({}, { method: 'POST', action })}
       disabled={inFlight}
     >

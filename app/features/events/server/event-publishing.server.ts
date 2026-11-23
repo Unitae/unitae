@@ -199,3 +199,59 @@ export async function unpublishEventSchedule(
   const result = await unpublishSchedule(db, scheduleId, congregationId, userId)
   return result == null ? null : { event, result }
 }
+
+/** What the screens offer on an event: « Tout publier » and « Tout retirer », by the person's schedules (D43, D52). */
+export interface PublishActions {
+  /** A schedule of theirs is a draft, or the bare event is and they may publish it. */
+  canRelease: boolean
+  /** A schedule of theirs is published, or the bare event is and they may withdraw it. */
+  canUnrelease: boolean
+}
+
+/**
+ * The publishing each listed event offers the person, in a fixed number of queries: by the schedules they may publish
+ * and their statuses, so an event that reads published still offers to publish a schedule left a draft (D52). An event
+ * holding no schedule goes by its own status and `bareMayPublish` (canPublishEvent's rule, D46).
+ */
+export async function publishActionsFor(
+  db: TransactionClient,
+  can: (permission: Permission) => boolean,
+  userId: number,
+  events: readonly { id: number; status: string }[],
+  congregationId: number,
+  bareMayPublish: (eventId: number) => boolean,
+): Promise<Map<number, PublishActions>> {
+  const eventIds = events.map(event => event.id)
+  const [schedules, mine] = await Promise.all([
+    eventIds.length === 0
+      ? []
+      : db.schedule.findMany({
+          where: { eventId: { in: eventIds }, congregationId },
+          select: { id: true, eventId: true, status: true },
+        }),
+    publishableScheduleIds(db, can, userId, eventIds, congregationId),
+  ])
+  return new Map(
+    events.map(event => {
+      const own = schedules.filter(schedule => schedule.eventId === event.id)
+      if (own.length === 0) {
+        const may = bareMayPublish(event.id)
+        return [
+          event.id,
+          {
+            canRelease: may && event.status !== EventStatus.Released,
+            canUnrelease: may && event.status === EventStatus.Released,
+          },
+        ]
+      }
+      const theirs = own.filter(schedule => mine.has(schedule.id))
+      return [
+        event.id,
+        {
+          canRelease: theirs.some(schedule => schedule.status === ScheduleStatus.Draft),
+          canUnrelease: theirs.some(schedule => schedule.status === ScheduleStatus.Published),
+        },
+      ]
+    }),
+  )
+}

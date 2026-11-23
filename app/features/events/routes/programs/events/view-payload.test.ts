@@ -63,8 +63,23 @@ vi.mock('~/features/events/server/build-share-message.server', () => ({
   buildShareTextsForEvent: () => Promise.resolve({}),
 }))
 vi.mock('~/features/display-board/index.server', () => ({ resolveProgrammeLink: () => Promise.resolve('/board') }))
+// What « Tout publier » / « Tout retirer » offer is publishActionsFor's integration test; the page hands it on as is.
+vi.mock('~/features/events/server/event-publishing.server', () => ({
+  publishActionsFor: (_db: unknown, _can: unknown, _user: number, events: { id: number }[]) =>
+    Promise.resolve(new Map(events.map(({ id }) => [id, { canRelease: true, canUnrelease: false }]))),
+}))
 
 const { loader } = await import('./view')
+
+function readerContext() {
+  return {
+    get: (key: symbol) => {
+      if (key === permissionsContext) return new Set([Permission.CanViewPrograms])
+      if (key === congregationContext) return { timezone: 'Europe/Paris', locale: 'fr' }
+      return { id: 1, congregationId: 1 }
+    },
+  }
+}
 
 async function load() {
   const context = {
@@ -87,6 +102,16 @@ async function load() {
 beforeEach(() => {
   state.rights = { change: false, publish: false, part: false, service: false }
   state.statuses = { programme: 'draft', duty: 'published' }
+})
+
+describe('the event page’s publishing', () => {
+  it('offers what publishActionsFor offers for the reader’s schedules', async () => {
+    const data = (await loader({ params: { eventId: '40' }, context: readerContext() } as never)) as {
+      canRelease: boolean
+      canUnrelease: boolean
+    }
+    expect({ release: data.canRelease, unrelease: data.canUnrelease }).toEqual({ release: true, unrelease: false })
+  })
 })
 
 describe('the event page’s schedules', () => {

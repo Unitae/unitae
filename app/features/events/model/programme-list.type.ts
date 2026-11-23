@@ -16,6 +16,8 @@ export interface ProgrammeRowData {
   canEdit: boolean
   /** Delete it: « Gérer », or its kind's responsible when it holds schedules and every one is theirs (D50). */
   canDelete: boolean
-  /** Publish it, or put it back to draft. */
-  canPublish: boolean
+  /** « Tout publier »: a schedule of the reader's is a draft, or the bare event is and they may publish it (D43, D52). */
+  canRelease: boolean
+  /** « Tout retirer »: a schedule of the reader's is published, or the bare event is. */
+  canUnrelease: boolean
 }

@@ -93,6 +93,27 @@ vi.mock('~/features/events/server/schedule-rights.server', () => ({
   },
 }))
 
+// What « Tout publier » / « Tout retirer » offer is publishActionsFor's integration test: faked here from the event's
+// status and the publish right the page hands it.
+vi.mock('~/features/events/server/event-publishing.server', () => ({
+  publishActionsFor: (
+    _db: unknown,
+    _can: unknown,
+    _userId: number,
+    events: { id: number; status: string }[],
+    _congregationId: number,
+    mayPublish: (id: number) => boolean,
+  ) =>
+    Promise.resolve(
+      new Map(
+        events.map(({ id, status }) => [
+          id,
+          { canRelease: mayPublish(id) && status === 'draft', canUnrelease: mayPublish(id) && status === 'released' },
+        ]),
+      ),
+    ),
+}))
+
 const { loader } = await import('./list')
 
 beforeAll(() => {
@@ -125,7 +146,7 @@ async function load(
 const rows = (data: Awaited<ReturnType<typeof load>>) =>
   data.programmes.map(row => [
     row.id,
-    { edit: row.canEdit, delete: row.canDelete, publish: row.canPublish, review: row.review },
+    { edit: row.canEdit, delete: row.canDelete, publish: row.canRelease || row.canUnrelease, review: row.review },
   ])
 
 describe('/programs — what the list receives', () => {

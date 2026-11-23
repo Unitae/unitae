@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useFetcher } from 'react-router'
 import { toast } from 'sonner'
 
-import { EventStatus } from '~/features/events/model/event-status.type'
 import type { ProgrammeRowData } from '~/features/events/model/programme-list.type'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
@@ -49,9 +48,10 @@ export function ProgrammeBulkActions({ selected, onClear, timeZone }: ProgrammeB
   const statusFetcher = useBulkFetcher(onClear)
   const deleteFetcher = useBulkFetcher(onClear)
   const [confirmDelete, setConfirmDelete] = useState(false)
-  // A meeting with no programme yet has nothing to publish.
-  const toRelease = selected.filter(row => row.canPublish && row.status === EventStatus.Draft && !row.awaitingProgramme)
-  const toUnrelease = selected.filter(row => row.canPublish && row.status === EventStatus.Released)
+  // By the reader's schedules, not the event's status: one that reads published may hold a draft of theirs (D52). A
+  // meeting with no programme yet has nothing to publish.
+  const toRelease = selected.filter(row => row.canRelease && !row.awaitingProgramme)
+  const toUnrelease = selected.filter(row => row.canUnrelease)
   const toDelete = selected.filter(row => row.canDelete)
   const busy = statusFetcher.state !== 'idle' || deleteFetcher.state !== 'idle'
   const submit = (fetcher: typeof statusFetcher, rows: ProgrammeRowData[], action: string) =>
