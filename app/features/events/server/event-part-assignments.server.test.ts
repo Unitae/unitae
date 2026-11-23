@@ -145,10 +145,12 @@ describe('assignPart', () => {
   // Regression pin: draft events accept conflicting assignments (the schedule
   // is still being built); released events must NOT — a manager scheduling
   // over a known absence on a public event is silent scheduling breakage.
-  it('BLOCKS assignPart on a RELEASED event when the speaker has a day-off conflict', async () => {
+  it('BLOCKS assignPart on a PUBLISHED schedule when the speaker has a day-off conflict', async () => {
     vi.mocked(db.item.findFirst).mockResolvedValue({
       id: 1,
-      event: { status: 'released', startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+      schedule: { status: 'published' },
+      // The event reads otherwise: the item's own schedule decides (plan §10, 5b).
+      event: { status: 'draft', startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
     vi.mocked(db.absence.findFirst).mockResolvedValue({ id: 99 } as never) // day-off found
 
@@ -158,10 +160,12 @@ describe('assignPart', () => {
     expect(db.item.update).not.toHaveBeenCalled()
   })
 
-  it('BLOCKS assignPart on a RELEASED event when the reader has a day-off conflict', async () => {
+  it('BLOCKS assignPart on a PUBLISHED schedule when the reader has a day-off conflict', async () => {
     vi.mocked(db.item.findFirst).mockResolvedValue({
       id: 1,
-      event: { status: 'released', startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+      schedule: { status: 'published' },
+      // The event reads otherwise: the item's own schedule decides (plan §10, 5b).
+      event: { status: 'draft', startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
     vi.mocked(allowedRoles.resolveEligibleUserIds).mockResolvedValue([5, 7])
     // Speaker: no day-off. Reader: day-off found.
@@ -175,10 +179,11 @@ describe('assignPart', () => {
     expect(db.item.update).not.toHaveBeenCalled()
   })
 
-  it('still saves with hasConflict=true on a DRAFT event when a day-off conflict exists', async () => {
+  it('still saves with hasConflict=true on a DRAFT schedule when a day-off conflict exists', async () => {
     vi.mocked(db.item.findFirst).mockResolvedValue({
       id: 1,
-      event: { status: 'draft', startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+      schedule: { status: 'draft' },
+      event: { status: 'released', startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
     vi.mocked(db.absence.findFirst).mockResolvedValue({ id: 99 } as never)
     vi.mocked(db.item.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
@@ -441,10 +446,12 @@ describe('assignServicePart', () => {
   })
 
   // Regression pin — same rule as assignPart: released events must block.
-  it('BLOCKS assignServicePart on a RELEASED event when the assignee has a day-off conflict', async () => {
+  it('BLOCKS assignServicePart on a PUBLISHED schedule when the assignee has a day-off conflict', async () => {
     vi.mocked(db.item.findFirst).mockResolvedValue({
       id: 1,
-      event: { status: 'released', startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+      schedule: { status: 'published' },
+      // The event reads otherwise: the item's own schedule decides (plan §10, 5b).
+      event: { status: 'draft', startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
     vi.mocked(db.absence.findFirst).mockResolvedValue({ id: 99 } as never)
 
@@ -454,10 +461,11 @@ describe('assignServicePart', () => {
     expect(db.item.update).not.toHaveBeenCalled()
   })
 
-  it('still saves with hasConflict=true on a DRAFT event when a day-off conflict exists', async () => {
+  it('still saves with hasConflict=true on a DRAFT schedule when a day-off conflict exists', async () => {
     vi.mocked(db.item.findFirst).mockResolvedValue({
       id: 1,
-      event: { status: 'draft', startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+      schedule: { status: 'draft' },
+      event: { status: 'released', startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
     vi.mocked(db.absence.findFirst).mockResolvedValue({ id: 99 } as never)
     vi.mocked(db.item.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)

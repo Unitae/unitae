@@ -1,5 +1,5 @@
 import { resolveProgrammeLink } from '~/features/display-board/index.server'
-import { EventStatus } from '~/features/events/model/event-status.type'
+import { ScheduleStatus } from '~/features/events/model/schedule.type'
 import { notify } from '~/features/notifications/index.server'
 import { notificationRecipientFilter } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -17,9 +17,7 @@ const logger = createLogger('notify-assignment')
 // resolver — null means the event was created ad-hoc without a template, in
 // which case the resolver falls back to /board.
 export interface AssignmentNotificationContext {
-  // `status` is what tells the dispatcher whether the assignment is public
-  // yet. Draft events accumulate diffs silently; release re-enqueues them.
-  event: { id: number; name: string; startDate: Date; templateId: number | null; status: string }
+  event: { id: number; name: string; startDate: Date; templateId: number | null }
   assignmentName: string
   entityType: 'Item'
   entityId: number
@@ -35,7 +33,7 @@ export type { AssignmentChangeType, ProgrammeRole }
 // `assignmentName` may be undefined (assignment fetched after deletion, etc.);
 // it defaults to '' so the payload schema still accepts it.
 export function buildAssignmentContext(args: {
-  event: { id: number; name: string; startDate: Date; templateId: number | null; status: string }
+  event: { id: number; name: string; startDate: Date; templateId: number | null }
   assignmentName: string | undefined
   entityType: 'Item'
   entityId: number
@@ -50,7 +48,6 @@ export function buildAssignmentContext(args: {
       name: args.event.name,
       startDate: args.event.startDate,
       templateId: args.event.templateId,
-      status: args.event.status,
     },
     assignmentName: args.assignmentName ?? '',
     entityType: args.entityType,
@@ -104,22 +101,29 @@ export async function dispatchAssignmentDiffs(
   ctx: AssignmentNotificationContext,
   diffs: AssignmentDiff[],
 ): Promise<void> {
-  // Whitelist, not blacklist: only 'released' events fire notifications.
+  // Whitelist, not blacklist: only a published schedule fires notifications.
   // Anything else — 'draft' today, whatever future status the schema grows —
   // is silent by default so a typo or unhandled state cannot spam publishers.
-  // The release path re-enqueues an assigned notification per current assignee
-  // so no one is silently forgotten when a draft flips to released.
-  if (ctx.event.status !== EventStatus.Released) {
+  // Publishing re-enqueues an assigned notification per current assignee
+  // so no one is silently forgotten when a draft is published.
+  // The item's own schedule tells whether the assignment is public yet (plan §10, 5b): read here, so no caller can hand
+  // it the event's status instead. Drafts accumulate diffs silently; publishing re-enqueues them.
+  const item = await db.item.findFirst({
+    where: { id: ctx.entityId, congregationId: ctx.congregationId },
+    select: { schedule: { select: { status: true } } },
+  })
+  const status = item?.schedule?.status ?? null
+  if (status !== ScheduleStatus.Published) {
     // Debug (not warn) so operators can distinguish "we didn't notify because
-    // the event was a draft" from a queue drop when investigating
+    // the schedule was a draft" from a queue drop when investigating
     // "why didn't I get the email?" tickets. Log the actual status so an
     // unexpected value surfaces.
-    logger.debug('assignment notifications suppressed: event status is not released', {
+    logger.debug('assignment notifications suppressed: schedule is not published', {
       eventId: ctx.event.id,
       congregationId: ctx.congregationId,
       entityType: ctx.entityType,
       entityId: ctx.entityId,
-      status: ctx.event.status,
+      status,
       diffs: diffs.length,
     })
     return

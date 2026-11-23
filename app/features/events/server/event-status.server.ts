@@ -158,9 +158,6 @@ export async function fireReleaseNotifications(
       name: event.name,
       startDate: event.startDate,
       templateId: event.templateId,
-      // Load-bearing: dispatchAssignmentDiffs whitelist-gates on this. If
-      // we dropped this stamp, the whole release burst would self-suppress.
-      status: EventStatus.Released,
     },
     assignmentName: '',
     entityType: 'Item',

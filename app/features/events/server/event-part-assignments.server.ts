@@ -1,4 +1,4 @@
-import { EventStatus } from '~/features/events/model/event-status.type'
+import { ScheduleStatus } from '~/features/events/model/schedule.type'
 import {
   getPartAssignmentAllowedRoleIds,
   getServicePartAssignmentAllowedRoleIds,
@@ -109,7 +109,7 @@ export async function assignPart(
   await lockItemRow(db, assignmentId, congregationId)
   const existing = await db.item.findFirst({
     where: { id: assignmentId, congregationId, ...PART_ITEMS },
-    include: { event: true },
+    include: { event: true, schedule: { select: { status: true } } },
   })
   // Inlined so TS narrows `existing` for the rest of the writer; the shared
   // message lives in PROGRAMME_ASSIGNMENT_ERRORS so both writers stay in sync.
@@ -148,12 +148,12 @@ export async function assignPart(
   const notDistinct = checkParticipantsDistinct(assigneeId, assistantId)
   if (notDistinct) return notDistinct
 
-  // On a released event we still block day-off overlaps outright — silently
-  // scheduling a publisher on top of a known absence on a public event is
+  // On a published schedule we still block day-off overlaps outright — silently
+  // scheduling a publisher on top of a known absence on a public programme is
   // exactly the kind of surprise we want to avoid. On a draft the manager is
-  // building the schedule, so we save with hasConflict=true and let the
-  // release-blocking policy surface it at publish time.
-  const isReleased = existing.event.status === EventStatus.Released
+  // building it, so we save with hasConflict=true and let the publishing
+  // refusal surface it. The item's own schedule decides, not the event (plan §10).
+  const isReleased = existing.schedule?.status === ScheduleStatus.Published
 
   const speakerCheck = await checkPartParticipant(db, {
     assignmentId,
@@ -194,13 +194,14 @@ export async function assignServicePart(
   await lockItemRow(db, assignmentId, congregationId)
   const existing = await db.item.findFirst({
     where: { id: assignmentId, congregationId, ...SERVICE_ITEMS },
-    include: { event: true },
+    include: { event: true, schedule: { select: { status: true } } },
   })
   if (!existing) return { error: PROGRAMME_ASSIGNMENT_ERRORS.assignmentNotFound }
 
   const previousAssigneeId = existing.assigneeId
 
-  const isReleased = existing.event.status === EventStatus.Released
+  // As assignPart: the item's own schedule decides.
+  const isReleased = existing.schedule?.status === ScheduleStatus.Published
   let hasConflict = false
 
   if (assigneeId != null) {

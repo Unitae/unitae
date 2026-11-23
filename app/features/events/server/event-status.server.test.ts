@@ -271,16 +271,6 @@ describe('fireReleaseNotifications', () => {
     expect(second[2]).toMatchObject({ memberId: 6, role: 'reader', type: 'programme.assignment.assigned' })
   })
 
-  // Guards against a regression where fireReleaseNotifications forgets to
-  // stamp status='released' into the notify context. Without that stamp,
-  // dispatchAssignmentDiffs (whitelist) would self-suppress the whole burst.
-  it('threads status=released into the notification context', async () => {
-    await fireReleaseNotifications(eventShape, [speakerTarget], 1, 5, nctx)
-
-    const ctx = vi.mocked(notifyAssignment).mock.calls[0][1]
-    expect(ctx.event.status).toBe('released')
-  })
-
   // Pin for the entityType / entityId / assignmentName threading from
   // notifyTargets → notify ctx. A regression that dropped the spread override
   // would send notifications with entityId:0 (base value), colliding on the
