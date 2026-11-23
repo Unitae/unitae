@@ -3,7 +3,6 @@ import { commitSession, getSession } from '~/features/authentication/index.serve
 import { bulkEventIdsSchema } from '~/features/events/schemas/bulk-event-ids.schema'
 import { bulkUnreleaseEvents } from '~/features/events/server/event-status-bulk.server'
 import { canManageAnyProgram } from '~/features/events/server/events-auth.server'
-import { filterEventsByRight } from '~/features/events/server/schedule-rights.server'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
@@ -30,31 +29,33 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
   const { ids } = payload.data
 
-  // Phase 1: authorise + filter in a small scoped tx (see bulk-release.tsx).
+  // Phase 1: the gate, in a small scoped tx (see bulk-release.tsx).
   const { congregationId } = currentUser
-  const allowedIds = await withScopeFromContext(context, async db => {
-    const can = (p: Permission) => permissions.has(p)
-    // « Publier » publishes any event; otherwise a responsible of some kind may hold events they answer for wholly.
+  const can = (p: Permission) => permissions.has(p)
+  await withScopeFromContext(context, async db => {
+    // « Publier » publishes any event; otherwise a responsible of some kind publishes the schedules of their template.
     const mayPublishAny =
       can(Permission.CanPublishPrograms) || (await canManageAnyProgram(db, can, currentUser.id, congregationId))
     if (!mayPublishAny) throw redirect('/programs')
-    // Each selected event by its own rule: « Publier », or the responsible of its every schedule (D49).
-    return filterEventsByRight(db, can, ids, currentUser.id, congregationId, 'publish')
   })
-
-  // The gate lets in whoever may publish some event, the filter keeps the selected ones they may: a manager without
-  // « Publier », or a responsible of only part of each event's schedules (D31, D49), can end with none. Say so,
-  // otherwise the page reports nothing and the click looks like it worked; a partial refusal is counted below.
-  const skipped = ids.length - allowedIds.length
-  if (ids.length > 0 && allowedIds.length === 0) {
-    session.flash('error', m.programs_bulk_not_permitted())
-    return data({ ok: false }, { headers: { 'Set-Cookie': await commitSession(session) } })
-  }
 
   // Phase 2: per-event scoped unrelease. See bulk-release.tsx for the
   // partial-progress rationale.
-  const { unreleased, notFound, failed } = await bulkUnreleaseEvents(allowedIds, congregationId, currentUser.id)
-  logger.info(`Bulk unreleased ${unreleased.length} events; ${notFound.length} not found; ${failed.length} failed.`)
+  const { unreleased, refused, notFound, failed, heldSchedules } = await bulkUnreleaseEvents(
+    ids,
+    can,
+    currentUser.id,
+    congregationId,
+  )
+  logger.info(
+    `Bulk unreleased ${unreleased.length} events; ${refused.length} refused; ${notFound.length} not found; ${failed.length} failed; ${heldSchedules} schedules left to others.`,
+  )
+
+  // None of the selection was the person's: say so, otherwise the click looks like it worked.
+  if (ids.length > 0 && refused.length === ids.length) {
+    session.flash('error', m.programs_bulk_not_permitted())
+    return data({ ok: false }, { headers: { 'Set-Cookie': await commitSession(session) } })
+  }
 
   // See bulk-release.tsx for the flash-aggregation rationale.
   if (unreleased.length > 0) {
@@ -63,7 +64,8 @@ export async function action({ request, context }: Route.ActionArgs) {
   const errorMessage = joinMessages([
     failed.length > 0 && m.programs_unrelease_failed_bulk({ count: failed.length }),
     notFound.length > 0 && m.programs_bulk_not_found({ count: notFound.length }),
-    skipped > 0 && m.programs_bulk_skipped({ count: skipped }),
+    refused.length > 0 && m.programs_bulk_skipped({ count: refused.length }),
+    heldSchedules > 0 && m.programs_schedules_withdraw_skipped({ count: heldSchedules }),
   ])
   if (errorMessage) session.flash('error', errorMessage)
   return data(

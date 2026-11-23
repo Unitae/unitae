@@ -386,10 +386,12 @@ describe('assignments, publishing and their notices', () => {
     await declareAbsence('jean', '2027-03-23', '2027-03-23')
     await step('bulk publish', async () => {
       const names = ['weekend-1', 'midweek-3', 'weekend-3', 'memorial-1', 'midweek-ahead-1']
+      // The administrator holds every right, « Publier » included.
       const result = await bulkReleaseEvents(
         names.map(name => event(name)),
-        fixture.congregationId,
+        () => true,
         fixture.adminId,
+        fixture.congregationId,
         NOTIFY_CTX,
       )
       const label = (id: number) => labelOf(fixture, 'event', id)
@@ -397,13 +399,15 @@ describe('assignments, publishing and their notices', () => {
         released: result.released.map(label),
         blocked: result.blocked.map(item => ({ event: label(item.id), error: item.error })),
         awaiting: result.awaiting.map(label),
+        conflictedSchedules: result.conflictedSchedules,
       }
     })
     await step('bulk unpublish', async () => {
       const result = await bulkUnreleaseEvents(
         [event('weekend-3'), event('memorial-1')],
-        fixture.congregationId,
+        () => true,
         fixture.adminId,
+        fixture.congregationId,
       )
       return {
         unreleased: result.unreleased.map(id => labelOf(fixture, 'event', id)),

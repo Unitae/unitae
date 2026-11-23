@@ -2021,6 +2021,47 @@
     ],
     "programs_bulk_not_permitted": "You do not have permission to publish the selected programs.",
     "programs_bulk_delete_not_permitted": "You do not have permission to delete the selected programs.",
+    "programs_schedules_conflicted": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} schedule stays a draft: an absence conflict needs resolving.",
+                "countPlural=*": "{count} schedules stay drafts: absence conflicts need resolving."
+            }
+        }
+    ],
+    "programs_schedules_skipped": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} schedule stays a draft: you are not responsible for it.",
+                "countPlural=*": "{count} schedules stay drafts: you are not responsible for them."
+            }
+        }
+    ],
+    "programs_schedules_withdraw_skipped": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} schedule stays published: you are not responsible for it.",
+                "countPlural=*": "{count} schedules stay published: you are not responsible for them."
+            }
+        }
+    ],
+    "programs_schedule_publish_success": "Schedule published.",
+    "programs_schedule_unpublish_success": "Schedule back to draft.",
     "programs_bulk_skipped": [
         {
             "declarations": [
