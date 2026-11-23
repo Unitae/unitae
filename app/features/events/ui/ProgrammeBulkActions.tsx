@@ -52,7 +52,7 @@ export function ProgrammeBulkActions({ selected, onClear, timeZone }: ProgrammeB
   // A meeting with no programme yet has nothing to publish.
   const toRelease = selected.filter(row => row.canPublish && row.status === EventStatus.Draft && !row.awaitingProgramme)
   const toUnrelease = selected.filter(row => row.canPublish && row.status === EventStatus.Released)
-  const toDelete = selected.filter(row => row.canEdit)
+  const toDelete = selected.filter(row => row.canDelete)
   const busy = statusFetcher.state !== 'idle' || deleteFetcher.state !== 'idle'
   const submit = (fetcher: typeof statusFetcher, rows: ProgrammeRowData[], action: string) =>
     fetcher.submit({ ids: rows.map(row => row.id) }, { method: 'POST', action, encType: 'application/json' })

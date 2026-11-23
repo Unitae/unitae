@@ -114,7 +114,7 @@ describe('listCongregationAbsences', () => {
         assigneeId: 5,
         assistantId: null,
         event: meeting(31, '2026-11-12T18:00:00Z'),
-        schedule: { status: 'published' },
+        schedule: { status: 'published', scheduleTemplate: { responsibleRoleId: 4 } },
       },
       // Élodie's part the week after her absence: not during it.
       {
@@ -123,7 +123,7 @@ describe('listCongregationAbsences', () => {
         assigneeId: 5,
         assistantId: null,
         event: meeting(32, '2026-11-19T18:00:00Z'),
-        schedule: { status: 'published' },
+        schedule: { status: 'published', scheduleTemplate: { responsibleRoleId: 4 } },
       },
       // Paul as the assistant of someone else's part.
       {
@@ -132,7 +132,7 @@ describe('listCongregationAbsences', () => {
         assigneeId: 9,
         assistantId: 7,
         event: meeting(40, '2026-12-27T09:00:00Z', null, 'draft'),
-        schedule: { status: 'draft' },
+        schedule: { status: 'draft', scheduleTemplate: null },
       },
     ] as never)
     vi.mocked(db.eventServicePart.findMany).mockResolvedValue([
@@ -141,7 +141,7 @@ describe('listCongregationAbsences', () => {
         name: 'Sonorisation',
         assigneeId: 7,
         event: meeting(39, '2026-12-24T18:00:00Z'),
-        schedule: { status: 'published' },
+        schedule: { status: 'published', scheduleTemplate: { responsibleRoleId: 6 } },
       },
     ] as never)
 
@@ -157,7 +157,7 @@ describe('listCongregationAbsences', () => {
             name: 'Lecture de la Bible',
             eventId: 31,
             eventDate: new Date('2026-11-12T18:00:00Z'),
-            templateId: 4,
+            responsibleRoleId: 4,
             published: true,
           },
         ],
@@ -171,7 +171,7 @@ describe('listCongregationAbsences', () => {
             name: 'Sonorisation',
             eventId: 39,
             eventDate: new Date('2026-12-24T18:00:00Z'),
-            templateId: 4,
+            responsibleRoleId: 6,
             published: true,
           },
           {
@@ -180,7 +180,7 @@ describe('listCongregationAbsences', () => {
             name: 'Démonstration',
             eventId: 40,
             eventDate: new Date('2026-12-27T09:00:00Z'),
-            templateId: null,
+            responsibleRoleId: null,
             published: false,
           },
         ],

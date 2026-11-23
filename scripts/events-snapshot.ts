@@ -101,7 +101,7 @@ function dumpCongregation(congregationId: number, timeZone: string, now: Date) {
         programmeList,
         programmes,
         board,
-        openParts: await getOpenParts(db, congregationId, { templateIds: null, days: 60, now }),
+        openParts: await getOpenParts(db, congregationId, { roleIds: null, days: 60, now }),
         people,
       }
     },

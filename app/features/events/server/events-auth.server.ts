@@ -20,10 +20,10 @@ const logger = createLogger('events-auth')
  * The empty guard is deliberate: `roleId: { in: [] }` matches nothing today, but relying on
  * that would make "user holds no roles" correct by accident rather than by intent.
  *
- * Read only by the screens that show or hide things (the programmes list, the absences, the dashboard, Réglages)
- * until they move to schedules (5a-3). Who may create, change, delete, publish or fill is decided by the schedules'
- * responsibles in schedule-rights.server.ts, never by this list. Scoped to the programme by default; pass
- * `ResponsibilityScope.Service` only for a question about the service parts.
+ * Read only by Réglages, whose template responsibles it shows and gates until PR 6 rewrites them per schedule
+ * template. Every right, and every other screen but the absences' « who to contact » (listUserConflictsInRange, read
+ * from the same template responsibles), goes by the schedules' responsibles (schedule-rights.server.ts).
+ * Scoped to the programme by default; pass `ResponsibilityScope.Service` only for a question about the service parts.
  */
 export async function getResponsibleTemplateIds(
   db: TransactionClient,

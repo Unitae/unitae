@@ -33,65 +33,36 @@ describe('getResponsibleConflicts', () => {
     expect(result).toEqual({ count: 0, absenteeNames: [], totalAbsenteesCount: 0 })
   })
 
-  // Non-manager users only see conflicts on templates they are the
-  // responsible for. The join goes through
-  // event.template.responsibles.some.roleId.
-  it('scopes the query to templates the user is responsible for (non-manager)', async () => {
-    const userId = 100
-    await getResponsibleConflicts(db, userId, CONGREGATION_ID, false)
+  // Each item by its own schedule's responsible (plan §10): the role its template names. Whether parts and duties go
+  // to the right responsible (D31) is schedule-responsible-readers.integration.test.ts.
+  it.each([
+    ['part', () => db.eventPart.findMany],
+    ['service', () => db.eventServicePart.findMany],
+  ] as const)(
+    'asks the %s query for the items whose schedule the user answers for (non-manager)',
+    async (_kind, query) => {
+      await getResponsibleConflicts(db, 100, CONGREGATION_ID, false)
 
-    const partCall = vi.mocked(db.eventPart.findMany).mock.calls[0][0]
-    const partWhere = partCall?.where as Record<string, unknown>
-    expect(partWhere.hasConflict).toBe(true)
-    expect(partWhere.schedule).toEqual({ status: 'published' })
-    expect(partWhere.event).toEqual({
-      startDate: { gte: expect.any(Date) },
-      template: { responsibles: { some: { roleId: { in: [ROLE_ID] }, scope: { in: ['programme'] } } } },
-    })
-  })
-
-  // The service query is deliberately the wider one: someone delegated only the
-  // service parts is answerable for a sono clash, and the whole-event
-  // responsible is answerable for both.
-  it('accepts either delegation for the service-role query (non-manager)', async () => {
-    const userId = 100
-    await getResponsibleConflicts(db, userId, CONGREGATION_ID, false)
-
-    const serviceCall = vi.mocked(db.eventServicePart.findMany).mock.calls[0][0]
-    const serviceWhere = serviceCall?.where as Record<string, unknown>
-    expect(serviceWhere.schedule).toEqual({ status: 'published' })
-    expect(serviceWhere.event).toEqual({
-      startDate: { gte: expect.any(Date) },
-      template: {
-        responsibles: { some: { roleId: { in: [ROLE_ID] }, scope: { in: ['programme', 'service'] } } },
-      },
-    })
-  })
-
-  // A service-only responsible must not be told about a clash on the public
-  // talk: the programme query never accepts their delegation.
-  it('never lets the service delegation reach the programme query', async () => {
-    await getResponsibleConflicts(db, 100, CONGREGATION_ID, false)
-
-    const partCall = vi.mocked(db.eventPart.findMany).mock.calls[0][0]
-    const partWhere = partCall?.where as Record<string, unknown>
-    const scopes = (partWhere.event as { template: { responsibles: { some: { scope: { in: string[] } } } } }).template
-      .responsibles.some.scope.in
-    expect(scopes).not.toContain('service')
-  })
+      const where = vi.mocked(query()).mock.calls[0][0]?.where as Record<string, unknown>
+      expect(where.hasConflict).toBe(true)
+      expect(where.schedule).toEqual({ status: 'published' })
+      expect(where.event).toEqual({ startDate: { gte: expect.any(Date) } })
+      expect(where.AND).toContainEqual({ schedule: { scheduleTemplate: { responsibleRoleId: { in: [ROLE_ID] } } } })
+    },
+  )
 
   // ProgramManager sees everything — including untemplated events (which
   // have no responsible relation at all), but still only published schedules.
   // Draft-event conflicts are not urgent enough for the dashboard; managers
   // see them on the events list amber badge and get blocked at release.
-  it('drops the template filter for ProgramManager users but keeps the published filter', async () => {
+  it('drops the responsible filter for ProgramManager users but keeps the published filter', async () => {
     await getResponsibleConflicts(db, 100, CONGREGATION_ID, true)
 
     const partCall = vi.mocked(db.eventPart.findMany).mock.calls[0][0]
     const partWhere = partCall?.where as Record<string, unknown>
     expect(partWhere.schedule).toEqual({ status: 'published' })
     expect(partWhere.event).toEqual({ startDate: { gte: expect.any(Date) } })
-    expect(partWhere.event).not.toHaveProperty('template')
+    expect(JSON.stringify(partWhere.AND)).not.toContain('responsibleRoleId')
   })
 
   // Short-circuits before the two conflict queries: a user with no roles can be responsible

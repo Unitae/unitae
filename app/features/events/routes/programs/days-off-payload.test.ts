@@ -3,7 +3,8 @@ import { Permission } from '~/shared/types/permission'
 
 // What the absences page receives: each assignment falling during an absence links to « Réattribuer » only for whoever
 // the event's page lets fill that slot, to the event alone for its other readers, and nowhere for a reader of absences
-// who cannot open the programmes. Template ids stay on the server.
+// who cannot open the programmes (plan §10: a slot's schedule is filled by « Attribuer », « Gérer » or its template's
+// responsible). Role ids stay on the server.
 
 const currentAccountContext = Symbol('currentAccountContext')
 const permissionsContext = Symbol('permissionsContext')
@@ -28,13 +29,14 @@ vi.mock('~/features/events/server/days-off.queries', () => ({
   listCongregationAbsences: (_db: unknown, { from, to }: { from: Date; to: Date }) => {
     asked.from = from
     asked.to = to
-    const slot = (kind: 'part' | 'service', id: number, templateId: number | null) => ({
+    // Each slot's schedule names its responsible role (none for a schedule without a template, D47).
+    const slot = (kind: 'part' | 'service', id: number, responsibleRoleId: number | null) => ({
       kind,
       id,
       name: `${kind} ${id}`,
       eventId: 30 + id,
       eventDate: new Date('2026-11-12T18:00:00Z'),
-      templateId,
+      responsibleRoleId,
       // Part 13 falls in a draft.
       published: id !== 13,
     })
@@ -47,7 +49,7 @@ vi.mock('~/features/events/server/days-off.queries', () => ({
         memberId: 5,
         firstname: 'Élodie',
         lastname: 'Martin',
-        conflicts: [slot('part', 12, 4), slot('part', 13, 5), slot('service', 7, 5), slot('part', 14, null)],
+        conflicts: [slot('part', 12, 4), slot('part', 13, 5), slot('service', 7, 4), slot('part', 14, null)],
       },
       {
         id: 2,
@@ -63,11 +65,8 @@ vi.mock('~/features/events/server/days-off.queries', () => ({
   },
 }))
 
-// The reader runs the whole programme of template 4, and only the services of template 5.
-vi.mock('~/features/events/server/events-auth.server', () => ({
-  getResponsibleTemplateIds: (_db: unknown, _userId: number, _congregationId: number, scope: string) =>
-    Promise.resolve(scope === 'service' ? [4, 5] : [4]),
-}))
+// The reader holds role 4: the responsible of the schedules whose template names it.
+vi.mock('~/shared/auth/permissions.server', () => ({ resolveEffectiveRoleIds: () => Promise.resolve([4]) }))
 
 const { loader } = await import('./days-off')
 
@@ -119,11 +118,14 @@ describe('/programs/days-off — what the page receives', () => {
     ])
   })
 
-  it('lets the holder of the right to assign reassign every slot', async () => {
-    const data = await load([Permission.CanViewPrograms, Permission.CanAssignProgramParts])
+  it.each([Permission.CanAssignProgramParts, Permission.CanManagePrograms])(
+    'lets %s reassign every slot, as it fills every schedule',
+    async permission => {
+      const data = await load([Permission.CanViewPrograms, permission])
 
-    expect(data.absences[0].conflicts.every(conflict => conflict.action === 'reassign')).toBe(true)
-  })
+      expect(data.absences[0].conflicts.every(conflict => conflict.action === 'reassign')).toBe(true)
+    },
+  )
 
   it('gives a reader of absences alone no link to the programmes, nor to the records', async () => {
     const data = await load([])
@@ -141,9 +143,10 @@ describe('/programs/days-off — what the page receives', () => {
     ])
   })
 
-  it('sends no template id to the page', async () => {
+  it('sends no role id to the page', async () => {
     const data = await load([Permission.CanViewPrograms])
 
+    expect(JSON.stringify(data)).not.toContain('responsibleRoleId')
     expect(JSON.stringify(data)).not.toContain('templateId')
   })
 

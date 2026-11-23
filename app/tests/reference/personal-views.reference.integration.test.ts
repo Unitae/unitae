@@ -188,14 +188,18 @@ describe('what each person reads', () => {
 
   it('the open parts on the dashboard of whoever prepares programmes', async () => {
     const { congregationId } = fixture
-    const open = await scoped(async db => ({
-      all: await getOpenParts(db, congregationId, { templateIds: null, days: 60, now: REFERENCE_NOW }),
-      midweekOnly: await getOpenParts(db, congregationId, {
-        templateIds: [fixture.template('midweek')],
-        days: 60,
-        now: REFERENCE_NOW,
-      }),
-    }))
+    const open = await scoped(async db => {
+      // The midweek programme's responsible, through the role its schedule template names (plan §10).
+      const midweekProgramme = await db.scheduleTemplate.findFirstOrThrow({
+        where: { kind: 'programme', eventKinds: { some: { eventKindId: fixture.template('midweek') } } },
+        select: { responsibleRoleId: true },
+      })
+      const roleIds = midweekProgramme.responsibleRoleId == null ? [] : [midweekProgramme.responsibleRoleId]
+      return {
+        all: await getOpenParts(db, congregationId, { roleIds: null, days: 60, now: REFERENCE_NOW }),
+        midweekOnly: await getOpenParts(db, congregationId, { roleIds, days: 60, now: REFERENCE_NOW }),
+      }
+    })
 
     await expect(reference(open, fixture.labels)).toMatchFileSnapshot('./__references__/open-parts.json')
   })

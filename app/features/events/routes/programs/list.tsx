@@ -3,10 +3,9 @@ import { Link, redirect, type ShouldRevalidateFunctionArgs } from 'react-router'
 
 import { EventStatus } from '~/features/events/model/event-status.type'
 import { listPeriod, selectedPreset } from '~/features/events/model/list-period'
-import { type ProgrammeViewer, programmeRights } from '~/features/events/model/programme-access'
-import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
-import { getResponsibleTemplateIds } from '~/features/events/server/events-auth.server'
+import { mayOpenEvent } from '~/features/events/model/programme-access'
 import { congregationHasProgrammes, listProgrammes } from '~/features/events/server/programme-list.queries'
+import { scheduleRightsFor } from '~/features/events/server/schedule-rights.server'
 import { PeriodMenu } from '~/features/events/ui/PeriodMenu'
 import { ProgrammeList } from '~/features/events/ui/ProgrammeList'
 import * as m from '~/i18n/paraglide/messages'
@@ -46,33 +45,31 @@ export function loader({ request, context }: Route.LoaderArgs) {
   const canManage = permissions.has(Permission.CanManagePrograms)
   const canPublish = permissions.has(Permission.CanPublishPrograms)
   const canAssign = permissions.has(Permission.CanAssignProgramParts)
+  const can = (permission: Permission) => permissions.has(permission)
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
-    // The templates the reader runs give them rights on those programmes alone.
-    const responsibleFor = (scope: ResponsibilityScope) =>
-      canManage && canPublish && canAssign ? [] : getResponsibleTemplateIds(db, currentUser.id, congregationId, scope)
-    const [programmeTemplateIds, serviceTemplateIds] = await Promise.all([
-      responsibleFor(ResponsibilityScope.Programme),
-      responsibleFor(ResponsibilityScope.Service),
-    ])
-    const viewer: ProgrammeViewer = { canManage, canPublish, canAssign, programmeTemplateIds, serviceTemplateIds }
-    const [items, hasAnyProgramme] = await Promise.all([
-      listProgrammes(db, {
-        congregationId,
-        from: startOfDay(period.from, timezone),
-        to: endOfDay(period.to, timezone),
-      }),
-      congregationHasProgrammes(db, congregationId, {
-        withDrafts: canManage || canPublish || canAssign || serviceTemplateIds.length > 0,
-      }),
-    ])
+    const items = await listProgrammes(db, {
+      congregationId,
+      from: startOfDay(period.from, timezone),
+      to: endOfDay(period.to, timezone),
+    })
+    // Each programme by its schedules' rules, as its own page and routes decide (plan §10); `kindIds`, the kinds whose
+    // events the reader may change, also says who may create (D28) and stands for "may act on some draft".
+    const { rightsOf, kindIds } = await scheduleRightsFor(db, can, currentUser.id, items, congregationId)
 
-    // Only what the page shows: no template ids, drafts only for whoever may act on them, and the assignments to
-    // review only for whoever may reassign them, until the programme is held.
+    // Only what the page shows: no template ids, drafts only for whoever may act on them (the event page's own rule),
+    // and the assignments to review only for whoever may reassign them, until the programme is held.
     const programmes = items.flatMap(item => {
-      const rights = programmeRights(item, viewer)
-      if (item.status === EventStatus.Draft && !rights.canSeeDraft) return []
+      const rights = rightsOf.get(item.id)
+      if (rights == null) throw new Error(`No rights for programme ${item.id}`)
+      const opens = mayOpenEvent(item.status, {
+        canEdit: rights.canEdit,
+        canPublish: rights.canPublish,
+        canAssign: rights.canAssignParts,
+        canAssignService: rights.canAssignServices,
+      })
+      if (!opens) return []
       const ahead = item.startDate >= now
       const review = ahead
         ? (rights.canAssignParts ? item.parts.flagged : 0) + (rights.canAssignServices ? item.services.flagged : 0)
@@ -90,10 +87,18 @@ export function loader({ request, context }: Route.LoaderArgs) {
           awaitingProgramme: item.awaitingProgramme,
           review,
           canEdit: rights.canEdit,
+          canDelete: rights.canDelete,
           canPublish: rights.canPublish,
         },
       ]
     })
+
+    // Rows the reader may act on are never hidden behind « no programme yet ».
+    const hasAnyProgramme =
+      programmes.length > 0 ||
+      (await congregationHasProgrammes(db, congregationId, {
+        withDrafts: canManage || canPublish || canAssign || kindIds.length > 0,
+      }))
 
     return {
       programmes,
@@ -102,7 +107,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
       today,
       now,
       hasAnyProgramme,
-      canCreate: canManage || programmeTemplateIds.length > 0,
+      canCreate: canManage || kindIds.length > 0,
       timeZone: timezone,
     }
   })

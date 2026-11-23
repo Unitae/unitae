@@ -2,12 +2,11 @@ import { redirect, type ShouldRevalidateFunctionArgs } from 'react-router'
 
 import { listPeriod, selectedPreset } from '~/features/events/model/list-period'
 import { assignKey, conflictAction, type ReassignRights, reassignHref } from '~/features/events/model/reassign'
-import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
 import { congregationHasAbsences, listCongregationAbsences } from '~/features/events/server/days-off.queries'
-import { getResponsibleTemplateIds } from '~/features/events/server/events-auth.server'
 import { PeriodMenu } from '~/features/events/ui/PeriodMenu'
 import { ProgrammeAbsences } from '~/features/events/ui/ProgrammeAbsences'
 import * as m from '~/i18n/paraglide/messages'
+import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import {
   congregationContext,
   currentAccountContext,
@@ -44,28 +43,27 @@ export function loader({ request, context }: Route.LoaderArgs) {
   const today = dayOf(now, timezone)
   const period = listPeriod(new URL(request.url).searchParams, today)
   const canViewPrograms = permissions.has(Permission.CanViewPrograms)
-  const canAssignParts = permissions.has(Permission.CanAssignProgramParts)
+  // « Attribuer » or « Gérer » fill every schedule (plan §10).
+  const fillsEverySchedule =
+    permissions.has(Permission.CanAssignProgramParts) || permissions.has(Permission.CanManagePrograms)
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
-    // Responsible of a template: the event's page lets them fill its slots without the right to assign.
-    const responsibleFor = (scope: ResponsibilityScope) =>
-      canViewPrograms && !canAssignParts ? getResponsibleTemplateIds(db, currentUser.id, congregationId, scope) : []
-    const [absences, hasAnyAbsence, partTemplateIds, serviceTemplateIds] = await Promise.all([
+    // A schedule's responsible fills it without either right: their roles say which schedules they answer for.
+    const [absences, hasAnyAbsence, roleIds] = await Promise.all([
       listCongregationAbsences(db, {
         congregationId,
         from: startOfDay(period.from, timezone),
         to: endOfDay(period.to, timezone),
       }),
       congregationHasAbsences(db, congregationId),
-      responsibleFor(ResponsibilityScope.Programme),
-      responsibleFor(ResponsibilityScope.Service),
+      canViewPrograms && !fillsEverySchedule ? resolveEffectiveRoleIds(db, currentUser.id, congregationId) : [],
     ])
-    const rights: ReassignRights = { canViewPrograms, canAssignParts, partTemplateIds, serviceTemplateIds }
+    const rights: ReassignRights = { canViewPrograms, fillsEverySchedule, roleIds }
     const canOpenRecords = permissions.has(Permission.CanViewPublishers)
 
     return {
-      // Only what the page shows: no template ids, and a link only where the reader may follow it.
+      // Only what the page shows: no role or template ids, and a link only where the reader may follow it.
       absences: absences.map(absence => ({
         id: absence.id,
         startDate: absence.startDate,

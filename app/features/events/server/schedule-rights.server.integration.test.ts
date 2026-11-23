@@ -27,6 +27,7 @@ const {
   canPublishEvent,
   filterEventsByRight,
   responsibleKindIds,
+  scheduleRightsFor,
 } = await import('./schedule-rights.server')
 const { syncTemplateScheduleTemplates } = await import('./schedule-templates.server')
 
@@ -478,6 +479,95 @@ describe('Bulk publish and delete: per selected event, by the rule above', () =>
           await filterEventsByRight(db, only(Permission.CanManagePrograms), ids, nobody, congregationId, 'delete')
         ).sort(),
       ).toEqual([meeting.id, weekend.id].sort())
+    })
+  })
+})
+
+// The screens list many events at once (plan §10, 5a-3): scheduleRightsFor reads them together and must answer exactly
+// what each single rule answers, for every reader and every shape of event.
+describe('The rights of many events at once agree with each rule', () => {
+  it('gives every account, on every event, what canChangeEvent, canDeleteEvent, canPublishEvent and canFillSchedule give', async () => {
+    await inCongregation(async fixture => {
+      const { db, congregationId, programmeLead, dutyLead, weekendLead, nobody, meeting } = fixture
+      const events = [
+        meeting,
+        await weekendMeeting(fixture),
+        await midweekEventWith(fixture, ['programme'], '2027-08-19'),
+        await midweekEventWith(fixture, [], '2027-08-26'),
+      ]
+      const noKind = await db.event.create({
+        data: {
+          name: 'Import',
+          startDate: new Date('2027-09-02T17:00:00Z'),
+          endDate: new Date('2027-09-02T19:00:00Z'),
+          congregationId,
+        },
+      })
+      events.push({ id: noKind.id, templateId: null })
+      const templateOf = (kind: 'programme' | 'duty', kindId: number) =>
+        db.scheduleTemplate.findFirstOrThrow({ where: { kind, eventKinds: { some: { eventKindId: kindId } } } })
+      // A schedule without a template (D47).
+      const untemplated = await midweekEventWith(fixture, ['programme'], '2027-09-09')
+      await db.schedule.updateMany({ where: { eventId: untemplated.id }, data: { scheduleTemplateId: null } })
+      // A schedule using another kind's template.
+      const borrowed = await midweekEventWith(fixture, ['programme'], '2027-09-16')
+      const weekendProgramme = await templateOf('programme', fixture.weekendId)
+      await db.schedule.updateMany({
+        where: { eventId: borrowed.id },
+        data: { scheduleTemplateId: weekendProgramme.id },
+      })
+      // Duties alone, then two duty schedules answered for by two roles.
+      const dutyOnly = await midweekEventWith(fixture, ['duty'], '2027-09-23')
+      const twoDuties = await midweekEventWith(fixture, ['duty'], '2027-09-30')
+      const weekendDuties = await templateOf('duty', fixture.weekendId)
+      await db.schedule.create({
+        data: {
+          eventId: twoDuties.id,
+          kind: 'duty',
+          name: 'Nettoyage',
+          scheduleTemplateId: weekendDuties.id,
+          congregationId,
+        },
+      })
+      events.push(untemplated, borrowed, dutyOnly, twoDuties)
+      // Someone holding both midweek roles.
+      const both = await db.userAccount.create({
+        data: { email: `both-${congregationId}@test.com`, password: 'x', congregationId },
+      })
+      for (const { roleId } of await db.userRoleAssignment.findMany({
+        where: { userId: { in: [programmeLead, dutyLead] } },
+        select: { roleId: true },
+      })) {
+        await db.userRoleAssignment.create({ data: { userId: both.id, roleId, congregationId } })
+      }
+      const readers: [number, Can][] = [
+        [programmeLead, nothing],
+        [dutyLead, nothing],
+        [weekendLead, nothing],
+        [nobody, nothing],
+        [nobody, only(Permission.CanManagePrograms)],
+        [nobody, only(Permission.CanPublishPrograms)],
+        [nobody, only(Permission.CanAssignProgramParts)],
+        [both.id, nothing],
+        [dutyLead, only(Permission.CanPublishPrograms)],
+        [nobody, only(Permission.CanManagePrograms, Permission.CanPublishPrograms)],
+      ]
+      for (const [userId, can] of readers) {
+        const { rightsOf: batch, kindIds } = await scheduleRightsFor(db, can, userId, events, congregationId)
+        if (!can(Permission.CanManagePrograms))
+          expect(kindIds).toEqual(await responsibleKindIds(db, userId, congregationId))
+        for (const event of events) {
+          expect({ event: event.id, userId, ...batch.get(event.id) }).toEqual({
+            event: event.id,
+            userId,
+            canEdit: await canChangeEvent(db, can, userId, event, congregationId),
+            canDelete: await canDeleteEvent(db, can, userId, event, congregationId),
+            canPublish: await canPublishEvent(db, can, userId, event, congregationId),
+            canAssignParts: await canFillSchedule(db, can, userId, event, 'part', congregationId),
+            canAssignServices: await canFillSchedule(db, can, userId, event, 'service', congregationId),
+          })
+        }
+      }
     })
   })
 })

@@ -1,6 +1,5 @@
 import { VISIBLE_ITEM } from '~/features/events'
 import { PART_ITEMS, SERVICE_ITEMS } from '~/features/events/index.server'
-import { ResponsibilityScope, scopesCovering } from '~/features/events/model/responsibility-scope.type'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { fullName } from '~/shared/utils/display-name'
@@ -22,12 +21,11 @@ const MAX_ABSENTEE_NAMES = 3
 const EMPTY: ResponsibleConflictsSummary = { count: 0, absenteeNames: [], totalAbsenteesCount: 0 }
 
 // Scoping:
-//   - non-manager → only events on templates whose responsible role the user holds
-//     (TemplateResponsible.roleId, resolved through resolveEffectiveRoleIds), and only
-//     the half of the event that delegation actually covers: a service responsible is
-//     answerable for the sono/estrade rota, not for the public talk speaker;
-//   - ProgramManager → all events, including untemplated ones which have
-//     no responsible relation at all.
+//   - otherwise → only the items whose schedule's template names a role the user holds
+//     (ScheduleTemplate.responsibleRoleId, plan §10): on a template naming both responsibles,
+//     the duties are the services responsible's alone (D31);
+//   - whoever fills every schedule (« Attribuer », « Gérer ») → every item, including those
+//     on schedules without a template, which have no responsible (D47).
 export async function getResponsibleConflicts(
   db: TransactionClient,
   userId: number,
@@ -36,7 +34,7 @@ export async function getResponsibleConflicts(
 ): Promise<ResponsibleConflictsSummary> {
   const now = new Date()
 
-  // Bail before the two conflict queries rather than leaning on `roleId: { in: [] }`: a user
+  // Bail before the two conflict queries rather than leaning on `responsibleRoleId: { in: [] }`: a user
   // with no roles can be responsible for nothing, and saying so here costs two roundtrips less.
   const roleIds = isProgramManager ? [] : await resolveEffectiveRoleIds(db, userId, congregationId)
   if (!isProgramManager && roleIds.length === 0) return EMPTY
@@ -44,16 +42,12 @@ export async function getResponsibleConflicts(
   // Drafts stay off the dashboard even for managers (VISIBLE_ITEM below): the events-list amber badge and the
   // release-blocking error are their surface for those.
   const upcoming = { startDate: { gte: now } }
-  const responsibleFor = (scope: ResponsibilityScope) => ({
-    ...upcoming,
-    template: { responsibles: { some: { roleId: { in: roleIds }, scope: { in: scopesCovering(scope) } } } },
-  })
-  const partEventFilter = isProgramManager ? upcoming : responsibleFor(ResponsibilityScope.Programme)
-  const serviceEventFilter = isProgramManager ? upcoming : responsibleFor(ResponsibilityScope.Service)
+  // A schedule's responsible is the role its template names (plan §10): each item by its own schedule's.
+  const answered = isProgramManager ? [] : [{ schedule: { scheduleTemplate: { responsibleRoleId: { in: roleIds } } } }]
 
   const [partRows, serviceRows] = await Promise.all([
     db.item.findMany({
-      where: { ...PART_ITEMS, ...VISIBLE_ITEM, hasConflict: true, event: partEventFilter },
+      where: { AND: [...PART_ITEMS.AND, ...answered], ...VISIBLE_ITEM, hasConflict: true, event: upcoming },
       select: {
         eventId: true,
         assigneeId: true,
@@ -63,7 +57,7 @@ export async function getResponsibleConflicts(
       },
     }),
     db.item.findMany({
-      where: { ...SERVICE_ITEMS, ...VISIBLE_ITEM, hasConflict: true, event: serviceEventFilter },
+      where: { AND: [...SERVICE_ITEMS.AND, ...answered], ...VISIBLE_ITEM, hasConflict: true, event: upcoming },
       select: {
         eventId: true,
         assigneeId: true,

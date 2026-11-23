@@ -1,5 +1,6 @@
 import { EventStatus } from '~/features/events'
 import { PART_ITEMS } from '~/features/events/index.server'
+import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -15,28 +16,30 @@ export interface OpenSlots {
 }
 
 /**
- * Coming meetings, within `days`, that still have parts with neither an assignee nor a visiting
- * speaker. `templateIds` narrows to the meeting types the viewer answers for; null means all of
- * them (someone who may assign any part).
+ * Coming meetings, within `days`, that still have parts with neither an assignee nor a visiting speaker. `roleIds`
+ * narrows to the parts whose programme the viewer answers for, through the role its schedule's template names (plan
+ * §10); null means all of them (someone who may fill any schedule).
  */
 export async function getOpenParts(
   db: TransactionClient,
   congregationId: number,
-  { templateIds, days, now = new Date() }: { templateIds: number[] | null; days: number; now?: Date },
+  { roleIds, days, now = new Date() }: { roleIds: readonly number[] | null; days: number; now?: Date },
 ): Promise<OpenSlots[]> {
-  if (templateIds != null && templateIds.length === 0) return []
+  if (roleIds != null && roleIds.length === 0) return []
+  const answered =
+    roleIds == null ? [] : [{ schedule: { scheduleTemplate: { responsibleRoleId: { in: [...roleIds] } } } }]
+  const open = { AND: [...PART_ITEMS.AND, ...answered], assigneeId: null, externalSpeakerId: null }
   const events = await db.event.findMany({
     where: {
       congregationId,
       startDate: { gte: now, lt: new Date(now.getTime() + days * DAY_MS) },
-      ...(templateIds != null ? { templateId: { in: templateIds } } : {}),
     },
     select: {
       id: true,
       name: true,
       startDate: true,
       status: true,
-      _count: { select: { items: { where: { ...PART_ITEMS, assigneeId: null, externalSpeakerId: null } } } },
+      _count: { select: { items: { where: open } } },
     },
     orderBy: { startDate: 'asc' },
   })
@@ -49,4 +52,24 @@ export async function getOpenParts(
       isDraft: event.status === EventStatus.Draft,
       count: event._count.items,
     }))
+}
+
+/**
+ * The roles the caller holds that some programme schedule template names as its responsible: what a reader who fills
+ * no schedule wholesale answers for, the open parts going by them. None means they answer for no programme.
+ */
+export async function programmeResponsibleRoleIds(
+  db: TransactionClient,
+  userId: number,
+  congregationId: number,
+): Promise<number[]> {
+  const roleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
+  if (roleIds.length === 0) return []
+  const templates = await db.scheduleTemplate.findMany({
+    where: { congregationId, kind: 'programme', responsibleRoleId: { in: roleIds } },
+    select: { responsibleRoleId: true },
+  })
+  return [
+    ...new Set(templates.flatMap(template => (template.responsibleRoleId == null ? [] : [template.responsibleRoleId]))),
+  ]
 }

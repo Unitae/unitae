@@ -54,11 +54,43 @@ vi.mock('~/features/events/server/programme-list.queries', () => ({
     ]),
 }))
 
-// Responsible of template 4's whole programme, and of template 5's services only.
-const responsibleFor = vi.hoisted(() => ({ programme: [] as number[], service: [] as number[] }))
-vi.mock('~/features/events/server/events-auth.server', () => ({
-  getResponsibleTemplateIds: (_db: unknown, _userId: number, _congregationId: number, scope = 'programme') =>
-    Promise.resolve(scope === 'service' ? responsibleFor.service : responsibleFor.programme),
+// The rules by schedule are scheduleRightsFor's own integration test: faked here as they answer, from the kinds whose
+// programme and whose duties the reader answers for (changing any event of those kinds, D28; publishing one only when
+// both are theirs, D49) and the events they may delete (D50), to check what the page makes of them.
+const responsibleFor = vi.hoisted(() => ({
+  programme: [] as number[],
+  service: [] as number[],
+  deletes: [] as number[],
+}))
+vi.mock('~/features/events/server/schedule-rights.server', () => ({
+  scheduleRightsFor: (
+    _db: unknown,
+    can: (permission: string) => boolean,
+    _userId: number,
+    events: { id: number; templateId: number | null }[],
+  ) => {
+    const kindIds = [...new Set([...responsibleFor.programme, ...responsibleFor.service])]
+    const answers = (kinds: number[], templateId: number | null) => templateId != null && kinds.includes(templateId)
+    const manages = can('can-manage-programs')
+    const fills = manages || can('can-assign-program-parts')
+    const rightsOf = new Map(
+      events.map(({ id, templateId }) => {
+        const programme = answers(responsibleFor.programme, templateId)
+        const services = answers(responsibleFor.service, templateId)
+        return [
+          id,
+          {
+            canEdit: manages || answers(kindIds, templateId),
+            canDelete: manages || responsibleFor.deletes.includes(id),
+            canPublish: can('can-publish-programs') || (programme && services),
+            canAssignParts: fills || programme,
+            canAssignServices: fills || services,
+          },
+        ]
+      }),
+    )
+    return Promise.resolve({ rightsOf, kindIds })
+  },
 }))
 
 const { loader } = await import('./list')
@@ -69,9 +101,13 @@ beforeAll(() => {
 })
 afterAll(() => vi.useRealTimers())
 
-async function load(permissions: Permission[], responsible = { programme: [] as number[], service: [] as number[] }) {
-  responsibleFor.programme = responsible.programme
-  responsibleFor.service = responsible.service
+async function load(
+  permissions: Permission[],
+  responsible: { programme?: number[]; service?: number[]; deletes?: number[] } = {},
+) {
+  responsibleFor.programme = responsible.programme ?? []
+  responsibleFor.service = responsible.service ?? []
+  responsibleFor.deletes = responsible.deletes ?? []
   const context = {
     get: (key: symbol) => {
       if (key === permissionsContext) return new Set([Permission.CanViewPrograms, ...permissions])
@@ -87,15 +123,18 @@ async function load(permissions: Permission[], responsible = { programme: [] as 
 }
 
 const rows = (data: Awaited<ReturnType<typeof load>>) =>
-  data.programmes.map(row => [row.id, { edit: row.canEdit, publish: row.canPublish, review: row.review }])
+  data.programmes.map(row => [
+    row.id,
+    { edit: row.canEdit, delete: row.canDelete, publish: row.canPublish, review: row.review },
+  ])
 
 describe('/programs — what the list receives', () => {
   it('shows a reader of programmes the published ones only, with nothing to act on', async () => {
     const data = await load([])
 
     expect(rows(data)).toEqual([
-      [30, { edit: false, publish: false, review: 0 }],
-      [31, { edit: false, publish: false, review: 0 }],
+      [30, { edit: false, delete: false, publish: false, review: 0 }],
+      [31, { edit: false, delete: false, publish: false, review: 0 }],
     ])
     expect(data.canCreate).toBe(false)
   })
@@ -108,24 +147,25 @@ describe('/programs — what the list receives', () => {
     ])
 
     expect(rows(data)).toEqual([
-      [30, { edit: true, publish: true, review: 0 }],
-      [31, { edit: true, publish: true, review: 2 }],
-      [32, { edit: true, publish: true, review: 3 }],
-      [33, { edit: true, publish: true, review: 0 }],
-      [34, { edit: true, publish: true, review: 0 }],
+      [30, { edit: true, delete: true, publish: true, review: 0 }],
+      [31, { edit: true, delete: true, publish: true, review: 2 }],
+      [32, { edit: true, delete: true, publish: true, review: 3 }],
+      [33, { edit: true, delete: true, publish: true, review: 0 }],
+      [34, { edit: true, delete: true, publish: true, review: 0 }],
     ])
     expect(data.canCreate).toBe(true)
     expect(data.programmes.filter(row => row.awaitingProgramme).map(row => row.id)).toEqual([34])
   })
 
-  it('gives a responsible their own programmes, and a services responsible the services to review', async () => {
-    const data = await load([], { programme: [4], service: [4, 5] })
+  it('gives a responsible every programme of their kinds to change, and the services to review on those where only the duties are theirs', async () => {
+    // Programme 34 holds their schedules alone; the others someone else's too (D50).
+    const data = await load([], { programme: [4], service: [4, 5], deletes: [34] })
 
     expect(rows(data)).toEqual([
-      [30, { edit: true, publish: true, review: 0 }],
-      [31, { edit: true, publish: true, review: 2 }],
-      [32, { edit: false, publish: false, review: 2 }],
-      [34, { edit: true, publish: true, review: 0 }],
+      [30, { edit: true, delete: false, publish: true, review: 0 }],
+      [31, { edit: true, delete: false, publish: true, review: 2 }],
+      [32, { edit: true, delete: false, publish: false, review: 2 }],
+      [34, { edit: true, delete: true, publish: true, review: 0 }],
     ])
     expect(data.canCreate).toBe(true)
   })
@@ -134,11 +174,11 @@ describe('/programs — what the list receives', () => {
     const data = await load([Permission.CanPublishPrograms])
 
     expect(rows(data).map(([id, row]) => [id, row])).toEqual([
-      [30, { edit: false, publish: true, review: 0 }],
-      [31, { edit: false, publish: true, review: 0 }],
-      [32, { edit: false, publish: true, review: 0 }],
-      [33, { edit: false, publish: true, review: 0 }],
-      [34, { edit: false, publish: true, review: 0 }],
+      [30, { edit: false, delete: false, publish: true, review: 0 }],
+      [31, { edit: false, delete: false, publish: true, review: 0 }],
+      [32, { edit: false, delete: false, publish: true, review: 0 }],
+      [33, { edit: false, delete: false, publish: true, review: 0 }],
+      [34, { edit: false, delete: false, publish: true, review: 0 }],
     ])
     expect(data.canCreate).toBe(false)
   })

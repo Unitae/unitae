@@ -7,16 +7,16 @@ export interface AssignTarget {
 }
 
 /**
- * What the reader may do from an assignment falling during an absence. The event's page decides who fills a slot: the
- * right to assign parts, or the responsible of the event's template — for a service, a service responsible too.
+ * What the reader may do from an assignment falling during an absence. The event's page decides who fills a slot's
+ * schedule (plan §10): « Attribuer » or « Gérer », or the responsible of that schedule's template.
  */
 export interface ReassignRights {
   canViewPrograms: boolean
-  canAssignParts: boolean
-  /** The templates whose whole programme the reader is responsible for. */
-  partTemplateIds: number[]
-  /** The templates whose services the reader is responsible for, the whole-programme ones included. */
-  serviceTemplateIds: number[]
+  /** « Attribuer » or « Gérer »: every schedule. */
+  fillsEverySchedule: boolean
+  /** The roles the reader holds: holding a slot's schedule responsible role lets them reassign it. Only read when
+   * `fillsEverySchedule` does not already answer. */
+  roleIds: readonly number[]
 }
 
 export type ConflictAction = 'reassign' | 'view'
@@ -26,14 +26,15 @@ export type ConflictAction = 'reassign' | 'view'
  * nothing for a reader of absences who cannot open the programmes (the link would only turn them away).
  */
 export function conflictAction(
-  slot: { kind: AssignKind; templateId: number | null },
+  slot: { responsibleRoleId: number | null },
   rights: ReassignRights,
 ): ConflictAction | null {
   if (!rights.canViewPrograms) return null
-  if (rights.canAssignParts) return 'reassign'
-  if (slot.templateId == null) return 'view'
-  const templates = slot.kind === 'part' ? rights.partTemplateIds : rights.serviceTemplateIds
-  return templates.includes(slot.templateId) ? 'reassign' : 'view'
+  if (rights.fillsEverySchedule) return 'reassign'
+  // No responsible: a schedule without a template (D47), or a template no role answers for. Each slot goes by its
+  // own schedule, as the routes do while an event holds one schedule of a kind (canFillSchedule asks for each).
+  if (slot.responsibleRoleId == null) return 'view'
+  return rights.roleIds.includes(slot.responsibleRoleId) ? 'reassign' : 'view'
 }
 
 /** `part-12`, `service-7`: an item's kind and id (plan T12). */

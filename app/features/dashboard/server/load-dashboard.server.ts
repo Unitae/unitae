@@ -9,7 +9,7 @@ import {
 import { getAtRiskPioneers } from '~/features/dashboard/server/get-at-risk-pioneers.server'
 import { getManagementMetrics } from '~/features/dashboard/server/get-management-metrics.server'
 import { getOnboardingProgress, type OnboardingSteps } from '~/features/dashboard/server/get-onboarding-progress.server'
-import { getOpenParts } from '~/features/dashboard/server/get-open-parts.server'
+import { getOpenParts, programmeResponsibleRoleIds } from '~/features/dashboard/server/get-open-parts.server'
 import { getReportProgress } from '~/features/dashboard/server/get-report-progress.server'
 import { getResponsibleConflicts } from '~/features/dashboard/server/get-responsible-conflicts.server'
 import { getRollChanges } from '~/features/dashboard/server/get-roll-changes.server'
@@ -20,11 +20,11 @@ import { hasHeldTerritory } from '~/features/dashboard/server/has-held-territory
 import { nextMeetingForViewer } from '~/features/dashboard/server/next-meeting-for-viewer.server'
 import { attendanceRights } from '~/features/events'
 import { listMeetingsUnderWay } from '~/features/events/index.server'
-import { getResponsibleTemplateIds } from '~/features/events/server/events-auth.server'
+import { fillsEverySchedule } from '~/features/events/server/schedule-rights.server'
 import { getGroup } from '~/features/publishers/server/groups.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
-import { Permission } from '~/shared/types/permission'
+import type { Permission } from '~/shared/types/permission'
 import { zonedNow } from '~/shared/utils/zoned-now'
 
 /** A block the viewer holds a responsibility for: its data, or null when its query failed. Absent: not theirs. */
@@ -116,7 +116,13 @@ export async function loadDashboard(db: TransactionClient, context: DashboardCon
       }),
     ),
     when(visibility.responsibleConflicts, 'responsible-conflicts', () =>
-      getResponsibleConflicts(db, account.id, congregationId, permissions.has(Permission.CanManagePrograms)),
+      // « Attribuer » and « Gérer » answer for every schedule, as on the open parts and the absences.
+      getResponsibleConflicts(
+        db,
+        account.id,
+        congregationId,
+        fillsEverySchedule(permission => permissions.has(permission)),
+      ),
     ),
     when(visibility.documents, 'documents', () => getBoardDocuments(db, account.id, congregationId)),
     loadOpenParts(),
@@ -143,18 +149,18 @@ export async function loadDashboard(db: TransactionClient, context: DashboardCon
     ),
   ])
 
-  // Programme assigners see every meeting; a responsible, only the meeting types they answer for.
+  // « Attribuer » and « Gérer » see every meeting; a programme's responsible, only the parts of the programmes they
+  // answer for; anyone else, no block. A failed lookup shows the block's error, never every meeting.
   async function loadOpenParts(): Promise<Block<Awaited<ReturnType<typeof getOpenParts>>>> {
     if (visibility.programmes == null) return null
-    const templateIds = permissions.has(Permission.CanAssignProgramParts)
-      ? null
-      : await safe('responsible-templates', () => getResponsibleTemplateIds(db, account.id, congregationId))
-    if (templateIds != null && templateIds.length === 0) return null
-    return {
-      data: await safe('open-parts', () =>
-        getOpenParts(db, congregationId, { templateIds: templateIds ?? null, days: OPEN_PARTS_HORIZON_DAYS, now }),
-      ),
+    const horizon = { days: OPEN_PARTS_HORIZON_DAYS, now }
+    if (fillsEverySchedule(permission => permissions.has(permission))) {
+      return { data: await safe('open-parts', () => getOpenParts(db, congregationId, { roleIds: null, ...horizon })) }
     }
+    const roleIds = await safe('responsible-roles', () => programmeResponsibleRoleIds(db, account.id, congregationId))
+    if (roleIds == null) return { data: null }
+    if (roleIds.length === 0) return null
+    return { data: await safe('open-parts', () => getOpenParts(db, congregationId, { roleIds, ...horizon })) }
   }
 
   async function loadGroup(): Promise<Block<GroupSummary & { canRecord: boolean }>> {
