@@ -61,9 +61,10 @@ const TEMPLATE = {
 beforeEach(() => {
   vi.resetAllMocks()
   // The programme's schedule is 77, the duties' 78: each item lands in the schedule of its kind.
-  vi.mocked(eventSchedulesOf).mockImplementation(async (_db, _eventId, kinds) =>
-    Object.fromEntries(kinds.map(kind => [kind, kind === 'programme' ? 77 : 78])),
-  )
+  vi.mocked(eventSchedulesOf).mockImplementation(async (_db, _eventId, kinds) => ({
+    programme: kinds.includes('programme') ? 77 : null,
+    duty: kinds.includes('duty') ? 78 : null,
+  }))
   db.item.create.mockResolvedValueOnce({ id: 700 }).mockResolvedValueOnce({ id: 800 })
   // The template items mirroring the template's part 11 and service 21.
   db.templateItem.findMany.mockResolvedValue([

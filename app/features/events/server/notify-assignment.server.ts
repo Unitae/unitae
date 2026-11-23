@@ -10,8 +10,10 @@ import { type AssignmentChangeType, PROGRAMME_ASSIGNMENT_TYPE } from './notifica
 
 const logger = createLogger('notify-assignment')
 
-// Shared shape both routes (assign-part, assign-service, remove-assignment)
-// hand to notifyAssignment. `event.startDate` is the raw DB Date; we format it
+// Shared shape the routes (assign-part, assign-service, remove-assignment) and
+// the publishing burst hand to notifyAssignment. It carries no status: whether
+// an assignment is public is read from its item's schedule (dispatchAssignmentDiffs),
+// and a field that decides anything should be read the same way. `event.startDate` is the raw DB Date; we format it
 // with the congregation's locale + timezone before it enters the payload so the
 // worker doesn't need to know either. `templateId` feeds the event-link
 // resolver — null means the event was created ad-hoc without a template, in
@@ -101,18 +103,27 @@ export async function dispatchAssignmentDiffs(
   ctx: AssignmentNotificationContext,
   diffs: AssignmentDiff[],
 ): Promise<void> {
-  // Whitelist, not blacklist: only a published schedule fires notifications.
-  // Anything else — 'draft' today, whatever future status the schema grows —
-  // is silent by default so a typo or unhandled state cannot spam publishers.
-  // Publishing re-enqueues an assigned notification per current assignee
-  // so no one is silently forgotten when a draft is published.
-  // The item's own schedule tells whether the assignment is public yet (plan §10, 5b): read here, so no caller can hand
-  // it the event's status instead. Drafts accumulate diffs silently; publishing re-enqueues them.
+  // Whitelist, not blacklist: only a published schedule fires notifications. Anything else — 'draft' today, whatever
+  // status the schema grows, an item outside any schedule or gone — is silent, so a typo or an unhandled state cannot
+  // spam publishers. The item's own schedule decides (plan §10, 5b), read here so no caller can hand it the event's
+  // status instead. Nothing is kept while it is a draft: publishing tells each current assignee afresh
+  // (publishSchedule → notifyTargets → fireReleaseNotifications), and an un-assignment made on a draft is never sent.
   const item = await db.item.findFirst({
     where: { id: ctx.entityId, congregationId: ctx.congregationId },
     select: { schedule: { select: { status: true } } },
   })
   const status = item?.schedule?.status ?? null
+  if (item == null || item.schedule == null) {
+    // Every writer puts an item in a schedule (eventScheduleId): one outside any, or an id that is no item, is a bug.
+    logger.warn('assignment notifications suppressed: item outside any schedule, or not found', {
+      eventId: ctx.event.id,
+      congregationId: ctx.congregationId,
+      entityId: ctx.entityId,
+      itemFound: item != null,
+      diffs: diffs.length,
+    })
+    return
+  }
   if (status !== ScheduleStatus.Published) {
     // Debug (not warn) so operators can distinguish "we didn't notify because
     // the schedule was a draft" from a queue drop when investigating

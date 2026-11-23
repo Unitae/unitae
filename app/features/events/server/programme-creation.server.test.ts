@@ -99,9 +99,10 @@ beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(db.event.findMany).mockResolvedValue([] as never)
   vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
-  vi.mocked(eventSchedulesOf).mockImplementation(async (_db, _eventId, kinds) =>
-    Object.fromEntries(kinds.map(kind => [kind, kind === 'programme' ? PROGRAMME_SCHEDULE : DUTY_SCHEDULE])),
-  )
+  vi.mocked(eventSchedulesOf).mockImplementation(async (_db, _eventId, kinds) => ({
+    programme: kinds.includes('programme') ? PROGRAMME_SCHEDULE : null,
+    duty: kinds.includes('duty') ? DUTY_SCHEDULE : null,
+  }))
   // A part is item 700, a service item 800.
   vi.mocked(db.item.create).mockImplementation((({ data }: { data: { scheduleId: number } }) =>
     Promise.resolve({ id: data.scheduleId === DUTY_SCHEDULE ? 800 : 700 })) as never)

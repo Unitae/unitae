@@ -40,12 +40,7 @@ export async function applyTemplateToEvent(
     ...(template.parts.length > 0 ? [ScheduleKind.Programme] : []),
     ...(template.serviceParts.length > 0 ? [ScheduleKind.Duty] : []),
   ]
-  const { programme: programmeId = null, duty: dutiesId = null } = await eventSchedulesOf(
-    db,
-    eventId,
-    kinds,
-    congregationId,
-  )
+  const { programme: programmeId, duty: dutiesId } = await eventSchedulesOf(db, eventId, kinds, congregationId)
 
   // Each item points at the template item its template part or service is mirrored into (plan T12).
   const templates = await templateItemsOf(

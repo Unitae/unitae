@@ -21,7 +21,10 @@ import {
   SERVICE_ITEMS,
 } from '~/features/events/server/item-projection.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { createLogger } from '~/shared/infra/logger.server'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
+
+const logger = createLogger('event-part-assignments')
 
 // Acquire a row-level lock on the assignment before the read+update sequence.
 // Without this, two overlapping transactions both read `previousAssigneeId`
@@ -66,9 +69,28 @@ export async function getEventProgramme(db: TransactionClient, eventId: number, 
   return { ...event, eventParts: parts.map(asEventPart), eventServiceParts: services.map(asEventServicePart) }
 }
 
+/**
+ * Whether an item's schedule is published. An item outside any schedule counts as a draft, as members never see it
+ * (VISIBLE_ITEM); every writer puts an item in one (eventScheduleId), so it is logged as the bug it is.
+ */
+function itemIsPublished(
+  item: { id: number; eventId: number; schedule: { status: string } | null },
+  congregationId: number,
+): boolean {
+  if (item.schedule == null) {
+    logger.warn('item outside any schedule: its conflicts are flagged, not refused', {
+      itemId: item.id,
+      eventId: item.eventId,
+      congregationId,
+    })
+    return false
+  }
+  return item.schedule.status === ScheduleStatus.Published
+}
+
 // Runs the per-participant checks used by assignPart for both speaker and
 // reader. Returns a Rejection on hard failure (ineligible role, or day-off
-// on a released event) or a hasConflict flag the caller ORs together for the
+// on a published schedule) or a hasConflict flag the caller ORs together for the
 // eventual `data.hasConflict` write.
 async function checkPartParticipant(
   db: TransactionClient,
@@ -78,10 +100,10 @@ async function checkPartParticipant(
     roleKind: 'speaker' | 'reader'
     event: { startDate: Date; endDate: Date }
     congregationId: number
-    isReleased: boolean
+    isPublished: boolean
   },
 ): Promise<{ error: string } | { hasConflict: boolean }> {
-  const { assignmentId, participantId, roleKind, event, congregationId, isReleased } = args
+  const { assignmentId, participantId, roleKind, event, congregationId, isPublished } = args
   if (participantId == null) return { hasConflict: false }
 
   const allowed = await getPartAssignmentAllowedRoleIds(db, assignmentId, roleKind, congregationId)
@@ -90,7 +112,7 @@ async function checkPartParticipant(
   if (ineligible) return ineligible
 
   if (await checkDayOffConflict(db, participantId, event.startDate, event.endDate, congregationId)) {
-    if (isReleased) return { error: DAY_OFF_MESSAGE[roleKind] }
+    if (isPublished) return { error: DAY_OFF_MESSAGE[roleKind] }
     return { hasConflict: true }
   }
   return { hasConflict: false }
@@ -153,7 +175,7 @@ export async function assignPart(
   // exactly the kind of surprise we want to avoid. On a draft the manager is
   // building it, so we save with hasConflict=true and let the publishing
   // refusal surface it. The item's own schedule decides, not the event (plan §10).
-  const isReleased = existing.schedule?.status === ScheduleStatus.Published
+  const isPublished = itemIsPublished(existing, congregationId)
 
   const speakerCheck = await checkPartParticipant(db, {
     assignmentId,
@@ -161,7 +183,7 @@ export async function assignPart(
     roleKind: 'speaker',
     event: existing.event,
     congregationId,
-    isReleased,
+    isPublished,
   })
   if ('error' in speakerCheck) return speakerCheck
 
@@ -171,7 +193,7 @@ export async function assignPart(
     roleKind: 'reader',
     event: existing.event,
     congregationId,
-    isReleased,
+    isPublished,
   })
   if ('error' in readerCheck) return readerCheck
 
@@ -201,7 +223,7 @@ export async function assignServicePart(
   const previousAssigneeId = existing.assigneeId
 
   // As assignPart: the item's own schedule decides.
-  const isReleased = existing.schedule?.status === ScheduleStatus.Published
+  const isPublished = itemIsPublished(existing, congregationId)
   let hasConflict = false
 
   if (assigneeId != null) {
@@ -210,7 +232,7 @@ export async function assignServicePart(
     const ineligible = checkEligibleForRole(eligible, assigneeId, 'servant')
     if (ineligible) return ineligible
     if (await checkDayOffConflict(db, assigneeId, existing.event.startDate, existing.event.endDate, congregationId)) {
-      if (isReleased) return { error: DAY_OFF_MESSAGE.servant }
+      if (isPublished) return { error: DAY_OFF_MESSAGE.servant }
       hasConflict = true
     }
   }

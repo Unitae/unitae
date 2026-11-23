@@ -13,8 +13,9 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 
 // An event's schedules, written beside its items' `eventId` and its own `status` until the readers move over. The rule
 // is the add_schedules migration's, for one event: keep the two in step. While it lasts, an event has one programme at
-// most (a unique index, D9) and, because every writer goes through eventScheduleId, one duty schedule at most; its
-// schedules follow its template and its status.
+// most (a unique index, D9) and, because every writer goes through eventScheduleId, one duty schedule at most. Its
+// schedules follow its template; a schedule's status starts from D52 and is then its own, the event's settling from
+// them (settleEventStatus, D51).
 //
 // Locks: a template's row before an event's, the order of every path that creates or moves events of a template.
 
@@ -47,15 +48,20 @@ async function scheduleTemplateFor(
 
 /**
  * The event's schedule of that kind, made on the spot when it has none: from its template's schedule template of that
- * kind when there is one, with the event's status. Every item an event is given goes into it.
+ * kind when there is one. Its status follows D52: an event holding no schedule gives it its own; beside any schedule
+ * the event holds, an empty one included, it starts as a draft, to be published on its own. Every item an event is
+ * given goes into it. An action bringing several kinds at once goes through eventSchedulesOf, never this in a loop.
  */
 export async function eventScheduleId(
   db: TransactionClient,
   eventId: number,
   kind: ScheduleKind,
   congregationId: number,
-  /** Restoring data written before schedules published apart: the schedule takes its event's status, as it then meant. */
-  { asTheEvent = false }: { asTheEvent?: boolean } = {},
+  /**
+   * Gives the schedule the event's status even beside another: for data written when a published event meant every
+   * schedule was (a restore, attachEventItems), and for the schedules one action brings at once (eventSchedulesOf).
+   */
+  { takeEventStatus = false }: { takeEventStatus?: boolean } = {},
 ): Promise<number> {
   const existing = await findEventSchedule(db, eventId, kind, congregationId)
   if (existing) return existing
@@ -76,9 +82,10 @@ export async function eventScheduleId(
     select: { templateId: true, status: true, _count: { select: { schedules: true } } },
   })
   if (!event) throw new NotFoundError('Event', eventId)
-  // A schedule added beside others starts as a draft, to be published on its own; an event holding none, published as
-  // it is, keeps its first one published, so adding a part never hides it from members (D52).
-  const status = asTheEvent || event._count.schedules === 0 ? scheduleStatusFor(event.status) : ScheduleStatus.Draft
+  // A schedule added beside others starts as a draft, to be published on its own; on an event holding none it takes the
+  // event's status, so adding a part to an event published as it is never hides it from members (D52).
+  const status =
+    takeEventStatus || event._count.schedules === 0 ? scheduleStatusFor(event.status) : ScheduleStatus.Draft
   // Applied to another template meanwhile: made from that one's.
   if (event.templateId !== before.templateId) {
     madeFrom = await scheduleTemplateFor(db, event.templateId, kind, congregationId)
@@ -112,18 +119,20 @@ async function findEventSchedule(
 
 /**
  * The event's schedules of these kinds, made where missing, for one action that brings several (giving a programme,
- * applying a template): on an event holding none, published as it is, they all start published alike; beside a
- * schedule it holds, the ones made start as drafts (D52).
+ * applying a template): on an event holding none, they all take the event's status alike; beside a schedule it holds,
+ * the ones made start as drafts (D52). The schedules it already holds come back as they are. Kinds not asked for are
+ * null. The count is read before eventScheduleId locks the event (the template's row comes first): a writer making a
+ * schedule meanwhile can only leave this action's schedules with the event's status, as before D52.
  */
 export async function eventSchedulesOf(
   db: TransactionClient,
   eventId: number,
   kinds: readonly ScheduleKind[],
   congregationId: number,
-): Promise<Partial<Record<ScheduleKind, number>>> {
-  const asTheEvent = (await db.schedule.count({ where: { eventId, congregationId } })) === 0
-  const ids: Partial<Record<ScheduleKind, number>> = {}
-  for (const kind of kinds) ids[kind] = await eventScheduleId(db, eventId, kind, congregationId, { asTheEvent })
+): Promise<Record<ScheduleKind, number | null>> {
+  const takeEventStatus = (await db.schedule.count({ where: { eventId, congregationId } })) === 0
+  const ids: Record<ScheduleKind, number | null> = { programme: null, duty: null }
+  for (const kind of kinds) ids[kind] = await eventScheduleId(db, eventId, kind, congregationId, { takeEventStatus })
   return ids
 }
 
@@ -184,12 +193,14 @@ export async function attachEventItems(
     const where = { eventId: event.id, congregationId, scheduleId: null }
     if (event._count.eventParts > 0) {
       const scheduleId = await eventScheduleId(db, event.id, ScheduleKind.Programme, congregationId, {
-        asTheEvent: true,
+        takeEventStatus: true,
       })
       await db.eventPart.updateMany({ where, data: { scheduleId } })
     }
     if (event._count.eventServiceParts > 0) {
-      const scheduleId = await eventScheduleId(db, event.id, ScheduleKind.Duty, congregationId, { asTheEvent: true })
+      const scheduleId = await eventScheduleId(db, event.id, ScheduleKind.Duty, congregationId, {
+        takeEventStatus: true,
+      })
       await db.eventServicePart.updateMany({ where, data: { scheduleId } })
     }
   }

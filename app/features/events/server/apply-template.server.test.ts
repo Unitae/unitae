@@ -83,9 +83,10 @@ beforeEach(() => {
   vi.mocked(allowedRoles.setServicePartAssignmentAllowedRoles).mockResolvedValue({ added: [], removed: [] })
   mockDb.attendance.findMany.mockResolvedValue([])
   mockDb.notificationEvent.updateMany.mockResolvedValue({ count: 0 })
-  vi.mocked(eventSchedulesOf).mockImplementation(async (_db, _eventId, kinds) =>
-    Object.fromEntries(kinds.map(kind => [kind, kind === 'programme' ? 77 : 78])),
-  )
+  vi.mocked(eventSchedulesOf).mockImplementation(async (_db, _eventId, kinds) => ({
+    programme: kinds.includes('programme') ? 77 : null,
+    duty: kinds.includes('duty') ? 78 : null,
+  }))
   mockDb.templateItem.findMany.mockResolvedValue([])
   mockDb.item.aggregate.mockResolvedValue({ _max: { order: null } })
   mockDb.item.deleteMany.mockResolvedValue({ count: 0 })
