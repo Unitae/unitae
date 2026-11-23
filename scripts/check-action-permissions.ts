@@ -61,6 +61,8 @@ export const DELEGATES: Record<string, { file: string; enforces: RegExp }> = {
     enforces: ENFORCES_PERMISSION,
   },
   // Renaming and deleting one schedule (design round A, D41, D44): « Gérer » named in its file.
+  // Adding a schedule (D39): « Gérer » named in its file.
+  addEventSchedule: { file: 'app/features/events/server/schedule-add.server.ts', enforces: ENFORCES_PERMISSION },
   renameEventSchedule: {
     file: 'app/features/events/server/schedule-changes.server.ts',
     enforces: ENFORCES_PERMISSION,

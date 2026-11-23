@@ -2068,6 +2068,18 @@
             }
         }
     ],
+    "programs_schedule_add": "Ajouter un planning",
+    "programs_schedule_add_suggested": "Suggérés par « {kind} »",
+    "programs_schedule_add_others": "Autres modèles",
+    "programs_schedule_add_empty": "Planning vide…",
+    "programs_schedule_add_empty_hint": "Un nom et sa sorte : programme ou devoirs",
+    "programs_schedule_add_empty_title": "Nouveau planning pour cette réunion",
+    "programs_schedule_add_empty_body": "Il n’existe que pour cette réunion. Pour le réutiliser, créez plutôt un modèle dans Réglages.",
+    "programs_schedule_add_kind": "Sorte",
+    "programs_schedule_add_no_one": "Sans modèle, il n’a pas de responsable : ceux qui gèrent les programmes le remplissent et le publient.",
+    "programs_schedule_add_submit": "Ajouter",
+    "programs_schedule_added": "Planning ajouté.",
+    "programs_schedule_add_kind_held": "Cette réunion a déjà un planning de cette sorte.",
     "programs_schedule_rename": "Renommer pour cette réunion",
     "programs_schedule_delete": "Supprimer le planning",
     "programs_schedule_rename_title": "Renommer le planning",

@@ -2063,6 +2063,18 @@
             }
         }
     ],
+    "programs_schedule_add": "Adicionar um planeamento",
+    "programs_schedule_add_suggested": "Sugeridos por «{kind}»",
+    "programs_schedule_add_others": "Outros modelos",
+    "programs_schedule_add_empty": "Planeamento vazio…",
+    "programs_schedule_add_empty_hint": "Um nome e o seu tipo: programa ou tarefas",
+    "programs_schedule_add_empty_title": "Novo planeamento para esta reunião",
+    "programs_schedule_add_empty_body": "Existe apenas para esta reunião. Para o reutilizar, crie antes um modelo nas Definições.",
+    "programs_schedule_add_kind": "Tipo",
+    "programs_schedule_add_no_one": "Sem modelo, não tem responsável: quem gere os programas preenche-o e publica-o.",
+    "programs_schedule_add_submit": "Adicionar",
+    "programs_schedule_added": "Planeamento adicionado.",
+    "programs_schedule_add_kind_held": "Esta reunião já tem um planeamento deste tipo.",
     "programs_schedule_rename": "Renomear nesta reunião",
     "programs_schedule_delete": "Eliminar o planeamento",
     "programs_schedule_rename_title": "Renomear o planeamento",
