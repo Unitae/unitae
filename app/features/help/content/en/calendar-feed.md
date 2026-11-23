@@ -10,7 +10,7 @@ related: absences
 order: 3
 ---
 
-Your parts and services in published programs, and your absences, can show in your calendar and stay up to date there. You only need to add your calendar link to it.
+Your published parts and services, and your absences, can show in your calendar and stay up to date there. You only need to add your calendar link to it.
 
 ## Create your link
 

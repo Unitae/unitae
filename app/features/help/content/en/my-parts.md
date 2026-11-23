@@ -2,7 +2,7 @@
 
 slug: my-parts
 title: Where do I see my meeting assignments?
-summary: On the home page, by e-mail and in your calendar, as soon as the program is published.
+summary: On the home page, by e-mail and in your calendar, as soon as they are published.
 module: programs
 permission: none
 keywords: parts, part, program, meeting, assignment, service, talk, reading, second speaker, assistant, e-mail, reminder, home
@@ -10,7 +10,7 @@ related: calendar-feed, notifications, absences
 order: 1
 ---
 
-Your assignments, parts and services alike, show as soon as the meeting’s program is published. While it is a draft, nothing appears.
+Your parts show as soon as the meeting’s program is published, your services as soon as its services are: each is published on its own. While they are drafts, nothing appears.
 
 ## On the home page
 
@@ -26,8 +26,8 @@ No **My upcoming assignments**? Your account is not linked to a record of the co
 
 ## By e-mail
 
-When you are given a part or a service on a published program, an e-mail tells you half an hour later, in case the assignment is cancelled meanwhile. If it is taken from you afterwards, another e-mail says so. You choose these e-mails in **My account**, on the **Notifications** page.
+When you are given a published part or service, an e-mail tells you half an hour later, in case the assignment is cancelled meanwhile. If it is taken from you afterwards, another e-mail says so. You choose these e-mails in **My account**, on the **Notifications** page.
 
 ## In your calendar
 
-Your calendar link adds your parts and services in published programs to Apple Calendar, Google Calendar or Outlook, and keeps them up to date. You create it in **My account**, on the **Profile** page.
+Your calendar link adds your published parts and services to Apple Calendar, Google Calendar or Outlook, and keeps them up to date. You create it in **My account**, on the **Profile** page.

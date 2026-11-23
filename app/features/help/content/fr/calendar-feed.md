@@ -10,7 +10,7 @@ related: absences
 order: 3
 ---
 
-Vos parties et vos services des programmes publiés, et vos absences, peuvent s’afficher dans votre agenda et s’y mettre à jour seuls. Il suffit d’y ajouter votre lien d’agenda.
+Vos parties et vos services publiés, et vos absences, peuvent s’afficher dans votre agenda et s’y mettre à jour seuls. Il suffit d’y ajouter votre lien d’agenda.
 
 ## Créer votre lien
 

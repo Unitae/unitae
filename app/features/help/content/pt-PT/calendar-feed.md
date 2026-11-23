@@ -10,7 +10,7 @@ related: absences
 order: 3
 ---
 
-As partes e os serviços dos programas publicados, bem como as suas ausências, podem aparecer no calendário e manter-se atualizados. Basta adicionar-lhe a ligação do calendário.
+As partes e os serviços publicados, bem como as suas ausências, podem aparecer no calendário e manter-se atualizados. Basta adicionar-lhe a ligação do calendário.
 
 ## Criar a ligação
 

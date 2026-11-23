@@ -2,7 +2,7 @@
 
 slug: my-parts
 title: Onde vejo as minhas designações para as reuniões?
-summary: Na página inicial, por e-mail e no calendário, assim que o programa for publicado.
+summary: Na página inicial, por e-mail e no calendário, assim que forem publicadas.
 module: programs
 permission: none
 keywords: partes, parte, programa, reunião, designação, serviço, discurso, leitura, segundo orador, ajudante, e-mail, lembrete, início
@@ -10,7 +10,7 @@ related: calendar-feed, notifications, absences
 order: 1
 ---
 
-As suas designações — partes e serviços — aparecem assim que o programa da reunião for publicado. Enquanto estiver em rascunho, não são apresentadas.
+As suas partes aparecem assim que o programa da reunião for publicado, e os seus serviços assim que os serviços forem publicados: cada um é publicado à parte. Enquanto estiverem em rascunho, não são apresentados.
 
 ## Na página inicial
 
@@ -26,8 +26,8 @@ Não aparece **As minhas próximas designações**? A sua conta não está assoc
 
 ## Por e-mail
 
-Quando lhe é atribuída uma parte ou um serviço num programa publicado, recebe um e-mail meia hora depois, caso a designação seja entretanto cancelada. Se lhe retirarem a designação mais tarde, recebe outro e-mail. Pode escolher estes e-mails em **A minha conta**, na página **Notificações**.
+Quando lhe é atribuída uma parte ou um serviço já publicado, recebe um e-mail meia hora depois, caso a designação seja entretanto cancelada. Se lhe retirarem a designação mais tarde, recebe outro e-mail. Pode escolher estes e-mails em **A minha conta**, na página **Notificações**.
 
 ## No calendário
 
-A ligação do calendário adiciona ao Apple Calendar, Google Calendar ou Outlook as partes e os serviços dos programas publicados e mantém-nos atualizados. Crie a ligação em **A minha conta**, na página **Perfil**.
+A ligação do calendário adiciona ao Apple Calendar, Google Calendar ou Outlook as partes e os serviços publicados e mantém-nos atualizados. Crie a ligação em **A minha conta**, na página **Perfil**.
