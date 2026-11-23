@@ -504,7 +504,8 @@ schedule's status.
 written until PR 6, derived: released when any schedule is published (D51). A schedule is refused when its own items
 hold a conflict, and a programme schedule when it is empty; duties have no such refusal. 5b-2 the readers: every
 decision about an item reads its schedule's status, not the event's (assignment writers, the notification gate and
-its context, the share message, external speakers, open parts, empty meetings, the board's « à jour »). 5b-3 the
+its context, the share message, external speakers, open parts, empty meetings, the board's « à jour »), and the
+writers that make a schedule later (`eventScheduleId`, `attachEventItems`) follow D52. 5b-3 the
 routes: `events/:eventId/schedules/:scheduleId/publish` and `/unpublish`; the event-level routes become « Tout
 publier » / « Tout retirer » (D43), saying how many schedules they skipped; the bulk routes keep taking event ids,
 each acting as « Tout publier », until the list selects schedules (8a). One deploy after 5b-3.
