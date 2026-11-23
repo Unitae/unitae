@@ -118,11 +118,14 @@ describe('/programs/days-off — what the page receives', () => {
     ])
   })
 
-  it('lets the holder of the right to assign reassign every slot', async () => {
-    const data = await load([Permission.CanViewPrograms, Permission.CanAssignProgramParts])
+  it.each([Permission.CanAssignProgramParts, Permission.CanManagePrograms])(
+    'lets %s reassign every slot, as it fills every schedule',
+    async permission => {
+      const data = await load([Permission.CanViewPrograms, permission])
 
-    expect(data.absences[0].conflicts.every(conflict => conflict.action === 'reassign')).toBe(true)
-  })
+      expect(data.absences[0].conflicts.every(conflict => conflict.action === 'reassign')).toBe(true)
+    },
+  )
 
   it('gives a reader of absences alone no link to the programmes, nor to the records', async () => {
     const data = await load([])

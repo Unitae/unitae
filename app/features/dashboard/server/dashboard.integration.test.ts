@@ -744,7 +744,7 @@ describe('getConflictingAssignments (integration)', () => {
     })
 
     try {
-      // Bob is the responsible; he sees the outstanding conflict on his template.
+      // Bob is the responsible; he sees the outstanding conflict on the schedule his role answers for.
       const before = await withScope(congregationId, tx =>
         getResponsibleConflicts(tx, bobAccountId, congregationId, false),
       )

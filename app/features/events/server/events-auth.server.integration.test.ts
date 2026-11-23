@@ -560,7 +560,7 @@ describe('deputies of the responsible role (integration)', () => {
 
 describe('responsibility scope (integration)', () => {
   // The scopes no longer decide any right (schedule-rights.server.integration.test.ts does, D28, D31): they feed the
-  // screens that show or hide things, through getResponsibleTemplateIds and the lists' own filters, until 5a-3.
+  // Réglages alone, through getResponsibleTemplateIds, until PR 6.
   it('keeps the service responsible off the programme-scoped list the screens read', async () => {
     const programmeScoped = await withScope(primaryCongId, tx =>
       getResponsibleTemplateIds(tx, serviceResponsibleId, primaryCongId),

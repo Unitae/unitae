@@ -63,7 +63,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
     const canOpenRecords = permissions.has(Permission.CanViewPublishers)
 
     return {
-      // Only what the page shows: no template ids, and a link only where the reader may follow it.
+      // Only what the page shows: no role or template ids, and a link only where the reader may follow it.
       absences: absences.map(absence => ({
         id: absence.id,
         startDate: absence.startDate,

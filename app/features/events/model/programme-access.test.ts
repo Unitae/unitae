@@ -2,8 +2,6 @@ import { describe, expect, it } from 'vitest'
 
 import { mayOpenEvent } from './programme-access'
 
-// A published programme opens for every reader of the programmes; a draft only for someone who may act on it.
-
 describe('mayOpenEvent', () => {
   const none = { canEdit: false, canPublish: false, canAssign: false, canAssignService: false }
 

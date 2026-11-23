@@ -14,7 +14,8 @@ export interface ReassignRights {
   canViewPrograms: boolean
   /** « Attribuer » or « Gérer »: every schedule. */
   fillsEverySchedule: boolean
-  /** The roles the reader holds, a schedule's responsible being one. */
+  /** The roles the reader holds: holding a slot's schedule responsible role lets them reassign it. Only read when
+   * `fillsEverySchedule` does not already answer. */
   roleIds: readonly number[]
 }
 
@@ -30,7 +31,8 @@ export function conflictAction(
 ): ConflictAction | null {
   if (!rights.canViewPrograms) return null
   if (rights.fillsEverySchedule) return 'reassign'
-  // A schedule without a template has no responsible (D47).
+  // No responsible: a schedule without a template (D47), or a template no role answers for. Each slot goes by its
+  // own schedule, as the routes do while an event holds one schedule of a kind (canFillSchedule asks for each).
   if (slot.responsibleRoleId == null) return 'view'
   return rights.roleIds.includes(slot.responsibleRoleId) ? 'reassign' : 'view'
 }
