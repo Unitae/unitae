@@ -72,6 +72,8 @@ export const POLICY_HELPERS: Record<string, string> = {
   canChangeEventsOfKind: 'app/features/events/server/schedule-rights.server.ts',
   canDeleteEvent: 'app/features/events/server/schedule-rights.server.ts',
   canPublishEvent: 'app/features/events/server/schedule-rights.server.ts',
+  // Publishing one schedule (plan §10, D8): « Publier », else its template's responsible.
+  canPublishSchedule: 'app/features/events/server/schedule-status.server.ts',
 }
 
 /**
