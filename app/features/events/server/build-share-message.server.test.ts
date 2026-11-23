@@ -133,13 +133,18 @@ describe('buildShareTextsForEvent', () => {
     timezone: 'Europe/Paris',
   }
 
-  function eventWith(parts: unknown[], status = 'released') {
+  // The programme's own schedule decides (plan §10, 5b); the event reads released, as a half-published one does.
+  function eventWith(parts: unknown[], programme = 'published') {
     return {
       id: 12,
       templateId: 3,
       name: 'Réunion de semaine',
       startDate: EVENT.startDate,
-      status,
+      status: 'released',
+      schedules: [
+        { kind: 'programme', status: programme },
+        { kind: 'duty', status: 'published' },
+      ],
       eventParts: parts,
     }
   }
@@ -191,6 +196,12 @@ describe('buildShareTextsForEvent', () => {
     const texts = await buildShareTextsForEvent(eventWith([part(7)], 'draft') as never, congregation, resolveLink)
 
     expect(texts).toEqual({})
+  })
+
+  it('shares nothing from an event whose programme alone is a draft, its duties published', async () => {
+    const resolveLink = vi.fn().mockResolvedValue('/board')
+    const event = { ...eventWith([part(7)], 'draft'), status: 'released' }
+    expect(await buildShareTextsForEvent(event as never, congregation, resolveLink)).toEqual({})
   })
 
   it('does not even resolve a link for a draft', async () => {

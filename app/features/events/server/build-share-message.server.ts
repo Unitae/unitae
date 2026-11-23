@@ -1,5 +1,5 @@
-import { EventStatus } from '~/features/events/model/event-status.type'
 import { partPresetShareMessage } from '~/features/events/model/part-preset-defaults'
+import { ScheduleKind, ScheduleStatus } from '~/features/events/model/schedule.type'
 import { renderShareMessage } from '~/features/events/model/share-message'
 import { isLocale } from '~/i18n/paraglide/runtime'
 import { formatEventDate, formatEventTime } from '~/shared/utils/event-time'
@@ -103,7 +103,8 @@ export interface ShareableEvent {
   templateId: number | null
   name: string
   startDate: Date
-  status: string
+  /** Its schedules' statuses: what is shared is the programme's parts, so the programme's own decides. */
+  schedules: { kind: string; status: string }[]
   eventParts: ShareableEventPart[]
 }
 
@@ -130,11 +131,13 @@ export async function buildShareTextsForEvent(
   congregation: ShareCongregation,
   resolveLink: (event: { id: number; templateId: number | null }) => Promise<string>,
 ): Promise<Record<number, string>> {
-  // Nothing to share from a draft. The board only renders released events, so
-  // the link would put the reader on a programme their assignment is not in,
-  // and the assignment itself may still change. The notification path already
-  // stays quiet on drafts for the same reason.
-  if (event.status !== EventStatus.Released) return {}
+  // Nothing to share from a draft programme. The board only renders published
+  // schedules, so the link would put the reader on a programme their assignment
+  // is not in, and the assignment itself may still change. The notification
+  // path already stays quiet on drafts for the same reason. The programme's own
+  // schedule decides, not the event (plan §10, 5b).
+  const programme = event.schedules.find(schedule => schedule.kind === ScheduleKind.Programme)
+  if (programme?.status !== ScheduleStatus.Published) return {}
 
   const link = await resolveLink({ id: event.id, templateId: event.templateId })
   const texts: Record<number, string> = {}
