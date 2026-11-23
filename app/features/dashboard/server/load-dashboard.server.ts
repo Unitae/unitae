@@ -20,11 +20,11 @@ import { hasHeldTerritory } from '~/features/dashboard/server/has-held-territory
 import { nextMeetingForViewer } from '~/features/dashboard/server/next-meeting-for-viewer.server'
 import { attendanceRights } from '~/features/events'
 import { listMeetingsUnderWay } from '~/features/events/index.server'
-import { fillsEverySchedule } from '~/features/events/server/schedule-rights.server'
+import { fillsEverySchedule, responsibleKindIds } from '~/features/events/server/schedule-rights.server'
 import { getGroup } from '~/features/publishers/server/groups.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
-import type { Permission } from '~/shared/types/permission'
+import { Permission } from '~/shared/types/permission'
 import { zonedNow } from '~/shared/utils/zoned-now'
 
 /** A block the viewer holds a responsibility for: its data, or null when its query failed. Absent: not theirs. */
@@ -61,7 +61,6 @@ interface DashboardContext {
  */
 export async function loadDashboard(db: TransactionClient, context: DashboardContext, now: Date = new Date()) {
   const { account, permissions, congregation } = context
-  const visibility = dashboardVisibility({ permissions, member: account.member })
   const congregationId = congregation.id
   const memberId = account.member?.id ?? null
   const local = zonedNow(congregation.timezone, now)
@@ -77,6 +76,13 @@ export async function loadDashboard(db: TransactionClient, context: DashboardCon
   }
   const forMember = <T>(label: string, run: (id: number) => Promise<T>) =>
     memberId == null ? Promise.resolve(null) : safe(label, () => run(memberId))
+  // A responsible of some kind creates its events (D28), as the programmes list offers; a failed lookup offers nothing.
+  const createsProgrammes =
+    permissions.has(Permission.CanViewPrograms) &&
+    !permissions.has(Permission.CanManagePrograms) &&
+    ((await safe('creatable-kinds', () => responsibleKindIds(db, account.id, congregationId)))?.length ?? 0) > 0
+  const visibility = dashboardVisibility({ permissions, member: account.member, createsProgrammes })
+
   const when = <T>(applies: unknown, label: string, run: () => Promise<T>) =>
     applies ? safe(label, run) : Promise.resolve(null)
   const block = async <T>(applies: unknown, label: string, run: () => Promise<T>): Promise<Block<T>> =>

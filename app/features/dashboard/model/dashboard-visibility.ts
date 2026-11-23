@@ -11,6 +11,8 @@ export interface DashboardViewer {
     responsibleFor: { id: number } | null
     deputyFor: { id: number } | null
   } | null
+  /** Responsible of a schedule template some kind suggests, so they create that kind's events (D28; read on the server). */
+  createsProgrammes?: boolean
 }
 
 /**
@@ -47,7 +49,7 @@ export interface DashboardVisibility {
   suggestTwoFactor: boolean
 }
 
-export function dashboardVisibility({ permissions, member }: DashboardViewer): DashboardVisibility {
+export function dashboardVisibility({ permissions, member, createsProgrammes }: DashboardViewer): DashboardVisibility {
   const has = (permission: Permission) => permissions.has(permission)
   const inPublishersArea = canEnterPublishersArea(permissions, member)
   const inTerritoriesArea = canEnterTerritoriesArea(permissions)
@@ -59,7 +61,10 @@ export function dashboardVisibility({ permissions, member }: DashboardViewer): D
     meetingAudience: has(Permission.CanViewPrograms) ? 'programmes' : has(Permission.CanViewBoard) ? 'board' : null,
     attendance: attendance.canRecord || attendance.canCorrect,
     responsibleConflicts: has(Permission.CanViewPrograms),
-    programmes: has(Permission.CanViewPrograms) ? { canCreate: has(Permission.CanManagePrograms) } : null,
+    // « Nouveau » as on the programmes list: « Gérer », or a responsible of some kind (D28).
+    programmes: has(Permission.CanViewPrograms)
+      ? { canCreate: has(Permission.CanManagePrograms) || createsProgrammes === true }
+      : null,
     territories:
       has(Permission.CanViewTerritoryAttributions) && inTerritoriesArea
         ? { canAssign: has(Permission.CanManageTerritoryAttributions) }

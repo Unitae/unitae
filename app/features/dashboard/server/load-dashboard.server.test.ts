@@ -30,6 +30,10 @@ vi.mock('~/shared/auth/permissions.server', async importOriginal => ({
   resolveEffectiveRoleIds: vi.fn(),
 }))
 vi.mock('~/features/events/index.server', () => ({ listMeetingsUnderWay: vi.fn() }))
+vi.mock('~/features/events/server/schedule-rights.server', async importOriginal => ({
+  ...(await importOriginal<typeof import('~/features/events/server/schedule-rights.server')>()),
+  responsibleKindIds: vi.fn(),
+}))
 
 const { loadDashboard } = await import('./load-dashboard.server')
 const dashboard = await import('./dashboard.server')
@@ -46,6 +50,7 @@ const { hasCalendarFeed } = await import('./has-calendar-feed.server')
 const { getGroup } = await import('~/features/publishers/server/groups.server')
 const { resolveEffectiveRoleIds } = await import('~/shared/auth/permissions.server')
 const { listMeetingsUnderWay } = await import('~/features/events/index.server')
+const { responsibleKindIds } = await import('~/features/events/server/schedule-rights.server')
 
 const db = {} as never
 const congregation = { id: 1, timezone: 'Europe/Paris' }
@@ -183,6 +188,15 @@ describe('loadDashboard', () => {
     const data = await load([Permission.CanViewActivity, Permission.CanViewPublishers, Permission.CanManagePublishers])
     expect(data.activity?.progress).toEqual({ data: progress })
     expect(data.roll).toEqual({ data: { total: 45, arrived: 2, left: 1 } })
+  })
+
+  it('offers creating programmes to a responsible of some kind, and to no one when the lookup fails', async () => {
+    vi.mocked(responsibleKindIds).mockResolvedValue([4])
+    expect((await load([Permission.CanViewPrograms])).visibility.programmes).toEqual({ canCreate: true })
+    vi.mocked(responsibleKindIds).mockResolvedValue([])
+    expect((await load([Permission.CanViewPrograms])).visibility.programmes).toEqual({ canCreate: false })
+    vi.mocked(responsibleKindIds).mockRejectedValue(new Error('boom'))
+    expect((await load([Permission.CanViewPrograms])).visibility.programmes).toEqual({ canCreate: false })
   })
 
   describe('« Programmes »', () => {

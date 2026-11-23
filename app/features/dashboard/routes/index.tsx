@@ -1,5 +1,4 @@
 import { dashboardCreations } from '~/features/dashboard/model/dashboard-creations'
-import { dashboardVisibility } from '~/features/dashboard/model/dashboard-visibility'
 import { loadDashboard } from '~/features/dashboard/server/load-dashboard.server'
 import { AbsencesSection } from '~/features/dashboard/ui/AbsencesSection'
 import { buildUrgentItems } from '~/features/dashboard/ui/build-urgent-items'
@@ -42,7 +41,8 @@ export async function loader({ context }: Route.LoaderArgs) {
       },
     }),
   )
-  const creations = dashboardCreations(dashboardVisibility({ permissions, member: account.member }), permissions)
+  // The loader's own visibility, which knows whether the reader creates programmes of some kind.
+  const creations = dashboardCreations(data.visibility, permissions)
   return { ...data, creations }
 }
 
