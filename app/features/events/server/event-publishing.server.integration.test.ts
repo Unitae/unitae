@@ -18,8 +18,14 @@ const testDb = new PrismaClient({ adapter })
 
 const { seedDefaultTemplates, syncTemplateScheduleTemplates } = await import('~/features/events/index.server')
 const { createProgrammeOnDay } = await import('./programme-creation.server')
-const { publishableScheduleIds, publishEvent, publishEventSchedule, unpublishEvent, unpublishEventSchedule } =
-  await import('./event-publishing.server')
+const {
+  publishActionsFor,
+  publishableScheduleIds,
+  publishEvent,
+  publishEventSchedule,
+  unpublishEvent,
+  unpublishEventSchedule,
+} = await import('./event-publishing.server')
 
 class Rollback extends Error {}
 
@@ -259,6 +265,64 @@ describe('one schedule of an event', () => {
     await withMeeting(async ({ db, congregationId, actorId, meetingId, duties }) => {
       expect(await publishEventSchedule(db, publishes, actorId, meetingId + 1, duties.id, congregationId)).toBeNull()
       expect(await unpublishEventSchedule(db, publishes, actorId, meetingId + 1, duties.id, congregationId)).toBeNull()
+    })
+  })
+})
+
+describe('publishActionsFor, what the screens offer', () => {
+  it('offers to publish while a schedule of the person’s is a draft, to withdraw while one is published (D52)', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, programmeLead, dutyLead, meetingId }) => {
+      const offers = async (can: Can, userId: number) =>
+        (
+          await publishActionsFor(db, can, userId, [{ id: meetingId, status: 'draft' }], congregationId, () => false)
+        ).get(meetingId)
+      expect(await offers(nothing, dutyLead)).toEqual({ canRelease: true, canUnrelease: false })
+
+      await publishEvent(db, nothing, dutyLead, meetingId, congregationId)
+      const status = 'released'
+      const offersNow = async (can: Can, userId: number) =>
+        (await publishActionsFor(db, can, userId, [{ id: meetingId, status }], congregationId, () => false)).get(
+          meetingId,
+        )
+      // The event reads published; the programme is still a draft.
+      expect(await offersNow(nothing, dutyLead)).toEqual({ canRelease: false, canUnrelease: true })
+      expect(await offersNow(nothing, programmeLead)).toEqual({ canRelease: true, canUnrelease: false })
+      expect(await offersNow(publishes, actorId)).toEqual({ canRelease: true, canUnrelease: true })
+      expect(await offersNow(nothing, actorId)).toEqual({ canRelease: false, canUnrelease: false })
+    })
+  })
+
+  it('never offers to publish a programme emptied of its parts while its template has parts to give', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, meetingId, programme }) => {
+      await db.item.deleteMany({ where: { id: { in: programme.itemIds } } })
+      const offers = async () =>
+        (
+          await publishActionsFor(
+            db,
+            publishes,
+            actorId,
+            [{ id: meetingId, status: 'draft' }],
+            congregationId,
+            () => true,
+          )
+        ).get(meetingId)
+      // The duties still offer it; once they are published, nothing is left to publish.
+      expect(await offers()).toEqual({ canRelease: true, canUnrelease: false })
+      await db.schedule.updateMany({ where: { eventId: meetingId, kind: 'duty' }, data: { status: 'published' } })
+      expect(await offers()).toEqual({ canRelease: false, canUnrelease: true })
+    })
+  })
+
+  it('offers a bare event by its own status, to whoever may publish it as a whole (D46)', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, meetingId }) => {
+      await db.schedule.deleteMany({ where: { eventId: meetingId } })
+      const offers = async (status: string, mayPublish: boolean) =>
+        (
+          await publishActionsFor(db, nothing, actorId, [{ id: meetingId, status }], congregationId, () => mayPublish)
+        ).get(meetingId)
+      expect(await offers('draft', true)).toEqual({ canRelease: true, canUnrelease: false })
+      expect(await offers('released', true)).toEqual({ canRelease: false, canUnrelease: true })
+      expect(await offers('draft', false)).toEqual({ canRelease: false, canUnrelease: false })
     })
   })
 })

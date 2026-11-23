@@ -7,6 +7,7 @@ import { buildAssignmentCandidates } from '~/features/events/server/assignment-c
 import { eventHasAttendance } from '~/features/events/server/attendance.queries'
 import { buildShareTextsForEvent } from '~/features/events/server/build-share-message.server'
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
+import { publishActionsFor } from '~/features/events/server/event-publishing.server'
 import { listExternalSpeakerOptions } from '~/features/events/server/external-speakers.queries'
 import {
   canChangeEvent,
@@ -65,6 +66,10 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const canCreateProgramme = canEdit && event.templateId != null
     const canAssignAnything = canAssign || canAssignService
     const rights = { canEdit, canPublish, canAssign, canAssignService }
+    // « Tout publier » / « Tout retirer » by the reader's own schedules (D43, D52); a bare event by canPublishEvent (D46).
+    const actions = (await publishActionsFor(db, can, currentUser.id, [event], congregationId, () => canPublish)).get(
+      event.id,
+    ) ?? { canRelease: false, canUnrelease: false }
     refuseDraft(event.status, rights)
     // A draft schedule reaches only whoever may act on it (spec §5.3, D45): the others' items never leave the server.
     // By kind, while an event holds one schedule of each (see maySeeSchedule).
@@ -120,7 +125,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
       canEdit,
       canDelete,
       canCreateProgramme,
-      canPublish,
+      canRelease: actions.canRelease,
+      canUnrelease: actions.canUnrelease,
       canAssign,
       canAssignService,
       canViewPublishers: can(Permission.CanViewPublishers),

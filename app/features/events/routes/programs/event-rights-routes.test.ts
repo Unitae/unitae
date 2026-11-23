@@ -13,6 +13,8 @@ const { state } = vi.hoisted(() => ({
     answers: { change: false, delete: false, publish: false },
     /** What « Tout publier » returns beyond the defaults, for the messages it leads to. */
     publishOutcome: {} as Record<string, unknown>,
+    /** What « Tout retirer » returns beyond the defaults. */
+    unpublishOutcome: {} as Record<string, unknown>,
     /** The rights 'filterEventsByRight' keeps every id for. */
     bulk: [] as ('publish' | 'delete')[],
     done: [] as string[],
@@ -63,7 +65,7 @@ vi.mock('~/features/events/server/event-publishing.server', () => ({
   unpublishEvent: () => {
     if (!state.answers.publish) return Promise.resolve({ refused: true })
     state.done.push('unrelease')
-    return Promise.resolve({ changed: true, withdrawn: [], skipped: 0 })
+    return Promise.resolve({ changed: true, withdrawn: [], skipped: 0, ...state.unpublishOutcome })
   },
 }))
 
@@ -155,6 +157,7 @@ beforeEach(() => {
   state.answers = { change: false, delete: false, publish: false }
   state.bulk = []
   state.publishOutcome = {}
+  state.unpublishOutcome = {}
   state.done = []
   state.flashed = []
 })
@@ -220,6 +223,18 @@ describe('« Tout publier » says what stayed a draft, schedule by schedule', ()
     const response = await post(releaseRoute.action as Action, '/programs/events/40/release')
     expect(response).toMatchObject({ data: { ok: false } })
     expect(state.flashed).toEqual([`error:${m.programs_schedules_conflicted({ count: 2 })}`])
+  })
+})
+
+describe('« Tout retirer » with another schedule left published', () => {
+  it('says the reader’s schedule went back to draft, never the event, which stays published (D51)', async () => {
+    state.answers.publish = true
+    state.unpublishOutcome = { skipped: 1 }
+    await post(unreleaseRoute.action as Action, '/programs/events/40/unrelease')
+    expect(state.flashed).toEqual([
+      `success:${m.programs_schedule_unpublish_success()}`,
+      `error:${m.programs_schedules_withdraw_skipped({ count: 1 })}`,
+    ])
   })
 })
 

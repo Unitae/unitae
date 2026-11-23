@@ -4,6 +4,7 @@ import { Link, redirect, type ShouldRevalidateFunctionArgs } from 'react-router'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import { listPeriod, selectedPreset } from '~/features/events/model/list-period'
 import { mayOpenEvent } from '~/features/events/model/programme-access'
+import { publishActionsFor } from '~/features/events/server/event-publishing.server'
 import { congregationHasProgrammes, listProgrammes } from '~/features/events/server/programme-list.queries'
 import { scheduleRightsFor } from '~/features/events/server/schedule-rights.server'
 import { PeriodMenu } from '~/features/events/ui/PeriodMenu'
@@ -57,6 +58,15 @@ export function loader({ request, context }: Route.LoaderArgs) {
     // Each programme by its schedules' rules, as its own page and routes decide (plan §10); `kindIds`, the kinds whose
     // events the reader may change, also says who may create (D28) and stands for "may act on some draft".
     const { rightsOf, kindIds } = await scheduleRightsFor(db, can, currentUser.id, items, congregationId)
+    // « Tout publier » / « Tout retirer » by the reader's schedules (D43, D52); a bare event by its own rule (D46).
+    const actionsOf = await publishActionsFor(
+      db,
+      can,
+      currentUser.id,
+      items,
+      congregationId,
+      id => rightsOf.get(id)?.canPublish === true,
+    )
 
     // Only what the page shows: no template ids, drafts only for whoever may act on them (the event page's own rule),
     // and the assignments to review only for whoever may reassign them, until the programme is held.
@@ -88,7 +98,8 @@ export function loader({ request, context }: Route.LoaderArgs) {
           review,
           canEdit: rights.canEdit,
           canDelete: rights.canDelete,
-          canPublish: rights.canPublish,
+          canRelease: actionsOf.get(item.id)?.canRelease === true,
+          canUnrelease: actionsOf.get(item.id)?.canUnrelease === true,
         },
       ]
     })

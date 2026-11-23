@@ -42,7 +42,7 @@ function when(programme: ProgrammeRowData, timeZone: string): { full: string; ti
 export function ProgrammeRow({ programme, selectionColumn, selected, onToggle, timeZone }: ProgrammeRowProps) {
   const draft = programme.status === EventStatus.Draft
   const { full: date, time } = when(programme, timeZone)
-  const selectable = programme.canEdit || programme.canPublish
+  const selectable = programme.canEdit || programme.canRelease || programme.canUnrelease
 
   return (
     <tr

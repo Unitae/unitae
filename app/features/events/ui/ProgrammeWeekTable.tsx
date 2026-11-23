@@ -47,7 +47,9 @@ export function ProgrammeWeekTable({
 }: ProgrammeWeekTableProps) {
   const [folded, setFolded] = useState<Record<string, boolean>>({})
   const shown = weeks.filter(week => week.items.length > 0 || showEmptyWeeks)
-  const selectable = shown.flatMap(week => week.items.map(row => row.item)).filter(row => row.canEdit || row.canPublish)
+  const selectable = shown
+    .flatMap(week => week.items.map(row => row.item))
+    .filter(row => row.canEdit || row.canRelease || row.canUnrelease)
   const selectionColumn = selectable.length > 0
   const allSelected = selectionColumn && selectable.every(row => selected.has(row.id))
   const someSelected = !allSelected && selectable.some(row => selected.has(row.id))

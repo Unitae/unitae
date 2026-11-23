@@ -35,7 +35,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       session.flash('error', held)
       return data({ ok: false }, { headers: { 'Set-Cookie': await commitSession(session) } })
     }
-    session.flash('success', m.programs_unrelease_success())
+    // Another schedule still published keeps the event published (D51): what went back to draft is the reader's own.
+    session.flash('success', held == null ? m.programs_unrelease_success() : m.programs_schedule_unpublish_success())
     if (held != null) session.flash('error', held)
     return data({ ok: true }, { headers: { 'Set-Cookie': await commitSession(session) } })
   })
