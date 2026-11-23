@@ -1,5 +1,6 @@
 import { EventStatus } from '~/features/events'
 import { PART_ITEMS } from '~/features/events/index.server'
+import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -51,4 +52,24 @@ export async function getOpenParts(
       isDraft: event.status === EventStatus.Draft,
       count: event._count.items,
     }))
+}
+
+/**
+ * The roles the caller holds that some programme schedule template names as its responsible: what a reader who fills
+ * no schedule wholesale answers for, the open parts going by them. None means they answer for no programme.
+ */
+export async function programmeResponsibleRoleIds(
+  db: TransactionClient,
+  userId: number,
+  congregationId: number,
+): Promise<number[]> {
+  const roleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
+  if (roleIds.length === 0) return []
+  const templates = await db.scheduleTemplate.findMany({
+    where: { congregationId, kind: 'programme', responsibleRoleId: { in: roleIds } },
+    select: { responsibleRoleId: true },
+  })
+  return [
+    ...new Set(templates.flatMap(template => (template.responsibleRoleId == null ? [] : [template.responsibleRoleId]))),
+  ]
 }

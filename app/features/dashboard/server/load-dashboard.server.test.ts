@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { Permission } from '~/shared/types/permission'
 
-vi.mock('~/shared/infra/logger.server', () => ({ default: { error: vi.fn() } }))
+vi.mock('~/shared/infra/logger.server', () => ({
+  default: { error: vi.fn() },
+  createLogger: () => ({ warn: vi.fn() }),
+}))
 vi.mock('./dashboard.server', () => ({
   getUserTerritories: vi.fn(),
   getBoardDocuments: vi.fn(),
@@ -15,7 +18,7 @@ vi.mock('./get-at-risk-pioneers.server', () => ({ getAtRiskPioneers: vi.fn() }))
 vi.mock('./get-management-metrics.server', () => ({ getManagementMetrics: vi.fn() }))
 vi.mock('./get-onboarding-progress.server', () => ({ getOnboardingProgress: vi.fn() }))
 vi.mock('./next-meeting-for-viewer.server', () => ({ nextMeetingForViewer: vi.fn() }))
-vi.mock('./get-open-parts.server', () => ({ getOpenParts: vi.fn() }))
+vi.mock('./get-open-parts.server', () => ({ getOpenParts: vi.fn(), programmeResponsibleRoleIds: vi.fn() }))
 vi.mock('./get-report-progress.server', () => ({ getReportProgress: vi.fn() }))
 vi.mock('./get-roll-changes.server', () => ({ getRollChanges: vi.fn() }))
 vi.mock('./get-territory-trend.server', () => ({ getTerritoryTrend: vi.fn() }))
@@ -34,7 +37,7 @@ const { getUpcomingAssignments } = await import('./get-upcoming-assignments.serv
 const { getManagementMetrics } = await import('./get-management-metrics.server')
 const { getOnboardingProgress } = await import('./get-onboarding-progress.server')
 const { nextMeetingForViewer } = await import('./next-meeting-for-viewer.server')
-const { getOpenParts } = await import('./get-open-parts.server')
+const { getOpenParts, programmeResponsibleRoleIds } = await import('./get-open-parts.server')
 const { getReportProgress } = await import('./get-report-progress.server')
 const { getRollChanges } = await import('./get-roll-changes.server')
 const { getTerritoryTrend } = await import('./get-territory-trend.server')
@@ -182,17 +185,37 @@ describe('loadDashboard', () => {
     expect(data.roll).toEqual({ data: { total: 45, arrived: 2, left: 1 } })
   })
 
-  it('shows no programme block to someone who holds no role, so answers for no schedule', async () => {
-    vi.mocked(resolveEffectiveRoleIds).mockResolvedValue([])
-    expect((await load([Permission.CanViewPrograms])).programmes).toBeNull()
-  })
+  describe('« Programmes »', () => {
+    // The open slots of every meeting, or of the programmes answered for by role 7 alone.
+    const slot = (eventId: number) => ({ eventId, name: 'Réunion', startDate: new Date(), isDraft: false, count: 2 })
+    beforeEach(() => {
+      vi.mocked(getOpenParts).mockImplementation((_db, _congregationId, { roleIds }) =>
+        Promise.resolve(roleIds == null ? [slot(1), slot(2)] : roleIds.includes(7) ? [slot(2)] : []),
+      )
+    })
+    const shown = async (permissions: Permission[]) =>
+      (await load([Permission.CanViewPrograms, ...permissions])).programmes?.data?.map(row => row.eventId)
 
-  it('lists open slots for every meeting to someone who may assign any part', async () => {
-    vi.mocked(getOpenParts).mockResolvedValue([
-      { eventId: 1, name: 'Réunion de semaine', startDate: new Date(), isDraft: false, count: 2 },
-    ])
-    const data = await load([Permission.CanViewPrograms, Permission.CanAssignProgramParts])
-    expect(data.programmes?.data).toHaveLength(1)
+    it('lists every meeting to whoever fills every schedule, « Attribuer » or « Gérer »', async () => {
+      expect(await shown([Permission.CanAssignProgramParts])).toEqual([1, 2])
+      expect(await shown([Permission.CanManagePrograms])).toEqual([1, 2])
+    })
+
+    it('lists a programme’s responsible the meetings they answer for', async () => {
+      vi.mocked(programmeResponsibleRoleIds).mockResolvedValue([7])
+      expect(await shown([])).toEqual([2])
+    })
+
+    it('shows no block to someone who answers for no programme, roles or not', async () => {
+      vi.mocked(resolveEffectiveRoleIds).mockResolvedValue([3, 4])
+      vi.mocked(programmeResponsibleRoleIds).mockResolvedValue([])
+      expect((await load([Permission.CanViewPrograms])).programmes).toBeNull()
+    })
+
+    it('reports a failed lookup as an error, never every meeting', async () => {
+      vi.mocked(programmeResponsibleRoleIds).mockRejectedValue(new Error('boom'))
+      expect((await load([Permission.CanViewPrograms])).programmes).toEqual({ data: null })
+    })
   })
 
   it('reports a failed block as such and still serves the others', async () => {

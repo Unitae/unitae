@@ -21,12 +21,11 @@ const MAX_ABSENTEE_NAMES = 3
 const EMPTY: ResponsibleConflictsSummary = { count: 0, absenteeNames: [], totalAbsenteesCount: 0 }
 
 // Scoping:
-//   - non-manager → only events on templates whose responsible role the user holds
-//     (TemplateResponsible.roleId, resolved through resolveEffectiveRoleIds), and only
-//     the half of the event that delegation actually covers: a service responsible is
-//     answerable for the sono/estrade rota, not for the public talk speaker;
-//   - ProgramManager → all events, including untemplated ones which have
-//     no responsible relation at all.
+//   - otherwise → only the items whose schedule's template names a role the user holds
+//     (ScheduleTemplate.responsibleRoleId, plan §10): on a template naming both responsibles,
+//     the duties are the services responsible's alone (D31);
+//   - whoever fills every schedule (« Attribuer », « Gérer ») → every item, including those
+//     on schedules without a template, which have no responsible (D47).
 export async function getResponsibleConflicts(
   db: TransactionClient,
   userId: number,
@@ -35,7 +34,7 @@ export async function getResponsibleConflicts(
 ): Promise<ResponsibleConflictsSummary> {
   const now = new Date()
 
-  // Bail before the two conflict queries rather than leaning on `roleId: { in: [] }`: a user
+  // Bail before the two conflict queries rather than leaning on `responsibleRoleId: { in: [] }`: a user
   // with no roles can be responsible for nothing, and saying so here costs two roundtrips less.
   const roleIds = isProgramManager ? [] : await resolveEffectiveRoleIds(db, userId, congregationId)
   if (!isProgramManager && roleIds.length === 0) return EMPTY

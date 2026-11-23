@@ -33,9 +33,6 @@ describe('getResponsibleConflicts', () => {
     expect(result).toEqual({ count: 0, absenteeNames: [], totalAbsenteesCount: 0 })
   })
 
-  // Non-manager users only see conflicts on templates they are the
-  // responsible for. The join goes through
-  // event.template.responsibles.some.roleId.
   // Each item by its own schedule's responsible (plan §10): the role its template names. Whether parts and duties go
   // to the right responsible (D31) is schedule-responsible-readers.integration.test.ts.
   it.each([

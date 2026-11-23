@@ -16,7 +16,7 @@ const testDb = new PrismaClient({ adapter })
 
 const { seedDefaultTemplates, syncTemplateScheduleTemplates } = await import('~/features/events/index.server')
 const { createProgrammeOnDay } = await import('~/features/events/server/programme-creation.server')
-const { getOpenParts } = await import('./get-open-parts.server')
+const { getOpenParts, programmeResponsibleRoleIds } = await import('./get-open-parts.server')
 const { getResponsibleConflicts } = await import('./get-responsible-conflicts.server')
 
 class Rollback extends Error {}
@@ -81,11 +81,30 @@ describe('the open parts on the dashboard', () => {
   it('show the meeting to the responsible of its programme, never to the duties’ one', async () => {
     await withMeeting(async ({ db, congregationId, programmeLead, dutyLead, meetingId }) => {
       const forProgramme = await getOpenParts(db, congregationId, { roleIds: [programmeLead.roleId], days: 28 })
-      expect(forProgramme.map(slot => slot.eventId)).toEqual([meetingId])
+      const openParts = await db.item.count({
+        where: { eventId: meetingId, schedule: { kind: 'programme' }, assigneeId: null, externalSpeakerId: null },
+      })
+      // The parts alone, never the duties beside them.
+      expect(forProgramme.map(slot => [slot.eventId, slot.count])).toEqual([[meetingId, openParts]])
       expect(await getOpenParts(db, congregationId, { roleIds: [dutyLead.roleId], days: 28 })).toEqual([])
       expect((await getOpenParts(db, congregationId, { roleIds: null, days: 28 })).map(slot => slot.eventId)).toEqual([
         meetingId,
       ])
+    })
+  })
+})
+
+describe('who answers for open parts', () => {
+  it('names the roles a reader answers for a programme with, never a duties’ one', async () => {
+    await withMeeting(async ({ db, congregationId, programmeLead, dutyLead }) => {
+      expect(await programmeResponsibleRoleIds(db, programmeLead.accountId, congregationId)).toEqual([
+        programmeLead.roleId,
+      ])
+      expect(await programmeResponsibleRoleIds(db, dutyLead.accountId, congregationId)).toEqual([])
+      const roleless = await db.userAccount.create({
+        data: { email: `roleless-${congregationId}@test.com`, password: 'x', congregationId },
+      })
+      expect(await programmeResponsibleRoleIds(db, roleless.id, congregationId)).toEqual([])
     })
   })
 })
@@ -106,6 +125,19 @@ describe('the conflicts of a responsible', () => {
       await db.item.update({ where: { id: duty.id }, data: { assigneeId: absent.id, hasConflict: true } })
       expect((await conflictsOf(programmeLead.accountId)).count).toBe(0)
       expect((await conflictsOf(dutyLead.accountId)).count).toBe(1)
+      // Whoever fills every schedule sees both (one per absentee and meeting, so another on the part).
+      const other = await db.member.create({ data: { firstname: 'Ana', lastname: 'MOREAU', congregationId } })
+      await db.item.update({ where: { id: part.id }, data: { assigneeId: other.id, hasConflict: true } })
+      expect((await getResponsibleConflicts(db, programmeLead.accountId, congregationId, true)).count).toBe(2)
+    })
+  })
+
+  it('hide a conflict on a schedule still in draft, even from its responsible', async () => {
+    await withMeeting(async ({ db, congregationId, programmeLead, meetingId }) => {
+      const absent = await db.member.create({ data: { firstname: 'Luc', lastname: 'ROUX', congregationId } })
+      const part = await db.item.findFirstOrThrow({ where: { eventId: meetingId, schedule: { kind: 'programme' } } })
+      await db.item.update({ where: { id: part.id }, data: { assigneeId: absent.id, hasConflict: true } })
+      expect((await getResponsibleConflicts(db, programmeLead.accountId, congregationId, false)).count).toBe(0)
     })
   })
 })
