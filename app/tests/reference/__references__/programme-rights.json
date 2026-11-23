@@ -32,12 +32,7 @@
     "manageableEvents": [
       "midweek-1",
       "midweek-2",
-      "midweek-3",
-      "midweek-ahead-1",
-      "midweek-ahead-2",
-      "midweek-ahead-3",
-      "midweek-ahead-4",
-      "midweek-ahead-5"
+      "midweek-3"
     ],
     "assignableEvents": [
       "midweek-1",
@@ -66,7 +61,7 @@
         "assignAsService": false
       },
       "weekend": {
-        "manageAsProgramme": false,
+        "manageAsProgramme": true,
         "assignAsProgramme": false,
         "assignAsService": true
       },
@@ -76,8 +71,10 @@
         "assignAsService": false
       }
     },
-    "applicableTemplates": [],
-    "managesAnyProgramme": false,
+    "applicableTemplates": [
+      "weekend"
+    ],
+    "managesAnyProgramme": true,
     "manageableEvents": [],
     "assignableEvents": [],
     "readsFactsOfAMidweekPart": false,

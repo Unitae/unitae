@@ -51,10 +51,10 @@ const WHITESPACE_RE = /\s/
 
 // Functions that take a permission and answer an authorisation question with it. A
 // permission handed to one of these is enforced even when the caller never throws —
-// `filterToManageableEventIds` narrows a bulk selection to the permitted rows instead.
+// `canManageAnyProgram` gates a whole page or bulk route instead.
 // Deliberately an explicit list: "any function taking a Permission" would count the
 // display helpers too, and this check exists to be strict.
-const AUTH_HELPERS = ['canEditEvent', 'canManageAnyProgram', 'filterToManageableEventIds', 'layoutGate']
+const AUTH_HELPERS = ['canManageAnyProgram', 'layoutGate']
 const AUTH_HELPER_RE = new RegExp(`\\b(?:${AUTH_HELPERS.join('|')})\\s*\\(([^)]*(?:\\([^)]*\\)[^)]*)*)\\)`, 'g')
 
 // Pure access policies a route consults and refuses on without throwing: the report panel answers a refused fetch
@@ -67,6 +67,11 @@ export const POLICY_HELPERS: Record<string, string> = {
   attendanceRights: 'app/features/events/model/attendance-access.ts',
   // Filling a schedule (plan §10): « Attribuer » or « Gérer », else its template's responsible. Takes a `can` closure.
   canFillSchedule: 'app/features/events/server/schedule-rights.server.ts',
+  // The event-level rules (plan §10, D28, D49), each naming the permission it decides.
+  canChangeEvent: 'app/features/events/server/schedule-rights.server.ts',
+  canChangeEventsOfKind: 'app/features/events/server/schedule-rights.server.ts',
+  canDeleteEvent: 'app/features/events/server/schedule-rights.server.ts',
+  canPublishEvent: 'app/features/events/server/schedule-rights.server.ts',
 }
 
 /**
@@ -188,7 +193,7 @@ export function collectEnforcedPermissions(src: string): Set<string> {
 /**
  * Permissions named by an `if` whose branch throws — the codebase's other way of
  * turning a caller away. Counts the permission whether it is tested directly, reached
- * through a boolean, or handed to a helper such as canEditEvent.
+ * through a boolean, or handed to a helper such as canManageAnyProgram.
  */
 function enforcedByGuards(src: string, boundTo: Map<string, Set<string>>): Set<string> {
   const enforced = new Set<string>()

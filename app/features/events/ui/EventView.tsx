@@ -43,6 +43,10 @@ interface EventViewProps {
   hasAttendance: boolean
   /** Each action follows the right its route checks. */
   canEdit: boolean
+  /** Delete the event: « Gérer », or its kind's responsible when it holds schedules and every one is theirs (D50). */
+  canDelete: boolean
+  /** Give an empty meeting its programme: whoever may change it, as creating an event of its kind (D28). */
+  canCreateProgramme: boolean
   canPublish: boolean
   canAssign: boolean
   canAssignService: boolean
@@ -66,6 +70,8 @@ export function EventView({
   awaitingProgramme,
   hasAttendance,
   canEdit,
+  canDelete,
+  canCreateProgramme,
   canPublish,
   canAssign,
   canAssignService,
@@ -186,7 +192,7 @@ export function EventView({
           (canPublish || canEdit) && (
             <>
               {awaitingProgramme
-                ? canEdit && <CreateProgrammeButton eventId={event.id} />
+                ? canCreateProgramme && <CreateProgrammeButton eventId={event.id} />
                 : canPublish && <ReleaseToggleButton status={event.status} eventId={event.id} />}
               {canEdit && (
                 <>
@@ -197,7 +203,7 @@ export function EventView({
                     </Link>
                   </Button>
                   {/* An empty meeting with counts has nothing left to delete: the meeting and its attendance stay. */}
-                  {!(awaitingProgramme && hasAttendance) && (
+                  {canDelete && !(awaitingProgramme && hasAttendance) && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" aria-label={m.common_more_actions()}>
@@ -318,7 +324,7 @@ export function EventView({
         target={unassignTarget}
         eventId={event.id}
       />
-      {canEdit && (
+      {canDelete && (
         <DeleteEventDialog
           event={{ id: event.id, name: event.name, date }}
           outcome={hasAttendance ? 'programme-only' : awaitingProgramme ? 'empty-meeting' : 'everything'}

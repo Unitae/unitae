@@ -1,13 +1,12 @@
 import { SYSTEM_TEMPLATE_KEYS } from '~/features/events/model/event-template.type'
 import { ResponsibilityScope, scopesCovering } from '~/features/events/model/responsibility-scope.type'
-import { isTemplateResponsible } from '~/features/events/server/event-templates.server'
 import {
   type ItemKind,
   itemIdFromRequest,
   PART_ITEMS,
   SERVICE_ITEMS,
 } from '~/features/events/server/item-projection.server'
-import { canFillSchedule } from '~/features/events/server/schedule-rights.server'
+import { canFillSchedule, responsibleKindIds } from '~/features/events/server/schedule-rights.server'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
@@ -16,47 +15,15 @@ import { Permission } from '~/shared/types/permission'
 const logger = createLogger('events-auth')
 
 /**
- * Whether the caller may act on this event as a whole: edit or delete it, apply a template, publish it. Filling one
- * of its schedules (assigning, adding, editing, reordering items) is canFillSchedule's since 5a-1; this check moves
- * to schedules in 5a-2 (D28, D49).
- *
- * `required` is the capability the calling route needs — publishing a programme is not editing it, so that route
- * asks for its own permission rather than the blanket manage one. It defaults to `CanManagePrograms` for routes that
- * really do mean "edit this event".
- *
- * The template-responsible path is checked regardless of which capability was asked for:
- * delegating a template to someone must keep working without granting them a
- * congregation-wide permission.
- *
- * `scope` says which slice of the event the route is about; no caller passes `'service'` any more, and it goes with
- * the scopes in 5a-3. Routes that restructure the event — editing it, applying a template, releasing, deleting —
- * stay on the default and so remain closed to a service responsible.
- */
-export async function canEditEvent(
-  db: TransactionClient,
-  can: (role: Permission) => boolean,
-  userId: number,
-  templateId: number | null,
-  congregationId: number,
-  required: Permission = Permission.CanManagePrograms,
-  scope: ResponsibilityScope = ResponsibilityScope.Programme,
-): Promise<boolean> {
-  if (can(required)) return true
-  if (templateId == null) return false
-  const responsible = await isTemplateResponsible(db, templateId, userId, congregationId, scope)
-  return responsible != null
-}
-
-/**
  * The templates the caller is responsible for, via the roles they hold.
  *
  * The empty guard is deliberate: `roleId: { in: [] }` matches nothing today, but relying on
  * that would make "user holds no roles" correct by accident rather than by intent.
  *
- * Scoped to the whole-event delegation by default, and every caller wants that: this list
- * drives "which programmes may you create, bulk-release, bulk-delete", none of which a
- * service responsible may do. Pass `ResponsibilityScope.Service` only for a question that is
- * genuinely about the service parts.
+ * Read only by the screens that show or hide things (the programmes list, the absences, the dashboard, Réglages)
+ * until they move to schedules (5a-3). Who may create, change, delete, publish or fill is decided by the schedules'
+ * responsibles in schedule-rights.server.ts, never by this list. Scoped to the programme by default; pass
+ * `ResponsibilityScope.Service` only for a question about the service parts.
  */
 export async function getResponsibleTemplateIds(
   db: TransactionClient,
@@ -75,9 +42,10 @@ export async function getResponsibleTemplateIds(
 }
 
 /**
- * The templates the caller may apply to an event: all of them for a programme manager, otherwise the ones they run
- * the programme of. Applying moves the event onto the template, and who may edit an event follows its template, so
- * offering any other template would let a responsible hand their event to someone else's delegation.
+ * The templates (kinds) the caller may apply to an event: all of them for a programme manager, otherwise the kinds
+ * suggesting a schedule template they answer for, the duties' included (D28, D49). Applying moves the event onto the
+ * kind, so offering any other would let a responsible hand their event to kinds they cannot change; the editor keeps
+ * only those whose every schedule they may fill (canFillTemplateSchedules).
  */
 export async function listApplicableTemplates(
   db: TransactionClient,
@@ -92,7 +60,8 @@ export async function listApplicableTemplates(
     ...notSystem,
   }
   if (!can(Permission.CanManagePrograms)) {
-    const ids = await getResponsibleTemplateIds(db, userId, congregationId)
+    // The kinds suggesting a schedule template they answer for (D49).
+    const ids = await responsibleKindIds(db, userId, congregationId)
     if (ids.length === 0) return []
     where = { ...where, id: { in: ids } }
   }
@@ -102,11 +71,10 @@ export async function listApplicableTemplates(
 /**
  * Whether an assignment row actually belongs to the event the caller was authorised on.
  *
- * `canEditEvent` answers "may you act on THIS event", keyed off the event id in the URL, while
- * the writers look their item up by (id, congregationId) and kind, never by event. Nothing pairs the two, so without this check a caller authorised on
- * one event can post an assignment id belonging to another event in the same congregation and
- * the write goes through — which defeats per-template delegation, the service/programme split
- * included.
+ * The route's rule (canFillSchedule, canChangeEvent…) answers "may you act on THIS event", keyed off the event id in
+ * the URL, while the writers look their item up by (id, congregationId) and kind, never by event. Nothing pairs the
+ * two, so without this check a caller authorised on one event can post an assignment id belonging to another event in
+ * the same congregation and the write goes through — which defeats per-schedule responsibility.
  *
  * Checked in the routes rather than inside the writers: the event id is a property of the
  * request, not of the assignment, and threading it through four writers with ~30 call sites
@@ -213,77 +181,6 @@ export async function canManageAnyProgram(
   congregationId: number,
 ): Promise<boolean> {
   if (can(Permission.CanManagePrograms)) return true
-  const ids = await getResponsibleTemplateIds(db, userId, congregationId)
-  return ids.length > 0
-}
-
-// Narrows a bulk-selection of event ids to the ones the caller is authorised
-// to mutate. ProgramManager sees every event in the congregation;
-// non-managers see only events whose template they are the responsible for
-// (freeform events belong to the freeform template, which no role is responsible for, and events without a
-// template — only old imports leave them — are manager-only too). Shared by
-// every bulk route (release, unrelease, delete) so the auth surface stays
-// consistent.
-//
-// The signature takes a `can:` predicate (matching canEditEvent /
-// canManageAnyProgram) rather than a boolean, so the auth surface reads
-// consistently across the file. Even the manager path scopes the id list to
-// the congregation — a cross-tenant id must not slip through into the
-// downstream "not found" bucket.
-export async function filterToManageableEventIds(
-  db: TransactionClient,
-  can: (role: Permission) => boolean,
-  eventIds: number[],
-  userId: number,
-  congregationId: number,
-  required: Permission = Permission.CanManagePrograms,
-): Promise<number[]> {
-  // Empty input short-circuits — no DB roundtrip, no reliance on Prisma's
-  // empty-`in: []` semantics.
-  if (eventIds.length === 0) return []
-
-  const holdsRequiredCapability = can(required)
-  const events = await db.event.findMany({
-    where: { id: { in: eventIds }, congregationId },
-    select: { id: true, templateId: true },
-  })
-  // Cross-tenant / stale ids: submitted but not an event of this congregation.
-  const droppedCrossTenant = eventIds.length - events.length
-
-  if (holdsRequiredCapability) {
-    if (droppedCrossTenant > 0) {
-      // Distinct from "not found" further down the pipeline: at THIS point we
-      // know the id was submitted by a manager for another congregation (or a
-      // race deleted it), so support can spot cross-tenant probe attempts.
-      logger.warn('filterToManageableEventIds: dropped cross-tenant ids on manager path', {
-        userId,
-        congregationId,
-        submitted: eventIds.length,
-        droppedCrossTenant,
-      })
-    }
-    return events.map(e => e.id)
-  }
-
-  const responsibleTemplateIds = await getResponsibleTemplateIds(db, userId, congregationId)
-  const responsibleSet = new Set(responsibleTemplateIds)
-  const allowed = events.filter(e => e.templateId != null && responsibleSet.has(e.templateId)).map(e => e.id)
-
-  // For non-managers, distinguish three drop reasons so support can tell
-  // "cross-tenant/stale id" apart from "an event without a template, manager-only" apart
-  // from "you are not the responsible for this template".
-  const droppedWithoutTemplate = events.filter(e => e.templateId == null).length
-  const droppedUnauthorized = events.filter(e => e.templateId != null && !responsibleSet.has(e.templateId)).length
-  if (droppedCrossTenant > 0 || droppedWithoutTemplate > 0 || droppedUnauthorized > 0) {
-    logger.info('filterToManageableEventIds: dropped ids on non-manager path', {
-      userId,
-      congregationId,
-      submitted: eventIds.length,
-      allowed: allowed.length,
-      droppedCrossTenant,
-      droppedWithoutTemplate,
-      droppedUnauthorized,
-    })
-  }
-  return allowed
+  // A responsible of a schedule template some kind suggests (D28).
+  return (await responsibleKindIds(db, userId, congregationId)).length > 0
 }

@@ -1,8 +1,8 @@
 import { redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { deleteEvent } from '~/features/events/server/delete-events.server'
-import { canEditEvent } from '~/features/events/server/events-auth.server'
 import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
+import { canDeleteEvent } from '~/features/events/server/schedule-rights.server'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
@@ -29,7 +29,9 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const event = await findProgrammeEvent(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
 
-    if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
+    // « Gérer », or a responsible of its kind when it holds schedules and every one is theirs; an empty meeting is
+    // the managers' (D28, D50).
+    if (!(await canDeleteEvent(db, can, currentUser.id, event, congregationId))) {
       throw redirect('/programs')
     }
 

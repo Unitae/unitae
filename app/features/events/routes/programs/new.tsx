@@ -3,7 +3,7 @@ import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { type ProgrammeCreationInput, programmeCreationSchema } from '~/features/events/schemas/program-new.schema'
 import { createFreeformEvent } from '~/features/events/server/event-parts.server'
-import { canManageAnyProgram, getResponsibleTemplateIds } from '~/features/events/server/events-auth.server'
+import { canManageAnyProgram } from '~/features/events/server/events-auth.server'
 import { getProgrammeCreationData } from '~/features/events/server/programme-creation.queries'
 import {
   type CreationContext,
@@ -11,6 +11,7 @@ import {
   createProgrammeSeries,
   ProgrammeExistsError,
 } from '~/features/events/server/programme-creation.server'
+import { responsibleKindIds } from '~/features/events/server/schedule-rights.server'
 import { ProgrammeCreationForm } from '~/features/events/ui/creation/ProgrammeCreationForm'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -32,8 +33,8 @@ type Session = Awaited<ReturnType<typeof getSession>>
 export const meta: Route.MetaFunction = () => [{ title: m.programs_new_meta_title() }]
 
 /**
- * Who creates what: a programme manager any template, and « Autre évènement »; someone responsible for a few
- * programmes, those templates only. Nobody else reaches the page.
+ * Who creates what (D28, D48): a programme manager any kind, and « Autre évènement »; a responsible of a schedule
+ * template some kinds suggest, the duties' included, those kinds only. Nobody else reaches the page.
  */
 export function loader({ context, request }: Route.LoaderArgs) {
   const canManage = context.get(permissionsContext).has(Permission.CanManagePrograms)
@@ -43,7 +44,8 @@ export function loader({ context, request }: Route.LoaderArgs) {
   const week = new URL(request.url).searchParams.get('week')
 
   return withScopeFromContext(context, async (db, congregationId) => {
-    const templateIds = canManage ? null : await getResponsibleTemplateIds(db, accountId, congregationId)
+    // The kinds suggesting a schedule template the caller answers for (D28).
+    const templateIds = canManage ? null : await responsibleKindIds(db, accountId, congregationId)
     if (templateIds?.length === 0) throw redirect('/programs')
     const { templates, existing } = await getProgrammeCreationData(db, { congregationId, timezone, today, templateIds })
     return { templates, existing, today, canManage, week: isCalendarDay(week) ? mondayOf(week) : null }
@@ -78,9 +80,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   try {
     const next = await withScopeFromContext(context, async (db, congregationId) => {
       if (!(await canManageAnyProgram(db, can, actorId, congregationId))) throw redirect('/programs')
-      const allowed = can(Permission.CanManagePrograms)
-        ? null
-        : await getResponsibleTemplateIds(db, actorId, congregationId)
+      const allowed = can(Permission.CanManagePrograms) ? null : await responsibleKindIds(db, actorId, congregationId)
       if (!mayCreate(input, allowed)) throw redirect('/programs')
       return create(db, input, { congregationId, timezone, actorId }, session)
     })
@@ -97,7 +97,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 }
 
-/** `allowed`: the templates someone responsible for a few may use; null for a programme manager. */
+/** `allowed`: the kinds a responsible may create (responsibleKindIds); null for a programme manager. */
 function mayCreate(input: ProgrammeCreationInput, allowed: number[] | null): boolean {
   if (allowed == null) return true
   if (input.mode === 'freeform') return false

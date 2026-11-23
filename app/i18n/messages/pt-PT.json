@@ -2018,6 +2018,20 @@
         }
     ],
     "programs_bulk_not_permitted": "Não tem permissão para publicar os programas selecionados.",
+    "programs_bulk_delete_not_permitted": "Não tem permissão para eliminar os programas selecionados.",
+    "programs_bulk_skipped": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} evento ignorado: não é responsável por ele.",
+                "countPlural=*": "{count} eventos ignorados: não é responsável por eles."
+            }
+        }
+    ],
     "programs_release_failed_bulk": [
         {
             "declarations": [
