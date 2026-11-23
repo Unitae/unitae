@@ -467,7 +467,9 @@ a template; 6 templates name both responsibles (our own tenants), the D31 case.
 (5a-2); the programmes list, absences and dashboard read `scheduleRightsFor` and each item's own schedule responsible
 (5a-3). `canEditEvent`, `filterToManageableEventIds`, `ProgrammeViewer` go. Réglages keeps reading and writing
 `TemplateResponsible` and its scopes until PR 6 rewrites it per schedule template, so `getResponsibleTemplateIds` and
-`responsibility-scope.type.ts` stay for it alone. 5a-2 and 5a-3 ship in one deploy.
+`responsibility-scope.type.ts` stay for it, and for the absences' « who to contact » (`listUserConflictsInRange`,
+which names the template's responsibles whatever the slot's schedule: identical today through the sync, moved with
+Réglages in PR 6). 5a-2 and 5a-3 ship in one deploy.
 
 **5-0, visibility (D46):** an event is visible where it has a published schedule, or no schedule at all and
 `Event.status` released; an item is visible where its schedule is published. Identical to today while both schedules
