@@ -69,7 +69,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const canCreateProgramme = canEdit && event.templateId != null
     const canAssignAnything = canAssign || canAssignService
     const rights = { canEdit, canPublish, canAssign, canAssignService }
-    // « Tout publier » / « Tout retirer » by the reader's own schedules (D43, D52); a bare event by canPublishEvent (D46).
+    // « Publier » / « Retirer » for an event holding no schedule, by canPublishEvent (D46); one holding schedules offers
+    // each section's and « Tout publier » (publishAll, below).
     const actions = (await publishActionsFor(db, can, currentUser.id, [event], congregationId, () => canPublish)).get(
       event.id,
     ) ?? { canRelease: false, canUnrelease: false }
@@ -97,6 +98,12 @@ export function loader({ params, context }: Route.LoaderArgs) {
       shown.schedules.flatMap(schedule => roleOf(schedule) ?? []),
       congregationId,
     )
+    // From what this reader sees: a programme hidden from them is, for them, still to come.
+    const awaitingProgramme = isAwaitingProgramme({
+      parts: shown.eventParts.length,
+      services: shown.eventServiceParts.length,
+      template: programmeTemplate(event.template),
+    })
     const schedules = shown.schedules.map(schedule => {
       const roleId = roleOf(schedule)
       const responsible = roleId == null ? undefined : responsibles.get(roleId)
@@ -111,7 +118,9 @@ export function loader({ params, context }: Route.LoaderArgs) {
         responsible: roleId == null || responsible == null ? null : responsibleForPage(roleId, responsible, viewer),
         mayPublish,
         // Never offered what publishing would refuse: a programme still to give (programmeAwaits, as publishSchedule).
+        // A meeting still awaiting its programme offers « Créer le programme », never publishing (as before schedules).
         publishable:
+          !awaitingProgramme &&
           mayPublish &&
           schedule.status === ScheduleStatus.Draft &&
           !programmeAwaits({ kind: schedule.kind, items }, event.template),
@@ -154,12 +163,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
       // « Tout publier » (D43): the drafts the reader may publish, all of them for « Publier ».
       publishAll: { count: myDrafts, everyone: can(Permission.CanPublishPrograms) },
       // Created ahead and still empty: the page offers « Créer le programme » instead of publishing it.
-      // From what this reader sees: a programme hidden from them is, for them, still to come.
-      awaitingProgramme: isAwaitingProgramme({
-        parts: shown.eventParts.length,
-        services: shown.eventServiceParts.length,
-        template: programmeTemplate(event.template),
-      }),
+      awaitingProgramme,
       hasAttendance,
       canEdit,
       canDelete,

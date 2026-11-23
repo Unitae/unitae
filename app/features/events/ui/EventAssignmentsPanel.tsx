@@ -43,7 +43,7 @@ interface EventAssignmentsPanelProps {
   onUnassign: (target: UnassignTarget) => void
   /** What the empty table says instead of « Aucune partie au programme ». */
   emptyHint?: string
-  /** The schedule's own heading on the event page (5c): its title, its controls, and a first line (its responsible). */
+  /** The schedule's own heading on the event page: its title, its controls, and a first line (its responsible). */
   heading?: { title: ReactNode; actions?: ReactNode; intro?: ReactNode }
 }
 

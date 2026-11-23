@@ -47,9 +47,8 @@ interface EventViewProps {
   canDelete: boolean
   /** Give an empty meeting its programme: whoever may change it, as creating an event of its kind (D28). */
   canCreateProgramme: boolean
-  /** « Tout publier »: a schedule of the reader's is still a draft, even on an event that reads published (D52). */
+  /** « Publier » / « Retirer » on an event holding no schedule (D46); with schedules, see publishAll. */
   canRelease: boolean
-  /** « Tout retirer »: a schedule of the reader's is published. */
   canUnrelease: boolean
   canAssign: boolean
   canAssignService: boolean
@@ -153,7 +152,7 @@ export function EventView({
   const shownKinds = new Set(event.schedules.map(schedule => schedule.kind))
   const showsProgramme = awaitingProgramme || shownKinds.has(ScheduleKind.Programme)
   const showsDuties = shownKinds.has(ScheduleKind.Duty)
-  // Each schedule its own section (5c): its title and kind, its responsible (D37), its status and its « Publier ». By
+  // Each schedule its own section: its title and kind, its responsible (D37), its status and its « Publier ». By
   // kind, while an event holds one schedule of each (see maySeeSchedule): its items carry no schedule of their own.
   const programmeSchedule = event.schedules.find(schedule => schedule.kind === ScheduleKind.Programme)
   const dutySchedule = event.schedules.find(schedule => schedule.kind === ScheduleKind.Duty)
@@ -182,16 +181,6 @@ export function EventView({
         event={{ id: event.id, name: event.name, status: event.status }}
         subtitle={`${date} · ${times}`}
         awaitingProgramme={awaitingProgramme}
-        partsAssigned={
-          !bySchedule && showsProgramme && !awaitingProgramme
-            ? { count: assignedParts, total: event.eventParts.length }
-            : null
-        }
-        servicesFilled={
-          !bySchedule && event.eventServiceParts.length > 0
-            ? { count: filledServices, total: event.eventServiceParts.length }
-            : null
-        }
         // With schedules, each section carries its status and its « Publier »; the header publishes them all (D43).
         publishAll={bySchedule ? publishAll : null}
         canRelease={canRelease}

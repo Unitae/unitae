@@ -22,7 +22,7 @@ interface EventServiceAssignmentsPanelProps {
   selectedId: number | null
   onAssign: (service: AssignedService, trigger: HTMLElement) => void
   onUnassign: (target: UnassignTarget) => void
-  /** The schedule's own heading on the event page (5c): its title, its controls, and a first line (its responsible). */
+  /** The schedule's own heading on the event page: its title, its controls, and a first line (its responsible). */
   heading?: { title: ReactNode; actions?: ReactNode; intro?: ReactNode }
 }
 

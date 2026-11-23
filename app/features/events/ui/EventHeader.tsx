@@ -12,12 +12,6 @@ interface EventHeaderProps {
   subtitle: string
   /** A meeting created ahead with no programme yet: « Créer le programme » replaces publishing it. */
   awaitingProgramme: boolean
-  /**
-   * How many parts and services have someone, for an event without schedules; null otherwise (each schedule's section
-   * says it), while the programme awaits its creation, and for services when there is none.
-   */
-  partsAssigned: { count: number; total: number } | null
-  servicesFilled: { count: number; total: number } | null
   /** « Tout publier » on an event holding schedules (D43); null for one without, which publishes as a whole. */
   publishAll: { count: number; everyone: boolean } | null
   canRelease: boolean
@@ -28,13 +22,11 @@ interface EventHeaderProps {
   onDelete: () => void
 }
 
-/** The event's title, status and counts, and what the reader may do with it as a whole. */
+/** The event's title and status, and what the reader may do with it as a whole; each schedule's section says its own. */
 export function EventHeader({
   event,
   subtitle,
   awaitingProgramme,
-  partsAssigned,
-  servicesFilled,
   publishAll,
   canRelease,
   canUnrelease,
@@ -55,13 +47,12 @@ export function EventHeader({
             bySchedule={publishAll != null}
             status={event.status}
           />
-          {partsAssigned && <span>{m.programs_view_parts_assigned(partsAssigned)}</span>}
-          {servicesFilled && <span>{m.programs_view_services_filled(servicesFilled)}</span>}
         </>
       }
       breadcrumbs={[{ label: m.sidebar_programs(), to: '/programs' }, { label: event.name }]}
       actions={
-        (canRelease || canUnrelease || canEdit || (publishAll?.count ?? 0) > 0) && (
+        // Only when something shows: with schedules the header publishes their drafts, each section withdrawing its own.
+        (canEdit || (publishAll != null ? publishAll.count > 0 : canRelease || canUnrelease)) && (
           <>
             <EventPublishAction
               eventId={event.id}
@@ -103,7 +94,7 @@ export function EventHeader({
   )
 }
 
-/** The event's own status, for one without schedules; with them each section carries its own (5c). */
+/** The event's own status, for one without schedules; with them each section carries its own. */
 function EventStatusBadge({
   awaitingProgramme,
   bySchedule,
@@ -177,7 +168,7 @@ function CreateProgrammeButton({ eventId }: { eventId: number }) {
   )
 }
 
-/** « Publier » (every draft schedule of the reader's) or « Retirer » (every published one), D43. */
+/** « Publier » or « Retirer » on an event holding no schedule, which publishes as a whole (D46). */
 function PublishButton({ eventId, release }: { eventId: number; release: boolean }) {
   const fetcher = useFetcher<{ ok: boolean }>()
   const action = release ? `/programs/events/${eventId}/release` : `/programs/events/${eventId}/unrelease`

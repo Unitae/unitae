@@ -28,6 +28,7 @@ const state = vi.hoisted(() => ({
   /** The schedules the reader may publish, and the programme's parts (none: a programme still to give). */
   mine: [2] as number[],
   parts: [{ id: 1, name: 'Discours' }] as { id: number; name: string }[],
+  services: [{ id: 2, name: 'Sono' }] as { id: number; name: string }[],
 }))
 
 vi.mock('~/features/events/server/event-part-assignments.server', () => ({
@@ -58,7 +59,7 @@ vi.mock('~/features/events/server/event-part-assignments.server', () => ({
         },
       ],
       eventParts: state.parts,
-      eventServiceParts: [{ id: 2, name: 'Sono' }],
+      eventServiceParts: state.services,
     }),
 }))
 
@@ -135,6 +136,7 @@ beforeEach(() => {
   state.statuses = { programme: 'draft', duty: 'published' }
   state.mine = [2]
   state.parts = [{ id: 1, name: 'Discours' }]
+  state.services = [{ id: 2, name: 'Sono' }]
 })
 
 describe('the event page’s publishing', () => {
@@ -184,6 +186,39 @@ describe('what the page offers to publish', () => {
       [2, true],
     ])
     expect(data.publishAll.count).toBe(1)
+  })
+})
+
+describe('what the page offers to publish, case by case', () => {
+  const load2 = async () =>
+    (await loader({ params: { eventId: '40' }, context: readerContext() } as never)) as {
+      event: { schedules: { id: number; mayPublish: boolean; publishable: boolean; responsible: unknown }[] }
+      publishAll: { count: number; everyone: boolean }
+      awaitingProgramme: boolean
+    }
+
+  it('offers no publishing at all while the meeting awaits its programme', async () => {
+    state.statuses = { programme: 'draft', duty: 'draft' }
+    state.mine = [1, 2]
+    state.parts = []
+    state.services = []
+    state.rights.change = true
+    const data = await load2()
+    expect(data.awaitingProgramme).toBe(true)
+    expect(data.event.schedules.map(schedule => schedule.publishable)).toEqual([false, false])
+    expect(data.publishAll.count).toBe(0)
+  })
+
+  it('says « Tout publier » for « Publier », and nothing to publish on someone else’s or a published schedule', async () => {
+    state.rights.change = true
+    const data = await load2()
+    // The programme is not theirs; their duties are published already.
+    expect(data.event.schedules.map(schedule => [schedule.id, schedule.mayPublish, schedule.publishable])).toEqual([
+      [1, false, false],
+      [2, true, false],
+    ])
+    expect(data.event.schedules[0]?.responsible).toBeNull()
+    expect(data.publishAll).toEqual({ count: 0, everyone: false })
   })
 })
 

@@ -110,6 +110,9 @@ async function programmeDocument(page: Page): Promise<string> {
   return href
 }
 
+// A schedule's section status once published: « Publié · 1 partie sur 15 attribuée ».
+const PUBLISHED_STATUS = /^Publié ·/
+
 test.describe('Assignments', () => {
   test.beforeEach(async ({ page }) => {
     const loggedIn = await login(page, E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD)
@@ -126,9 +129,10 @@ test.describe('Assignments', () => {
     await assign(page, 'Lecture de la Bible', 'Orateur', person)
     await assign(page, 'Estrade', 'Proclamateur', person)
 
-    await page.getByRole('button', { name: 'Publier', exact: true }).click()
-    await expect(page.getByRole('button', { name: 'Repasser en brouillon' })).toBeVisible()
-    await expect(page.getByText('Publié', { exact: true })).toBeVisible()
+    // Each schedule publishes on its own; « Tout publier » publishes both (D43), each section then reads « Publié ».
+    await page.getByRole('button', { name: 'Tout publier' }).click()
+    await expect(page.getByRole('button', { name: 'Repasser en brouillon' })).toHaveCount(2)
+    await expect(page.getByText(PUBLISHED_STATUS)).toHaveCount(2)
 
     // The board opened on this meeting, as a notice's link opens it.
     const viewer = `${await programmeDocument(page)}?eventId=${eventId}`
@@ -140,8 +144,11 @@ test.describe('Assignments', () => {
     await expect(main.getByText(lastname)).toHaveCount(2)
 
     await page.goto(`/programs/events/${eventId}`)
+    // Each section withdraws its own schedule.
+    await page.getByRole('button', { name: 'Repasser en brouillon' }).first().click()
+    await expect(page.getByRole('button', { name: 'Repasser en brouillon' })).toHaveCount(1)
     await page.getByRole('button', { name: 'Repasser en brouillon' }).click()
-    await expect(page.getByRole('button', { name: 'Publier', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Tout publier' })).toBeVisible()
 
     // The document still opens; the meeting, a draft again, is no longer on it.
     await page.goto(viewer)

@@ -22,7 +22,7 @@ export interface EventScheduleView {
   publishable: boolean
 }
 
-/** Its own name, or the catalogue's for one made without a template. */
+/** Its own name, or the catalogue's for one left unnamed (« Programme », « Services »). */
 export function scheduleTitle(schedule: EventScheduleView): string {
   if (schedule.name) return schedule.name
   return schedule.kind === ScheduleKind.Programme ? m.programs_view_spiritual_program() : m.programs_view_services()
@@ -55,7 +55,7 @@ export function ScheduleResponsibleLine({ schedule }: { schedule: EventScheduleV
   const named = responsible.holders.some(holder => holder.you)
   return (
     <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 px-4.5 py-2.5 text-muted-foreground text-sm">
-      <span>{m.programs_schedule_in_charge()} :</span>
+      <span>{m.programs_schedule_in_charge()}</span>
       <span className="font-medium text-foreground">{getRoleDisplayName(responsible.role)}</span>
       {responsible.holders.map(holder => (
         <span key={`${holder.seat}-${holder.lastname}-${holder.firstname}`} className="inline-flex items-center gap-1">

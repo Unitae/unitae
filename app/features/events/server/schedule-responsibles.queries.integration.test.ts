@@ -104,6 +104,41 @@ describe('listScheduleResponsibles', () => {
     })
   })
 
+  it('names the holders of several roles at once, each under its own role', async () => {
+    await inCongregation(async (db, congregationId) => {
+      const programme = await db.role.create({ data: { key: 'programme-lead', name: 'Programme', congregationId } })
+      const duties = await db.role.create({ data: { key: 'duties-lead', name: 'Services', congregationId } })
+      const paul = await db.member.create({ data: { firstname: 'Paul', lastname: 'Prog', congregationId } })
+      const dan = await db.member.create({ data: { firstname: 'Dan', lastname: 'Duty', congregationId } })
+      await db.memberRoleAssignment.create({
+        data: { memberId: paul.id, roleId: programme.id, kind: 'leader', congregationId },
+      })
+      await db.memberRoleAssignment.create({
+        data: { memberId: dan.id, roleId: duties.id, kind: 'leader', congregationId },
+      })
+
+      const responsibles = await listScheduleResponsibles(db, [programme.id, duties.id], congregationId)
+
+      expect(responsibles.get(programme.id)?.holders.map(holder => holder.firstname)).toEqual(['Paul'])
+      expect(responsibles.get(duties.id)?.holders.map(holder => holder.firstname)).toEqual(['Dan'])
+    })
+  })
+
+  it('names the holders of `admin`, kept on the login, by their record', async () => {
+    await inCongregation(async (db, congregationId) => {
+      const admin = await db.role.create({ data: { key: 'admin', congregationId } })
+      const marc = await db.member.create({ data: { firstname: 'Marc', lastname: 'Admin', congregationId } })
+      const account = await db.userAccount.create({
+        data: { email: `marc-${congregationId}@test.com`, password: 'x', memberId: marc.id, congregationId },
+      })
+      await db.userRoleAssignment.create({ data: { userId: account.id, roleId: admin.id, congregationId } })
+
+      expect((await listScheduleResponsibles(db, [admin.id], congregationId)).get(admin.id)?.holders).toEqual([
+        { memberId: marc.id, accountId: account.id, firstname: 'Marc', lastname: 'Admin', seat: 'member' },
+      ])
+    })
+  })
+
   it('reads nothing for no role, and leaves out a role of another congregation', async () => {
     await inCongregation(async (db, congregationId) => {
       const role = await db.role.create({ data: { key: 'lead', name: 'Lead', congregationId } })
