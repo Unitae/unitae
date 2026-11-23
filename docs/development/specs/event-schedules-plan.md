@@ -510,6 +510,11 @@ routes: `events/:eventId/schedules/:scheduleId/publish` and `/unpublish`; the ev
 publier » / « Tout retirer » (D43), saying how many schedules they skipped; the bulk routes keep taking event ids,
 each acting as « Tout publier », until the list selects schedules (8a). One deploy after 5b-3.
 
+**5b-3 must also (from the 5b-2a review):** a released event can hold a draft schedule since D52 (a duty added beside
+a published programme), so « Tout publier » never stops at « the event is released » (`releaseEvent`'s early
+return), the event page offers it while a schedule the person may publish is a draft, and the bulk page selects events
+holding such a schedule rather than events whose status is a draft. Each with its test.
+
 **Creation** (D12): the form pre-selects the kind's suggested schedules, each untickable; a
 responsible sees their own ticked and the others as drafts created with it. `programs/new.tsx`,
 `ui/creation/use-programme-creation.ts`, `CreationSingleSections.tsx`, `schemas/program-new.schema.ts`,
