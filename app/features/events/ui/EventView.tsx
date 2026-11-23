@@ -43,9 +43,9 @@ interface EventViewProps {
   hasAttendance: boolean
   /** Each action follows the right its route checks. */
   canEdit: boolean
-  /** Delete the event: its kind's responsible only when it holds their schedules alone (D28). */
+  /** Delete the event: « Gérer », or its kind's responsible when it holds schedules and every one is theirs (D50). */
   canDelete: boolean
-  /** Give an empty meeting its programme: change the event and fill what its kind brings. */
+  /** Give an empty meeting its programme: whoever may change it, as creating an event of its kind (D28). */
   canCreateProgramme: boolean
   canPublish: boolean
   canAssign: boolean

@@ -33,8 +33,8 @@ type Session = Awaited<ReturnType<typeof getSession>>
 export const meta: Route.MetaFunction = () => [{ title: m.programs_new_meta_title() }]
 
 /**
- * Who creates what: a programme manager any template, and « Autre évènement »; someone responsible for a few
- * programmes, those templates only. Nobody else reaches the page.
+ * Who creates what (D28, D48): a programme manager any kind, and « Autre évènement »; a responsible of a schedule
+ * template some kinds suggest, the duties' included, those kinds only. Nobody else reaches the page.
  */
 export function loader({ context, request }: Route.LoaderArgs) {
   const canManage = context.get(permissionsContext).has(Permission.CanManagePrograms)
@@ -97,7 +97,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 }
 
-/** `allowed`: the templates someone responsible for a few may use; null for a programme manager. */
+/** `allowed`: the kinds a responsible may create (responsibleKindIds); null for a programme manager. */
 function mayCreate(input: ProgrammeCreationInput, allowed: number[] | null): boolean {
   if (allowed == null) return true
   if (input.mode === 'freeform') return false

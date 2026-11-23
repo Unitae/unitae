@@ -33,14 +33,20 @@ export async function action({ request, context }: Route.ActionArgs) {
     const can = (p: Permission) => permissions.has(p)
     if (!(await canManageAnyProgram(db, can, currentUser.id, congregationId))) throw redirect('/programs')
 
-    // Each selected event by its own rule: « Gérer », or its kind's responsible when it holds their schedules alone.
+    // Each selected event by its own rule: « Gérer », or its kind's responsible when it holds schedules and every one
+    // is theirs; an empty meeting is the managers' (D28, D50). A refusal is said, never reported as a success.
     const allowedIds = await filterEventsByRight(db, can, ids, currentUser.id, congregationId, 'delete')
-    if (allowedIds.length === 0) return { ok: true, deleted: 0, emptied: 0 }
+    const skipped = ids.length - allowedIds.length
+    const session = await getSession(request.headers.get('Cookie'))
+    if (allowedIds.length === 0) {
+      session.flash('error', m.programs_bulk_delete_not_permitted())
+      return data({ ok: false, deleted: 0, emptied: 0 }, { headers: { 'Set-Cookie': await commitSession(session) } })
+    }
 
     const { count, emptied } = await bulkDeleteEvents(db, allowedIds, congregationId, currentUser.id)
     logger.info(`Bulk deleted ${count} events; removed the programme of ${emptied} with attendance.`)
     // One string per flash key: both outcomes go in the same toast.
-    const session = await getSession(request.headers.get('Cookie'))
+    if (skipped > 0) session.flash('error', m.programs_bulk_skipped({ count: skipped }))
     const message = [
       count > 0 ? m.programs_bulk_delete_success({ count }) : null,
       emptied > 0 ? m.programs_bulk_delete_kept_attendance({ count: emptied }) : null,

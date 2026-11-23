@@ -7,7 +7,7 @@ import { filterEventsByRight } from '~/features/events/server/schedule-rights.se
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import type { Permission } from '~/shared/types/permission'
+import { Permission } from '~/shared/types/permission'
 import { joinMessages } from '~/shared/utils/join-messages'
 
 import type { Route } from './+types/bulk-unrelease'
@@ -30,19 +30,22 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
   const { ids } = payload.data
 
-  // Phase 1: authorise + filter in a tiny scoped tx.
+  // Phase 1: authorise + filter in a small scoped tx (see bulk-release.tsx).
   const { congregationId } = currentUser
   const allowedIds = await withScopeFromContext(context, async db => {
     const can = (p: Permission) => permissions.has(p)
-    if (!(await canManageAnyProgram(db, can, currentUser.id, congregationId))) throw redirect('/programs')
+    // « Publier » publishes any event; otherwise a responsible of some kind may hold events they answer for wholly.
+    const mayPublishAny =
+      can(Permission.CanPublishPrograms) || (await canManageAnyProgram(db, can, currentUser.id, congregationId))
+    if (!mayPublishAny) throw redirect('/programs')
     // Each selected event by its own rule: « Publier », or the responsible of its every schedule (D49).
     return filterEventsByRight(db, can, ids, currentUser.id, congregationId, 'publish')
   })
 
-  // The outer gate asks whether the caller can manage any programme at all, while the
-  // filter asks for the publish capability — different permissions since the split. So a
-  // programme manager without publish rights passes the gate and gets an empty list. Say
-  // so: otherwise the page reports nothing at all and the click looks like it did work.
+  // The gate lets in whoever may publish some event, the filter keeps the selected ones they may: a manager without
+  // « Publier », or a responsible of only part of each event's schedules (D31, D49), can end with none. Say so,
+  // otherwise the page reports nothing and the click looks like it worked; a partial refusal is counted below.
+  const skipped = ids.length - allowedIds.length
   if (ids.length > 0 && allowedIds.length === 0) {
     session.flash('error', m.programs_bulk_not_permitted())
     return data({ ok: false }, { headers: { 'Set-Cookie': await commitSession(session) } })
@@ -60,6 +63,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const errorMessage = joinMessages([
     failed.length > 0 && m.programs_unrelease_failed_bulk({ count: failed.length }),
     notFound.length > 0 && m.programs_bulk_not_found({ count: notFound.length }),
+    skipped > 0 && m.programs_bulk_skipped({ count: skipped }),
   ])
   if (errorMessage) session.flash('error', errorMessage)
   return data(

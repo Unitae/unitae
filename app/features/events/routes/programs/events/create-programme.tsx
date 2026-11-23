@@ -3,7 +3,7 @@ import { commitSession, getSession } from '~/features/authentication/index.serve
 import { createMeetingProgramme } from '~/features/events/server/create-meeting-programme.server'
 import { ProgrammeExistsError } from '~/features/events/server/programme-creation.server'
 import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
-import { canChangeEvent, canFillTemplateSchedules } from '~/features/events/server/schedule-rights.server'
+import { canChangeEvent } from '~/features/events/server/schedule-rights.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -33,11 +33,9 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const can = (p: Permission) => permissions.has(p)
     const event = await findProgrammeEvent(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
-    // It gives the meeting its kind's schedules: whoever may change the event and fill each of them (D28, plan §10).
-    const allowed =
-      event.templateId != null &&
-      (await canChangeEvent(db, can, currentUser.id, event, congregationId)) &&
-      (await canFillTemplateSchedules(db, can, currentUser.id, event.templateId, congregationId))
+    // It gives the meeting its kind's schedules, as creating an event of the kind does (D28): a responsible of one of
+    // them may, the others coming as drafts — the same rule as /programs/new.
+    const allowed = event.templateId != null && (await canChangeEvent(db, can, currentUser.id, event, congregationId))
     if (!allowed) throw redirect('/programs')
     try {
       const created = await createMeetingProgramme(db, eventId, { congregationId, timezone, actorId: currentUser.id })

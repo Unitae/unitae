@@ -2023,6 +2023,20 @@
         }
     ],
     "programs_bulk_not_permitted": "Vous n’avez pas l’autorisation de publier les programmes sélectionnés.",
+    "programs_bulk_delete_not_permitted": "Vous n’avez pas l’autorisation de supprimer les programmes sélectionnés.",
+    "programs_bulk_skipped": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} évènement ignoré : vous n’en êtes pas responsable.",
+                "countPlural=*": "{count} évènements ignorés : vous n’en êtes pas responsable."
+            }
+        }
+    ],
     "programs_release_failed_bulk": [
         {
             "declarations": [

@@ -11,7 +11,6 @@ import {
   canChangeEvent,
   canDeleteEvent,
   canFillSchedule,
-  canFillTemplateSchedules,
   canPublishEvent,
 } from '~/features/events/server/schedule-rights.server'
 import { EventView } from '~/features/events/ui/EventView'
@@ -54,19 +53,17 @@ export function loader({ params, context }: Route.LoaderArgs) {
     // Each action on the page follows the rule its route checks (plan §10): changing the event, deleting it, giving
     // an empty meeting its programme, publishing it, and filling each schedule.
     const fill = (kind: 'part' | 'service') => canFillSchedule(db, can, currentUser.id, event, kind, congregationId)
-    const [canEdit, canDelete, canPublish, canAssign, canAssignService, fillsKind] = await Promise.all([
+    const [canEdit, canDelete, canPublish, canAssign, canAssignService] = await Promise.all([
       canChangeEvent(db, can, currentUser.id, event, congregationId),
       canDeleteEvent(db, can, currentUser.id, event, congregationId),
       canPublishEvent(db, can, currentUser.id, event, congregationId),
       fill('part'),
       fill('service'),
-      event.templateId == null
-        ? false
-        : canFillTemplateSchedules(db, can, currentUser.id, event.templateId, congregationId),
     ])
-    const canCreateProgramme = canEdit && fillsKind
+    // As create-programme: an empty meeting of a kind takes its programme from whoever may change it (D28).
+    const canCreateProgramme = canEdit && event.templateId != null
     const canAssignAnything = canAssign || canAssignService
-    refuseDraft(event.status, { canEdit: canEdit || canDelete, canPublish, canAssign, canAssignService })
+    refuseDraft(event.status, { canEdit, canPublish, canAssign, canAssignService })
 
     // The delete dialog says what deleting does: with counts, only the programme goes.
     const hasAttendance = canDelete && (await eventHasAttendance(db, eventId, congregationId))

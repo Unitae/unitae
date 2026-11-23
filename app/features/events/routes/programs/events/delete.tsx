@@ -29,7 +29,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const event = await findProgrammeEvent(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
 
-    // « Gérer », or a responsible of its kind when it holds no schedule but theirs (D28).
+    // « Gérer », or a responsible of its kind when it holds schedules and every one is theirs; an empty meeting is
+    // the managers' (D28, D50).
     if (!(await canDeleteEvent(db, can, currentUser.id, event, congregationId))) {
       throw redirect('/programs')
     }
