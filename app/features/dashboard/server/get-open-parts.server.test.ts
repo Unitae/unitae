@@ -12,7 +12,9 @@ describe('getOpenParts', () => {
         id: 1,
         name: 'Réunion de semaine',
         startDate: new Date(2026, 10, 12),
-        status: 'draft',
+        // Its programme is a draft beside published duties: the event reads released (D51), the programme decides.
+        status: 'released',
+        schedules: [{ status: 'draft' }],
         _count: { items: 2 },
       },
       {
@@ -20,12 +22,22 @@ describe('getOpenParts', () => {
         name: 'Réunion du week-end',
         startDate: new Date(2026, 10, 15),
         status: 'released',
+        schedules: [{ status: 'published' }],
         _count: { items: 0 },
+      },
+      {
+        id: 3,
+        name: 'Réunion de semaine',
+        startDate: new Date(2026, 10, 19),
+        status: 'draft',
+        schedules: [{ status: 'published' }],
+        _count: { items: 1 },
       },
     ] as never)
     const open = await getOpenParts(db, 1, { roleIds: null, days: 28 })
     expect(open).toEqual([
       { eventId: 1, name: 'Réunion de semaine', startDate: new Date(2026, 10, 12), isDraft: true, count: 2 },
+      { eventId: 3, name: 'Réunion de semaine', startDate: new Date(2026, 10, 19), isDraft: false, count: 1 },
     ])
   })
 

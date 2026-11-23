@@ -1,4 +1,4 @@
-import { EventStatus } from '~/features/events'
+import { ScheduleKind, ScheduleStatus } from '~/features/events'
 import { PART_ITEMS } from '~/features/events/index.server'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -38,7 +38,8 @@ export async function getOpenParts(
       id: true,
       name: true,
       startDate: true,
-      status: true,
+      // The open slots are programme parts: the programme's own schedule says whether it is a draft (plan §10, 5b).
+      schedules: { where: { kind: ScheduleKind.Programme }, select: { status: true } },
       _count: { select: { items: { where: open } } },
     },
     orderBy: { startDate: 'asc' },
@@ -49,7 +50,7 @@ export async function getOpenParts(
       eventId: event.id,
       name: event.name,
       startDate: event.startDate,
-      isDraft: event.status === EventStatus.Draft,
+      isDraft: event.schedules[0]?.status !== ScheduleStatus.Published,
       count: event._count.items,
     }))
 }
