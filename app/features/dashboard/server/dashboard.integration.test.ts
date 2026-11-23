@@ -1,6 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+import { syncTemplateScheduleTemplates } from '~/features/events/index.server'
 import { TerritoryKindKey } from '~/features/territories/model/territory-kind.type'
 import { settleFixtureSchedules } from '~/tests/helpers/settle-fixture-schedules'
 
@@ -713,6 +714,9 @@ describe('getConflictingAssignments (integration)', () => {
           congregationId,
         },
       })
+      // As Réglages does: the template holds a part, so its programme schedule template takes Bob's role (plan §10).
+      await tx.templatePart.create({ data: { name: 'Discours', order: 0, templateId: template.id, congregationId } })
+      await syncTemplateScheduleTemplates(tx as never, template.id, congregationId)
       const event = await tx.event.create({
         data: {
           name: 'Responsible Invariant Event',

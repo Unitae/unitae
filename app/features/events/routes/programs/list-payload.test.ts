@@ -54,11 +54,39 @@ vi.mock('~/features/events/server/programme-list.queries', () => ({
     ]),
 }))
 
-// Responsible of template 4's whole programme, and of template 5's services only.
+// The rules by schedule are scheduleRightsFor's own integration test: faked here from the kinds whose programme and
+// whose duties the reader answers for, as the rules would answer, to check what the page makes of them.
 const responsibleFor = vi.hoisted(() => ({ programme: [] as number[], service: [] as number[] }))
-vi.mock('~/features/events/server/events-auth.server', () => ({
-  getResponsibleTemplateIds: (_db: unknown, _userId: number, _congregationId: number, scope = 'programme') =>
-    Promise.resolve(scope === 'service' ? responsibleFor.service : responsibleFor.programme),
+vi.mock('~/features/events/server/schedule-rights.server', () => ({
+  responsibleKindIds: () => Promise.resolve([...new Set([...responsibleFor.programme, ...responsibleFor.service])]),
+  scheduleRightsFor: (
+    _db: unknown,
+    can: (permission: string) => boolean,
+    _userId: number,
+    events: { id: number; templateId: number | null }[],
+  ) => {
+    const answers = (kinds: number[], templateId: number | null) => templateId != null && kinds.includes(templateId)
+    return Promise.resolve(
+      new Map(
+        events.map(({ id, templateId }) => {
+          const programme = answers(responsibleFor.programme, templateId)
+          const services = answers(responsibleFor.service, templateId)
+          const manages = can('can-manage-programs')
+          const fills = manages || can('can-assign-program-parts')
+          return [
+            id,
+            {
+              canEdit: manages || (programme && services),
+              canDelete: manages,
+              canPublish: can('can-publish-programs') || (programme && services),
+              canAssignParts: fills || programme,
+              canAssignServices: fills || services,
+            },
+          ]
+        }),
+      ),
+    )
+  },
 }))
 
 const { loader } = await import('./list')

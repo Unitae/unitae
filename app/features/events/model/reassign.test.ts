@@ -2,47 +2,33 @@ import { describe, expect, it } from 'vitest'
 
 import { assignKey, conflictAction, parseAssignKey, type ReassignRights, reassignHref } from './reassign'
 
-// An assignment falling during an absence offers « Réattribuer » to whoever the event's page lets fill that slot: the
-// right to assign parts, or the event's responsible (a service responsible for a service). Other readers of the
+// An assignment falling during an absence offers « Réattribuer » to whoever the event's page lets fill that slot's
+// schedule (plan §10): « Attribuer » or « Gérer », or the responsible of that schedule's template. Other readers of the
 // programmes get a plain link to the event; a reader of absences alone gets no link, which would only turn them away.
 
-const NONE: ReassignRights = {
-  canViewPrograms: true,
-  canAssignParts: false,
-  partTemplateIds: [],
-  serviceTemplateIds: [],
-}
-const part = { kind: 'part' as const, templateId: 4 }
-const service = { kind: 'service' as const, templateId: 4 }
+const NONE: ReassignRights = { canViewPrograms: true, fillsEverySchedule: false, roleIds: [] }
+// A slot whose schedule's template names role 4 as its responsible.
+const slot = { responsibleRoleId: 4 }
 
 describe('conflictAction', () => {
   it('offers no link to a reader of absences who cannot open the programmes', () => {
-    expect(conflictAction(part, { ...NONE, canViewPrograms: false, canAssignParts: true })).toBeNull()
+    expect(conflictAction(slot, { ...NONE, canViewPrograms: false, fillsEverySchedule: true })).toBeNull()
   })
 
-  it('lets the holder of the right to assign reassign any part or service', () => {
-    const rights = { ...NONE, canAssignParts: true }
-    expect(conflictAction(part, rights)).toBe('reassign')
-    expect(conflictAction(service, rights)).toBe('reassign')
-    expect(conflictAction({ kind: 'part', templateId: null }, rights)).toBe('reassign')
+  it('lets whoever fills every schedule reassign any slot, even one whose schedule has no responsible', () => {
+    const rights = { ...NONE, fillsEverySchedule: true }
+    expect(conflictAction(slot, rights)).toBe('reassign')
+    expect(conflictAction({ responsibleRoleId: null }, rights)).toBe('reassign')
   })
 
-  it('lets the responsible of the event reassign its parts and services', () => {
-    const rights = { ...NONE, partTemplateIds: [4], serviceTemplateIds: [4] }
-    expect(conflictAction(part, rights)).toBe('reassign')
-    expect(conflictAction(service, rights)).toBe('reassign')
+  it('lets the responsible of the slot’s schedule reassign it', () => {
+    expect(conflictAction(slot, { ...NONE, roleIds: [7, 4] })).toBe('reassign')
   })
 
-  it('lets a service responsible reassign the services only', () => {
-    const rights = { ...NONE, serviceTemplateIds: [4] }
-    expect(conflictAction(service, rights)).toBe('reassign')
-    expect(conflictAction(part, rights)).toBe('view')
-  })
-
-  it('shows the event to the responsible of another one, and for an event without a template', () => {
-    const rights = { ...NONE, partTemplateIds: [9], serviceTemplateIds: [9] }
-    expect(conflictAction(part, rights)).toBe('view')
-    expect(conflictAction({ kind: 'part', templateId: null }, rights)).toBe('view')
+  it('shows the event to the responsible of another schedule, and for a schedule without a responsible (D47)', () => {
+    const rights = { ...NONE, roleIds: [9] }
+    expect(conflictAction(slot, rights)).toBe('view')
+    expect(conflictAction({ responsibleRoleId: null }, { ...NONE, roleIds: [4] })).toBe('view')
   })
 })
 

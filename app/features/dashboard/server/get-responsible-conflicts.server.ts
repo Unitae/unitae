@@ -1,6 +1,5 @@
 import { VISIBLE_ITEM } from '~/features/events'
 import { PART_ITEMS, SERVICE_ITEMS } from '~/features/events/index.server'
-import { ResponsibilityScope, scopesCovering } from '~/features/events/model/responsibility-scope.type'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { fullName } from '~/shared/utils/display-name'
@@ -44,16 +43,12 @@ export async function getResponsibleConflicts(
   // Drafts stay off the dashboard even for managers (VISIBLE_ITEM below): the events-list amber badge and the
   // release-blocking error are their surface for those.
   const upcoming = { startDate: { gte: now } }
-  const responsibleFor = (scope: ResponsibilityScope) => ({
-    ...upcoming,
-    template: { responsibles: { some: { roleId: { in: roleIds }, scope: { in: scopesCovering(scope) } } } },
-  })
-  const partEventFilter = isProgramManager ? upcoming : responsibleFor(ResponsibilityScope.Programme)
-  const serviceEventFilter = isProgramManager ? upcoming : responsibleFor(ResponsibilityScope.Service)
+  // A schedule's responsible is the role its template names (plan §10): each item by its own schedule's.
+  const answered = isProgramManager ? [] : [{ schedule: { scheduleTemplate: { responsibleRoleId: { in: roleIds } } } }]
 
   const [partRows, serviceRows] = await Promise.all([
     db.item.findMany({
-      where: { ...PART_ITEMS, ...VISIBLE_ITEM, hasConflict: true, event: partEventFilter },
+      where: { AND: [...PART_ITEMS.AND, ...answered], ...VISIBLE_ITEM, hasConflict: true, event: upcoming },
       select: {
         eventId: true,
         assigneeId: true,
@@ -63,7 +58,7 @@ export async function getResponsibleConflicts(
       },
     }),
     db.item.findMany({
-      where: { ...SERVICE_ITEMS, ...VISIBLE_ITEM, hasConflict: true, event: serviceEventFilter },
+      where: { AND: [...SERVICE_ITEMS.AND, ...answered], ...VISIBLE_ITEM, hasConflict: true, event: upcoming },
       select: {
         eventId: true,
         assigneeId: true,

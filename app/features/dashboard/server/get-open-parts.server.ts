@@ -15,28 +15,30 @@ export interface OpenSlots {
 }
 
 /**
- * Coming meetings, within `days`, that still have parts with neither an assignee nor a visiting
- * speaker. `templateIds` narrows to the meeting types the viewer answers for; null means all of
- * them (someone who may assign any part).
+ * Coming meetings, within `days`, that still have parts with neither an assignee nor a visiting speaker. `roleIds`
+ * narrows to the parts whose programme the viewer answers for, through the role its schedule's template names (plan
+ * §10); null means all of them (someone who may fill any schedule).
  */
 export async function getOpenParts(
   db: TransactionClient,
   congregationId: number,
-  { templateIds, days, now = new Date() }: { templateIds: number[] | null; days: number; now?: Date },
+  { roleIds, days, now = new Date() }: { roleIds: readonly number[] | null; days: number; now?: Date },
 ): Promise<OpenSlots[]> {
-  if (templateIds != null && templateIds.length === 0) return []
+  if (roleIds != null && roleIds.length === 0) return []
+  const answered =
+    roleIds == null ? [] : [{ schedule: { scheduleTemplate: { responsibleRoleId: { in: [...roleIds] } } } }]
+  const open = { AND: [...PART_ITEMS.AND, ...answered], assigneeId: null, externalSpeakerId: null }
   const events = await db.event.findMany({
     where: {
       congregationId,
       startDate: { gte: now, lt: new Date(now.getTime() + days * DAY_MS) },
-      ...(templateIds != null ? { templateId: { in: templateIds } } : {}),
     },
     select: {
       id: true,
       name: true,
       startDate: true,
       status: true,
-      _count: { select: { items: { where: { ...PART_ITEMS, assigneeId: null, externalSpeakerId: null } } } },
+      _count: { select: { items: { where: open } } },
     },
     orderBy: { startDate: 'asc' },
   })

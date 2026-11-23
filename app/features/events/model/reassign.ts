@@ -7,16 +7,15 @@ export interface AssignTarget {
 }
 
 /**
- * What the reader may do from an assignment falling during an absence. The event's page decides who fills a slot: the
- * right to assign parts, or the responsible of the event's template — for a service, a service responsible too.
+ * What the reader may do from an assignment falling during an absence. The event's page decides who fills a slot's
+ * schedule (plan §10): « Attribuer » or « Gérer », or the responsible of that schedule's template.
  */
 export interface ReassignRights {
   canViewPrograms: boolean
-  canAssignParts: boolean
-  /** The templates whose whole programme the reader is responsible for. */
-  partTemplateIds: number[]
-  /** The templates whose services the reader is responsible for, the whole-programme ones included. */
-  serviceTemplateIds: number[]
+  /** « Attribuer » or « Gérer »: every schedule. */
+  fillsEverySchedule: boolean
+  /** The roles the reader holds, a schedule's responsible being one. */
+  roleIds: readonly number[]
 }
 
 export type ConflictAction = 'reassign' | 'view'
@@ -26,14 +25,14 @@ export type ConflictAction = 'reassign' | 'view'
  * nothing for a reader of absences who cannot open the programmes (the link would only turn them away).
  */
 export function conflictAction(
-  slot: { kind: AssignKind; templateId: number | null },
+  slot: { responsibleRoleId: number | null },
   rights: ReassignRights,
 ): ConflictAction | null {
   if (!rights.canViewPrograms) return null
-  if (rights.canAssignParts) return 'reassign'
-  if (slot.templateId == null) return 'view'
-  const templates = slot.kind === 'part' ? rights.partTemplateIds : rights.serviceTemplateIds
-  return templates.includes(slot.templateId) ? 'reassign' : 'view'
+  if (rights.fillsEverySchedule) return 'reassign'
+  // A schedule without a template has no responsible (D47).
+  if (slot.responsibleRoleId == null) return 'view'
+  return rights.roleIds.includes(slot.responsibleRoleId) ? 'reassign' : 'view'
 }
 
 /** `part-12`, `service-7`: an item's kind and id (plan T12). */

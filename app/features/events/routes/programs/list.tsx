@@ -3,10 +3,8 @@ import { Link, redirect, type ShouldRevalidateFunctionArgs } from 'react-router'
 
 import { EventStatus } from '~/features/events/model/event-status.type'
 import { listPeriod, selectedPreset } from '~/features/events/model/list-period'
-import { type ProgrammeViewer, programmeRights } from '~/features/events/model/programme-access'
-import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
-import { getResponsibleTemplateIds } from '~/features/events/server/events-auth.server'
 import { congregationHasProgrammes, listProgrammes } from '~/features/events/server/programme-list.queries'
+import { responsibleKindIds, scheduleRightsFor } from '~/features/events/server/schedule-rights.server'
 import { PeriodMenu } from '~/features/events/ui/PeriodMenu'
 import { ProgrammeList } from '~/features/events/ui/ProgrammeList'
 import * as m from '~/i18n/paraglide/messages'
@@ -46,17 +44,12 @@ export function loader({ request, context }: Route.LoaderArgs) {
   const canManage = permissions.has(Permission.CanManagePrograms)
   const canPublish = permissions.has(Permission.CanPublishPrograms)
   const canAssign = permissions.has(Permission.CanAssignProgramParts)
+  const can = (permission: Permission) => permissions.has(permission)
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
-    // The templates the reader runs give them rights on those programmes alone.
-    const responsibleFor = (scope: ResponsibilityScope) =>
-      canManage && canPublish && canAssign ? [] : getResponsibleTemplateIds(db, currentUser.id, congregationId, scope)
-    const [programmeTemplateIds, serviceTemplateIds] = await Promise.all([
-      responsibleFor(ResponsibilityScope.Programme),
-      responsibleFor(ResponsibilityScope.Service),
-    ])
-    const viewer: ProgrammeViewer = { canManage, canPublish, canAssign, programmeTemplateIds, serviceTemplateIds }
+    // The kinds whose events the reader may change: a responsible of one of their schedule templates (D28).
+    const kindIds = canManage ? [] : await responsibleKindIds(db, currentUser.id, congregationId)
     const [items, hasAnyProgramme] = await Promise.all([
       listProgrammes(db, {
         congregationId,
@@ -64,15 +57,18 @@ export function loader({ request, context }: Route.LoaderArgs) {
         to: endOfDay(period.to, timezone),
       }),
       congregationHasProgrammes(db, congregationId, {
-        withDrafts: canManage || canPublish || canAssign || serviceTemplateIds.length > 0,
+        withDrafts: canManage || canPublish || canAssign || kindIds.length > 0,
       }),
     ])
 
     // Only what the page shows: no template ids, drafts only for whoever may act on them, and the assignments to
     // review only for whoever may reassign them, until the programme is held.
+    // Each programme by its schedules' rules, as its own page and routes decide (plan §10).
+    const rightsOf = await scheduleRightsFor(db, can, currentUser.id, items, congregationId)
     const programmes = items.flatMap(item => {
-      const rights = programmeRights(item, viewer)
-      if (item.status === EventStatus.Draft && !rights.canSeeDraft) return []
+      const rights = rightsOf.get(item.id)
+      if (rights == null) return []
+      if (item.status === EventStatus.Draft && !Object.values(rights).some(Boolean)) return []
       const ahead = item.startDate >= now
       const review = ahead
         ? (rights.canAssignParts ? item.parts.flagged : 0) + (rights.canAssignServices ? item.services.flagged : 0)
@@ -90,6 +86,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
           awaitingProgramme: item.awaitingProgramme,
           review,
           canEdit: rights.canEdit,
+          canDelete: rights.canDelete,
           canPublish: rights.canPublish,
         },
       ]
@@ -102,7 +99,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
       today,
       now,
       hasAnyProgramme,
-      canCreate: canManage || programmeTemplateIds.length > 0,
+      canCreate: canManage || kindIds.length > 0,
       timeZone: timezone,
     }
   })

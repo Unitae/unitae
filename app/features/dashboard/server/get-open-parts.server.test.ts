@@ -23,16 +23,16 @@ describe('getOpenParts', () => {
         _count: { items: 0 },
       },
     ] as never)
-    const open = await getOpenParts(db, 1, { templateIds: null, days: 28 })
+    const open = await getOpenParts(db, 1, { roleIds: null, days: 28 })
     expect(open).toEqual([
       { eventId: 1, name: 'Réunion de semaine', startDate: new Date(2026, 10, 12), isDraft: true, count: 2 },
     ])
   })
 
-  it('finds nothing for someone responsible for no meeting type', async () => {
+  it('finds nothing for someone holding no role, who answers for no schedule', async () => {
     vi.mocked(db.event.findMany).mockResolvedValue([
       { id: 1, name: 'x', startDate: new Date(), status: 'draft', _count: { items: 2 } },
     ] as never)
-    expect(await getOpenParts(db, 1, { templateIds: [], days: 28 })).toEqual([])
+    expect(await getOpenParts(db, 1, { roleIds: [], days: 28 })).toEqual([])
   })
 })

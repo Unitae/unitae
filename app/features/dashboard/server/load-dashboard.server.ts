@@ -20,8 +20,8 @@ import { hasHeldTerritory } from '~/features/dashboard/server/has-held-territory
 import { nextMeetingForViewer } from '~/features/dashboard/server/next-meeting-for-viewer.server'
 import { attendanceRights } from '~/features/events'
 import { listMeetingsUnderWay } from '~/features/events/index.server'
-import { getResponsibleTemplateIds } from '~/features/events/server/events-auth.server'
 import { getGroup } from '~/features/publishers/server/groups.server'
+import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
@@ -143,16 +143,18 @@ export async function loadDashboard(db: TransactionClient, context: DashboardCon
     ),
   ])
 
-  // Programme assigners see every meeting; a responsible, only the meeting types they answer for.
+  // « Attribuer » and « Gérer » see every meeting; a responsible, only the parts of the programmes they answer for.
   async function loadOpenParts(): Promise<Block<Awaited<ReturnType<typeof getOpenParts>>>> {
     if (visibility.programmes == null) return null
-    const templateIds = permissions.has(Permission.CanAssignProgramParts)
+    const fillsEvery =
+      permissions.has(Permission.CanAssignProgramParts) || permissions.has(Permission.CanManagePrograms)
+    const roleIds = fillsEvery
       ? null
-      : await safe('responsible-templates', () => getResponsibleTemplateIds(db, account.id, congregationId))
-    if (templateIds != null && templateIds.length === 0) return null
+      : await safe('responsible-roles', () => resolveEffectiveRoleIds(db, account.id, congregationId))
+    if (roleIds != null && roleIds.length === 0) return null
     return {
       data: await safe('open-parts', () =>
-        getOpenParts(db, congregationId, { templateIds: templateIds ?? null, days: OPEN_PARTS_HORIZON_DAYS, now }),
+        getOpenParts(db, congregationId, { roleIds: roleIds ?? null, days: OPEN_PARTS_HORIZON_DAYS, now }),
       ),
     }
   }

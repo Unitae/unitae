@@ -22,7 +22,10 @@ vi.mock('./get-territory-trend.server', () => ({ getTerritoryTrend: vi.fn() }))
 vi.mock('./has-held-territory.server', () => ({ hasHeldTerritory: vi.fn() }))
 vi.mock('./has-calendar-feed.server', () => ({ hasCalendarFeed: vi.fn() }))
 vi.mock('~/features/publishers/server/groups.server', () => ({ getGroup: vi.fn() }))
-vi.mock('~/features/events/server/events-auth.server', () => ({ getResponsibleTemplateIds: vi.fn() }))
+vi.mock('~/shared/auth/permissions.server', async importOriginal => ({
+  ...(await importOriginal<typeof import('~/shared/auth/permissions.server')>()),
+  resolveEffectiveRoleIds: vi.fn(),
+}))
 vi.mock('~/features/events/index.server', () => ({ listMeetingsUnderWay: vi.fn() }))
 
 const { loadDashboard } = await import('./load-dashboard.server')
@@ -38,7 +41,7 @@ const { getTerritoryTrend } = await import('./get-territory-trend.server')
 const { hasHeldTerritory } = await import('./has-held-territory.server')
 const { hasCalendarFeed } = await import('./has-calendar-feed.server')
 const { getGroup } = await import('~/features/publishers/server/groups.server')
-const { getResponsibleTemplateIds } = await import('~/features/events/server/events-auth.server')
+const { resolveEffectiveRoleIds } = await import('~/shared/auth/permissions.server')
 const { listMeetingsUnderWay } = await import('~/features/events/index.server')
 
 const db = {} as never
@@ -179,8 +182,8 @@ describe('loadDashboard', () => {
     expect(data.roll).toEqual({ data: { total: 45, arrived: 2, left: 1 } })
   })
 
-  it('shows no programme block to someone who answers for no meeting type', async () => {
-    vi.mocked(getResponsibleTemplateIds).mockResolvedValue([])
+  it('shows no programme block to someone who holds no role, so answers for no schedule', async () => {
+    vi.mocked(resolveEffectiveRoleIds).mockResolvedValue([])
     expect((await load([Permission.CanViewPrograms])).programmes).toBeNull()
   })
 

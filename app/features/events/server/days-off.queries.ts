@@ -60,8 +60,8 @@ export interface AbsenceAssignment {
   name: string
   eventId: number
   eventDate: Date
-  /** Who may reassign it follows the event's template. */
-  templateId: number | null
+  /** Who may reassign it, besides « Attribuer » and « Gérer »: its schedule's responsible role (plan §10). */
+  responsibleRoleId: number | null
   /** Its schedule is published: people already rely on it. */
   published: boolean
 }
@@ -118,8 +118,8 @@ export async function listCongregationAbsences(
     startDate: { lte: new Date(Math.max(...absences.map(absence => absence.endDate.getTime()))) },
     endDate: { gte: new Date(Math.min(...absences.map(absence => absence.startDate.getTime()))) },
   }
-  const event = { select: { id: true, startDate: true, endDate: true, templateId: true } }
-  const schedule = { select: { status: true } }
+  const event = { select: { id: true, startDate: true, endDate: true } }
+  const schedule = { select: { status: true, scheduleTemplate: { select: { responsibleRoleId: true } } } }
   const [parts, services] = await Promise.all([
     db.item.findMany({
       where: {
@@ -151,6 +151,7 @@ export async function listCongregationAbsences(
       name: part.name,
       event: part.event,
       published: part.schedule?.status === ScheduleStatus.Published,
+      responsibleRoleId: part.schedule?.scheduleTemplate?.responsibleRoleId ?? null,
       kind: 'part' as const,
       holders: [part.assigneeId, part.assistantId],
     })),
@@ -159,6 +160,7 @@ export async function listCongregationAbsences(
       name: service.name,
       event: service.event,
       published: service.schedule?.status === ScheduleStatus.Published,
+      responsibleRoleId: service.schedule?.scheduleTemplate?.responsibleRoleId ?? null,
       kind: 'service' as const,
       holders: [service.assigneeId],
     })),
@@ -176,7 +178,7 @@ export async function listCongregationAbsences(
         name: slot.name,
         eventId: slot.event.id,
         eventDate: slot.event.startDate,
-        templateId: slot.event.templateId,
+        responsibleRoleId: slot.responsibleRoleId,
         published: slot.published,
       }))
       .sort((a, b) => a.eventDate.getTime() - b.eventDate.getTime()),
