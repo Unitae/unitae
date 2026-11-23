@@ -54,6 +54,8 @@ export async function eventScheduleId(
   eventId: number,
   kind: ScheduleKind,
   congregationId: number,
+  /** Restoring data written before schedules published apart: the schedule takes its event's status, as it then meant. */
+  { asTheEvent = false }: { asTheEvent?: boolean } = {},
 ): Promise<number> {
   const existing = await findEventSchedule(db, eventId, kind, congregationId)
   if (existing) return existing
@@ -71,9 +73,12 @@ export async function eventScheduleId(
 
   const event = await db.event.findFirst({
     where: { id: eventId, congregationId },
-    select: { templateId: true, status: true },
+    select: { templateId: true, status: true, _count: { select: { schedules: true } } },
   })
   if (!event) throw new NotFoundError('Event', eventId)
+  // A schedule added beside others starts as a draft, to be published on its own; an event holding none, published as
+  // it is, keeps its first one published, so adding a part never hides it from members (D52).
+  const status = asTheEvent || event._count.schedules === 0 ? scheduleStatusFor(event.status) : ScheduleStatus.Draft
   // Applied to another template meanwhile: made from that one's.
   if (event.templateId !== before.templateId) {
     madeFrom = await scheduleTemplateFor(db, event.templateId, kind, congregationId)
@@ -83,7 +88,7 @@ export async function eventScheduleId(
       eventId,
       kind,
       order: SCHEDULE_ORDER[kind],
-      status: scheduleStatusFor(event.status),
+      status,
       ...madeFrom,
       congregationId,
     },
@@ -103,6 +108,23 @@ async function findEventSchedule(
     select: { id: true },
   })
   return schedule?.id ?? null
+}
+
+/**
+ * The event's schedules of these kinds, made where missing, for one action that brings several (giving a programme,
+ * applying a template): on an event holding none, published as it is, they all start published alike; beside a
+ * schedule it holds, the ones made start as drafts (D52).
+ */
+export async function eventSchedulesOf(
+  db: TransactionClient,
+  eventId: number,
+  kinds: readonly ScheduleKind[],
+  congregationId: number,
+): Promise<Partial<Record<ScheduleKind, number>>> {
+  const asTheEvent = (await db.schedule.count({ where: { eventId, congregationId } })) === 0
+  const ids: Partial<Record<ScheduleKind, number>> = {}
+  for (const kind of kinds) ids[kind] = await eventScheduleId(db, eventId, kind, congregationId, { asTheEvent })
+  return ids
 }
 
 /** Points the event's schedules at its template's schedule templates, by kind: after the event changed template. */
@@ -161,11 +183,13 @@ export async function attachEventItems(
   for (const event of events) {
     const where = { eventId: event.id, congregationId, scheduleId: null }
     if (event._count.eventParts > 0) {
-      const scheduleId = await eventScheduleId(db, event.id, ScheduleKind.Programme, congregationId)
+      const scheduleId = await eventScheduleId(db, event.id, ScheduleKind.Programme, congregationId, {
+        asTheEvent: true,
+      })
       await db.eventPart.updateMany({ where, data: { scheduleId } })
     }
     if (event._count.eventServiceParts > 0) {
-      const scheduleId = await eventScheduleId(db, event.id, ScheduleKind.Duty, congregationId)
+      const scheduleId = await eventScheduleId(db, event.id, ScheduleKind.Duty, congregationId, { asTheEvent: true })
       await db.eventServicePart.updateMany({ where, data: { scheduleId } })
     }
   }

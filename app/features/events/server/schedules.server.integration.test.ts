@@ -12,8 +12,14 @@ const adapter = new PrismaPg({
 })
 const testDb = new PrismaClient({ adapter })
 
-const { alignEventSchedules, attachEventItems, deleteEventSchedules, eventScheduleId, setEventSchedulesStatus } =
-  await import('./schedules.server')
+const {
+  alignEventSchedules,
+  attachEventItems,
+  deleteEventSchedules,
+  eventScheduleId,
+  eventSchedulesOf,
+  setEventSchedulesStatus,
+} = await import('./schedules.server')
 
 class Rollback extends Error {}
 
@@ -102,7 +108,7 @@ afterAll(async () => {
 })
 
 describe('eventScheduleId', () => {
-  it("makes an event's programme from its template's, with the event's status, once", async () => {
+  it("makes an event's first schedule from its template's, published when the event was published as it is, once (D52)", async () => {
     await inCongregation(async ({ db, congregationId, template, event, scheduleTemplateOf, schedules }) => {
       const midweek = await template('Réunion de semaine', { parts: 2, services: 1 })
       const released = await event(midweek, 'released')
@@ -120,6 +126,22 @@ describe('eventScheduleId', () => {
           status: 'published',
           scheduleTemplateId: await scheduleTemplateOf(midweek, 'programme'),
         },
+      ])
+    })
+  })
+
+  it('starts a schedule added beside another as a draft, the event published or not (D52)', async () => {
+    await inCongregation(async ({ db, congregationId, template, event, schedules }) => {
+      const midweek = await template('Réunion de semaine', { parts: 2, services: 1 })
+      // Its duties alone are published, so the event reads released (D51).
+      const halfPublished = await event(midweek, 'released')
+      await eventScheduleId(db, halfPublished, ScheduleKind.Duty, congregationId)
+
+      await eventScheduleId(db, halfPublished, ScheduleKind.Programme, congregationId)
+
+      expect(await schedules(halfPublished)).toMatchObject([
+        { kind: 'programme', status: 'draft' },
+        { kind: 'duty', status: 'published' },
       ])
     })
   })
@@ -180,6 +202,37 @@ describe('eventScheduleId', () => {
       const made = await scheduleTemplateOf(memorial, 'programme')
       expect(made).not.toBeNull()
       expect(await schedules(day)).toMatchObject([{ scheduleTemplateId: made }])
+    })
+  })
+})
+
+describe('eventSchedulesOf', () => {
+  it('gives a bare event published as it is every schedule an action brings, published alike (D52)', async () => {
+    await inCongregation(async ({ db, congregationId, template, event, schedules }) => {
+      const midweek = await template('Réunion de semaine', { parts: 1, services: 1 })
+      const bare = await event(midweek, 'released')
+
+      const ids = await eventSchedulesOf(db, bare, [ScheduleKind.Programme, ScheduleKind.Duty], congregationId)
+
+      expect(await schedules(bare)).toMatchObject([
+        { id: ids.programme, kind: 'programme', status: 'published' },
+        { id: ids.duty, kind: 'duty', status: 'published' },
+      ])
+    })
+  })
+
+  it('starts as drafts the schedules it adds beside one the event holds', async () => {
+    await inCongregation(async ({ db, congregationId, template, event, schedules }) => {
+      const midweek = await template('Réunion de semaine', { parts: 1, services: 1 })
+      const halfPublished = await event(midweek, 'released')
+      await eventScheduleId(db, halfPublished, ScheduleKind.Duty, congregationId)
+
+      await eventSchedulesOf(db, halfPublished, [ScheduleKind.Programme, ScheduleKind.Duty], congregationId)
+
+      expect(await schedules(halfPublished)).toMatchObject([
+        { kind: 'programme', status: 'draft' },
+        { kind: 'duty', status: 'published' },
+      ])
     })
   })
 })

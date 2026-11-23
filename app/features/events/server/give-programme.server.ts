@@ -3,7 +3,7 @@ import { ScheduleKind } from '~/features/events/model/schedule.type'
 import { ITEM_SLOT, type PartRoleKind } from '~/features/events/server/allowed-roles.server'
 import { templateItemsOf } from '~/features/events/server/item-projection.server'
 import type { CreatedProgramme, CreationContext } from '~/features/events/server/programme-creation.server'
-import { eventScheduleId } from '~/features/events/server/schedules.server'
+import { eventSchedulesOf } from '~/features/events/server/schedules.server'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -67,10 +67,16 @@ export async function giveProgramme(
   const { congregationId } = ctx
   const event = { id: eventId }
   // Each item goes into the event's schedule of its kind, made from the template's.
-  const programmeId =
-    template.parts.length > 0 ? await eventScheduleId(db, eventId, ScheduleKind.Programme, congregationId) : null
-  const dutiesId =
-    template.serviceParts.length > 0 ? await eventScheduleId(db, eventId, ScheduleKind.Duty, congregationId) : null
+  const kinds = [
+    ...(template.parts.length > 0 ? [ScheduleKind.Programme] : []),
+    ...(template.serviceParts.length > 0 ? [ScheduleKind.Duty] : []),
+  ]
+  const { programme: programmeId = null, duty: dutiesId = null } = await eventSchedulesOf(
+    db,
+    eventId,
+    kinds,
+    congregationId,
+  )
   // Each item points at the template item its template part or service is mirrored into (plan T12).
   const templates = await templateItemsOf(
     db,
