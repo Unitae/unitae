@@ -1,10 +1,11 @@
 import {
   type CadenceEntry,
   type CadenceHelperResult,
+  cadenceStatusOf,
   latestDate,
   normalize,
   type PartSlot,
-  toCadenceStatus,
+  PROGRAMME_SCHEDULE_SELECT,
 } from '~/features/events/server/cadence-shared.server'
 import { PART_ITEMS, PART_TIE_BREAK } from '~/features/events/server/item-projection.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -59,7 +60,13 @@ export async function listUserCadence(
   } as const
 
   const commonWhere = { templateId: event.templateId, congregationId } as const
-  const rowSelect = { id: true, startDate: true, status: true, items: partsSelect } as const
+  const rowSelect = {
+    id: true,
+    startDate: true,
+    status: true,
+    ...PROGRAMME_SCHEDULE_SELECT,
+    items: partsSelect,
+  } as const
 
   const [pastRows, futureRows, historicalAssignments] = await Promise.all([
     db.event.findMany({
@@ -103,7 +110,7 @@ export async function listUserCadence(
       // both-names-blank Member case to null (no stray '—' fallback in the
       // tooltip). Only reached when we resolved a real Member row.
       personName: person ? formatPersonName(person, '') || null : null,
-      status: toCadenceStatus(row.status),
+      status: cadenceStatusOf(row),
     }
   }
 

@@ -1,9 +1,10 @@
 import {
   type CadenceEntry,
   type CadenceHelperResult,
+  cadenceStatusOf,
   latestDate,
   normalize,
-  toCadenceStatus,
+  PROGRAMME_SCHEDULE_SELECT,
 } from '~/features/events/server/cadence-shared.server'
 import { PART_ITEMS } from '~/features/events/server/item-projection.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -46,7 +47,13 @@ export async function listExternalSpeakerCadence(
   } as const
 
   const commonWhere = { templateId: event.templateId, congregationId } as const
-  const rowSelect = { id: true, startDate: true, status: true, items: partsSelect } as const
+  const rowSelect = {
+    id: true,
+    startDate: true,
+    status: true,
+    ...PROGRAMME_SCHEDULE_SELECT,
+    items: partsSelect,
+  } as const
 
   const [pastRows, futureRows, historicalAssignments] = await Promise.all([
     db.event.findMany({
@@ -89,7 +96,7 @@ export async function listExternalSpeakerCadence(
       date: row.startDate.toISOString(),
       assigned: matches.some(p => p.externalSpeakerId === externalSpeakerId),
       personName: person ?? null,
-      status: toCadenceStatus(row.status),
+      status: cadenceStatusOf(row),
     }
   }
 
