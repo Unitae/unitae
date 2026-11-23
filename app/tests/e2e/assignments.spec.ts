@@ -148,6 +148,8 @@ test.describe('Assignments', () => {
     await page.getByRole('button', { name: 'Repasser en brouillon' }).first().click()
     await expect(page.getByRole('button', { name: 'Repasser en brouillon' })).toHaveCount(1)
     await page.getByRole('button', { name: 'Repasser en brouillon' }).click()
+    // The second withdrawal landed before the board is read: « Tout publier » shows from the first one already.
+    await expect(page.getByRole('button', { name: 'Repasser en brouillon' })).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Tout publier' })).toBeVisible()
 
     // The document still opens; the meeting, a draft again, is no longer on it.
