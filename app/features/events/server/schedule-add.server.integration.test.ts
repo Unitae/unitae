@@ -18,7 +18,7 @@ const testDb = new PrismaClient({ adapter })
 
 const { seedDefaultTemplates, syncTemplateScheduleTemplates } = await import('~/features/events/index.server')
 const { createProgrammeOnDay } = await import('./programme-creation.server')
-const { addSchedule, canAddSchedule } = await import('./schedule-add.server')
+const { addEventSchedule, addSchedule, canAddSchedule, scheduleAddOptions } = await import('./schedule-add.server')
 
 class Rollback extends Error {}
 
@@ -203,6 +203,65 @@ describe('canAddSchedule: « Gérer », or the responsible of that template (D39
       expect(
         await canAddSchedule(db, manages, actorId, { scheduleTemplateId: dutiesTemplate }, congregationId + 1),
       ).toBe(false)
+    })
+  })
+})
+
+describe('scheduleAddOptions, what « Ajouter un planning » offers', () => {
+  it('offers « Gérer » the templates of a kind the event lacks, those its kind suggests first, and an empty one', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, meetingId, duties }) => {
+      const dutiesTemplate = await templateOf(db, duties.id)
+      const other = await db.scheduleTemplate.create({ data: { name: 'Nettoyage', kind: 'duty', congregationId } })
+      await db.schedule.delete({ where: { id: duties.id } })
+
+      const options = await scheduleAddOptions(db, manages, actorId, meetingId, congregationId)
+
+      expect(options.suggested).toEqual([expect.objectContaining({ id: dutiesTemplate, kind: 'duty' })])
+      // The other kinds' duties too, seeded with the congregation, and never the programme the event holds.
+      expect(options.others).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: other.id, name: 'Nettoyage' })]),
+      )
+      expect(options.others.every(template => template.kind === 'duty' && template.id !== dutiesTemplate)).toBe(true)
+      expect(options.emptyKinds).toEqual(['duty'])
+    })
+  })
+
+  it('offers a responsible their own template only, never an empty one, and nothing of a kind the event holds', async () => {
+    await withMeeting(async ({ db, congregationId, programmeLead, dutyLead, meetingId, duties }) => {
+      const dutiesTemplate = await templateOf(db, duties.id)
+      expect(await scheduleAddOptions(db, nothing, dutyLead, meetingId, congregationId)).toEqual({
+        suggested: [],
+        others: [],
+        emptyKinds: [],
+      })
+      await db.schedule.delete({ where: { id: duties.id } })
+      expect(await scheduleAddOptions(db, nothing, dutyLead, meetingId, congregationId)).toEqual({
+        suggested: [expect.objectContaining({ id: dutiesTemplate })],
+        others: [],
+        emptyKinds: [],
+      })
+      expect(await scheduleAddOptions(db, nothing, programmeLead, meetingId, congregationId)).toEqual({
+        suggested: [],
+        others: [],
+        emptyKinds: [],
+      })
+    })
+  })
+})
+
+describe('addEventSchedule, as the route asks', () => {
+  it('adds for whoever may, refuses whoever may not, and finds nothing for another congregation', async () => {
+    await withMeeting(async ({ db, congregationId, programmeLead, dutyLead, meetingId, duties }) => {
+      const dutiesTemplate = await templateOf(db, duties.id)
+      await db.schedule.delete({ where: { id: duties.id } })
+      const source = { scheduleTemplateId: dutiesTemplate }
+      expect(await addEventSchedule(db, nothing, programmeLead, meetingId, source, congregationId)).toEqual({
+        refused: 'right',
+      })
+      expect(await addEventSchedule(db, nothing, dutyLead, meetingId, source, congregationId + 1)).toBeNull()
+      expect(await addEventSchedule(db, nothing, dutyLead, meetingId, source, congregationId)).toMatchObject({
+        schedule: { kind: 'duty' },
+      })
     })
   })
 })
