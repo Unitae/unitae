@@ -38,8 +38,15 @@ function speaker(id: number, name: string, extra: Record<string, unknown> = {}) 
   }
 }
 
+// The part's own schedule decides (plan §10, 5b): its event reads the opposite, as a half-published one can.
+const eventStatusBeside = (schedule: string) => (schedule === 'published' ? 'draft' : 'released')
+
 function part(externalSpeakerId: number, isoDate: string, eventId = 1, status = 'published') {
-  return { externalSpeakerId, event: { id: eventId, startDate: new Date(isoDate), status } }
+  return {
+    externalSpeakerId,
+    schedule: { status },
+    event: { id: eventId, startDate: new Date(isoDate), status: eventStatusBeside(status) },
+  }
 }
 
 describe('listSpeakerDirectory', () => {
@@ -93,22 +100,26 @@ describe('getSpeakerVisits', () => {
       {
         name: 'Discours public',
         topic: 'n° 54',
-        event: { id: 2, startDate: new Date('2026-03-08T10:00:00Z'), status: 'published' },
+        schedule: { status: 'published' },
+        event: { id: 2, startDate: new Date('2026-03-08T10:00:00Z'), status: eventStatusBeside('published') },
       },
       {
         name: 'Discours public',
         topic: '',
-        event: { id: 9, startDate: new Date('2027-02-07T10:00:00Z'), status: 'draft' },
+        schedule: { status: 'draft' },
+        event: { id: 9, startDate: new Date('2027-02-07T10:00:00Z'), status: eventStatusBeside('draft') },
       },
       {
         name: 'Discours public',
         topic: 'n° 131',
-        event: { id: 1, startDate: new Date('2024-06-02T10:00:00Z'), status: 'published' },
+        schedule: { status: 'published' },
+        event: { id: 1, startDate: new Date('2024-06-02T10:00:00Z'), status: eventStatusBeside('published') },
       },
       {
         name: 'Discours public',
         topic: 'n° 102',
-        event: { id: 7, startDate: new Date('2026-12-14T10:00:00Z'), status: 'draft' },
+        schedule: { status: 'draft' },
+        event: { id: 7, startDate: new Date('2026-12-14T10:00:00Z'), status: eventStatusBeside('draft') },
       },
     ])
 
@@ -116,7 +127,8 @@ describe('getSpeakerVisits', () => {
 
     expect(visits.upcoming.map(v => v.eventId)).toEqual([7, 9])
     expect(visits.past.map(v => v.eventId)).toEqual([2, 1])
-    expect(visits.past[0]).toMatchObject({ partName: 'Discours public', topic: 'n° 54', status: 'published' })
+    expect(visits.past[0]).toMatchObject({ partName: 'Discours public', topic: 'n° 54', status: 'released' })
+    expect(visits.upcoming[0]).toMatchObject({ eventId: 7, status: 'draft' })
   })
 })
 

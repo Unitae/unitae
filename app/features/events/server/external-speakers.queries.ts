@@ -5,6 +5,7 @@ import type {
   SpeakerNextVisit,
   SpeakerVisits,
 } from '~/features/events/model/external-speaker.type'
+import { itemStatusFor } from '~/features/events/model/schedule.type'
 import { PART_ITEMS } from '~/features/events/server/item-projection.server'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -31,12 +32,18 @@ async function summariseVisits(
   if (speakerIds.length === 0) return summaries
   const parts = await db.item.findMany({
     where: { congregationId, externalSpeakerId: { in: speakerIds }, ...PART_ITEMS },
-    select: { externalSpeakerId: true, event: { select: { id: true, startDate: true, status: true } } },
+    // Each visit by its programme's own schedule (plan §10, 5b), not by its event.
+    select: {
+      externalSpeakerId: true,
+      schedule: { select: { status: true } },
+      event: { select: { id: true, startDate: true } },
+    },
   })
   for (const part of parts) {
     if (part.externalSpeakerId == null) continue
     const summary = summaries.get(part.externalSpeakerId) ?? { ...NO_VISIT }
-    const { startDate, id, status } = part.event
+    const { startDate, id } = part.event
+    const status = itemStatusFor(part.schedule?.status)
     summary.visitCount += 1
     if (startDate < now) {
       if (summary.lastVisit == null || startDate > summary.lastVisit) summary.lastVisit = startDate
@@ -130,14 +137,19 @@ export async function getSpeakerVisits(
 ): Promise<SpeakerVisits> {
   const parts = await db.item.findMany({
     where: { congregationId, externalSpeakerId: speakerId, ...PART_ITEMS },
-    select: { name: true, topic: true, event: { select: { id: true, startDate: true, status: true } } },
+    select: {
+      name: true,
+      topic: true,
+      schedule: { select: { status: true } },
+      event: { select: { id: true, startDate: true } },
+    },
   })
   const visits = parts.map(p => ({
     eventId: p.event.id,
     date: p.event.startDate,
     partName: p.name,
     topic: p.topic,
-    status: p.event.status,
+    status: itemStatusFor(p.schedule?.status),
   }))
   return {
     upcoming: visits.filter(v => v.date >= now).sort((a, b) => a.date.getTime() - b.date.getTime()),
