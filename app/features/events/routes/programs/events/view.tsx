@@ -1,7 +1,8 @@
 import { redirect } from 'react-router'
 import { resolveProgrammeLink } from '~/features/display-board/index.server'
 import { isAwaitingProgramme, programmeTemplate } from '~/features/events/model/empty-meetings'
-import { mayOpenEvent } from '~/features/events/model/programme-access'
+import { mayOpenEvent, maySeeSchedule } from '~/features/events/model/programme-access'
+import { ScheduleKind } from '~/features/events/model/schedule.type'
 import { buildAssignmentCandidates } from '~/features/events/server/assignment-candidates.server'
 import { eventHasAttendance } from '~/features/events/server/attendance.queries'
 import { buildShareTextsForEvent } from '~/features/events/server/build-share-message.server'
@@ -63,7 +64,18 @@ export function loader({ params, context }: Route.LoaderArgs) {
     // As create-programme: an empty meeting of a kind takes its programme from whoever may change it (D28).
     const canCreateProgramme = canEdit && event.templateId != null
     const canAssignAnything = canAssign || canAssignService
-    refuseDraft(event.status, { canEdit, canPublish, canAssign, canAssignService })
+    const rights = { canEdit, canPublish, canAssign, canAssignService }
+    refuseDraft(event.status, rights)
+    // A draft schedule reaches only whoever may act on it (spec §5.3, D45): the others' items never leave the server.
+    // By kind, while an event holds one schedule of each (see maySeeSchedule).
+    const hidden = new Set(event.schedules.filter(schedule => !maySeeSchedule(schedule, rights)).map(s => s.kind))
+    // Not even that a hidden schedule exists: its status leaves with neither its items nor the list of schedules.
+    const shown = {
+      ...event,
+      schedules: event.schedules.filter(schedule => !hidden.has(schedule.kind)),
+      eventParts: hidden.has(ScheduleKind.Programme) ? [] : event.eventParts,
+      eventServiceParts: hidden.has(ScheduleKind.Duty) ? [] : event.eventServiceParts,
+    }
 
     // The delete dialog says what deleting does: with counts, only the programme goes.
     const hasAttendance = canDelete && (await eventHasAttendance(db, eventId, congregationId))
@@ -96,11 +108,12 @@ export function loader({ params, context }: Route.LoaderArgs) {
     logger.info(`Loading event programme. User ID: ${currentUser.id}. Event ID: ${eventId}.`)
 
     return {
-      event,
+      event: shown,
       // Created ahead and still empty: the page offers « Créer le programme » instead of publishing it.
+      // From what this reader sees: a programme hidden from them is, for them, still to come.
       awaitingProgramme: isAwaitingProgramme({
-        parts: event.eventParts.length,
-        services: event.eventServiceParts.length,
+        parts: shown.eventParts.length,
+        services: shown.eventServiceParts.length,
         template: programmeTemplate(event.template),
       }),
       hasAttendance,

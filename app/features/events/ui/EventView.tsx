@@ -5,6 +5,7 @@ import { Link, useFetcher } from 'react-router'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import type { ExternalSpeakerOption } from '~/features/events/model/external-speaker.type'
 import { parseAssignKey } from '~/features/events/model/reassign'
+import { ScheduleKind } from '~/features/events/model/schedule.type'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { Button } from '~/shared/ui/button'
@@ -36,6 +37,8 @@ interface EventViewProps {
     endDate: Date | string
     eventParts: AssignedPart[]
     eventServiceParts: AssignedService[]
+    /** The schedules this reader may see: the others never reach the page (maySeeSchedule, D45). */
+    schedules: { kind: string }[]
   }
   /** A meeting created ahead with no programme yet: « Créer le programme » replaces publishing it. */
   awaitingProgramme: boolean
@@ -141,6 +144,11 @@ export function EventView({
     fetcher: serviceFetcher,
   }
 
+  // A block for each schedule the reader sees, and the programme while it waits to be created: nothing on the page
+  // tells of a schedule hidden from them (D45).
+  const shownKinds = new Set(event.schedules.map(schedule => schedule.kind))
+  const showsProgramme = awaitingProgramme || shownKinds.has(ScheduleKind.Programme)
+  const showsDuties = shownKinds.has(ScheduleKind.Duty)
   const assignedParts = event.eventParts.filter(item => item.assigneeId ?? item.externalSpeakerId).length
   const filledServices = event.eventServiceParts.filter(item => item.assigneeId).length
   const date = formatEventDate(event.startDate, timezone, getLocale(), {
@@ -169,7 +177,7 @@ export function EventView({
             ) : (
               <Status tone="success">{m.programs_view_released()}</Status>
             )}
-            {!awaitingProgramme && (
+            {!awaitingProgramme && showsProgramme && (
               <span>
                 {m.programs_view_parts_assigned({
                   count: assignedParts,
@@ -230,24 +238,28 @@ export function EventView({
 
       <div className="flex flex-wrap items-start gap-6">
         <div className="flex min-w-0 flex-[3_1_560px] flex-col gap-6">
-          <EventAssignmentsPanel
-            parts={event.eventParts}
-            canAssign={canAssign}
-            canViewPublishers={canViewPublishers}
-            shareTexts={shareTexts}
-            selectedId={target?.kind === 'part' ? target.id : null}
-            onAssign={(item, trigger) => panel.request({ kind: 'part', id: item.id, trigger })}
-            onUnassign={setUnassignTarget}
-            emptyHint={awaitingProgramme ? m.programs_awaiting_hint() : undefined}
-          />
-          <EventServiceAssignmentsPanel
-            services={event.eventServiceParts}
-            canAssign={canAssignService}
-            canViewPublishers={canViewPublishers}
-            selectedId={target?.kind === 'service' ? target.id : null}
-            onAssign={(item, trigger) => panel.request({ kind: 'service', id: item.id, trigger })}
-            onUnassign={setUnassignTarget}
-          />
+          {showsProgramme && (
+            <EventAssignmentsPanel
+              parts={event.eventParts}
+              canAssign={canAssign}
+              canViewPublishers={canViewPublishers}
+              shareTexts={shareTexts}
+              selectedId={target?.kind === 'part' ? target.id : null}
+              onAssign={(item, trigger) => panel.request({ kind: 'part', id: item.id, trigger })}
+              onUnassign={setUnassignTarget}
+              emptyHint={awaitingProgramme ? m.programs_awaiting_hint() : undefined}
+            />
+          )}
+          {showsDuties && (
+            <EventServiceAssignmentsPanel
+              services={event.eventServiceParts}
+              canAssign={canAssignService}
+              canViewPublishers={canViewPublishers}
+              selectedId={target?.kind === 'service' ? target.id : null}
+              onAssign={(item, trigger) => panel.request({ kind: 'service', id: item.id, trigger })}
+              onUnassign={setUnassignTarget}
+            />
+          )}
         </div>
 
         {panel.docked && target != null && (part != null || service != null) && (

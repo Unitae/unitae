@@ -81,9 +81,9 @@ describe('listUserCadence', () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([
         // Prisma returned newest-first (desc)
-        { id: 3, startDate: new Date('2026-06-01'), items: [] },
-        { id: 2, startDate: new Date('2026-05-01'), items: [] },
-        { id: 1, startDate: new Date('2026-04-01'), items: [] },
+        { id: 3, startDate: new Date('2026-06-01'), schedules: [], items: [] },
+        { id: 2, startDate: new Date('2026-05-01'), schedules: [], items: [] },
+        { id: 1, startDate: new Date('2026-04-01'), schedules: [], items: [] },
       ] as never)
       .mockResolvedValueOnce([] as never)
 
@@ -102,6 +102,7 @@ describe('listUserCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
+          schedules: [],
           items: [{ name: 'Bible Reading', section: 'Ministry', assigneeId: 5, assistantId: null }],
         },
       ] as never)
@@ -118,6 +119,7 @@ describe('listUserCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
+          schedules: [],
           items: [{ name: 'Bible Reading', section: 'Ministry', assigneeId: 99, assistantId: 5 }],
         },
       ] as never)
@@ -137,6 +139,7 @@ describe('listUserCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
+          schedules: [],
           items: [{ name: 'Bible Reading', section: 'Ministry', assigneeId: 99, assistantId: 5 }],
         },
       ] as never)
@@ -153,6 +156,7 @@ describe('listUserCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
+          schedules: [],
           items: [{ name: 'Bible Reading', section: 'Ministry', assigneeId: 5, assistantId: null }],
         },
       ] as never)
@@ -169,6 +173,7 @@ describe('listUserCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
+          schedules: [],
           items: [{ name: 'Bible Reading', section: 'Ministry', assigneeId: 99, assistantId: 42 }],
         },
       ] as never)
@@ -181,7 +186,7 @@ describe('listUserCadence', () => {
 
   it('marks assigned=false when the event has no matching part assignment', async () => {
     vi.mocked(db.event.findMany)
-      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-04-01'), items: [] }] as never)
+      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-04-01'), schedules: [], items: [] }] as never)
       .mockResolvedValueOnce([] as never)
 
     const result = await listUserCadence(db, DEFAULT_ARGS)
@@ -195,6 +200,7 @@ describe('listUserCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
+          schedules: [],
           items: [
             { name: 'Song', section: 'Ministry', assigneeId: 5, assistantId: null },
             { name: 'Bible Reading', section: 'Ministry', assigneeId: 99, assistantId: null },
@@ -214,6 +220,7 @@ describe('listUserCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
+          schedules: [],
           items: [
             // Same name, different section — must NOT feed the cadence.
             { name: 'Bible Reading', section: 'Weekend', assigneeId: 5, assistantId: null },
@@ -233,6 +240,7 @@ describe('listUserCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
+          schedules: [],
           items: [{ name: 'Bible Reading', section: 'Ministry', assigneeId: 5, assistantId: null }],
         },
       ] as never)
@@ -249,6 +257,7 @@ describe('listUserCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
+          schedules: [],
           items: [{ name: '  Bible Reading  ', section: ' Ministry ', assigneeId: 5, assistantId: null }],
         },
       ] as never)
@@ -265,6 +274,7 @@ describe('listUserCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
+          schedules: [],
           items: [{ name: 'bible reading', section: 'MINISTRY', assigneeId: 5, assistantId: null }],
         },
       ] as never)
@@ -281,6 +291,7 @@ describe('listUserCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
+          schedules: [],
           items: [{ name: 'Bible Reading', section: 'ministere', assigneeId: 5, assistantId: null }],
         },
       ] as never)
@@ -300,6 +311,7 @@ describe('listUserCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
+          schedules: [],
           items: [
             {
               name: 'Bible Reading',
@@ -316,6 +328,7 @@ describe('listUserCadence', () => {
         {
           id: 2,
           startDate: new Date('2026-08-01'),
+          schedules: [],
           items: [
             {
               name: 'Bible Reading',
@@ -349,6 +362,7 @@ describe('listUserCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
+          schedules: [],
           items: [
             {
               name: 'Bible Reading',
@@ -374,6 +388,7 @@ describe('listUserCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
+          schedules: [],
           items: [
             {
               name: 'Bible Reading',
@@ -395,7 +410,7 @@ describe('listUserCadence', () => {
 
   it('returns personName=null when no matching part assignment exists on the historical event', async () => {
     vi.mocked(db.event.findMany)
-      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-04-01'), items: [] }] as never)
+      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-04-01'), schedules: [], items: [] }] as never)
       .mockResolvedValueOnce([] as never)
 
     const result = await listUserCadence(db, DEFAULT_ARGS)
@@ -455,7 +470,9 @@ describe('listUserCadence', () => {
 
   it("propagates event.status as 'draft' when the past row is a draft", async () => {
     vi.mocked(db.event.findMany)
-      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-04-01'), status: 'draft', items: [] }] as never)
+      .mockResolvedValueOnce([
+        { id: 1, startDate: new Date('2026-04-01'), status: 'draft', schedules: [], items: [] },
+      ] as never)
       .mockResolvedValueOnce([] as never)
 
     const result = await listUserCadence(db, DEFAULT_ARGS)
@@ -463,9 +480,26 @@ describe('listUserCadence', () => {
     expect(result.past[0].status).toBe('draft')
   })
 
+  it('reads a row by its programme’s own schedule, not its event (plan §10, 5b)', async () => {
+    vi.mocked(db.event.findMany)
+      .mockResolvedValueOnce([
+        { id: 1, startDate: new Date('2026-04-01'), status: 'released', schedules: [{ status: 'draft' }], items: [] },
+      ] as never)
+      .mockResolvedValueOnce([
+        { id: 2, startDate: new Date('2026-08-01'), status: 'draft', schedules: [{ status: 'published' }], items: [] },
+      ] as never)
+
+    const result = await listUserCadence(db, DEFAULT_ARGS)
+
+    expect(result.past[0].status).toBe('draft')
+    expect(result.future[0].status).toBe('released')
+  })
+
   it("buckets unknown Event.status values as 'released' (fallback contract)", async () => {
     vi.mocked(db.event.findMany)
-      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-04-01'), status: 'cancelled', items: [] }] as never)
+      .mockResolvedValueOnce([
+        { id: 1, startDate: new Date('2026-04-01'), status: 'cancelled', schedules: [], items: [] },
+      ] as never)
       .mockResolvedValueOnce([] as never)
 
     const result = await listUserCadence(db, DEFAULT_ARGS)
@@ -476,7 +510,9 @@ describe('listUserCadence', () => {
   it("propagates event.status as 'draft' when the future row is a draft", async () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([] as never)
-      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-08-01'), status: 'draft', items: [] }] as never)
+      .mockResolvedValueOnce([
+        { id: 1, startDate: new Date('2026-08-01'), status: 'draft', schedules: [], items: [] },
+      ] as never)
 
     const result = await listUserCadence(db, DEFAULT_ARGS)
 
@@ -497,6 +533,7 @@ describe('listUserCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
+          schedules: [],
           items: [
             {
               name: 'Bible Reading',

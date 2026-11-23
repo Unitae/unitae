@@ -1,4 +1,5 @@
 import type { CadenceEntry, CadenceHelperResult, CadencePayload, PartSlot } from '~/features/events/model/cadence.type'
+import { itemStatusFor, ScheduleKind } from '~/features/events/model/schedule.type'
 import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 
 export type { CadenceEntry, CadenceHelperResult, CadencePayload, PartSlot }
@@ -36,4 +37,18 @@ export function normalize(input: string): string {
 // documents the fall-through so behaviour is discoverable at the boundary.
 export function toCadenceStatus(rawStatus: unknown): 'draft' | 'released' {
   return rawStatus === 'draft' ? 'draft' : 'released'
+}
+
+/** What a cadence row selects of its schedules: its programme's, which holds the parts the strip shows. */
+export const PROGRAMME_SCHEDULE_SELECT = {
+  schedules: { where: { kind: ScheduleKind.Programme }, select: { status: true } },
+} as const
+
+/**
+ * A cadence row's status by its programme's own schedule (plan §10, 5b), not its event: a meeting whose duties alone
+ * are published reads as a draft here. A row without a programme holds no part, and keeps its event's own label.
+ */
+export function cadenceStatusOf(row: { status: string; schedules: { status: string }[] }): 'draft' | 'released' {
+  const programme = row.schedules[0]
+  return toCadenceStatus(programme == null ? row.status : itemStatusFor(programme.status))
 }

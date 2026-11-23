@@ -196,7 +196,7 @@ export async function getContentVersion(
     if (config) {
       // Multi-template: check across all configured templates
       const templateIds = config.templates.map(t => t.templateId)
-      const [event, assignment] = await Promise.all([
+      const [event, assignment, schedule] = await Promise.all([
         db.event.findFirst({
           where: {
             congregationId,
@@ -220,13 +220,19 @@ export async function getContentVersion(
           orderBy: { updatedAt: 'desc' },
           select: { updatedAt: true },
         }),
+        // A schedule published or withdrawn on its own touches no event any more (plan §10, 5b).
+        db.schedule.findFirst({
+          where: { congregationId, event: { templateId: { in: templateIds }, startDate: { gte: fromDate } } },
+          orderBy: { updatedAt: 'desc' },
+          select: { updatedAt: true },
+        }),
       ])
-      return maxDate(event?.updatedAt, assignment?.updatedAt)
+      return maxDate(event?.updatedAt, assignment?.updatedAt, schedule?.updatedAt)
     }
 
     // Legacy: single template via dynamicRef
     if (dynamicRef) {
-      const [event, assignment] = await Promise.all([
+      const [event, assignment, schedule] = await Promise.all([
         db.event.findFirst({
           where: {
             congregationId,
@@ -250,8 +256,13 @@ export async function getContentVersion(
           orderBy: { updatedAt: 'desc' },
           select: { updatedAt: true },
         }),
+        db.schedule.findFirst({
+          where: { congregationId, event: { template: { key: dynamicRef }, startDate: { gte: fromDate } } },
+          orderBy: { updatedAt: 'desc' },
+          select: { updatedAt: true },
+        }),
       ])
-      return maxDate(event?.updatedAt, assignment?.updatedAt)
+      return maxDate(event?.updatedAt, assignment?.updatedAt, schedule?.updatedAt)
     }
   }
 

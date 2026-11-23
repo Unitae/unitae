@@ -77,6 +77,7 @@ describe('listExternalSpeakerCadence — assigned + personName', () => {
           id: 1,
           startDate: new Date('2026-04-01'),
           status: 'released',
+          schedules: [],
           items: [
             {
               name: 'Discours public',
@@ -104,6 +105,7 @@ describe('listExternalSpeakerCadence — assigned + personName', () => {
           id: 1,
           startDate: new Date('2026-04-01'),
           status: 'released',
+          schedules: [],
           items: [
             {
               name: 'Discours public',
@@ -131,6 +133,7 @@ describe('listExternalSpeakerCadence — assigned + personName', () => {
           id: 1,
           startDate: new Date('2026-04-01'),
           status: 'released',
+          schedules: [],
           items: [
             {
               name: 'Discours public',
@@ -163,6 +166,7 @@ describe('listExternalSpeakerCadence — assigned + personName', () => {
           id: 1,
           startDate: new Date('2026-04-01'),
           status: 'released',
+          schedules: [],
           items: [
             {
               name: 'Discours public',
@@ -184,7 +188,9 @@ describe('listExternalSpeakerCadence — assigned + personName', () => {
 
   it('returns personName=null when the event has no matching part assignment', async () => {
     vi.mocked(db.event.findMany)
-      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-04-01'), status: 'released', items: [] }] as never)
+      .mockResolvedValueOnce([
+        { id: 1, startDate: new Date('2026-04-01'), status: 'released', schedules: [], items: [] },
+      ] as never)
       .mockResolvedValueOnce([] as never)
 
     const result = await listExternalSpeakerCadence(db, DEFAULT_ARGS)
@@ -197,7 +203,9 @@ describe('listExternalSpeakerCadence — assigned + personName', () => {
   // don't accidentally coerce past status to 'released'.
   it("propagates event.status as 'draft' when the past row is a draft", async () => {
     vi.mocked(db.event.findMany)
-      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-04-01'), status: 'draft', items: [] }] as never)
+      .mockResolvedValueOnce([
+        { id: 1, startDate: new Date('2026-04-01'), status: 'draft', schedules: [], items: [] },
+      ] as never)
       .mockResolvedValueOnce([] as never)
 
     const result = await listExternalSpeakerCadence(db, DEFAULT_ARGS)
@@ -207,7 +215,9 @@ describe('listExternalSpeakerCadence — assigned + personName', () => {
 
   it("bucket unknown Event.status values as 'released' (fallback contract)", async () => {
     vi.mocked(db.event.findMany)
-      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-04-01'), status: 'cancelled', items: [] }] as never)
+      .mockResolvedValueOnce([
+        { id: 1, startDate: new Date('2026-04-01'), status: 'cancelled', schedules: [], items: [] },
+      ] as never)
       .mockResolvedValueOnce([] as never)
 
     const result = await listExternalSpeakerCadence(db, DEFAULT_ARGS)
@@ -218,7 +228,9 @@ describe('listExternalSpeakerCadence — assigned + personName', () => {
   it("propagates event.status as 'draft' when the future row is a draft", async () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([] as never)
-      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-08-01'), status: 'draft', items: [] }] as never)
+      .mockResolvedValueOnce([
+        { id: 1, startDate: new Date('2026-08-01'), status: 'draft', schedules: [], items: [] },
+      ] as never)
 
     const result = await listExternalSpeakerCadence(db, DEFAULT_ARGS)
 
@@ -234,6 +246,7 @@ describe('listExternalSpeakerCadence — anchor matching + hasHistory', () => {
           id: 1,
           startDate: new Date('2026-04-01'),
           status: 'released',
+          schedules: [],
           items: [
             {
               name: 'Cantique',
@@ -260,6 +273,7 @@ describe('listExternalSpeakerCadence — anchor matching + hasHistory', () => {
           id: 1,
           startDate: new Date('2026-04-01'),
           status: 'released',
+          schedules: [],
           items: [
             {
               name: '  DISCOURS PUBLIC  ',

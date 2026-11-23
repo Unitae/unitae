@@ -38,6 +38,14 @@ export const SCHEDULE_ORDER: Readonly<Record<ScheduleKind, number>> = {
   [ScheduleKind.Duty]: 1,
 }
 
+/**
+ * An item's status in the words the screens read until they draw each schedule (5c): released when its schedule is
+ * published, a draft otherwise, an item outside any schedule included (members never see it).
+ */
+export function itemStatusFor(scheduleStatus: string | null | undefined): EventStatus {
+  return scheduleStatus === ScheduleStatus.Published ? EventStatus.Released : EventStatus.Draft
+}
+
 /** A schedule's status while it follows its event's: published when the event is released, a draft otherwise. */
 export function scheduleStatusFor(eventStatus: string): ScheduleStatus {
   return eventStatus === EventStatus.Released ? ScheduleStatus.Published : ScheduleStatus.Draft
