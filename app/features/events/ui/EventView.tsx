@@ -1,30 +1,21 @@
-import { SidePanel, Status } from '@unitae/ui'
-import { CalendarDays, FileText, ListPlus, Loader2, MoreHorizontal, Pencil, Send, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Link, useFetcher } from 'react-router'
-import { EventStatus } from '~/features/events/model/event-status.type'
+import { useFetcher } from 'react-router'
 import type { ExternalSpeakerOption } from '~/features/events/model/external-speaker.type'
 import { parseAssignKey } from '~/features/events/model/reassign'
 import { ScheduleKind } from '~/features/events/model/schedule.type'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
-import { Button } from '~/shared/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
 import { useCloseOnSave } from '~/shared/ui/hooks/use-close-on-save'
 import { useOpenParam } from '~/shared/ui/hooks/use-open-param'
 import { useSideEditor } from '~/shared/ui/hooks/use-side-editor'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
-import { sidePanelWalk } from '~/shared/ui/ListWithPanel'
-import { PageHeader } from '~/shared/ui/PageHeader'
-import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { DiscardChangesDialog, UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { formatEventDate, formatEventTime } from '~/shared/utils/event-time'
-import { ASSIGN_PART_FORM_ID, AssignPartEditor, assignPartCopy, type PersonOption } from './AssignPartEditor'
-import { AssignPartSheet } from './AssignPartSheet'
-import { ASSIGN_SERVICE_FORM_ID, AssignServiceEditor } from './AssignServiceEditor'
-import { AssignServiceSheet } from './AssignServiceSheet'
+import type { PersonOption } from './AssignPartEditor'
 import { DeleteEventDialog } from './DeleteEventDialog'
 import { type AssignedPart, EventAssignmentsPanel, type UnassignTarget } from './EventAssignmentsPanel'
+import { EventHeader } from './EventHeader'
+import { EventItemEditor } from './EventItemEditor'
 import { type AssignedService, EventServiceAssignmentsPanel } from './EventServiceAssignmentsPanel'
 import { UnassignConfirmDialog } from './UnassignConfirmDialog'
 
@@ -162,87 +153,28 @@ export function EventView({
     year: 'numeric',
   })
   const times = `${formatEventTime(event.startDate, timezone)} – ${formatEventTime(event.endDate, timezone)}`
-  const partCopy = part ? assignPartCopy(part) : null
 
   return (
     // The marker lets the app shell stop clipping as a scroll container, so the docked editor can stick.
     <div data-sticky-content="">
       <UnsavedChangesDialog blocker={blocker} />
-      <PageHeader
-        icon={CalendarDays}
-        title={event.name}
+      <EventHeader
+        event={{ id: event.id, name: event.name, status: event.status }}
         subtitle={`${date} · ${times}`}
-        meta={
-          <>
-            {awaitingProgramme ? (
-              <Status tone="neutral">{m.programs_awaiting_badge()}</Status>
-            ) : event.status === EventStatus.Draft ? (
-              <Status tone="warning">{m.programs_event_draft_badge()}</Status>
-            ) : (
-              <Status tone="success">{m.programs_view_released()}</Status>
-            )}
-            {!awaitingProgramme && showsProgramme && (
-              <span>
-                {m.programs_view_parts_assigned({
-                  count: assignedParts,
-                  total: event.eventParts.length,
-                })}
-              </span>
-            )}
-            {event.eventServiceParts.length > 0 && (
-              <span>
-                {m.programs_view_services_filled({
-                  count: filledServices,
-                  total: event.eventServiceParts.length,
-                })}
-              </span>
-            )}
-          </>
+        awaitingProgramme={awaitingProgramme}
+        partsAssigned={
+          showsProgramme && !awaitingProgramme ? { count: assignedParts, total: event.eventParts.length } : null
         }
-        breadcrumbs={[{ label: m.sidebar_programs(), to: '/programs' }, { label: event.name }]}
-        actions={
-          (canRelease || canUnrelease || canEdit) && (
-            <>
-              {awaitingProgramme ? (
-                canCreateProgramme && <CreateProgrammeButton eventId={event.id} />
-              ) : (
-                <>
-                  {canRelease && <PublishButton eventId={event.id} release />}
-                  {canUnrelease && <PublishButton eventId={event.id} release={false} />}
-                </>
-              )}
-              {canEdit && (
-                <>
-                  <Button variant="outline" asChild>
-                    <Link to={`/programs/events/${event.id}/edit`}>
-                      <Pencil />
-                      {m.common_edit()}
-                    </Link>
-                  </Button>
-                  {/* An empty meeting with counts has nothing left to delete: the meeting and its attendance stay. */}
-                  {canDelete && !(awaitingProgramme && hasAttendance) && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" aria-label={m.common_more_actions()}>
-                          <MoreHorizontal />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onSelect={() => setDeleting(true)}
-                        >
-                          <Trash2 />
-                          {m.common_delete()}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </>
-              )}
-            </>
-          )
+        servicesFilled={
+          event.eventServiceParts.length > 0 ? { count: filledServices, total: event.eventServiceParts.length } : null
         }
+        canRelease={canRelease}
+        canUnrelease={canUnrelease}
+        canEdit={canEdit}
+        canCreateProgramme={canCreateProgramme}
+        // An empty meeting with counts has nothing left to delete: the meeting and its attendance stay.
+        canDelete={canDelete && !(awaitingProgramme && hasAttendance)}
+        onDelete={() => setDeleting(true)}
       />
 
       <div className="flex flex-wrap items-start gap-6">
@@ -271,65 +203,26 @@ export function EventView({
           )}
         </div>
 
-        {panel.docked && target != null && (part != null || service != null) && (
-          // `contents` keeps the panel a flex item of the row while its key presses reach the walk.
-          // biome-ignore lint/a11y/noStaticElementInteractions: the keys belong to the focusable panel inside
-          <div className="contents" onKeyDown={walk?.onKeyDown}>
-            <SidePanel
-              key={`${target.kind}-${target.id}`}
-              title={part ? partCopy?.title : service?.name}
-              description={partCopy?.description}
-              closeLabel={m.common_close()}
-              onClose={() => panel.request(null)}
-              returnFocus={target.trigger}
-              walk={sidePanelWalk(
-                walk,
-                part
-                  ? { previous: m.programs_panel_previous_part(), next: m.programs_panel_next_part() }
-                  : { previous: m.programs_panel_previous_service(), next: m.programs_panel_next_service() },
-              )}
-              footer={
-                <>
-                  <Button type="button" variant="ghost" onClick={panel.close}>
-                    {m.common_cancel()}
-                  </Button>
-                  <SubmitButton
-                    form={part ? ASSIGN_PART_FORM_ID : ASSIGN_SERVICE_FORM_ID}
-                    disabled={(part ? partFetcher : serviceFetcher).state !== 'idle'}
-                  >
-                    {m.common_save()}
-                  </SubmitButton>
-                </>
-              }
-            >
-              {part ? (
-                <AssignPartEditor key={part.id} part={part} {...partEditor} formRef={panel.formRef} />
-              ) : (
-                service && (
-                  <AssignServiceEditor key={service.id} service={service} {...serviceEditor} formRef={panel.formRef} />
-                )
-              )}
-            </SidePanel>
-          </div>
-        )}
+        <EventItemEditor
+          panel={panel}
+          part={part}
+          service={service}
+          walk={walk}
+          partEditor={partEditor}
+          serviceEditor={serviceEditor}
+          placement="docked"
+        />
       </div>
 
-      {!panel.docked && (
-        <>
-          <AssignPartSheet
-            open={part != null}
-            onOpenChange={next => !next && panel.close()}
-            part={part ?? null}
-            {...partEditor}
-          />
-          <AssignServiceSheet
-            open={service != null}
-            onOpenChange={next => !next && panel.close()}
-            service={service ?? null}
-            {...serviceEditor}
-          />
-        </>
-      )}
+      <EventItemEditor
+        panel={panel}
+        part={part}
+        service={service}
+        walk={walk}
+        partEditor={partEditor}
+        serviceEditor={serviceEditor}
+        placement="sheet"
+      />
 
       <DiscardChangesDialog
         {...panel.discard}
@@ -354,39 +247,5 @@ export function EventView({
         />
       )}
     </div>
-  )
-}
-
-function CreateProgrammeButton({ eventId }: { eventId: number }) {
-  const fetcher = useFetcher<{ ok: boolean }>()
-  const inFlight = fetcher.state !== 'idle'
-  return (
-    <Button
-      onClick={() => fetcher.submit({}, { method: 'POST', action: `/programs/events/${eventId}/create-programme` })}
-      disabled={inFlight}
-    >
-      {inFlight ? <Loader2 className="animate-spin" /> : <ListPlus />}
-      {m.programs_create_programme_button()}
-    </Button>
-  )
-}
-
-/** « Publier » (every draft schedule of the reader's) or « Retirer » (every published one), D43. */
-function PublishButton({ eventId, release }: { eventId: number; release: boolean }) {
-  const fetcher = useFetcher<{ ok: boolean }>()
-  const action = release ? `/programs/events/${eventId}/release` : `/programs/events/${eventId}/unrelease`
-  const label = release ? m.programs_event_release_button() : m.programs_event_unrelease_button()
-  const Icon = release ? Send : FileText
-  const inFlight = fetcher.state !== 'idle'
-
-  return (
-    <Button
-      variant={release ? 'default' : 'outline'}
-      onClick={() => fetcher.submit({}, { method: 'POST', action })}
-      disabled={inFlight}
-    >
-      {inFlight ? <Loader2 className="animate-spin" /> : <Icon />}
-      {label}
-    </Button>
   )
 }
