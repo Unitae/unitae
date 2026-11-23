@@ -38,7 +38,13 @@ export type ReleaseResult =
 // invariant is introduced.
 export type UnreleaseResult = { event: EventWithStatus }
 
-const ASSIGNMENT_SELECT = { id: true, name: true, hasConflict: true, assigneeId: true, assistantId: true } as const
+export const ASSIGNMENT_SELECT = {
+  id: true,
+  name: true,
+  hasConflict: true,
+  assigneeId: true,
+  assistantId: true,
+} as const
 
 /** An event with its parts and services, read from items (plan T12), in the shape the release checks take. */
 async function eventWithAssignments(db: TransactionClient, eventId: number, congregationId: number) {
