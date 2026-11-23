@@ -27,6 +27,7 @@ const {
   canPublishEvent,
   filterEventsByRight,
   responsibleKindIds,
+  scheduleRightsFor,
 } = await import('./schedule-rights.server')
 const { syncTemplateScheduleTemplates } = await import('./schedule-templates.server')
 
@@ -478,6 +479,54 @@ describe('Bulk publish and delete: per selected event, by the rule above', () =>
           await filterEventsByRight(db, only(Permission.CanManagePrograms), ids, nobody, congregationId, 'delete')
         ).sort(),
       ).toEqual([meeting.id, weekend.id].sort())
+    })
+  })
+})
+
+// The screens list many events at once (plan §10, 5a-3): scheduleRightsFor reads them together and must answer exactly
+// what each single rule answers, for every reader and every shape of event.
+describe('The rights of many events at once agree with each rule', () => {
+  it('gives every account, on every event, what canChangeEvent, canDeleteEvent, canPublishEvent and canFillSchedule give', async () => {
+    await inCongregation(async fixture => {
+      const { db, congregationId, programmeLead, dutyLead, weekendLead, nobody, meeting } = fixture
+      const events = [
+        meeting,
+        await weekendMeeting(fixture),
+        await midweekEventWith(fixture, ['programme'], '2027-08-19'),
+        await midweekEventWith(fixture, [], '2027-08-26'),
+      ]
+      const noKind = await db.event.create({
+        data: {
+          name: 'Import',
+          startDate: new Date('2027-09-02T17:00:00Z'),
+          endDate: new Date('2027-09-02T19:00:00Z'),
+          congregationId,
+        },
+      })
+      events.push({ id: noKind.id, templateId: null })
+      const readers: [number, Can][] = [
+        [programmeLead, nothing],
+        [dutyLead, nothing],
+        [weekendLead, nothing],
+        [nobody, nothing],
+        [nobody, only(Permission.CanManagePrograms)],
+        [nobody, only(Permission.CanPublishPrograms)],
+        [nobody, only(Permission.CanAssignProgramParts)],
+      ]
+      for (const [userId, can] of readers) {
+        const batch = await scheduleRightsFor(db, can, userId, events, congregationId)
+        for (const event of events) {
+          expect({ event: event.id, userId, ...batch.get(event.id) }).toEqual({
+            event: event.id,
+            userId,
+            canEdit: await canChangeEvent(db, can, userId, event, congregationId),
+            canDelete: await canDeleteEvent(db, can, userId, event, congregationId),
+            canPublish: await canPublishEvent(db, can, userId, event, congregationId),
+            canAssignParts: await canFillSchedule(db, can, userId, event, 'part', congregationId),
+            canAssignServices: await canFillSchedule(db, can, userId, event, 'service', congregationId),
+          })
+        }
+      }
     })
   })
 })
