@@ -518,7 +518,10 @@ holding such a schedule rather than events whose status is a draft. Each with it
 **After 5b (from the 5b reviews):** the bulk confirmation listing what will publish and what stays a draft, and why
 (D42), comes with 8a, when the list selects schedules; the « Brouillons » view and count follow the event's status
 until then (D51). The end-to-end test publishing the duties before the programme comes with 5c, when each schedule has
-its own button; EventView (392 of 400 lines) is split first.
+its own button; EventView (392 of 400 lines) is split first. For PR 6/7: once a schedule template can exist without a kind suggesting it, the bulk
+publishing gate (`canManageAnyProgram`, through `responsibleKindIds`) becomes « holds a publishable schedule »
+(`publishableScheduleIds` over the selection); once an event can hold a second duty schedule, `maySeeSchedule` and the
+event page's hidden set (by kind today) take a right per schedule, as canFillSchedule and conflictAction do.
 
 **Creation** (D12): the form pre-selects the kind's suggested schedules, each untickable; a
 responsible sees their own ticked and the others as drafts created with it. `programs/new.tsx`,
