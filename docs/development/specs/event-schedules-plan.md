@@ -499,6 +499,16 @@ The board documents' « à jour » stamp (`getContentVersion`) takes the schedul
 schedule touches no event any more. The share message's draft check and the managers' draft labels follow the
 schedule's status.
 
+**5b slices (decided 2026-11-23):** 5b-1 the server: `publishSchedule`, `unpublishSchedule` and `canPublishSchedule`
+(« Publier », or the responsible of that schedule's template) in `schedule-status.server.ts`; `Event.status` stays
+written until PR 6, derived: released when any schedule is published (D51). A schedule is refused when its own items
+hold a conflict, and a programme schedule when it is empty; duties have no such refusal. 5b-2 the readers: every
+decision about an item reads its schedule's status, not the event's (assignment writers, the notification gate and
+its context, the share message, external speakers, open parts, empty meetings, the board's « à jour »). 5b-3 the
+routes: `events/:eventId/schedules/:scheduleId/publish` and `/unpublish`; the event-level routes become « Tout
+publier » / « Tout retirer » (D43), saying how many schedules they skipped; the bulk routes keep taking event ids,
+each acting as « Tout publier », until the list selects schedules (8a). One deploy after 5b-3.
+
 **Creation** (D12): the form pre-selects the kind's suggested schedules, each untickable; a
 responsible sees their own ticked and the others as drafts created with it. `programs/new.tsx`,
 `ui/creation/use-programme-creation.ts`, `CreationSingleSections.tsx`, `schemas/program-new.schema.ts`,
