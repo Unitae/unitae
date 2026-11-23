@@ -18,7 +18,8 @@ const testDb = new PrismaClient({ adapter })
 
 const { seedDefaultTemplates, syncTemplateScheduleTemplates } = await import('~/features/events/index.server')
 const { createProgrammeOnDay } = await import('./programme-creation.server')
-const { publishableScheduleIds, publishEvent, unpublishEvent } = await import('./event-publishing.server')
+const { publishableScheduleIds, publishEvent, publishEventSchedule, unpublishEvent, unpublishEventSchedule } =
+  await import('./event-publishing.server')
 
 class Rollback extends Error {}
 
@@ -231,6 +232,33 @@ describe('unpublishEvent, « Tout retirer »', () => {
       expect(await unpublishEvent(db, nothing, actorId, meetingId, congregationId)).toEqual({ refused: true })
       expect(await unpublishEvent(db, publishes, actorId, meetingId, congregationId)).toMatchObject({ changed: true })
       expect((await db.event.findFirstOrThrow({ where: { id: meetingId } })).status).toBe('draft')
+    })
+  })
+})
+
+describe('one schedule of an event', () => {
+  it('publishes and withdraws it for its responsible, and refuses another’s', async () => {
+    await withMeeting(async ({ db, congregationId, dutyLead, meetingId, programme, duties, statuses }) => {
+      expect(await publishEventSchedule(db, nothing, dutyLead, meetingId, programme.id, congregationId)).toEqual({
+        refused: true,
+      })
+      expect(await publishEventSchedule(db, nothing, dutyLead, meetingId, duties.id, congregationId)).toMatchObject({
+        event: { id: meetingId },
+        result: { changed: true },
+      })
+      expect(await statuses()).toEqual({ programme: 'draft', duty: 'published', event: 'released' })
+
+      expect(await unpublishEventSchedule(db, nothing, dutyLead, meetingId, duties.id, congregationId)).toMatchObject({
+        result: { changed: true },
+      })
+      expect(await statuses()).toEqual({ programme: 'draft', duty: 'draft', event: 'draft' })
+    })
+  })
+
+  it('finds nothing for a schedule of another event, whatever the rights', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, meetingId, duties }) => {
+      expect(await publishEventSchedule(db, publishes, actorId, meetingId + 1, duties.id, congregationId)).toBeNull()
+      expect(await unpublishEventSchedule(db, publishes, actorId, meetingId + 1, duties.id, congregationId)).toBeNull()
     })
   })
 })

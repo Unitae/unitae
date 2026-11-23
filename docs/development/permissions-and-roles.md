@@ -99,10 +99,13 @@ D47–D50). The rules live in `app/features/events/server/schedule-rights.server
   suggests (`responsibleKindIds`, `canChangeEventsOfKind`).
 - **Deleting it**: « Gérer », or such a responsible when it holds schedules and every one is theirs (`canDeleteEvent`);
   an empty meeting the job made is the managers'.
-- **Publishing and unpublishing the whole event**, until schedules publish one by one: « Publier », or the responsible
-  of every schedule (`canPublishEvent`).
+- **Publishing and withdrawing a schedule**: « Publier », or the responsible of its template (`canPublishSchedule`),
+  each schedule on its own. « Tout publier » / « Tout retirer » on an event act on every schedule the person may and
+  say how many they left to others (`publishEvent`, `unpublishEvent`); an event holding no schedule publishes as a
+  whole, for « Publier » or `canPublishEvent`'s responsible.
 
-The bulk routes (`bulk-release.tsx`, `bulk-unrelease.tsx`, `bulk-delete.tsx`) filter the submitted ids through
+The bulk publishing routes (`bulk-release.tsx`, `bulk-unrelease.tsx`) run « Tout publier » / « Tout retirer » on each
+selected event and report the events refused; the bulk delete (`bulk-delete.tsx`) filters the submitted ids through
 `filterEventsByRight`, which reads in a fixed number of queries whatever the selection, so phase 1 of their two-phase
 pattern stays a small scoped transaction; phase 2 runs the mutation per event via `withScope` and, for release, fires
 the notifications _outside_ the release transaction (see [notifications.md](notifications.md#event-part-dispatch-gate)).

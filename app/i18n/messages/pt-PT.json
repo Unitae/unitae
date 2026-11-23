@@ -2021,6 +2021,47 @@
     ],
     "programs_bulk_not_permitted": "Não tem permissão para publicar os programas selecionados.",
     "programs_bulk_delete_not_permitted": "Não tem permissão para eliminar os programas selecionados.",
+    "programs_schedules_conflicted": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} planeamento fica em rascunho: há um conflito de ausência por resolver.",
+                "countPlural=*": "{count} planeamentos ficam em rascunho: há conflitos de ausência por resolver."
+            }
+        }
+    ],
+    "programs_schedules_skipped": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} planeamento fica em rascunho: não é responsável por ele.",
+                "countPlural=*": "{count} planeamentos ficam em rascunho: não é responsável por eles."
+            }
+        }
+    ],
+    "programs_schedules_withdraw_skipped": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} planeamento fica publicado: não é responsável por ele.",
+                "countPlural=*": "{count} planeamentos ficam publicados: não é responsável por eles."
+            }
+        }
+    ],
+    "programs_schedule_publish_success": "Planeamento publicado.",
+    "programs_schedule_unpublish_success": "Planeamento voltou a rascunho.",
     "programs_bulk_skipped": [
         {
             "declarations": [

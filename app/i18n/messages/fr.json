@@ -2026,6 +2026,47 @@
     ],
     "programs_bulk_not_permitted": "Vous n’avez pas l’autorisation de publier les programmes sélectionnés.",
     "programs_bulk_delete_not_permitted": "Vous n’avez pas l’autorisation de supprimer les programmes sélectionnés.",
+    "programs_schedules_conflicted": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} planning reste en brouillon : un conflit d’absence est à résoudre.",
+                "countPlural=*": "{count} plannings restent en brouillon : des conflits d’absence sont à résoudre."
+            }
+        }
+    ],
+    "programs_schedules_skipped": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} planning reste en brouillon : vous n’en êtes pas responsable.",
+                "countPlural=*": "{count} plannings restent en brouillon : vous n’en êtes pas responsable."
+            }
+        }
+    ],
+    "programs_schedules_withdraw_skipped": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} planning reste publié : vous n’en êtes pas responsable.",
+                "countPlural=*": "{count} plannings restent publiés : vous n’en êtes pas responsable."
+            }
+        }
+    ],
+    "programs_schedule_publish_success": "Planning publié.",
+    "programs_schedule_unpublish_success": "Planning repassé en brouillon.",
     "programs_bulk_skipped": [
         {
             "declarations": [

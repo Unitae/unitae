@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-// Each event-level route asks its own rule (plan §10, D28, D49, D50): deleting asks canDeleteEvent and the bulk delete
-// 'delete', publishing and unpublishing ask canPublishEvent and the bulk routes 'publish'. The rules are faked to give
-// different answers (their integration test owns them), so a route asking the wrong one fails here. What each route
-// does once allowed is faked too, and recorded.
+// Each event-level route asks its own rule (plan §10, D28, D43, D50): deleting asks canDeleteEvent and the bulk delete
+// 'delete'; publishing and unpublishing go through publishEvent / unpublishEvent, which decide schedule by schedule and
+// refuse whoever may publish none of the event, and the bulk routes report events refused that way. The rules are
+// faked to give different answers (their integration tests own them), so a route asking the wrong one fails here.
+// What each route does once allowed is faked too, and recorded.
 
 const { state } = vi.hoisted(() => ({
   state: {
@@ -28,6 +29,38 @@ vi.mock('~/features/authentication/index.server', () => ({
 
 vi.mock('~/features/events/server/programme-event.queries', () => ({
   findProgrammeEvent: () => Promise.resolve({ id: 40, templateId: 3, name: 'Réunion', status: 'draft' }),
+}))
+
+const publishedEvent = { id: 40, name: 'Réunion', startDate: new Date(2027, 2, 3), templateId: 3 }
+
+vi.mock('~/features/events/server/event-publishing.server', () => ({
+  publishEvent: () => {
+    if (!state.answers.publish) return Promise.resolve({ refused: true })
+    state.done.push('release')
+    return Promise.resolve({
+      event: publishedEvent,
+      changed: true,
+      published: [],
+      blocked: [],
+      skipped: 0,
+      notifyTargets: [],
+    })
+  },
+  publishEventSchedule: () => {
+    if (!state.answers.publish) return Promise.resolve({ refused: true })
+    state.done.push('schedule-publish')
+    return Promise.resolve({ event: publishedEvent, result: { schedule: { id: 7 }, changed: true, notifyTargets: [] } })
+  },
+  unpublishEventSchedule: () => {
+    if (!state.answers.publish) return Promise.resolve({ refused: true })
+    state.done.push('schedule-unpublish')
+    return Promise.resolve({ event: publishedEvent, result: { schedule: { id: 7 }, changed: true } })
+  },
+  unpublishEvent: () => {
+    if (!state.answers.publish) return Promise.resolve({ refused: true })
+    state.done.push('unrelease')
+    return Promise.resolve({ changed: true, withdrawn: [], skipped: 0 })
+  },
 }))
 
 vi.mock('~/features/events/server/schedule-rights.server', () => ({
@@ -57,26 +90,35 @@ vi.mock('~/features/events/server/delete-events.server', () => ({
   },
 }))
 
-vi.mock('~/features/events/server/event-status.server', () => ({
-  releaseEvent: () => {
-    state.done.push('release')
-    return Promise.resolve({ event: { id: 40 }, notifyTargets: [] })
-  },
-  fireReleaseNotifications: () => Promise.resolve(),
-  unreleaseEvent: () => {
-    state.done.push('unrelease')
-    return Promise.resolve({ event: { id: 40 } })
-  },
-}))
+vi.mock('~/features/events/server/event-status.server', () => ({ fireReleaseNotifications: () => Promise.resolve() }))
 
+// The bulk routes publish or withdraw each event as « Tout publier » / « Tout retirer »; refused when the bulk rule
+// does not keep 'publish' for this test.
 vi.mock('~/features/events/server/event-status-bulk.server', () => ({
   bulkReleaseEvents: (ids: number[]) => {
-    state.done.push(`bulk-release:${ids.length}`)
-    return Promise.resolve({ released: ids, blocked: [], awaiting: [], notFound: [], failed: [] })
+    const kept = state.bulk.includes('publish')
+    if (kept) state.done.push(`bulk-release:${ids.length}`)
+    return Promise.resolve({
+      released: kept ? ids : [],
+      blocked: [],
+      awaiting: [],
+      refused: kept ? [] : ids,
+      notFound: [],
+      failed: [],
+      heldSchedules: 0,
+      conflictedSchedules: 0,
+    })
   },
   bulkUnreleaseEvents: (ids: number[]) => {
-    state.done.push(`bulk-unrelease:${ids.length}`)
-    return Promise.resolve({ unreleased: ids, notFound: [], failed: [] })
+    const kept = state.bulk.includes('publish')
+    if (kept) state.done.push(`bulk-unrelease:${ids.length}`)
+    return Promise.resolve({
+      unreleased: kept ? ids : [],
+      refused: kept ? [] : ids,
+      notFound: [],
+      failed: [],
+      heldSchedules: 0,
+    })
   },
 }))
 
@@ -87,6 +129,8 @@ const unreleaseRoute = await import('./events/unrelease')
 const bulkDelete = await import('./bulk-delete')
 const bulkRelease = await import('./bulk-release')
 const bulkUnrelease = await import('./bulk-unrelease')
+const schedulePublish = await import('./events/schedule-publish')
+const scheduleUnpublish = await import('./events/schedule-unpublish')
 
 type Action = (args: never) => Promise<unknown>
 
@@ -98,7 +142,7 @@ function post(action: Action, url: string, body?: unknown) {
       method: 'POST',
       ...(body === undefined ? {} : { body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } }),
     }),
-    params: { eventId: '40' },
+    params: { eventId: '40', scheduleId: '7' },
     context: routeContext([]),
   } as never)
 }
@@ -133,14 +177,14 @@ describe.each([
     url: '/programs/events/40/unrelease',
     did: 'unrelease',
   },
-])('$name an event asks canPublishEvent alone', ({ action, url, did }) => {
-  it('goes through for whoever it allows', async () => {
+])('$name an event goes by the schedules the person may publish', ({ action, url, did }) => {
+  it('goes through for whoever may publish some of its schedules', async () => {
     state.answers.publish = true
     await post(action, url)
     expect(state.done).toEqual([did])
   })
 
-  it('refuses whoever it refuses, even allowed to change and delete the event', async () => {
+  it('refuses whoever may publish none of them, even allowed to change and delete the event', async () => {
     state.answers = { change: true, delete: true, publish: false }
     const response = await respond(() => post(action, url))
     expect(response.headers.get('Location')).toBe('/programs')
@@ -148,7 +192,25 @@ describe.each([
   })
 })
 
-describe('the bulk routes ask filterEventsByRight for their own right', () => {
+describe.each([
+  { name: 'publishing', action: schedulePublish.action as Action, did: 'schedule-publish' },
+  { name: 'withdrawing', action: scheduleUnpublish.action as Action, did: 'schedule-unpublish' },
+])('$name one schedule asks its own right', ({ action, did }) => {
+  it('goes through for whoever may publish it', async () => {
+    state.answers.publish = true
+    await post(action, '/programs/events/40/schedules/7/publish')
+    expect(state.done).toEqual([did])
+  })
+
+  it('refuses whoever may not, even allowed to change and delete the event', async () => {
+    state.answers = { change: true, delete: true, publish: false }
+    const response = await respond(() => post(action, '/programs/events/40/schedules/7/publish'))
+    expect(response.headers.get('Location')).toBe('/programs')
+    expect(state.done).toEqual([])
+  })
+})
+
+describe('the bulk routes ask their own right', () => {
   it('deletes what the delete rule keeps, and says so when it keeps nothing', async () => {
     state.bulk = ['delete']
     await post(bulkDelete.action as Action, '/programs/bulk-delete', { ids: [40, 41] })

@@ -6,7 +6,14 @@ import { Permission } from '~/shared/types/permission'
 import { releaseEvent, unreleaseEvent } from './event-status.server'
 import type { NotifyTarget } from './release-notifications.server'
 import { canPublishEvent } from './schedule-rights.server'
-import { publishSchedule, type ScheduleRef, unpublishSchedule } from './schedule-status.server'
+import {
+  canPublishSchedule,
+  type PublishScheduleResult,
+  publishSchedule,
+  type ScheduleRef,
+  type UnpublishScheduleResult,
+  unpublishSchedule,
+} from './schedule-status.server'
 
 // « Tout publier » and « Tout retirer » (D43): every schedule of an event the person may publish, one by one through
 // publishSchedule / unpublishSchedule, the others left as they are and counted. An event already published still
@@ -150,4 +157,45 @@ export async function unpublishEvent(
   }
   const skipped = live.filter(schedule => !mine.has(schedule.id)).length
   return { changed: withdrawn.length > 0, withdrawn, skipped }
+}
+
+/** The event a schedule of it belongs to, or null when the schedule is not this event's in the congregation. */
+async function eventOfSchedule(db: TransactionClient, eventId: number, scheduleId: number, congregationId: number) {
+  const schedule = await db.schedule.findFirst({
+    where: { id: scheduleId, eventId, congregationId },
+    select: { event: { select: { id: true, name: true, startDate: true, templateId: true } } },
+  })
+  return schedule?.event ?? null
+}
+
+/** Publishes one schedule of an event, for whoever may (canPublishSchedule); notices fire after commit. */
+export async function publishEventSchedule(
+  db: TransactionClient,
+  can: (permission: Permission) => boolean,
+  userId: number,
+  eventId: number,
+  scheduleId: number,
+  congregationId: number,
+): Promise<{ refused: true } | { event: PublishedEvent; result: PublishScheduleResult } | null> {
+  const event = await eventOfSchedule(db, eventId, scheduleId, congregationId)
+  if (event == null) return null
+  if (!(await canPublishSchedule(db, can, userId, scheduleId, congregationId))) return { refused: true }
+  const result = await publishSchedule(db, scheduleId, congregationId, userId)
+  return result == null ? null : { event, result }
+}
+
+/** Withdraws one schedule of an event, for whoever may (canPublishSchedule). */
+export async function unpublishEventSchedule(
+  db: TransactionClient,
+  can: (permission: Permission) => boolean,
+  userId: number,
+  eventId: number,
+  scheduleId: number,
+  congregationId: number,
+): Promise<{ refused: true } | { event: PublishedEvent; result: UnpublishScheduleResult } | null> {
+  const event = await eventOfSchedule(db, eventId, scheduleId, congregationId)
+  if (event == null) return null
+  if (!(await canPublishSchedule(db, can, userId, scheduleId, congregationId))) return { refused: true }
+  const result = await unpublishSchedule(db, scheduleId, congregationId, userId)
+  return result == null ? null : { event, result }
 }

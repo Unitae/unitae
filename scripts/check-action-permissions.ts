@@ -53,6 +53,17 @@ export const DELEGATES: Record<string, { file: string; enforces: RegExp }> = {
   },
   canDeleteEvent: { file: 'app/features/events/server/schedule-rights.server.ts', enforces: ENFORCES_PERMISSION },
   canPublishEvent: { file: 'app/features/events/server/schedule-rights.server.ts', enforces: ENFORCES_PERMISSION },
+  // Per-schedule publishing (plan §10, D8, D43): each takes a `can` closure and names « Publier » in its file.
+  publishEvent: { file: 'app/features/events/server/event-publishing.server.ts', enforces: ENFORCES_PERMISSION },
+  unpublishEvent: { file: 'app/features/events/server/event-publishing.server.ts', enforces: ENFORCES_PERMISSION },
+  publishEventSchedule: {
+    file: 'app/features/events/server/event-publishing.server.ts',
+    enforces: ENFORCES_PERMISSION,
+  },
+  unpublishEventSchedule: {
+    file: 'app/features/events/server/event-publishing.server.ts',
+    enforces: ENFORCES_PERMISSION,
+  },
   filterEventsByRight: { file: 'app/features/events/server/schedule-rights.server.ts', enforces: ENFORCES_PERMISSION },
   // Pure policy: the route feeds it booleans derived from permissions and group membership.
   canManageEmergencyInfo: { file: 'app/features/publishers/model/emergency-access.ts', enforces: /hasManager/ },
