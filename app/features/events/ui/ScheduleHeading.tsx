@@ -111,6 +111,8 @@ export function ScheduleStatusControl({
       {schedule.mayPublish && (
         <Button
           size="sm"
+          // 44 px to the touch on a phone.
+          className="max-md:h-11"
           variant={published ? 'ghost' : 'default'}
           disabled={inFlight}
           onClick={() => fetcher.submit({}, { method: 'POST', action })}
