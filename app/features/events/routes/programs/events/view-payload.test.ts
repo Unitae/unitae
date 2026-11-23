@@ -25,6 +25,9 @@ vi.mock('~/shared/infra/logger.server', () => {
 const state = vi.hoisted(() => ({
   rights: { change: false, publish: false, part: false, service: false },
   statuses: { programme: 'draft', duty: 'published' },
+  /** The schedules the reader may publish, and the programme's parts (none: a programme still to give). */
+  mine: [2] as number[],
+  parts: [{ id: 1, name: 'Discours' }] as { id: number; name: string }[],
 }))
 
 vi.mock('~/features/events/server/event-part-assignments.server', () => ({
@@ -34,7 +37,8 @@ vi.mock('~/features/events/server/event-part-assignments.server', () => ({
       name: 'Réunion',
       status: 'released',
       templateId: 3,
-      template: null,
+      // A kind with parts to give: an empty programme waits for its own (programmeAwaits).
+      template: { key: 'midweek-meeting', _count: { parts: 3, serviceParts: 1 } },
       schedules: [
         {
           id: 1,
@@ -53,7 +57,7 @@ vi.mock('~/features/events/server/event-part-assignments.server', () => ({
           scheduleTemplate: { responsibleRoleId: 9 },
         },
       ],
-      eventParts: [{ id: 1, name: 'Discours' }],
+      eventParts: state.parts,
       eventServiceParts: [{ id: 2, name: 'Sono' }],
     }),
 }))
@@ -82,7 +86,11 @@ vi.mock('~/features/events/server/event-publishing.server', () => ({
   publishActionsFor: (_db: unknown, _can: unknown, _user: number, events: { id: number }[]) =>
     Promise.resolve(new Map(events.map(({ id }) => [id, { canRelease: true, canUnrelease: false }]))),
   // The duties (schedule 2) are the reader's to publish.
-  publishableScheduleIds: () => Promise.resolve(new Set([2])),
+  publishableScheduleIds: () => Promise.resolve(new Set(state.mine)),
+}))
+vi.mock('~/shared/auth/permissions.server', async importOriginal => ({
+  ...(await importOriginal<typeof import('~/shared/auth/permissions.server')>()),
+  resolveEffectiveRoleIds: () => Promise.resolve([9]),
 }))
 // Who answers for each schedule is listScheduleResponsibles' integration test.
 vi.mock('~/features/events/server/schedule-responsibles.queries', () => ({
@@ -125,6 +133,8 @@ async function load() {
 beforeEach(() => {
   state.rights = { change: false, publish: false, part: false, service: false }
   state.statuses = { programme: 'draft', duty: 'published' }
+  state.mine = [2]
+  state.parts = [{ id: 1, name: 'Discours' }]
 })
 
 describe('the event page’s publishing', () => {
@@ -149,13 +159,31 @@ describe('each schedule’s section', () => {
         kind: 'duty',
         status: 'published',
         name: 'Services',
-        key: null,
-        responsible: { role: { key: 'services', name: 'Services' }, holders: [] },
+        responsible: { role: { key: 'services', name: 'Services' }, holders: [], youHoldIt: true },
         mayPublish: true,
+        publishable: false,
       },
     ])
     // Its one schedule of theirs is published: nothing left for them to publish.
     expect(data.publishAll).toEqual({ count: 0, everyone: false })
+  })
+})
+
+describe('what the page offers to publish', () => {
+  it('never offers a programme still to give, nor counts it in « Tout publier »', async () => {
+    state.statuses = { programme: 'draft', duty: 'draft' }
+    state.mine = [1, 2]
+    state.parts = []
+    state.rights.change = true
+    const data = (await loader({ params: { eventId: '40' }, context: readerContext() } as never)) as {
+      event: { schedules: { id: number; publishable: boolean }[] }
+      publishAll: { count: number }
+    }
+    expect(data.event.schedules.map(schedule => [schedule.id, schedule.publishable])).toEqual([
+      [1, false],
+      [2, true],
+    ])
+    expect(data.publishAll.count).toBe(1)
   })
 })
 

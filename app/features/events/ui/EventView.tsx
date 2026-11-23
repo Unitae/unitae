@@ -22,7 +22,6 @@ import {
   ScheduleResponsibleLine,
   ScheduleStatusControl,
   ScheduleTitle,
-  type ScheduleViewer,
 } from './ScheduleHeading'
 import { UnassignConfirmDialog } from './UnassignConfirmDialog'
 
@@ -64,7 +63,6 @@ interface EventViewProps {
   timezone: string
   /** « Tout publier » (D43): how many drafts the reader may publish, and whether that is every schedule (« Publier »). */
   publishAll: { count: number; everyone: boolean }
-  viewer: ScheduleViewer
 }
 
 /**
@@ -91,7 +89,6 @@ export function EventView({
   shareTexts,
   timezone,
   publishAll,
-  viewer,
 }: EventViewProps) {
   const partFetcher = useFetcher()
   const serviceFetcher = useFetcher()
@@ -156,14 +153,15 @@ export function EventView({
   const shownKinds = new Set(event.schedules.map(schedule => schedule.kind))
   const showsProgramme = awaitingProgramme || shownKinds.has(ScheduleKind.Programme)
   const showsDuties = shownKinds.has(ScheduleKind.Duty)
-  // Each schedule its own section (5c): its title and kind, its responsible (D37), its status and its « Publier ».
+  // Each schedule its own section (5c): its title and kind, its responsible (D37), its status and its « Publier ». By
+  // kind, while an event holds one schedule of each (see maySeeSchedule): its items carry no schedule of their own.
   const programmeSchedule = event.schedules.find(schedule => schedule.kind === ScheduleKind.Programme)
   const dutySchedule = event.schedules.find(schedule => schedule.kind === ScheduleKind.Duty)
   const headingOf = (schedule: EventScheduleView | undefined, fill: string) =>
     schedule && {
       title: <ScheduleTitle schedule={schedule} />,
       actions: <ScheduleStatusControl eventId={event.id} schedule={schedule} fill={fill} />,
-      intro: <ScheduleResponsibleLine schedule={schedule} viewer={viewer} />,
+      intro: <ScheduleResponsibleLine schedule={schedule} />,
     }
   const bySchedule = event.schedules.length > 0
   const assignedParts = event.eventParts.filter(item => item.assigneeId ?? item.externalSpeakerId).length

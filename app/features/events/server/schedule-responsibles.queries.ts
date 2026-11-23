@@ -1,3 +1,4 @@
+import { getLocale } from '~/i18n/paraglide/runtime'
 import type { SeatKind } from '~/shared/domain/organigram.queries'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -41,6 +42,7 @@ export async function listScheduleResponsibles(
       select: { roleId: true, kind: true, user: { select: { id: true, firstname: true, lastname: true } } },
     }),
   ])
+  const locale = getLocale()
   const holders: (ScheduleResponsibleHolder & { roleId: number })[] = [
     ...onRecords.map(({ roleId, kind, member }) => ({
       roleId,
@@ -61,8 +63,8 @@ export async function listScheduleResponsibles(
   ].sort(
     (a, b) =>
       (SEAT_ORDER[a.seat] ?? 3) - (SEAT_ORDER[b.seat] ?? 3) ||
-      (a.lastname ?? '').localeCompare(b.lastname ?? '') ||
-      (a.firstname ?? '').localeCompare(b.firstname ?? ''),
+      (a.lastname ?? '').localeCompare(b.lastname ?? '', locale) ||
+      (a.firstname ?? '').localeCompare(b.firstname ?? '', locale),
   )
   return new Map(
     roles.map(role => [

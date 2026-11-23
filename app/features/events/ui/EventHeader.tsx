@@ -50,13 +50,11 @@ export function EventHeader({
       subtitle={subtitle}
       meta={
         <>
-          {awaitingProgramme ? (
-            <Status tone="neutral">{m.programs_awaiting_badge()}</Status>
-          ) : publishAll != null ? null : event.status === EventStatus.Draft ? (
-            <Status tone="warning">{m.programs_event_draft_badge()}</Status>
-          ) : (
-            <Status tone="success">{m.programs_view_released()}</Status>
-          )}
+          <EventStatusBadge
+            awaitingProgramme={awaitingProgramme}
+            bySchedule={publishAll != null}
+            status={event.status}
+          />
           {partsAssigned && <span>{m.programs_view_parts_assigned(partsAssigned)}</span>}
           {servicesFilled && <span>{m.programs_view_services_filled(servicesFilled)}</span>}
         </>
@@ -65,16 +63,14 @@ export function EventHeader({
       actions={
         (canRelease || canUnrelease || canEdit || (publishAll?.count ?? 0) > 0) && (
           <>
-            {awaitingProgramme ? (
-              canCreateProgramme && <CreateProgrammeButton eventId={event.id} />
-            ) : publishAll != null ? (
-              publishAll.count > 0 && <PublishAllButton eventId={event.id} {...publishAll} />
-            ) : (
-              <>
-                {canRelease && <PublishButton eventId={event.id} release />}
-                {canUnrelease && <PublishButton eventId={event.id} release={false} />}
-              </>
-            )}
+            <EventPublishAction
+              eventId={event.id}
+              awaitingProgramme={awaitingProgramme}
+              publishAll={publishAll}
+              canRelease={canRelease}
+              canUnrelease={canUnrelease}
+              canCreateProgramme={canCreateProgramme}
+            />
             {canEdit && (
               <>
                 <Button variant="outline" asChild>
@@ -104,6 +100,51 @@ export function EventHeader({
         )
       }
     />
+  )
+}
+
+/** The event's own status, for one without schedules; with them each section carries its own (5c). */
+function EventStatusBadge({
+  awaitingProgramme,
+  bySchedule,
+  status,
+}: {
+  awaitingProgramme: boolean
+  bySchedule: boolean
+  status: string
+}) {
+  if (awaitingProgramme) return <Status tone="neutral">{m.programs_awaiting_badge()}</Status>
+  if (bySchedule) return null
+  if (status === EventStatus.Draft) return <Status tone="warning">{m.programs_event_draft_badge()}</Status>
+  return <Status tone="success">{m.programs_view_released()}</Status>
+}
+
+/**
+ * Publishing from the header: « Créer le programme » while a meeting awaits it; « Tout publier » on an event holding
+ * schedules (D43), each section withdrawing its own; « Publier » / « Retirer » on one without (D46).
+ */
+function EventPublishAction({
+  eventId,
+  awaitingProgramme,
+  publishAll,
+  canRelease,
+  canUnrelease,
+  canCreateProgramme,
+}: {
+  eventId: number
+  awaitingProgramme: boolean
+  publishAll: { count: number; everyone: boolean } | null
+  canRelease: boolean
+  canUnrelease: boolean
+  canCreateProgramme: boolean
+}) {
+  if (awaitingProgramme) return canCreateProgramme ? <CreateProgrammeButton eventId={eventId} /> : null
+  if (publishAll != null) return publishAll.count > 0 ? <PublishAllButton eventId={eventId} {...publishAll} /> : null
+  return (
+    <>
+      {canRelease && <PublishButton eventId={eventId} release />}
+      {canUnrelease && <PublishButton eventId={eventId} release={false} />}
+    </>
   )
 }
 

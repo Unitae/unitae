@@ -82,6 +82,28 @@ describe('listScheduleResponsibles', () => {
     })
   })
 
+  it('leaves out a member who left, and an account that has a record holds its roles on the record', async () => {
+    await inCongregation(async (db, congregationId) => {
+      const role = await db.role.create({ data: { key: 'lead', name: 'Lead', congregationId } })
+      const gone = await db.member.create({
+        data: { firstname: 'Ana', lastname: 'Gone', leftAt: new Date(), congregationId },
+      })
+      await db.memberRoleAssignment.create({
+        data: { memberId: gone.id, roleId: role.id, kind: 'leader', congregationId },
+      })
+      const withRecord = await db.member.create({ data: { firstname: 'Rémi', lastname: 'Record', congregationId } })
+      const account = await db.userAccount.create({
+        data: { email: `remi-${congregationId}@test.com`, password: 'x', memberId: withRecord.id, congregationId },
+      })
+      // A stray account-level assignment of an account with a record is not how its roles are held.
+      await db.userRoleAssignment.create({
+        data: { userId: account.id, roleId: role.id, kind: 'deputy', congregationId },
+      })
+
+      expect((await listScheduleResponsibles(db, [role.id], congregationId)).get(role.id)?.holders).toEqual([])
+    })
+  })
+
   it('reads nothing for no role, and leaves out a role of another congregation', async () => {
     await inCongregation(async (db, congregationId) => {
       const role = await db.role.create({ data: { key: 'lead', name: 'Lead', congregationId } })

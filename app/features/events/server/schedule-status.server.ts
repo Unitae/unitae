@@ -1,4 +1,4 @@
-import { isAwaitingProgramme, programmeTemplate } from '~/features/events/model/empty-meetings'
+import { programmeAwaits } from '~/features/events/model/empty-meetings'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import { ScheduleKind, ScheduleStatus } from '~/features/events/model/schedule.type'
 import { TEMPLATE_PROGRAMME_COUNT } from '~/features/events/server/give-programme.server'
@@ -92,19 +92,6 @@ export async function settleEventStatus(db: TransactionClient, eventIds: number[
     },
     data: { status: EventStatus.Draft },
   })
-}
-
-/**
- * Whether a schedule is a programme still to give, which publishing refuses: no part while its kind's template has
- * parts to give. Only the template's parts count, its duties filling the other schedule; duties never wait.
- */
-export function programmeAwaits(
-  schedule: { kind: string; items: number },
-  template: { key: string | null; _count: { parts: number; serviceParts: number } } | null,
-): boolean {
-  if (schedule.kind !== ScheduleKind.Programme) return false
-  const given = programmeTemplate(template)
-  return isAwaitingProgramme({ parts: schedule.items, services: 0, template: given && { ...given, services: 0 } })
 }
 
 /** The schedule's event row, locked for the rest of the transaction, as eventScheduleId does. */

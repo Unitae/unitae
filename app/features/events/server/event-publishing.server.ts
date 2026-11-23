@@ -1,3 +1,4 @@
+import { programmeAwaits } from '~/features/events/model/empty-meetings'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import { ScheduleStatus } from '~/features/events/model/schedule.type'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
@@ -10,7 +11,6 @@ import { canPublishEvent } from './schedule-rights.server'
 import {
   canPublishSchedule,
   type PublishScheduleResult,
-  programmeAwaits,
   publishSchedule,
   type ScheduleRef,
   type UnpublishScheduleResult,
