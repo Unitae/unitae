@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import * as m from '~/i18n/paraglide/messages'
 
 // Each event-level route asks its own rule (plan §10, D28, D43, D50): deleting asks canDeleteEvent and the bulk delete
 // 'delete'; publishing and unpublishing go through publishEvent / unpublishEvent, which decide schedule by schedule and
@@ -10,6 +11,8 @@ const { state } = vi.hoisted(() => ({
   state: {
     /** What each fake rule answers. */
     answers: { change: false, delete: false, publish: false },
+    /** What « Tout publier » returns beyond the defaults, for the messages it leads to. */
+    publishOutcome: {} as Record<string, unknown>,
     /** The rights 'filterEventsByRight' keeps every id for. */
     bulk: [] as ('publish' | 'delete')[],
     done: [] as string[],
@@ -44,6 +47,7 @@ vi.mock('~/features/events/server/event-publishing.server', () => ({
       blocked: [],
       skipped: 0,
       notifyTargets: [],
+      ...state.publishOutcome,
     })
   },
   publishEventSchedule: () => {
@@ -150,6 +154,7 @@ function post(action: Action, url: string, body?: unknown) {
 beforeEach(() => {
   state.answers = { change: false, delete: false, publish: false }
   state.bulk = []
+  state.publishOutcome = {}
   state.done = []
   state.flashed = []
 })
@@ -189,6 +194,32 @@ describe.each([
     const response = await respond(() => post(action, url))
     expect(response.headers.get('Location')).toBe('/programs')
     expect(state.done).toEqual([])
+  })
+})
+
+describe('« Tout publier » says what stayed a draft, schedule by schedule', () => {
+  const conflict = (kind: string) => ({
+    schedule: { id: 1, kind },
+    reason: 'conflicts',
+    error: 'Impossible : cet évènement…',
+  })
+
+  it('reports the duties published and the programme its conflicts held back, never the event’s refusal', async () => {
+    state.answers.publish = true
+    state.publishOutcome = { blocked: [conflict('programme')] }
+    await post(releaseRoute.action as Action, '/programs/events/40/release')
+    expect(state.flashed).toEqual([
+      `success:${m.programs_release_success()}`,
+      `error:${m.programs_schedules_conflicted({ count: 1 })}`,
+    ])
+  })
+
+  it('counts two held schedules once, and refuses when nothing was published', async () => {
+    state.answers.publish = true
+    state.publishOutcome = { changed: false, blocked: [conflict('programme'), conflict('duty')] }
+    const response = await post(releaseRoute.action as Action, '/programs/events/40/release')
+    expect(response).toMatchObject({ data: { ok: false } })
+    expect(state.flashed).toEqual([`error:${m.programs_schedules_conflicted({ count: 2 })}`])
   })
 })
 

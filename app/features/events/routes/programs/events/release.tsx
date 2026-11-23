@@ -45,8 +45,13 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     timezone: cong.timezone,
   })
 
+  // What stayed a draft, said schedule by schedule as the bulk page does: the event-worded refusal would contradict
+  // the success beside it. A bare event's own refusal, or a programme still to give, keeps its sentence, once.
+  const conflicted = result.blocked.filter(item => item.schedule != null && item.reason === 'conflicts').length
+  const otherReasons = result.blocked.filter(item => item.schedule == null || item.reason !== 'conflicts')
   const held = [
-    ...result.blocked.map(blocked => blocked.error),
+    ...(conflicted > 0 ? [m.programs_schedules_conflicted({ count: conflicted })] : []),
+    ...new Set(otherReasons.map(item => item.error)),
     ...(result.skipped > 0 ? [m.programs_schedules_skipped({ count: result.skipped })] : []),
   ]
   logger.info(
