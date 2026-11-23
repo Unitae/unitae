@@ -22,8 +22,8 @@ const SEAT_ORDER: Record<string, number> = { leader: 0, deputy: 1, member: 2 }
 
 /**
  * The responsible of each of these roles (D37, spec §5.4): every seat, on the record (MemberRoleAssignment) or on an
- * account without one or on the login for a system role (UserRoleAssignment) — the titulaire, then the adjoints, then the other holders, by name.
- * Members who left hold nothing. In a fixed number of queries whatever the roles.
+ * account without one or on the login for a system role (UserRoleAssignment) — the titulaire, then the adjoints,
+ * then the other holders, by name. Members who left hold nothing. In a fixed number of queries whatever the roles.
  */
 export async function listScheduleResponsibles(
   db: TransactionClient,

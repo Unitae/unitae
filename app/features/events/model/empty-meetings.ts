@@ -1,6 +1,7 @@
 import { isSystemTemplate } from '~/features/events/model/event-template.type'
 import { addDays, dayOf } from '~/shared/utils/calendar-day'
 import { combineLocalDateTime } from '~/shared/utils/event-time'
+import { ScheduleKind } from './schedule.type'
 
 /**
  * A meeting waiting for its programme: an event with neither parts nor services yet, of a template that has some to
@@ -89,7 +90,7 @@ export function programmeAwaits(
   schedule: { kind: string; items: number },
   template: { key: string | null; _count: { parts: number; serviceParts: number } } | null,
 ): boolean {
-  if (schedule.kind !== 'programme') return false
+  if (schedule.kind !== ScheduleKind.Programme) return false
   const given = programmeTemplate(template)
   return isAwaitingProgramme({ parts: schedule.items, services: 0, template: given && { ...given, services: 0 } })
 }

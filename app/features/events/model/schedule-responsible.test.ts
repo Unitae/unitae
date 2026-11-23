@@ -35,8 +35,8 @@ describe('responsibleForPage', () => {
     expect(page).toEqual({
       role,
       holders: [
-        { firstname: 'Paul', lastname: 'TEST', seat: 'leader', you: false },
-        { firstname: 'Luc', lastname: 'TEST', seat: 'deputy', you: true },
+        { key: 'leader-0', firstname: 'Paul', lastname: 'TEST', seat: 'leader', you: false },
+        { key: 'deputy-1', firstname: 'Luc', lastname: 'TEST', seat: 'deputy', you: true },
       ],
       youHoldIt: true,
     })
@@ -61,6 +61,18 @@ describe('responsibleForPage', () => {
       { role, holders: [holder('Nora', 'deputy', { accountId: 70 })] },
       viewer([9], null),
     )
-    expect(page.holders).toEqual([{ firstname: 'Nora', lastname: 'TEST', seat: 'deputy', you: true }])
+    expect(page.holders).toEqual([{ key: 'deputy-0', firstname: 'Nora', lastname: 'TEST', seat: 'deputy', you: true }])
+  })
+})
+
+describe('responsibleForPage, never the wrong reader', () => {
+  it('marks no account-only holder for a reader without a record, and goes by the role it is given', () => {
+    const page = responsibleForPage(
+      9,
+      { role, holders: [holder('Nora', 'deputy', { accountId: 71 })] },
+      viewer([4], null),
+    )
+    expect(page.holders.map(shown => shown.you)).toEqual([false])
+    expect(page.youHoldIt).toBe(false)
   })
 })

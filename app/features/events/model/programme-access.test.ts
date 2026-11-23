@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { mayOpenEvent, maySeeSchedule } from './programme-access'
+import { mayOpenEvent, maySeeSchedule, schedulePublishAction } from './programme-access'
 
 describe('mayOpenEvent', () => {
   const none = { canEdit: false, canPublish: false, canAssign: false, canAssignService: false }
@@ -46,5 +46,15 @@ describe('maySeeSchedule', () => {
       expect(maySeeSchedule(programme('draft'), rights)).toBe(true)
       expect(maySeeSchedule(duties('draft'), rights)).toBe(true)
     }
+  })
+})
+
+describe('schedulePublishAction', () => {
+  it('offers « Publier » only on a publishable draft, « Repasser en brouillon » on a published one the reader may withdraw', () => {
+    expect(schedulePublishAction({ status: 'draft', mayPublish: true, publishable: true })).toBe('publish')
+    // May publish, but publishing would refuse it (a programme still to give).
+    expect(schedulePublishAction({ status: 'draft', mayPublish: true, publishable: false })).toBeNull()
+    expect(schedulePublishAction({ status: 'published', mayPublish: true, publishable: false })).toBe('unpublish')
+    expect(schedulePublishAction({ status: 'published', mayPublish: false, publishable: false })).toBeNull()
   })
 })

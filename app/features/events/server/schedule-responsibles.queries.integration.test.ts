@@ -136,6 +136,8 @@ describe('listScheduleResponsibles', () => {
       expect((await listScheduleResponsibles(db, [admin.id], congregationId)).get(admin.id)?.holders).toEqual([
         { memberId: marc.id, accountId: account.id, firstname: 'Marc', lastname: 'Admin', seat: 'member' },
       ])
+      await db.member.update({ where: { id: marc.id }, data: { leftAt: new Date() } })
+      expect((await listScheduleResponsibles(db, [admin.id], congregationId)).get(admin.id)?.holders).toEqual([])
     })
   })
 

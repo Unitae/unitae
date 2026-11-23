@@ -24,3 +24,16 @@ export function maySeeSchedule(schedule: { kind: string; status: string }, right
   if (schedule.status === ScheduleStatus.Published || rights.canEdit || rights.canPublish) return true
   return schedule.kind === ScheduleKind.Programme ? rights.canAssign : rights.canAssignService
 }
+
+/**
+ * What a schedule's own button does (D8): « Publier » on a draft the reader may publish that publishing would not
+ * refuse (`publishable`), « Repasser en brouillon » on a published one they may withdraw, nothing otherwise.
+ */
+export function schedulePublishAction(schedule: {
+  status: string
+  mayPublish: boolean
+  publishable: boolean
+}): 'publish' | 'unpublish' | null {
+  if (schedule.status === ScheduleStatus.Published) return schedule.mayPublish ? 'unpublish' : null
+  return schedule.publishable ? 'publish' : null
+}
