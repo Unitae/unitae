@@ -123,6 +123,7 @@ export const AUDIT_ACTIONS: readonly { action: string; group: AuditGroup; label:
   { action: 'event.unreleased', group: 'programmes', label: m.audit_log_action_event_unreleased },
   { action: 'schedule.published', group: 'programmes', label: m.audit_log_action_schedule_published },
   { action: 'schedule.unpublished', group: 'programmes', label: m.audit_log_action_schedule_unpublished },
+  { action: 'schedule.added', group: 'programmes', label: m.audit_log_action_schedule_added },
   { action: 'schedule.renamed', group: 'programmes', label: m.audit_log_action_schedule_renamed },
   { action: 'schedule.deleted', group: 'programmes', label: m.audit_log_action_schedule_deleted },
   { action: 'event.deleted', group: 'programmes', label: m.audit_log_action_event_deleted },

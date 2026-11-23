@@ -189,6 +189,7 @@ export const AuditAction = {
   EventUnreleased: 'event.unreleased',
   SchedulePublished: 'schedule.published',
   ScheduleUnpublished: 'schedule.unpublished',
+  ScheduleAdded: 'schedule.added',
   ScheduleRenamed: 'schedule.renamed',
   ScheduleDeleted: 'schedule.deleted',
   EventDeleted: 'event.deleted',

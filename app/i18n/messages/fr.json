@@ -74,6 +74,7 @@
     "audit_log_action_event_unreleased": "Programme retiré",
     "audit_log_action_schedule_published": "Planning publié",
     "audit_log_action_schedule_unpublished": "Planning retiré",
+    "audit_log_action_schedule_added": "Planning ajouté",
     "audit_log_action_schedule_renamed": "Planning renommé",
     "audit_log_action_schedule_deleted": "Planning supprimé",
     "audit_log_action_event_deleted": "Programme supprimé",
