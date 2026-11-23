@@ -1,4 +1,6 @@
-// Which slice of an event a TemplateResponsible row delegates.
+// Which slice of an event a TemplateResponsible row delegates. Since 5a no right reads the scopes: the sync turns
+// them into each schedule template's responsible (D31), and only the screens that show or hide things still read
+// them, until 5a-3.
 //
 // A template can name two roles: one for the spiritual programme and one for
 // the service parts (sono, estrade, accueil, nettoyage). They are different

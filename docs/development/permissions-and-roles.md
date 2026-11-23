@@ -87,17 +87,27 @@ Created and edited through `app/shared/domain/roles.server.ts`:
 
 The corresponding routes live in `app/features/congregation/routes/roles/`.
 
-## Event release / un-release authorization
+## Event rights by schedule
 
-Release and un-release actions do **not** get their own permission. They share the event-edit gate `canEditEvent` in `app/features/events/server/events-auth.server.ts`:
+Who may act on an event follows its schedules (plan §10 of the event schedules spec; decisions D3, D7, D28, D31,
+D47–D50). The rules live in `app/features/events/server/schedule-rights.server.ts`:
 
-- **Program Manager** — can release/un-release any event
-- **Template responsible** — the user set as `EventTemplate.responsible` can release/un-release events generated from that template (mirrors the existing edit + delete carve-out)
-- **Admin** — everything (expanded from `Permission.Admin`)
+- **Filling a schedule** (its items, who holds them): « Attribuer » or « Gérer », or the responsible of the schedule's
+  template (`canFillSchedule`). A schedule's responsible is the role its template names, synced from the responsibles
+  Réglages names; a schedule without a template has none.
+- **Creating, changing, moving an event to a kind**: « Gérer », or the responsible of any schedule template the kind
+  suggests (`responsibleKindIds`, `canChangeEventsOfKind`).
+- **Deleting it**: « Gérer », or such a responsible when it holds schedules and every one is theirs (`canDeleteEvent`);
+  an empty meeting the job made is the managers'.
+- **Publishing and unpublishing the whole event**, until schedules publish one by one: « Publier », or the responsible
+  of every schedule (`canPublishEvent`).
 
-The route handlers (`programs/events/release.tsx`, `unrelease.tsx`, `bulk-release.tsx`, `bulk-unrelease.tsx`) run authorization in Phase 1 of a two-phase pattern: a small scoped tx checks `canManageAnyProgram` and (for bulk) filters submitted IDs through `filterToManageableEventIds`. Phase 2 runs the mutation per-event via `withScope` and — for release only — fires the notifications _outside_ the release tx (see [notifications.md](notifications.md#event-part-dispatch-gate)).
-
-Bulk routes are hardened against cross-tenant probes: `filterToManageableEventIds` runs a `congregationId`-scoped `findMany` even for managers, so IDs from another tenant are silently dropped and logged as `warn` for triage. Non-manager drops (freeform events, unauthorized templates, cross-tenant IDs) are logged at `info` with counters split by reason.
+The bulk routes (`bulk-release.tsx`, `bulk-unrelease.tsx`, `bulk-delete.tsx`) filter the submitted ids through
+`filterEventsByRight`, which reads in a fixed number of queries whatever the selection, so phase 1 of their two-phase
+pattern stays a small scoped transaction; phase 2 runs the mutation per event via `withScope` and, for release, fires
+the notifications _outside_ the release transaction (see [notifications.md](notifications.md#event-part-dispatch-gate)).
+The filter scopes its `findMany` to the congregation even for managers, so ids from another tenant drop out; what it
+drops, foreign or refused, is logged at `warn` with the counts, and the routes tell the caller how many they skipped.
 
 ## Emergency-information access (group-scoped)
 

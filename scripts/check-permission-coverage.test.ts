@@ -99,8 +99,8 @@ describe('collectEnforcedPermissions', () => {
   })
 
   it('counts a permission handed to an authorisation helper that answers without throwing', () => {
-    // An answer a route acts on later, not a guard that throws.
-    const src = 'return canManageAnyProgram(db, can, userId, congregationId, Permission.CanPublishPrograms)'
+    // A layout's gate: the permission is named in the helper call, and the route never throws on it itself.
+    const src = 'export const middleware = [layoutGate(permissions => permissions.has(Permission.CanPublishPrograms))]'
     expect([...collectEnforcedPermissions(src)]).toEqual(['CanPublishPrograms'])
   })
 

@@ -27,7 +27,6 @@ const ROLE_ID = 5005
 
 const allowAll = (_p: Permission) => true
 const allowNone = (_p: Permission) => false
-const allowOnly = (allowed: Permission) => (p: Permission) => p === allowed
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -99,7 +98,7 @@ describe('canManageAnyProgram', () => {
   })
 
   // Any kind suggesting a schedule template the caller answers for (D28).
-  it('returns true for non-manager when at least one responsible record exists', async () => {
+  it('returns true for non-manager answering for a schedule template some kind suggests', async () => {
     vi.mocked(db.eventKindScheduleTemplate.findMany).mockResolvedValue([{ eventKindId: TEMPLATE_ID_OWNED }] as never)
 
     const result = await canManageAnyProgram(db, allowNone, USER_ID, CONGREGATION_ID)

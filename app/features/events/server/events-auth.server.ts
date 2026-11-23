@@ -20,10 +20,10 @@ const logger = createLogger('events-auth')
  * The empty guard is deliberate: `roleId: { in: [] }` matches nothing today, but relying on
  * that would make "user holds no roles" correct by accident rather than by intent.
  *
- * Scoped to the whole-event delegation by default, and every caller wants that: this list
- * drives "which programmes may you create, bulk-release, bulk-delete", none of which a
- * service responsible may do. Pass `ResponsibilityScope.Service` only for a question that is
- * genuinely about the service parts.
+ * Read only by the screens that show or hide things (the programmes list, the absences, the dashboard, Réglages)
+ * until they move to schedules (5a-3). Who may create, change, delete, publish or fill is decided by the schedules'
+ * responsibles in schedule-rights.server.ts, never by this list. Scoped to the programme by default; pass
+ * `ResponsibilityScope.Service` only for a question about the service parts.
  */
 export async function getResponsibleTemplateIds(
   db: TransactionClient,
@@ -42,9 +42,10 @@ export async function getResponsibleTemplateIds(
 }
 
 /**
- * The templates the caller may apply to an event: all of them for a programme manager, otherwise the ones they run
- * the programme of. Applying moves the event onto the template, and who may edit an event follows its template, so
- * offering any other template would let a responsible hand their event to someone else's delegation.
+ * The templates (kinds) the caller may apply to an event: all of them for a programme manager, otherwise the kinds
+ * suggesting a schedule template they answer for, the duties' included (D28, D49). Applying moves the event onto the
+ * kind, so offering any other would let a responsible hand their event to kinds they cannot change; the editor keeps
+ * only those whose every schedule they may fill (canFillTemplateSchedules).
  */
 export async function listApplicableTemplates(
   db: TransactionClient,

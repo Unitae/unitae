@@ -69,6 +69,7 @@ export const POLICY_HELPERS: Record<string, string> = {
   canFillSchedule: 'app/features/events/server/schedule-rights.server.ts',
   // The event-level rules (plan §10, D28, D49), each naming the permission it decides.
   canChangeEvent: 'app/features/events/server/schedule-rights.server.ts',
+  canChangeEventsOfKind: 'app/features/events/server/schedule-rights.server.ts',
   canDeleteEvent: 'app/features/events/server/schedule-rights.server.ts',
   canPublishEvent: 'app/features/events/server/schedule-rights.server.ts',
 }
