@@ -37,6 +37,9 @@ const mockDb = withItemMock({
   eventPart: {
     findFirst: vi.fn(),
   },
+  schedule: {
+    findFirst: vi.fn(),
+  },
   boardDynamicDocumentView: {
     upsert: vi.fn(),
   },
@@ -180,10 +183,20 @@ describe('getContentVersion', () => {
     const assignmentDate = new Date('2026-04-18')
     mockDb.event.findFirst.mockResolvedValue({ updatedAt: eventDate })
     mockDb.eventPart.findFirst.mockResolvedValue({ updatedAt: assignmentDate })
+    mockDb.schedule.findFirst.mockResolvedValue(null)
 
     const result = await getContentVersion(mockDb as never, 'programme', 'midweek', 10)
 
     expect(result).toEqual(assignmentDate)
+  })
+
+  it('takes a schedule published or withdrawn since, its event untouched', async () => {
+    const scheduleDate = new Date('2026-04-20')
+    mockDb.event.findFirst.mockResolvedValue({ updatedAt: new Date('2026-04-10') })
+    mockDb.eventPart.findFirst.mockResolvedValue({ updatedAt: new Date('2026-04-18') })
+    mockDb.schedule.findFirst.mockResolvedValue({ updatedAt: scheduleDate })
+
+    expect(await getContentVersion(mockDb as never, 'programme', 'midweek', 10)).toEqual(scheduleDate)
   })
 
   it('returns null for unknown type', async () => {
@@ -381,6 +394,7 @@ describe('getContentVersion programme draft filter', () => {
   it('reads latest event / assignment updatedAt from what members may see only', async () => {
     mockDb.event.findFirst.mockResolvedValue(null)
     mockDb.eventPart.findFirst.mockResolvedValue(null)
+    mockDb.schedule.findFirst.mockResolvedValue(null)
 
     await getContentVersion(mockDb as never, 'programme', 'midweek', 10)
 

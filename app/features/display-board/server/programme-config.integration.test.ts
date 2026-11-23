@@ -61,6 +61,7 @@ beforeAll(async () => {
 afterAll(async () => {
   if (ids.cong) {
     await withScope(ids.cong, async tx => {
+      await tx.schedule.deleteMany({})
       await tx.event.deleteMany({})
       await tx.eventTemplate.deleteMany({})
       await tx.userAccount.deleteMany({})
@@ -131,6 +132,34 @@ describe('a programme document and its templates', () => {
         data: { name: 'Réunion de semaine (modifiée)' },
       }),
     )
+    expect((await version(ids.midweek))?.getTime()).toBeGreaterThan(before?.getTime() ?? 0)
+  })
+
+  it('changes version when one of its schedules is published or withdrawn, the event untouched', async () => {
+    const version = (templateId: number) =>
+      withScope(ids.cong, tx => getContentVersion(tx, 'programme', null, ids.cong, only(templateId)))
+    const scheduleOn = (templateId: number) =>
+      withScope(ids.cong, async tx => {
+        const event = await tx.event.findFirstOrThrow({ where: { templateId }, orderBy: { startDate: 'asc' } })
+        return (
+          await tx.schedule.create({
+            data: { eventId: event.id, kind: 'duty', key: 'services', status: 'draft', congregationId: ids.cong },
+          })
+        ).id
+      })
+    const midweekDuties = await scheduleOn(ids.midweek)
+    const weekendDuties = await scheduleOn(ids.weekend)
+    const publish = (id: number) =>
+      withScope(ids.cong, tx => tx.schedule.update({ where: { id }, data: { status: 'published' } }))
+    await new Promise(resolve => setTimeout(resolve, 20))
+    const before = await version(ids.midweek)
+
+    await new Promise(resolve => setTimeout(resolve, 20))
+    // Another kind's schedule leaves it alone.
+    await publish(weekendDuties)
+    expect(await version(ids.midweek)).toEqual(before)
+
+    await publish(midweekDuties)
     expect((await version(ids.midweek))?.getTime()).toBeGreaterThan(before?.getTime() ?? 0)
   })
 })
