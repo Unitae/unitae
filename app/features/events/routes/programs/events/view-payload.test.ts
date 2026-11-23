@@ -75,9 +75,13 @@ async function load() {
     },
   }
   const data = (await loader({ params: { eventId: '40' }, context } as never)) as {
-    event: { eventParts: { id: number }[]; eventServiceParts: { id: number }[] }
+    event: { eventParts: { id: number }[]; eventServiceParts: { id: number }[]; schedules: { kind: string }[] }
   }
-  return { parts: data.event.eventParts.map(p => p.id), services: data.event.eventServiceParts.map(s => s.id) }
+  return {
+    parts: data.event.eventParts.map(p => p.id),
+    services: data.event.eventServiceParts.map(s => s.id),
+    schedules: data.event.schedules.map(schedule => schedule.kind),
+  }
 }
 
 beforeEach(() => {
@@ -87,27 +91,27 @@ beforeEach(() => {
 
 describe('the event page’s schedules', () => {
   it('sends a reader the published duties and nothing of the draft programme', async () => {
-    expect(await load()).toEqual({ parts: [], services: [2] })
+    expect(await load()).toEqual({ parts: [], services: [2], schedules: ['duty'] })
   })
 
   it('sends a reader everything once both are published', async () => {
     state.statuses.programme = 'published'
-    expect(await load()).toEqual({ parts: [1], services: [2] })
+    expect(await load()).toMatchObject({ parts: [1], services: [2] })
   })
 
   it('sends the draft programme to whoever fills it, and the draft duties only to whoever fills those', async () => {
     state.statuses.duty = 'draft'
     state.rights.part = true
-    expect(await load()).toEqual({ parts: [1], services: [] })
+    expect(await load()).toEqual({ parts: [1], services: [], schedules: ['programme'] })
     state.rights = { change: false, publish: false, part: false, service: true }
-    expect(await load()).toEqual({ parts: [], services: [2] })
+    expect(await load()).toEqual({ parts: [], services: [2], schedules: ['duty'] })
   })
 
   it('sends every draft to whoever may change or publish the event', async () => {
     state.statuses.duty = 'draft'
     state.rights.change = true
-    expect(await load()).toEqual({ parts: [1], services: [2] })
+    expect(await load()).toMatchObject({ parts: [1], services: [2] })
     state.rights = { change: false, publish: true, part: false, service: false }
-    expect(await load()).toEqual({ parts: [1], services: [2] })
+    expect(await load()).toMatchObject({ parts: [1], services: [2] })
   })
 })

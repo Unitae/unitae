@@ -68,8 +68,10 @@ export function loader({ params, context }: Route.LoaderArgs) {
     refuseDraft(event.status, rights)
     // A draft schedule reaches only whoever may act on it (spec §5.3, D45): the others' items never leave the server.
     const hidden = new Set(event.schedules.filter(schedule => !maySeeSchedule(schedule, rights)).map(s => s.kind))
+    // Not even that a hidden schedule exists: its status leaves with neither its items nor the list of schedules.
     const shown = {
       ...event,
+      schedules: event.schedules.filter(schedule => !hidden.has(schedule.kind)),
       eventParts: hidden.has(ScheduleKind.Programme) ? [] : event.eventParts,
       eventServiceParts: hidden.has(ScheduleKind.Duty) ? [] : event.eventServiceParts,
     }
@@ -107,9 +109,10 @@ export function loader({ params, context }: Route.LoaderArgs) {
     return {
       event: shown,
       // Created ahead and still empty: the page offers « Créer le programme » instead of publishing it.
+      // From what this reader sees: a programme hidden from them is, for them, still to come.
       awaitingProgramme: isAwaitingProgramme({
-        parts: event.eventParts.length,
-        services: event.eventServiceParts.length,
+        parts: shown.eventParts.length,
+        services: shown.eventServiceParts.length,
         template: programmeTemplate(event.template),
       }),
       hasAttendance,
