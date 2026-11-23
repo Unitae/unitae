@@ -131,6 +131,13 @@ describe('dashboardVisibility', () => {
     expect(v.responsibleConflicts).toBe(true)
   })
 
+  it('offers creating programmes to a responsible of some kind, as the programmes list does (D28)', () => {
+    const reader = viewer([Permission.CanViewPrograms])
+    expect(dashboardVisibility({ ...reader, createsProgrammes: true }).programmes).toEqual({ canCreate: true })
+    expect(dashboardVisibility({ ...reader, createsProgrammes: false }).programmes).toEqual({ canCreate: false })
+    expect(dashboardVisibility(reader).programmes).toEqual({ canCreate: false })
+  })
+
   it('lets a programme viewer see the meeting even without board access', () => {
     expect(dashboardVisibility(viewer([Permission.CanViewPrograms])).meetingAudience).toBe('programmes')
   })
