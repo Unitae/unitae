@@ -1616,18 +1616,15 @@
     "result": {
       "released": [
         "weekend-1",
+        "midweek-3",
         "weekend-3",
         "memorial-1"
       ],
-      "blocked": [
-        {
-          "event": "midweek-3",
-          "error": "Impossible de publier : cet évènement a des conflits d’absence à résoudre."
-        }
-      ],
+      "blocked": [],
       "awaiting": [
         "midweek-ahead-1"
-      ]
+      ],
+      "conflictedSchedules": 1
     },
     "notices": []
   },

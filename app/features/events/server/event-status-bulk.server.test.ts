@@ -1,200 +1,110 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-// Schedules are written beside the items (the schedules' expand step); their own tests cover them.
-vi.mock('~/features/events/server/schedules.server', () => ({
-  alignEventSchedules: vi.fn(),
-  attachEventItems: vi.fn(),
-  deleteEventSchedules: vi.fn(),
-  eventScheduleId: vi.fn(),
-  setEventSchedulesStatus: vi.fn(),
-}))
-vi.mock('~/features/events/server/schedule-templates.server', () => ({
-  deleteTemplateScheduleTemplates: vi.fn(),
-  syncTemplateScheduleTemplates: vi.fn(),
+// The bulk routes act as « Tout publier » / « Tout retirer » on each selected event (D43), each in its own
+// transaction; how each event's schedules publish is publishEvent's own integration test. Here: the buckets the page
+// reports, the notices fired after each event's transaction, and a failing event never stopping the loop.
+
+const state = vi.hoisted(() => ({
+  publish: new Map<number, unknown>(),
+  unpublish: new Map<number, unknown>(),
 }))
 
-vi.mock('~/shared/infra/db.server', () => {
-  const unscopedDb = {
-    event: { findFirst: vi.fn(), update: vi.fn() },
-    item: { findMany: vi.fn() },
-    notificationEvent: { updateMany: vi.fn() },
-    userAccount: { findFirst: vi.fn() },
-  }
-  return {
-    unscopedDb,
-    // Per-event bulk paths use withScope; the mock just invokes the callback
-    // with the shared mock client so tests can program per-id behaviour via
-    // event.findFirst.mockImplementation.
-    withScope: vi.fn(async (_congregationId: number, fn: (tx: unknown) => unknown) => fn(unscopedDb)),
-  }
-})
+vi.mock('~/shared/infra/db.server', () => ({
+  withScope: vi.fn(async (_congregationId: number, fn: (tx: unknown) => unknown) => fn({})),
+}))
 
-vi.mock('~/shared/domain/audit.server', async importOriginal => {
-  const actual = await importOriginal<typeof import('~/shared/domain/audit.server')>()
-  return { ...actual, audit: vi.fn(), auditInTransaction: vi.fn() }
-})
+vi.mock('./event-publishing.server', () => ({
+  publishEvent: (_db: unknown, _can: unknown, _user: number, eventId: number) => {
+    const outcome = state.publish.get(eventId)
+    return outcome instanceof Error ? Promise.reject(outcome) : Promise.resolve(outcome ?? null)
+  },
+  unpublishEvent: (_db: unknown, _can: unknown, _user: number, eventId: number) => {
+    const outcome = state.unpublish.get(eventId)
+    return outcome instanceof Error ? Promise.reject(outcome) : Promise.resolve(outcome ?? null)
+  },
+}))
 
-vi.mock('./notify-assignment.server', async importOriginal => {
-  const actual = await importOriginal<typeof import('./notify-assignment.server')>()
-  return { ...actual, notifyAssignment: vi.fn() }
-})
+vi.mock('./event-status.server', () => ({ fireReleaseNotifications: vi.fn() }))
 
 const { bulkReleaseEvents, bulkUnreleaseEvents } = await import('./event-status-bulk.server')
-const { unscopedDb: db } = await import('~/shared/infra/db.server')
-const { notifyAssignment } = await import('./notify-assignment.server')
+const { fireReleaseNotifications } = await import('./event-status.server')
 
-const nctx = { locale: 'fr-FR', timezone: 'Europe/Paris' }
-const draftEvent = {
-  id: 42,
-  name: 'Réunion',
-  status: 'draft',
-  startDate: new Date(2026, 3, 14),
-  templateId: 7,
-}
-const releasedEvent = { ...draftEvent, status: 'released' }
-
-type ItemFixture = { parts?: unknown[]; services?: unknown[]; legacy?: unknown[] }
-type ItemArgs = {
-  where: { eventId?: number; AND?: { schedule: { kind: string } }[] }
-  select?: Record<string, boolean>
-}
-
-/**
- * Feeds the item reads of the event flow, per event. releaseEvent asks for the programme's parts, then the duties (kind
- * in `AND`); unreleaseEvent asks for every item id of the event (no kind); the notice cancel reads the legacy keys.
- */
-function mockItems(byEvent: Record<number, ItemFixture> = {}) {
-  vi.mocked(db.item.findMany).mockImplementation(((args: ItemArgs) => {
-    if (args.select && 'legacyPartId' in args.select) {
-      return Object.values(byEvent).flatMap(entry => entry.legacy ?? [])
-    }
-    const entry = byEvent[args.where.eventId ?? -1] ?? {}
-    const kind = args.where.AND?.[0]?.schedule?.kind
-    if (kind === 'programme') return entry.parts ?? []
-    if (kind === 'duty') return entry.services ?? []
-    return [...(entry.parts ?? []), ...(entry.services ?? [])]
-  }) as never)
-}
+const nctx = { locale: 'fr', timezone: 'Europe/Paris' }
+const can = () => true
+const event = (id: number) => ({ id, name: 'Réunion', startDate: new Date(2027, 2, 3), templateId: 7 })
+const published = (id: number, extra: Record<string, unknown> = {}) => ({
+  event: event(id),
+  changed: true,
+  published: [{ id: id * 10, eventId: id, kind: 'duty' }],
+  blocked: [],
+  skipped: 0,
+  notifyTargets: [{ entityType: 'Item', entityId: 1, assignmentName: 'Sono', memberId: 5, role: 'servant' }],
+  ...extra,
+})
 
 beforeEach(() => {
-  vi.resetAllMocks()
-  mockItems()
+  state.publish.clear()
+  state.unpublish.clear()
+  vi.mocked(fireReleaseNotifications).mockClear()
 })
 
-describe('bulkReleaseEvents (per-event scope + post-tx notifications)', () => {
-  it('classifies each event into released / blocked / notFound / failed', async () => {
-    // 10 → not found; 20 → conflict-blocked; 30 → clean release.
-    // biome-ignore lint/suspicious/noExplicitAny: mock signature needs to match Prisma's generated overloads
-    vi.mocked(db.event.findFirst).mockImplementation(((args: any) => {
-      const id = args?.where?.id as number
-      if (id === 10) return Promise.resolve(null)
-      if (id === 20) return Promise.resolve({ ...draftEvent, id: 20 })
-      return Promise.resolve({ ...draftEvent, id: 30 })
-    }) as never)
-    mockItems({
-      20: { parts: [{ id: 100, name: 'Part', hasConflict: true, assigneeId: 5, assistantId: null }] },
+describe('bulkReleaseEvents', () => {
+  it('sorts each event into what the page reports, and counts the schedules left to someone else', async () => {
+    state.publish.set(1, published(1))
+    state.publish.set(2, published(2, { skipped: 1 }))
+    state.publish.set(3, { refused: true })
+    state.publish.set(
+      4,
+      published(4, { changed: false, published: [], blocked: [{ reason: 'conflicts', error: 'x' }] }),
+    )
+    state.publish.set(5, published(5, { changed: false, published: [], blocked: [{ reason: 'awaiting', error: 'y' }] }))
+    state.publish.set(7, new Error('boom'))
+    // Its duties published, its programme held back by a conflict; another's programme still to give.
+    state.publish.set(8, published(8, { blocked: [{ reason: 'conflicts', error: 'x' }] }))
+    state.publish.set(9, published(9, { blocked: [{ reason: 'awaiting', error: 'y' }] }))
+
+    const result = await bulkReleaseEvents([1, 2, 3, 4, 5, 6, 7, 8, 9], can, 9, 1, nctx)
+
+    expect(result).toEqual({
+      released: [1, 2, 8, 9],
+      blocked: [{ id: 4, error: 'x' }],
+      awaiting: [5, 9],
+      refused: [3],
+      notFound: [6],
+      failed: [{ id: 7, error: 'boom' }],
+      heldSchedules: 1,
+      conflictedSchedules: 1,
     })
-    vi.mocked(db.event.update).mockResolvedValue({ ...releasedEvent, id: 30 } as never)
-
-    const result = await bulkReleaseEvents([10, 20, 30], 1, 5, nctx)
-
-    expect(result.released).toEqual([30])
-    expect(result.blocked.map((b: { id: number }) => b.id)).toEqual([20])
-    expect(result.notFound).toEqual([10])
-    expect(result.failed).toEqual([])
   })
 
-  // Not a conflict: the page says these meetings have no programme yet, not that someone is away.
-  it('keeps the meetings waiting for their programme apart from those blocked by an absence', async () => {
-    vi.mocked(db.event.findFirst).mockResolvedValue({
-      ...draftEvent,
-      id: 40,
-      template: { key: null, _count: { parts: 12, serviceParts: 4 } },
-    } as never)
-
-    const result = await bulkReleaseEvents([40], 1, 5, nctx)
-
-    expect(result.awaiting).toEqual([40])
-    expect(result.blocked).toEqual([])
-    expect(db.event.update).not.toHaveBeenCalled()
+  it('counts an event published already, nothing left to publish, as published', async () => {
+    state.publish.set(1, published(1, { changed: false, published: [], notifyTargets: [] }))
+    expect((await bulkReleaseEvents([1], can, 9, 1, nctx)).released).toEqual([1])
   })
 
-  // A Prisma error inside `withScope` (pool exhaustion, connection reset, tx
-  // timeout) previously escaped the loop and 500'd the whole batch, silently
-  // dropping partial progress. Now each event's release is caught and lands
-  // in the `failed` bucket; the loop continues.
-  it('lands per-event withScope failures in the `failed` bucket without aborting the batch', async () => {
-    const { withScope } = await import('~/shared/infra/db.server')
-    vi.mocked(withScope).mockImplementation(((_cid: number, fn: (tx: unknown) => unknown) => fn(db)) as never)
-    vi.mocked(db.event.findFirst).mockResolvedValue({ ...draftEvent } as never)
-    vi.mocked(db.event.update).mockResolvedValue(releasedEvent as never)
-    vi.mocked(withScope)
-      .mockImplementationOnce(((_cid: number, fn: (tx: unknown) => unknown) => fn(db)) as never)
-      .mockImplementationOnce(() => Promise.reject(new Error('pool exhausted')))
-      .mockImplementation(((_cid: number, fn: (tx: unknown) => unknown) => fn(db)) as never)
+  it('fires each published event’s notices after its own transaction', async () => {
+    state.publish.set(1, published(1))
+    state.publish.set(3, { refused: true })
 
-    const result = await bulkReleaseEvents([10, 20, 30], 1, 5, nctx)
+    await bulkReleaseEvents([1, 3], can, 9, 1, nctx)
 
-    expect(result.released).toEqual([10, 30])
-    expect(result.failed.map((f: { id: number }) => f.id)).toEqual([20])
-  })
-
-  // fireReleaseNotifications runs OUTSIDE the release tx. This test verifies
-  // that after a successful release, notifyAssignment is invoked for every
-  // computed target.
-  it('fires notifyAssignment for each target of every released event', async () => {
-    vi.mocked(db.event.findFirst).mockResolvedValue({ ...draftEvent } as never)
-    mockItems({ 42: { parts: [{ id: 100, name: 'Perle', hasConflict: false, assigneeId: 5, assistantId: null }] } })
-    vi.mocked(db.event.update).mockResolvedValue(releasedEvent as never)
-
-    await bulkReleaseEvents([42], 1, 5, nctx)
-
-    expect(notifyAssignment).toHaveBeenCalledTimes(1)
-    expect(vi.mocked(notifyAssignment).mock.calls[0][2]).toMatchObject({ memberId: 5, role: 'speaker' })
-  })
-
-  it('returns empty buckets when the input list is empty', async () => {
-    const result = await bulkReleaseEvents([], 1, 5, nctx)
-    expect(result).toEqual({ released: [], blocked: [], awaiting: [], notFound: [], failed: [] })
-    expect(db.event.findFirst).not.toHaveBeenCalled()
+    expect(vi.mocked(fireReleaseNotifications).mock.calls).toEqual([[event(1), published(1).notifyTargets, 1, 9, nctx]])
   })
 })
 
-describe('bulkUnreleaseEvents (per-event scope)', () => {
-  it('classifies each event into unreleased / notFound / failed', async () => {
-    // biome-ignore lint/suspicious/noExplicitAny: mock signature needs to match Prisma's generated overloads
-    vi.mocked(db.event.findFirst).mockImplementation(((args: any) => {
-      const id = args?.where?.id as number
-      if (id === 10) return Promise.resolve(null)
-      return Promise.resolve({ ...releasedEvent, id })
-    }) as never)
-    vi.mocked(db.event.update).mockResolvedValue(draftEvent as never)
+describe('bulkUnreleaseEvents', () => {
+  it('sorts each event into what the page reports, and counts the schedules left published', async () => {
+    state.unpublish.set(1, { changed: true, withdrawn: [{ id: 10 }], skipped: 0 })
+    state.unpublish.set(2, { changed: true, withdrawn: [{ id: 20 }], skipped: 1 })
+    state.unpublish.set(3, { refused: true })
+    state.unpublish.set(5, new Error('boom'))
 
-    const result = await bulkUnreleaseEvents([10, 20, 30], 1, 5)
-
-    expect(result.unreleased).toEqual([20, 30])
-    expect(result.notFound).toEqual([10])
-    expect(result.failed).toEqual([])
-  })
-
-  it('lands per-event withScope failures in the `failed` bucket without aborting the batch', async () => {
-    const { withScope } = await import('~/shared/infra/db.server')
-    vi.mocked(db.event.findFirst).mockResolvedValue(releasedEvent as never)
-    vi.mocked(db.event.update).mockResolvedValue(draftEvent as never)
-    vi.mocked(withScope)
-      .mockImplementationOnce(((_cid: number, fn: (tx: unknown) => unknown) => fn(db)) as never)
-      .mockImplementationOnce(() => Promise.reject(new Error('pool exhausted')))
-      .mockImplementation(((_cid: number, fn: (tx: unknown) => unknown) => fn(db)) as never)
-
-    const result = await bulkUnreleaseEvents([10, 20, 30], 1, 5)
-
-    expect(result.unreleased).toEqual([10, 30])
-    expect(result.failed.map((f: { id: number }) => f.id)).toEqual([20])
-  })
-
-  it('returns empty buckets when the input list is empty', async () => {
-    const result = await bulkUnreleaseEvents([], 1, 5)
-    expect(result).toEqual({ unreleased: [], notFound: [], failed: [] })
-    expect(db.event.findFirst).not.toHaveBeenCalled()
+    expect(await bulkUnreleaseEvents([1, 2, 3, 4, 5], can, 9, 1)).toEqual({
+      unreleased: [1, 2],
+      refused: [3],
+      notFound: [4],
+      failed: [{ id: 5, error: 'boom' }],
+      heldSchedules: 1,
+    })
   })
 })

@@ -1,103 +1,127 @@
-// Bulk orchestrators for release / unrelease. Each event runs in its own
-// withScope so a slow or failing event does not eat the batch tx budget;
-// per-event failures land in a `failed` bucket instead of aborting the loop.
+// Bulk orchestrators for release / unrelease: « Tout publier » and « Tout retirer » (D43) on each selected event,
+// each in its own withScope so a slow or failing event does not eat the batch tx budget; per-event failures land in a
+// `failed` bucket instead of aborting the loop.
 
 import { withScope } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
+import type { Permission } from '~/shared/types/permission'
 import {
-  fireReleaseNotifications,
-  type ReleaseNotificationContext,
-  type ReleaseResult,
-  releaseEvent,
-  type UnreleaseResult,
-  unreleaseEvent,
-} from './event-status.server'
+  type PublishEventResult,
+  publishEvent,
+  type UnpublishEventResult,
+  unpublishEvent,
+} from './event-publishing.server'
+import { fireReleaseNotifications, type ReleaseNotificationContext } from './event-status.server'
 
 const logger = createLogger('event-status')
 
 export type BulkReleaseResult = {
+  /** Events published by this call, or with nothing of theirs left to publish. */
   released: number[]
   blocked: { id: number; error: string }[]
   /** Meetings with no programme yet: nothing to publish. */
   awaiting: number[]
+  /** Events none of whose schedules is the person's to publish. */
+  refused: number[]
   notFound: number[]
   failed: { id: number; error: string }[]
+  /** Draft schedules of the published events left to someone else. */
+  heldSchedules: number
+  /** Schedules of the published events their own absence conflicts held back as drafts. */
+  conflictedSchedules: number
 }
 
-// Per-event withScope wrapping — a slow or failing event does not eat the
-// batch budget. A Prisma error inside the release tx (pool exhaustion,
-// timeout, connection reset) lands in the `failed` bucket via the try/catch
-// around withScope; the loop continues. Notifications fire outside the
-// release tx to keep the tx pure and rollback-safe.
+// Notifications fire outside each event's tx to keep it pure and rollback-safe; a Prisma error inside one (pool
+// exhaustion, timeout, connection reset) lands in `failed` and the loop continues.
 export async function bulkReleaseEvents(
   eventIds: number[],
-  congregationId: number,
+  can: (permission: Permission) => boolean,
   actorId: number,
+  congregationId: number,
   ctx: ReleaseNotificationContext,
 ): Promise<BulkReleaseResult> {
-  const released: number[] = []
-  const blocked: { id: number; error: string }[] = []
-  const awaiting: number[] = []
-  const notFound: number[] = []
-  const failed: { id: number; error: string }[] = []
+  const out: BulkReleaseResult = {
+    released: [],
+    blocked: [],
+    awaiting: [],
+    refused: [],
+    notFound: [],
+    failed: [],
+    heldSchedules: 0,
+    conflictedSchedules: 0,
+  }
 
   for (const id of eventIds) {
-    let result: ReleaseResult | null
+    let result: PublishEventResult | null
     try {
-      result = await withScope(congregationId, tx => releaseEvent(tx, id, congregationId, actorId))
+      result = await withScope(congregationId, tx => publishEvent(tx, can, actorId, id, congregationId))
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       logger.error('bulk release: per-event transaction failed', { eventId: id, congregationId, actorId, err })
-      failed.push({ id, error: message })
+      out.failed.push({ id, error: message })
       continue
     }
     if (result == null) {
-      notFound.push(id)
+      out.notFound.push(id)
       continue
     }
-    if ('error' in result) {
-      if (result.reason === 'awaiting') awaiting.push(id)
-      else blocked.push({ id, error: result.error })
+    if ('refused' in result) {
+      out.refused.push(id)
       continue
     }
-    released.push(id)
-    // Notifications AFTER the release tx has committed. Any per-target
-    // failure is swallowed inside fireReleaseNotifications, so this call
-    // never throws.
+    out.heldSchedules += result.skipped
+    const held = result.blocked[0]
+    if (!result.changed && held != null) {
+      if (held.reason === 'awaiting') out.awaiting.push(id)
+      else out.blocked.push({ id, error: held.error })
+      continue
+    }
+    out.released.push(id)
+    // Published in part: what stayed a draft is said, a programme still to give with the meetings awaiting one.
+    out.conflictedSchedules += result.blocked.filter(blocked => blocked.reason === 'conflicts').length
+    if (result.blocked.some(blocked => blocked.reason === 'awaiting')) out.awaiting.push(id)
+    // Notifications AFTER the event's tx has committed. Any per-target failure is swallowed inside
+    // fireReleaseNotifications, so this call never throws.
     await fireReleaseNotifications(result.event, result.notifyTargets, congregationId, actorId, ctx)
   }
 
-  return { released, blocked, awaiting, notFound, failed }
+  return out
 }
 
 export type BulkUnreleaseResult = {
   unreleased: number[]
+  refused: number[]
   notFound: number[]
   failed: { id: number; error: string }[]
+  /** Published schedules of the withdrawn events left to someone else. */
+  heldSchedules: number
 }
 
 export async function bulkUnreleaseEvents(
   eventIds: number[],
-  congregationId: number,
+  can: (permission: Permission) => boolean,
   actorId: number,
+  congregationId: number,
 ): Promise<BulkUnreleaseResult> {
-  const unreleased: number[] = []
-  const notFound: number[] = []
-  const failed: { id: number; error: string }[] = []
+  const out: BulkUnreleaseResult = { unreleased: [], refused: [], notFound: [], failed: [], heldSchedules: 0 }
 
   for (const id of eventIds) {
-    let result: UnreleaseResult | null
+    let result: UnpublishEventResult | null
     try {
-      result = await withScope(congregationId, tx => unreleaseEvent(tx, id, congregationId, actorId))
+      result = await withScope(congregationId, tx => unpublishEvent(tx, can, actorId, id, congregationId))
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       logger.error('bulk unrelease: per-event transaction failed', { eventId: id, congregationId, actorId, err })
-      failed.push({ id, error: message })
+      out.failed.push({ id, error: message })
       continue
     }
-    if (result == null) notFound.push(id)
-    else unreleased.push(id)
+    if (result == null) out.notFound.push(id)
+    else if ('refused' in result) out.refused.push(id)
+    else {
+      out.unreleased.push(id)
+      out.heldSchedules += result.skipped
+    }
   }
 
-  return { unreleased, notFound, failed }
+  return out
 }
