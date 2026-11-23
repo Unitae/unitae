@@ -9,7 +9,7 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 import { withScope } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { assertCanRelease, EVENT_STATUS_ERRORS } from './event-status.policy'
-import { PROGRAMME_ASSIGNMENT_TYPE } from './notifications.server'
+import { type AssignmentChangeType, PROGRAMME_ASSIGNMENT_TYPE } from './notifications.server'
 import { buildAssignmentContext, cancelPendingAssignmentNotices, notifyAssignment } from './notify-assignment.server'
 import { computeNotifyTargets, type NotifyTarget } from './release-notifications.server'
 
@@ -149,6 +149,8 @@ export async function fireReleaseNotifications(
   congregationId: number,
   actorId: number,
   ctx: ReleaseNotificationContext,
+  /** « vous êtes assigné » on publishing; « Attribution annulée » when a published schedule is deleted (D41). */
+  type: AssignmentChangeType = PROGRAMME_ASSIGNMENT_TYPE.assigned,
 ): Promise<void> {
   if (targets.length === 0) return
 
@@ -179,7 +181,7 @@ export async function fireReleaseNotifications(
             entityId: target.entityId,
             assignmentName: target.assignmentName,
           },
-          { type: PROGRAMME_ASSIGNMENT_TYPE.assigned, memberId: target.memberId, role: target.role },
+          { type, memberId: target.memberId, role: target.role },
         ),
       )
     } catch (err) {
