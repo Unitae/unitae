@@ -17,6 +17,13 @@ import { type AssignedPart, EventAssignmentsPanel, type UnassignTarget } from '.
 import { EventHeader } from './EventHeader'
 import { EventItemEditor } from './EventItemEditor'
 import { type AssignedService, EventServiceAssignmentsPanel } from './EventServiceAssignmentsPanel'
+import {
+  type EventScheduleView,
+  ScheduleResponsibleLine,
+  ScheduleStatusControl,
+  ScheduleTitle,
+  type ScheduleViewer,
+} from './ScheduleHeading'
 import { UnassignConfirmDialog } from './UnassignConfirmDialog'
 
 interface EventViewProps {
@@ -29,7 +36,7 @@ interface EventViewProps {
     eventParts: AssignedPart[]
     eventServiceParts: AssignedService[]
     /** The schedules this reader may see: the others never reach the page (maySeeSchedule, D45). */
-    schedules: { kind: string }[]
+    schedules: EventScheduleView[]
   }
   /** A meeting created ahead with no programme yet: « Créer le programme » replaces publishing it. */
   awaitingProgramme: boolean
@@ -55,6 +62,9 @@ interface EventViewProps {
   externalSpeakers: ExternalSpeakerOption[]
   shareTexts: Record<number, string>
   timezone: string
+  /** « Tout publier » (D43): how many drafts the reader may publish, and whether that is every schedule (« Publier »). */
+  publishAll: { count: number; everyone: boolean }
+  viewer: ScheduleViewer
 }
 
 /**
@@ -80,6 +90,8 @@ export function EventView({
   externalSpeakers,
   shareTexts,
   timezone,
+  publishAll,
+  viewer,
 }: EventViewProps) {
   const partFetcher = useFetcher()
   const serviceFetcher = useFetcher()
@@ -144,6 +156,16 @@ export function EventView({
   const shownKinds = new Set(event.schedules.map(schedule => schedule.kind))
   const showsProgramme = awaitingProgramme || shownKinds.has(ScheduleKind.Programme)
   const showsDuties = shownKinds.has(ScheduleKind.Duty)
+  // Each schedule its own section (5c): its title and kind, its responsible (D37), its status and its « Publier ».
+  const programmeSchedule = event.schedules.find(schedule => schedule.kind === ScheduleKind.Programme)
+  const dutySchedule = event.schedules.find(schedule => schedule.kind === ScheduleKind.Duty)
+  const headingOf = (schedule: EventScheduleView | undefined, fill: string) =>
+    schedule && {
+      title: <ScheduleTitle schedule={schedule} />,
+      actions: <ScheduleStatusControl eventId={event.id} schedule={schedule} fill={fill} />,
+      intro: <ScheduleResponsibleLine schedule={schedule} viewer={viewer} />,
+    }
+  const bySchedule = event.schedules.length > 0
   const assignedParts = event.eventParts.filter(item => item.assigneeId ?? item.externalSpeakerId).length
   const filledServices = event.eventServiceParts.filter(item => item.assigneeId).length
   const date = formatEventDate(event.startDate, timezone, getLocale(), {
@@ -163,11 +185,17 @@ export function EventView({
         subtitle={`${date} · ${times}`}
         awaitingProgramme={awaitingProgramme}
         partsAssigned={
-          showsProgramme && !awaitingProgramme ? { count: assignedParts, total: event.eventParts.length } : null
+          !bySchedule && showsProgramme && !awaitingProgramme
+            ? { count: assignedParts, total: event.eventParts.length }
+            : null
         }
         servicesFilled={
-          event.eventServiceParts.length > 0 ? { count: filledServices, total: event.eventServiceParts.length } : null
+          !bySchedule && event.eventServiceParts.length > 0
+            ? { count: filledServices, total: event.eventServiceParts.length }
+            : null
         }
+        // With schedules, each section carries its status and its « Publier »; the header publishes them all (D43).
+        publishAll={bySchedule ? publishAll : null}
         canRelease={canRelease}
         canUnrelease={canUnrelease}
         canEdit={canEdit}
@@ -189,6 +217,10 @@ export function EventView({
               onAssign={(item, trigger) => panel.request({ kind: 'part', id: item.id, trigger })}
               onUnassign={setUnassignTarget}
               emptyHint={awaitingProgramme ? m.programs_awaiting_hint() : undefined}
+              heading={headingOf(
+                programmeSchedule,
+                m.programs_view_parts_assigned({ count: assignedParts, total: event.eventParts.length }),
+              )}
             />
           )}
           {showsDuties && (
@@ -199,6 +231,10 @@ export function EventView({
               selectedId={target?.kind === 'service' ? target.id : null}
               onAssign={(item, trigger) => panel.request({ kind: 'service', id: item.id, trigger })}
               onUnassign={setUnassignTarget}
+              heading={headingOf(
+                dutySchedule,
+                m.programs_view_services_filled({ count: filledServices, total: event.eventServiceParts.length }),
+              )}
             />
           )}
         </div>
@@ -210,19 +246,8 @@ export function EventView({
           walk={walk}
           partEditor={partEditor}
           serviceEditor={serviceEditor}
-          placement="docked"
         />
       </div>
-
-      <EventItemEditor
-        panel={panel}
-        part={part}
-        service={service}
-        walk={walk}
-        partEditor={partEditor}
-        serviceEditor={serviceEditor}
-        placement="sheet"
-      />
 
       <DiscardChangesDialog
         {...panel.discard}

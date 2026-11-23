@@ -7,8 +7,9 @@ import { buildAssignmentCandidates } from '~/features/events/server/assignment-c
 import { eventHasAttendance } from '~/features/events/server/attendance.queries'
 import { buildShareTextsForEvent } from '~/features/events/server/build-share-message.server'
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
-import { publishActionsFor } from '~/features/events/server/event-publishing.server'
+import { publishActionsFor, publishableScheduleIds } from '~/features/events/server/event-publishing.server'
 import { listExternalSpeakerOptions } from '~/features/events/server/external-speakers.queries'
+import { listScheduleResponsibles } from '~/features/events/server/schedule-responsibles.queries'
 import {
   canChangeEvent,
   canDeleteEvent,
@@ -82,6 +83,25 @@ export function loader({ params, context }: Route.LoaderArgs) {
       eventServiceParts: hidden.has(ScheduleKind.Duty) ? [] : event.eventServiceParts,
     }
 
+    // Each schedule the reader sees, as its section shows it: its responsible (D37) and whether they may publish it.
+    const mine = await publishableScheduleIds(db, can, currentUser.id, [event.id], congregationId)
+    const roleOf = (schedule: (typeof shown.schedules)[number]) => schedule.scheduleTemplate?.responsibleRoleId ?? null
+    const responsibles = await listScheduleResponsibles(
+      db,
+      shown.schedules.flatMap(schedule => roleOf(schedule) ?? []),
+      congregationId,
+    )
+    const schedules = shown.schedules.map(schedule => ({
+      id: schedule.id,
+      kind: schedule.kind,
+      status: schedule.status,
+      name: schedule.name,
+      key: schedule.key,
+      responsible: responsibles.get(roleOf(schedule) ?? 0) ?? null,
+      mayPublish: mine.has(schedule.id),
+    }))
+    const myDrafts = schedules.filter(schedule => schedule.mayPublish && schedule.status === 'draft').length
+
     // The delete dialog says what deleting does: with counts, only the programme goes.
     const hasAttendance = canDelete && (await eventHasAttendance(db, eventId, congregationId))
 
@@ -113,7 +133,10 @@ export function loader({ params, context }: Route.LoaderArgs) {
     logger.info(`Loading event programme. User ID: ${currentUser.id}. Event ID: ${eventId}.`)
 
     return {
-      event: shown,
+      event: { ...shown, schedules },
+      // « Tout publier » (D43): the drafts the reader may publish, all of them for « Publier ».
+      publishAll: { count: myDrafts, everyone: can(Permission.CanPublishPrograms) },
+      viewer: { accountId: currentUser.id, memberId: currentUser.memberId },
       // Created ahead and still empty: the page offers « Créer le programme » instead of publishing it.
       // From what this reader sees: a programme hidden from them is, for them, still to come.
       awaitingProgramme: isAwaitingProgramme({

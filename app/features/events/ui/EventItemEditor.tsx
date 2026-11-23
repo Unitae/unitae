@@ -22,24 +22,16 @@ interface EventItemEditorProps {
   walk: ReturnType<SideEditor['walk']>
   partEditor: Omit<ComponentProps<typeof AssignPartEditor>, 'part' | 'formRef'>
   serviceEditor: Omit<ComponentProps<typeof AssignServiceEditor>, 'service' | 'formRef'>
-  /** Docked beside the programme on a wide screen, a sheet below. */
-  placement: 'docked' | 'sheet'
 }
 
-/** The editor of the item the reader opened: who takes a part or a service. */
-export function EventItemEditor({
-  panel,
-  part,
-  service,
-  walk,
-  partEditor,
-  serviceEditor,
-  placement,
-}: EventItemEditorProps) {
+/**
+ * The editor of the item the reader opened: who takes a part or a service. Docked beside the programme on a wide
+ * screen, a sheet below (portaled, so where it is mounted does not matter).
+ */
+export function EventItemEditor({ panel, part, service, walk, partEditor, serviceEditor }: EventItemEditorProps) {
   const target = panel.target
 
-  if (placement === 'sheet') {
-    if (panel.docked) return null
+  if (!panel.docked) {
     return (
       <>
         <AssignPartSheet
@@ -58,7 +50,7 @@ export function EventItemEditor({
     )
   }
 
-  if (!panel.docked || target == null || (part == null && service == null)) return null
+  if (target == null || (part == null && service == null)) return null
   const partCopy = part ? assignPartCopy(part) : null
   return (
     // `contents` keeps the panel a flex item of the row while its key presses reach the walk.

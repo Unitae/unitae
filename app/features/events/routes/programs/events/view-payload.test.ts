@@ -36,8 +36,22 @@ vi.mock('~/features/events/server/event-part-assignments.server', () => ({
       templateId: 3,
       template: null,
       schedules: [
-        { kind: 'programme', status: state.statuses.programme },
-        { kind: 'duty', status: state.statuses.duty },
+        {
+          id: 1,
+          kind: 'programme',
+          status: state.statuses.programme,
+          name: null,
+          key: 'programme',
+          scheduleTemplate: null,
+        },
+        {
+          id: 2,
+          kind: 'duty',
+          status: state.statuses.duty,
+          name: 'Services',
+          key: null,
+          scheduleTemplate: { responsibleRoleId: 9 },
+        },
       ],
       eventParts: [{ id: 1, name: 'Discours' }],
       eventServiceParts: [{ id: 2, name: 'Sono' }],
@@ -67,6 +81,15 @@ vi.mock('~/features/display-board/index.server', () => ({ resolveProgrammeLink: 
 vi.mock('~/features/events/server/event-publishing.server', () => ({
   publishActionsFor: (_db: unknown, _can: unknown, _user: number, events: { id: number }[]) =>
     Promise.resolve(new Map(events.map(({ id }) => [id, { canRelease: true, canUnrelease: false }]))),
+  // The duties (schedule 2) are the reader's to publish.
+  publishableScheduleIds: () => Promise.resolve(new Set([2])),
+}))
+// Who answers for each schedule is listScheduleResponsibles' integration test.
+vi.mock('~/features/events/server/schedule-responsibles.queries', () => ({
+  listScheduleResponsibles: (_db: unknown, roleIds: number[]) =>
+    Promise.resolve(
+      new Map(roleIds.map(roleId => [roleId, { role: { key: 'services', name: 'Services' }, holders: [] }])),
+    ),
 }))
 
 const { loader } = await import('./view')
@@ -111,6 +134,28 @@ describe('the event page’s publishing', () => {
       canUnrelease: boolean
     }
     expect({ release: data.canRelease, unrelease: data.canUnrelease }).toEqual({ release: true, unrelease: false })
+  })
+})
+
+describe('each schedule’s section', () => {
+  it('carries its responsible, whether the reader may publish it, and « Tout publier »’s count', async () => {
+    const data = (await loader({ params: { eventId: '40' }, context: readerContext() } as never)) as {
+      event: { schedules: unknown[] }
+      publishAll: unknown
+    }
+    expect(data.event.schedules).toEqual([
+      {
+        id: 2,
+        kind: 'duty',
+        status: 'published',
+        name: 'Services',
+        key: null,
+        responsible: { role: { key: 'services', name: 'Services' }, holders: [] },
+        mayPublish: true,
+      },
+    ])
+    // Its one schedule of theirs is published: nothing left for them to publish.
+    expect(data.publishAll).toEqual({ count: 0, everyone: false })
   })
 })
 

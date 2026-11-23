@@ -1,5 +1,6 @@
 import { Panel } from '@unitae/ui'
 import { UserPlus, X } from 'lucide-react'
+import type { ReactNode } from 'react'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { cn } from '~/shared/utils/utils'
@@ -21,6 +22,8 @@ interface EventServiceAssignmentsPanelProps {
   selectedId: number | null
   onAssign: (service: AssignedService, trigger: HTMLElement) => void
   onUnassign: (target: UnassignTarget) => void
+  /** The schedule's own heading on the event page (5c): its title, its controls, and a first line (its responsible). */
+  heading?: { title: ReactNode; actions?: ReactNode; intro?: ReactNode }
 }
 
 /** Who does each service (sound, attendants…) at this event. */
@@ -31,9 +34,11 @@ export function EventServiceAssignmentsPanel({
   selectedId,
   onAssign,
   onUnassign,
+  heading,
 }: EventServiceAssignmentsPanelProps) {
   return (
-    <Panel title={m.programs_view_services()}>
+    <Panel title={heading?.title ?? m.programs_view_services()} actions={heading?.actions}>
+      {heading?.intro && <div className="border-border border-b">{heading.intro}</div>}
       {services.length === 0 ? (
         <p className="px-4.5 py-6 text-muted-foreground text-sm">{m.programs_edit_no_services()}</p>
       ) : (
