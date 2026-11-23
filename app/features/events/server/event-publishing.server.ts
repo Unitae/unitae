@@ -4,11 +4,13 @@ import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { Permission } from '~/shared/types/permission'
 import { releaseEvent, unreleaseEvent } from './event-status.server'
+import { TEMPLATE_PROGRAMME_COUNT } from './give-programme.server'
 import type { NotifyTarget } from './release-notifications.server'
 import { canPublishEvent } from './schedule-rights.server'
 import {
   canPublishSchedule,
   type PublishScheduleResult,
+  programmeAwaits,
   publishSchedule,
   type ScheduleRef,
   type UnpublishScheduleResult,
@@ -227,7 +229,14 @@ export async function publishActionsFor(
       ? []
       : db.schedule.findMany({
           where: { eventId: { in: eventIds }, congregationId },
-          select: { id: true, eventId: true, status: true },
+          select: {
+            id: true,
+            eventId: true,
+            kind: true,
+            status: true,
+            _count: { select: { items: true } },
+            event: { select: { template: { select: { key: true, ...TEMPLATE_PROGRAMME_COUNT } } } },
+          },
         }),
     publishableScheduleIds(db, can, userId, eventIds, congregationId),
   ])
@@ -248,7 +257,12 @@ export async function publishActionsFor(
       return [
         event.id,
         {
-          canRelease: theirs.some(schedule => schedule.status === ScheduleStatus.Draft),
+          // A programme still to give is refused by publishSchedule: never offered.
+          canRelease: theirs.some(
+            schedule =>
+              schedule.status === ScheduleStatus.Draft &&
+              !programmeAwaits({ kind: schedule.kind, items: schedule._count.items }, schedule.event.template),
+          ),
           canUnrelease: theirs.some(schedule => schedule.status === ScheduleStatus.Published),
         },
       ]

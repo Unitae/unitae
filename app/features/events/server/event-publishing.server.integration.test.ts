@@ -292,6 +292,27 @@ describe('publishActionsFor, what the screens offer', () => {
     })
   })
 
+  it('never offers to publish a programme emptied of its parts while its template has parts to give', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, meetingId, programme }) => {
+      await db.item.deleteMany({ where: { id: { in: programme.itemIds } } })
+      const offers = async () =>
+        (
+          await publishActionsFor(
+            db,
+            publishes,
+            actorId,
+            [{ id: meetingId, status: 'draft' }],
+            congregationId,
+            () => true,
+          )
+        ).get(meetingId)
+      // The duties still offer it; once they are published, nothing is left to publish.
+      expect(await offers()).toEqual({ canRelease: true, canUnrelease: false })
+      await db.schedule.updateMany({ where: { eventId: meetingId, kind: 'duty' }, data: { status: 'published' } })
+      expect(await offers()).toEqual({ canRelease: false, canUnrelease: true })
+    })
+  })
+
   it('offers a bare event by its own status, to whoever may publish it as a whole (D46)', async () => {
     await withMeeting(async ({ db, congregationId, actorId, meetingId }) => {
       await db.schedule.deleteMany({ where: { eventId: meetingId } })

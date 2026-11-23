@@ -94,6 +94,19 @@ export async function settleEventStatus(db: TransactionClient, eventIds: number[
   })
 }
 
+/**
+ * Whether a schedule is a programme still to give, which publishing refuses: no part while its kind's template has
+ * parts to give. Only the template's parts count, its duties filling the other schedule; duties never wait.
+ */
+export function programmeAwaits(
+  schedule: { kind: string; items: number },
+  template: { key: string | null; _count: { parts: number; serviceParts: number } } | null,
+): boolean {
+  if (schedule.kind !== ScheduleKind.Programme) return false
+  const given = programmeTemplate(template)
+  return isAwaitingProgramme({ parts: schedule.items, services: 0, template: given && { ...given, services: 0 } })
+}
+
 /** The schedule's event row, locked for the rest of the transaction, as eventScheduleId does. */
 async function lockScheduleEvent(db: TransactionClient, scheduleId: number, congregationId: number) {
   const found = await db.schedule.findFirst({ where: { id: scheduleId, congregationId }, select: { eventId: true } })
@@ -133,12 +146,7 @@ export async function publishSchedule(
   // Programme items have a second slot (the reader); duties have none, as releaseEvent reads them.
   const parts = isProgramme ? schedule.items : []
   const services = isProgramme ? [] : schedule.items.map(({ assistantId: _assistant, ...service }) => service)
-  // Only the template's parts are a programme to give: its duties fill the other schedule.
-  const template = programmeTemplate(schedule.event.template)
-  if (
-    isProgramme &&
-    isAwaitingProgramme({ parts: parts.length, services: 0, template: template && { ...template, services: 0 } })
-  ) {
+  if (programmeAwaits({ kind: ref.kind, items: schedule.items.length }, schedule.event.template)) {
     return { schedule: ref, error: EVENT_STATUS_ERRORS.releaseAwaitingProgramme, reason: 'awaiting' }
   }
   try {

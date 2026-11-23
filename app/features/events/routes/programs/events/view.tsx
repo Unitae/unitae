@@ -125,7 +125,6 @@ export function loader({ params, context }: Route.LoaderArgs) {
       canEdit,
       canDelete,
       canCreateProgramme,
-      canPublish,
       canRelease: actions.canRelease,
       canUnrelease: actions.canUnrelease,
       canAssign,
