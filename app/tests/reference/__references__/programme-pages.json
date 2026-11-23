@@ -32,6 +32,16 @@
         "serviceParts": 4
       }
     },
+    "schedules": [
+      {
+        "kind": "programme",
+        "status": "draft"
+      },
+      {
+        "kind": "duty",
+        "status": "draft"
+      }
+    ],
     "eventParts": [
       {
         "id": "<id>",
@@ -335,6 +345,16 @@
         "serviceParts": 4
       }
     },
+    "schedules": [
+      {
+        "kind": "programme",
+        "status": "published"
+      },
+      {
+        "kind": "duty",
+        "status": "published"
+      }
+    ],
     "eventParts": [
       {
         "id": "<id>",
@@ -1356,6 +1376,16 @@
         "serviceParts": 4
       }
     },
+    "schedules": [
+      {
+        "kind": "programme",
+        "status": "draft"
+      },
+      {
+        "kind": "duty",
+        "status": "draft"
+      }
+    ],
     "eventParts": [
       {
         "id": "<id>",
@@ -2377,6 +2407,16 @@
         "serviceParts": 4
       }
     },
+    "schedules": [
+      {
+        "kind": "programme",
+        "status": "draft"
+      },
+      {
+        "kind": "duty",
+        "status": "draft"
+      }
+    ],
     "eventParts": [
       {
         "id": "<id>",
@@ -2939,6 +2979,7 @@
         "serviceParts": 4
       }
     },
+    "schedules": [],
     "eventParts": [],
     "eventServiceParts": []
   },
@@ -2975,6 +3016,7 @@
         "serviceParts": 4
       }
     },
+    "schedules": [],
     "eventParts": [],
     "eventServiceParts": []
   },
@@ -3011,6 +3053,7 @@
         "serviceParts": 4
       }
     },
+    "schedules": [],
     "eventParts": [],
     "eventServiceParts": []
   },
@@ -3047,6 +3090,7 @@
         "serviceParts": 4
       }
     },
+    "schedules": [],
     "eventParts": [],
     "eventServiceParts": []
   },
@@ -3083,6 +3127,7 @@
         "serviceParts": 4
       }
     },
+    "schedules": [],
     "eventParts": [],
     "eventServiceParts": []
   },
@@ -3119,6 +3164,16 @@
         "serviceParts": 4
       }
     },
+    "schedules": [
+      {
+        "kind": "programme",
+        "status": "published"
+      },
+      {
+        "kind": "duty",
+        "status": "published"
+      }
+    ],
     "eventParts": [
       {
         "id": "<id>",
@@ -3684,6 +3739,16 @@
         "serviceParts": 4
       }
     },
+    "schedules": [
+      {
+        "kind": "programme",
+        "status": "draft"
+      },
+      {
+        "kind": "duty",
+        "status": "draft"
+      }
+    ],
     "eventParts": [
       {
         "id": "<id>",
@@ -4257,6 +4322,16 @@
         "serviceParts": 4
       }
     },
+    "schedules": [
+      {
+        "kind": "programme",
+        "status": "draft"
+      },
+      {
+        "kind": "duty",
+        "status": "draft"
+      }
+    ],
     "eventParts": [
       {
         "id": "<id>",
@@ -4560,6 +4635,7 @@
         "serviceParts": 4
       }
     },
+    "schedules": [],
     "eventParts": [],
     "eventServiceParts": []
   },
@@ -4596,6 +4672,7 @@
         "serviceParts": 4
       }
     },
+    "schedules": [],
     "eventParts": [],
     "eventServiceParts": []
   },
@@ -4632,6 +4709,7 @@
         "serviceParts": 4
       }
     },
+    "schedules": [],
     "eventParts": [],
     "eventServiceParts": []
   },
@@ -4668,6 +4746,7 @@
         "serviceParts": 4
       }
     },
+    "schedules": [],
     "eventParts": [],
     "eventServiceParts": []
   },
@@ -4704,6 +4783,7 @@
         "serviceParts": 4
       }
     },
+    "schedules": [],
     "eventParts": [],
     "eventServiceParts": []
   },
@@ -4740,6 +4820,7 @@
         "serviceParts": 4
       }
     },
+    "schedules": [],
     "eventParts": [],
     "eventServiceParts": []
   }
