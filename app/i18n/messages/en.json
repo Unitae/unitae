@@ -2062,6 +2062,29 @@
             }
         }
     ],
+    "programs_schedule_rename": "Rename for this meeting",
+    "programs_schedule_delete": "Delete the schedule",
+    "programs_schedule_rename_title": "Rename the schedule",
+    "programs_schedule_rename_body": "The new name holds for this meeting only: the template keeps its own.",
+    "programs_schedule_name": "Name",
+    "programs_schedule_delete_title": "Delete the “{name}” schedule?",
+    "programs_schedule_delete_body": "The meeting stays, with its other schedules and its attendance. Only this schedule and its assignments go.",
+    "programs_schedule_renamed": "Schedule renamed.",
+    "programs_schedule_deleted": "Schedule deleted.",
+    "programs_schedule_actions": "More actions on {name}",
+    "programs_schedule_delete_warning": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "This schedule is published: the assigned person is told “Assignment cancelled”.",
+                "countPlural=*": "This schedule is published: the {count} assigned people are told “Assignment cancelled”."
+            }
+        }
+    ],
     "programs_schedule_in_charge": "Person in charge:",
     "programs_schedule_no_one_in_charge": "No one in charge: those who manage the programs see to it.",
     "programs_schedule_kind_programme": "Program",

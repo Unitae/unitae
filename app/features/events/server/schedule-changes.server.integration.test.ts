@@ -17,9 +17,14 @@ const testDb = new PrismaClient({ adapter })
 
 const { seedDefaultTemplates, syncTemplateScheduleTemplates } = await import('~/features/events/index.server')
 const { createProgrammeOnDay } = await import('./programme-creation.server')
-const { canChangeSchedule, deleteEventSchedule, deleteSchedule, renameEventSchedule, renameSchedule } = await import(
-  './schedule-changes.server'
-)
+const {
+  canChangeSchedule,
+  changeableScheduleIds,
+  deleteEventSchedule,
+  deleteSchedule,
+  renameEventSchedule,
+  renameSchedule,
+} = await import('./schedule-changes.server')
 const { publishSchedule } = await import('./schedule-status.server')
 
 class Rollback extends Error {}
@@ -215,6 +220,10 @@ describe('canChangeSchedule: « Gérer », or the responsible of its template', 
       expect(await canChangeSchedule(db, manages, actorId, duties.id, congregationId)).toBe(true)
       expect(await canChangeSchedule(db, nothing, actorId, duties.id, congregationId)).toBe(false)
       expect(await canChangeSchedule(db, manages, actorId, duties.id, congregationId + 1)).toBe(false)
+      const ids = [programme.id, duties.id]
+      expect(await changeableScheduleIds(db, nothing, dutyLead, ids, congregationId)).toEqual(new Set([duties.id]))
+      expect(await changeableScheduleIds(db, manages, actorId, ids, congregationId)).toEqual(new Set(ids))
+      expect(await changeableScheduleIds(db, nothing, actorId, ids, congregationId)).toEqual(new Set())
     })
   })
 })

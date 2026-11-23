@@ -35,6 +35,28 @@ export async function canChangeSchedule(
   return role != null && (await resolveEffectiveRoleIds(db, userId, congregationId)).includes(role)
 }
 
+/** canChangeSchedule for several schedules at once, in a fixed number of queries: the ones the caller may change. */
+export async function changeableScheduleIds(
+  db: TransactionClient,
+  can: (permission: Permission) => boolean,
+  userId: number,
+  scheduleIds: readonly number[],
+  congregationId: number,
+): Promise<Set<number>> {
+  if (scheduleIds.length === 0) return new Set()
+  const scoped = { id: { in: [...scheduleIds] }, congregationId }
+  if (can(Permission.CanManagePrograms)) {
+    return new Set((await db.schedule.findMany({ where: scoped, select: { id: true } })).map(schedule => schedule.id))
+  }
+  const roleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
+  if (roleIds.length === 0) return new Set()
+  const schedules = await db.schedule.findMany({
+    where: { ...scoped, scheduleTemplate: { responsibleRoleId: { in: roleIds } } },
+    select: { id: true },
+  })
+  return new Set(schedules.map(schedule => schedule.id))
+}
+
 const refOf = (schedule: { id: number; eventId: number; kind: string }): ScheduleRef => ({
   id: schedule.id,
   eventId: schedule.eventId,

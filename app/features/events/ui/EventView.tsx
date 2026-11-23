@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useFetcher } from 'react-router'
 import type { ExternalSpeakerOption } from '~/features/events/model/external-speaker.type'
 import { parseAssignKey } from '~/features/events/model/reassign'
-import { ScheduleKind } from '~/features/events/model/schedule.type'
+import { ScheduleKind, ScheduleStatus } from '~/features/events/model/schedule.type'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { useCloseOnSave } from '~/shared/ui/hooks/use-close-on-save'
@@ -17,11 +17,13 @@ import { type AssignedPart, EventAssignmentsPanel, type UnassignTarget } from '.
 import { EventHeader } from './EventHeader'
 import { EventItemEditor } from './EventItemEditor'
 import { type AssignedService, EventServiceAssignmentsPanel } from './EventServiceAssignmentsPanel'
+import { ScheduleActions } from './ScheduleActions'
 import {
   type EventScheduleView,
   ScheduleResponsibleLine,
   ScheduleStatusControl,
   ScheduleTitle,
+  scheduleTitle,
 } from './ScheduleHeading'
 import { UnassignConfirmDialog } from './UnassignConfirmDialog'
 
@@ -156,10 +158,25 @@ export function EventView({
   // kind, while an event holds one schedule of each (see maySeeSchedule): its items carry no schedule of their own.
   const programmeSchedule = event.schedules.find(schedule => schedule.kind === ScheduleKind.Programme)
   const dutySchedule = event.schedules.find(schedule => schedule.kind === ScheduleKind.Duty)
-  const headingOf = (schedule: EventScheduleView | undefined, fill: string) =>
+  const headingOf = (schedule: EventScheduleView | undefined, fill: string, assignees: number) =>
     schedule && {
       title: <ScheduleTitle schedule={schedule} />,
-      actions: <ScheduleStatusControl eventId={event.id} schedule={schedule} fill={fill} />,
+      actions: (
+        <>
+          <ScheduleStatusControl eventId={event.id} schedule={schedule} fill={fill} />
+          {schedule.mayChange && (
+            <ScheduleActions
+              eventId={event.id}
+              schedule={{
+                id: schedule.id,
+                title: scheduleTitle(schedule),
+                published: schedule.status === ScheduleStatus.Published,
+              }}
+              assignees={assignees}
+            />
+          )}
+        </>
+      ),
       intro: <ScheduleResponsibleLine schedule={schedule} />,
     }
   const bySchedule = event.schedules.length > 0
@@ -207,6 +224,8 @@ export function EventView({
               heading={headingOf(
                 programmeSchedule,
                 m.programs_view_parts_assigned({ count: assignedParts, total: event.eventParts.length }),
+                event.eventParts.filter(item => item.assigneeId != null).length +
+                  event.eventParts.filter(item => item.assistantId != null).length,
               )}
             />
           )}
@@ -221,6 +240,7 @@ export function EventView({
               heading={headingOf(
                 dutySchedule,
                 m.programs_view_services_filled({ count: filledServices, total: event.eventServiceParts.length }),
+                filledServices,
               )}
             />
           )}

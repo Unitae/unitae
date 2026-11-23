@@ -2067,6 +2067,29 @@
             }
         }
     ],
+    "programs_schedule_rename": "Renommer pour cette réunion",
+    "programs_schedule_delete": "Supprimer le planning",
+    "programs_schedule_rename_title": "Renommer le planning",
+    "programs_schedule_rename_body": "Le nouveau nom ne vaut que pour cette réunion : le modèle garde le sien.",
+    "programs_schedule_name": "Nom",
+    "programs_schedule_delete_title": "Supprimer le planning « {name} » ?",
+    "programs_schedule_delete_body": "La réunion reste, avec ses autres plannings et son assistance. Seuls ce planning et ses attributions disparaissent.",
+    "programs_schedule_renamed": "Planning renommé.",
+    "programs_schedule_deleted": "Planning supprimé.",
+    "programs_schedule_actions": "Plus d’actions sur {name}",
+    "programs_schedule_delete_warning": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Ce planning est publié : la personne attribuée reçoit « Attribution annulée ».",
+                "countPlural=*": "Ce planning est publié : les {count} personnes attribuées reçoivent « Attribution annulée »."
+            }
+        }
+    ],
     "programs_schedule_in_charge": "Responsable :",
     "programs_schedule_no_one_in_charge": "Sans responsable : ceux qui gèrent les programmes s’en occupent.",
     "programs_schedule_kind_programme": "Programme",

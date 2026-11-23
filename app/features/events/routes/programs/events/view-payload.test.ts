@@ -93,6 +93,10 @@ vi.mock('~/shared/auth/permissions.server', async importOriginal => ({
   ...(await importOriginal<typeof import('~/shared/auth/permissions.server')>()),
   resolveEffectiveRoleIds: () => Promise.resolve([9]),
 }))
+// Who may rename or delete which is changeableScheduleIds' integration test: none here.
+vi.mock('~/features/events/server/schedule-changes.server', () => ({
+  changeableScheduleIds: () => Promise.resolve(new Set<number>()),
+}))
 // Who answers for each schedule is listScheduleResponsibles' integration test.
 vi.mock('~/features/events/server/schedule-responsibles.queries', () => ({
   listScheduleResponsibles: (_db: unknown, roleIds: number[]) =>
@@ -164,6 +168,7 @@ describe('each schedule’s section', () => {
         responsible: { role: { key: 'services', name: 'Services' }, holders: [], youHoldIt: true },
         mayPublish: true,
         publishable: false,
+        mayChange: false,
       },
     ])
     // Its one schedule of theirs is published: nothing left for them to publish.

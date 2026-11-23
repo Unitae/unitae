@@ -20,6 +20,8 @@ export interface EventScheduleView {
   mayPublish: boolean
   /** A draft they may publish that publishing would not refuse (a programme still to give is): « Publier » shows. */
   publishable: boolean
+  /** Rename it for this meeting or delete it: « Gérer », or the responsible of its template. */
+  mayChange: boolean
 }
 
 /** Its own name, or the catalogue's for one left unnamed (« Programme », « Services »). */
