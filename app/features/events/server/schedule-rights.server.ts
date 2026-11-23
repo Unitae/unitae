@@ -1,3 +1,4 @@
+import type { ScheduleKind } from '~/features/events/model/schedule.type'
 import { type ItemKind, SCHEDULE_KIND_OF } from '~/features/events/server/item-projection.server'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -9,6 +10,11 @@ import { Permission } from '~/shared/types/permission'
 // (ScheduleTemplate.responsibleRoleId, synced from the responsibles Réglages names).
 
 const logger = createLogger('schedule-rights')
+
+/** « Attribuer » and « Gérer » fill every schedule (D3): the one place that says so, for the routes and the screens. */
+export function fillsEverySchedule(can: (permission: Permission) => boolean): boolean {
+  return can(Permission.CanAssignProgramParts) || can(Permission.CanManagePrograms)
+}
 
 /**
  * Whether the caller may fill an event's schedule of one kind: its items and who holds them (plan §10, D3, D7, D47).
@@ -26,34 +32,19 @@ export async function canFillSchedule(
   kind: ItemKind,
   congregationId: number,
 ): Promise<boolean> {
+  // fillsEverySchedule, named here as the permission gate reads each policy's own body.
   if (can(Permission.CanAssignProgramParts) || can(Permission.CanManagePrograms)) return true
   const roleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
   if (roleIds.length === 0) return false
-  const scheduleKind = SCHEDULE_KIND_OF[kind]
-  const holds = (role: number | null | undefined) => role != null && roleIds.includes(role)
-  const schedules = await db.schedule.findMany({
-    where: { eventId: event.id, congregationId, kind: scheduleKind },
-    select: { scheduleTemplate: { select: { responsibleRoleId: true } } },
-  })
-  let allowed: boolean
-  if (schedules.length > 0) {
-    allowed = schedules.every(schedule => holds(schedule.scheduleTemplate?.responsibleRoleId))
-  } else if (event.templateId == null) {
-    allowed = false
-  } else {
-    const first = await db.eventKindScheduleTemplate.findFirst({
-      where: { eventKindId: event.templateId, congregationId, scheduleTemplate: { kind: scheduleKind } },
-      orderBy: [{ order: 'asc' }, { scheduleTemplateId: 'asc' }],
-      select: { scheduleTemplate: { select: { responsibleRoleId: true } } },
-    })
-    allowed = holds(first?.scheduleTemplate.responsibleRoleId)
-  }
+  // The same facts and rule as the screens read (scheduleRightsFor), so a page and its route never disagree.
+  const facts = (await eventFacts(db, [event], congregationId)).get(event.id) ?? NO_FACTS
+  const allowed = fills(event, facts, kind, roleIds)
   if (!allowed) {
     logger.warn('canFillSchedule: refused a caller holding roles', {
       userId,
       eventId: event.id,
       kind,
-      schedules: schedules.length,
+      schedules: facts.schedules.length,
       congregationId,
     })
   }
@@ -72,7 +63,7 @@ export async function canFillTemplateSchedules(
   templateId: number,
   congregationId: number,
 ): Promise<boolean> {
-  if (can(Permission.CanAssignProgramParts) || can(Permission.CanManagePrograms)) return true
+  if (fillsEverySchedule(can)) return true
   const brought = await db.scheduleTemplate.findMany({
     where: { congregationId, eventKinds: { some: { eventKindId: templateId } } },
     select: { responsibleRoleId: true },
@@ -140,13 +131,14 @@ const answersForEvery = (answerable: readonly Answerable[], roleIds: readonly nu
 
 /** A schedule, or a schedule template its kind suggests, as the rules read it: its kind and responsible role. */
 interface Answerable {
-  kind: string
+  kind: ScheduleKind
   /** None for a schedule without a template (D47), or a template no role answers for. */
   role: number | null
 }
 
 /** What the event rules read of the events they judge, in one pass for all of them. */
 interface EventFacts {
+  /** The schedules it holds. */
   schedules: Answerable[]
   /** The schedule templates its kind suggests, in the order a writer picks them. */
   suggested: Answerable[]
@@ -174,16 +166,20 @@ async function eventFacts(
   ])
   const facts = new Map(events.map(event => [event.id, { schedules: [], suggested: [] } as EventFacts]))
   for (const schedule of schedules) {
-    facts
-      .get(schedule.eventId)
-      ?.schedules.push({ kind: schedule.kind, role: schedule.scheduleTemplate?.responsibleRoleId ?? null })
+    facts.get(schedule.eventId)?.schedules.push({
+      kind: schedule.kind as ScheduleKind,
+      role: schedule.scheduleTemplate?.responsibleRoleId ?? null,
+    })
   }
   for (const event of events) {
     const own = facts.get(event.id)
     if (own == null) continue
     for (const link of links) {
       if (link.eventKindId !== event.templateId) continue
-      own.suggested.push({ kind: link.scheduleTemplate.kind, role: link.scheduleTemplate.responsibleRoleId })
+      own.suggested.push({
+        kind: link.scheduleTemplate.kind as ScheduleKind,
+        role: link.scheduleTemplate.responsibleRoleId,
+      })
     }
   }
   return facts
@@ -264,24 +260,9 @@ export async function filterEventsByRight(
     select: { id: true, templateId: true },
   })
   const foreign = eventIds.length - events.length
-  const holds = right === 'publish' ? can(Permission.CanPublishPrograms) : can(Permission.CanManagePrograms)
-  let allowed: number[]
-  if (holds) {
-    allowed = events.map(event => event.id)
-  } else {
-    const roleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
-    const [facts, kinds] = await Promise.all([
-      roleIds.length === 0 ? new Map<number, EventFacts>() : eventFacts(db, events, congregationId),
-      right === 'delete' ? kindsAnsweredFor(db, roleIds, congregationId) : [],
-    ])
-    allowed = events
-      .filter(event => {
-        const own = facts.get(event.id)
-        if (own == null) return false
-        return right === 'publish' ? publishes(event, own, roleIds) : deletes(event, own, roleIds, kinds)
-      })
-      .map(event => event.id)
-  }
+  const { rightsOf } = await scheduleRightsFor(db, can, userId, events, congregationId)
+  const field = right === 'publish' ? 'canPublish' : 'canDelete'
+  const allowed = events.filter(event => rightsOf.get(event.id)?.[field] === true).map(event => event.id)
   if (foreign > 0 || allowed.length < events.length) {
     logger.warn(`filterEventsByRight: dropped events the caller may not ${right}`, {
       userId,
@@ -297,16 +278,25 @@ export async function filterEventsByRight(
 
 /** What a reader may do with an event, by the rules above. */
 export interface ScheduleRights {
+  /** canChangeEvent: change it, open its editor. */
   canEdit: boolean
+  /** canDeleteEvent: implies canEdit, which the screens rely on. */
   canDelete: boolean
+  /** canPublishEvent. */
   canPublish: boolean
+  /** canFillSchedule, its programme. */
   canAssignParts: boolean
+  /** canFillSchedule, its duties. */
   canAssignServices: boolean
 }
 
+const NO_FACTS: EventFacts = { schedules: [], suggested: [] }
+
 /**
  * The rights of many events at once, for the screens that list them (plan §10, 5a-3): what canChangeEvent,
- * canDeleteEvent, canPublishEvent and canFillSchedule answer for each, in a fixed number of queries.
+ * canDeleteEvent, canPublishEvent and canFillSchedule answer for each — every event given gets an entry — and the kinds
+ * whose events the reader may change (responsibleKindIds), in a fixed number of queries; none for a reader holding
+ * « Gérer » and « Publier », whose every right is given.
  */
 export async function scheduleRightsFor(
   db: TransactionClient,
@@ -314,27 +304,36 @@ export async function scheduleRightsFor(
   userId: number,
   events: readonly { id: number; templateId: number | null }[],
   congregationId: number,
-): Promise<Map<number, ScheduleRights>> {
+): Promise<{ rightsOf: Map<number, ScheduleRights>; kindIds: number[] }> {
   const manages = can(Permission.CanManagePrograms)
   const publishesAll = can(Permission.CanPublishPrograms)
-  const fillsAll = manages || can(Permission.CanAssignProgramParts)
+  const fillsAll = fillsEverySchedule(can)
+  if (manages && publishesAll) {
+    const all: ScheduleRights = {
+      canEdit: true,
+      canDelete: true,
+      canPublish: true,
+      canAssignParts: true,
+      canAssignServices: true,
+    }
+    return { rightsOf: new Map(events.map(event => [event.id, all])), kindIds: [] }
+  }
   const roleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
-  const [facts, kinds] = await Promise.all([
+  const [facts, kindIds] = await Promise.all([
     roleIds.length === 0 || events.length === 0
       ? new Map<number, EventFacts>()
       : eventFacts(db, events, congregationId),
     kindsAnsweredFor(db, roleIds, congregationId),
   ])
-  const none: EventFacts = { schedules: [], suggested: [] }
-  return new Map(
+  const rightsOf = new Map(
     events.map(event => {
-      const own = facts.get(event.id) ?? none
-      const ofKind = event.templateId != null && kinds.includes(event.templateId)
+      const own = facts.get(event.id) ?? NO_FACTS
+      const ofKind = event.templateId != null && kindIds.includes(event.templateId)
       return [
         event.id,
         {
           canEdit: manages || ofKind,
-          canDelete: manages || deletes(event, own, roleIds, kinds),
+          canDelete: manages || deletes(event, own, roleIds, kindIds),
           canPublish: publishesAll || publishes(event, own, roleIds),
           canAssignParts: fillsAll || fills(event, own, 'part', roleIds),
           canAssignServices: fillsAll || fills(event, own, 'service', roleIds),
@@ -342,4 +341,5 @@ export async function scheduleRightsFor(
       ]
     }),
   )
+  return { rightsOf, kindIds }
 }
