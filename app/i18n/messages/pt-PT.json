@@ -6053,6 +6053,7 @@
     "audit_log_entity_event_part": "Parte do programa",
     "audit_log_entity_event_service": "Serviço do programa",
     "audit_log_entity_item": "Elemento do programa",
+    "audit_log_entity_schedule": "Planeamento",
     "audit_log_entity_campaign": "Campanha",
     "audit_log_entity_pioneer_enrolment": "Modalidade de pioneiro",
     "audit_log_entity_pioneer_goal": "Requisito de pioneiro",
