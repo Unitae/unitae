@@ -123,7 +123,8 @@ export async function deleteSchedule(
   const isProgramme = ref.kind === ScheduleKind.Programme
   // Only the assignees of a published schedule may have been told; a draft's never heard of their assignment. On its
   // first publication, neither has anyone whose notice still waits out its debounce; published before, they may have
-  // been told then, and are told now.
+  // been told then, and are told now. Someone assigned between a withdraw and a republish, deleted inside the debounce, is told
+  // a cancellation of what they never received: the lesser harm.
   const assignees =
     schedule.status === ScheduleStatus.Published
       ? computeNotifyTargets(
