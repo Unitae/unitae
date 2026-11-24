@@ -1,11 +1,13 @@
+import { Pencil } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { useFetcher } from 'react-router'
+import { Link, useFetcher } from 'react-router'
 import type { ExternalSpeakerOption } from '~/features/events/model/external-speaker.type'
 import { parseAssignKey } from '~/features/events/model/reassign'
 import type { KindChangeOption, ScheduleAddOptions } from '~/features/events/model/schedule.type'
 import { ScheduleKind, ScheduleStatus } from '~/features/events/model/schedule.type'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
+import { Button } from '~/shared/ui/button'
 import { useCloseOnSave } from '~/shared/ui/hooks/use-close-on-save'
 import { useOpenParam } from '~/shared/ui/hooks/use-open-param'
 import { useSideEditor } from '~/shared/ui/hooks/use-side-editor'
@@ -173,6 +175,15 @@ export function EventView({
       actions: (
         <>
           <ScheduleStatusControl eventId={event.id} schedule={schedule} fill={fill} />
+          {/* « Modifier le planning » (D38): its structure on its own page, for whoever changes the meeting and fills it. */}
+          {canEdit && (schedule.kind === ScheduleKind.Programme ? canAssign : canAssignService) && (
+            <Button variant="ghost" size="sm" className="max-md:h-11" asChild>
+              <Link to={`/programs/events/${event.id}/schedules/${schedule.id}/edit`}>
+                <Pencil />
+                {m.programs_schedule_edit()}
+              </Link>
+            </Button>
+          )}
           {schedule.mayChange && (
             <ScheduleActions
               eventId={event.id}

@@ -2108,6 +2108,8 @@
             }
         }
     ],
+    "programs_schedule_edit": "Editar o planeamento",
+    "programs_edit_event": "Editar a reunião",
     "programs_schedule_add": "Adicionar um planeamento",
     "programs_schedule_add_suggested": "Sugeridos por «{kind}»",
     "programs_schedule_add_others": "Outros modelos",
