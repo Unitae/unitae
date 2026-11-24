@@ -159,13 +159,13 @@ When assigning a programme part — typically the public talk — managers pick 
 - _External Speaker Viewer_ — open the list, the speakers and congregations, the kept PDFs, our list and its PDF (with the brothers' shared contacts), and pick speakers when assigning a part
 - _External Speaker Manager_ — also add and edit congregations and speakers, update a list, retire, put back and delete, edit our list, send it and mark it sent
 
-## Per-Template Responsibility
+## Schedule template responsibility
 
-A **manager** can be assigned to each template. This person gains write access to that template's events (assign publishers, edit structure) without needing the full Program Manager permission.
+Each schedule template can name a **responsible role** (Settings › Schedule templates). Whoever holds it, its leader and deputies, fills and publishes the schedules made from that template, on every meeting, without the full Program Manager permission. A meeting whose every schedule is theirs they may also change, publish whole or delete.
 
-This is useful for delegating: "this elder manages the midweek meeting programme, that one manages the weekend programme."
+This is useful for delegating: "this elder runs the midweek programme, that brother the services."
 
-If no responsible is set, only users with the Program Manager or Admin permission can edit.
+A schedule template with no responsible is left to those with the Program Manager permission. Changing the templates themselves needs _Can create and configure meeting templates_.
 
 ## Permissions
 
@@ -176,7 +176,7 @@ If no responsible is set, only users with the Program Manager or Admin permissio
 | Program Manager          | Create, edit, release, un-release, and delete events. Assign publishers. Manage templates                        |
 | External Speaker Viewer  | Open the external speaker registry and pick from it                                                              |
 | External Speaker Manager | Add and edit external speakers and their congregations, update a list, retire and delete, edit and send our list |
-| Template responsible     | Edit, release, un-release, and delete events for their template only. Assign publishers                          |
+| Schedule responsible     | Fill and publish the schedules of their schedule template; change, publish or delete a meeting all theirs        |
 | Admin                    | Everything, including creating new templates                                                                     |
 
 See [Roles and Permissions](roles-and-permissions.md) for the full list of permissions across all features.

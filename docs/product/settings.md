@@ -24,13 +24,18 @@ Permission required: _Can edit congregation settings_, or _Can set annual pionee
 The meetings that repeat from one week to the next: their day, their hours, their parts, their services and who runs them (see [Events](events.md)). A template opens as one page laid out like the event editor:
 
 - **Information**: name, weekday, start and end time, and a colour from the palette, shown in the lists and the calendar.
-- **Responsibles**: the role that runs the whole programme, and the role that runs only its service parts (audio-video, platform, attendants, cleaning).
 - **The programme**: its parts by section and room, dragged to reorder, each opening beside the list.
 - **The services**, with the roles allowed to take them.
 
 Built-in templates are listed apart. They can be adjusted but not deleted. A template can be duplicated from its page.
 
-Permission required: _Can create and configure meeting templates_. A person whose role runs a template sees that template in the list and can change its information and programme; who runs it, duplicating and deleting stay with the template managers.
+Permission required: _Can create and configure meeting templates_. Who answers for its schedules is set on each schedule template (below). A schedule template's responsible fills and publishes its schedules on the meetings; changing a template needs this permission too.
+
+## Schedule templates
+
+What a schedule holds, and who answers for it: one list of every schedule template, each opening beside the list with its name, its responsible role (and who holds it today) and the meeting types that use it. A template's responsible and their deputies fill and publish the schedules made from it, on every meeting.
+
+Permission required: _Can create and configure meeting templates_.
 
 ## Part types
 

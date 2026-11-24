@@ -3,7 +3,6 @@ import type { Permission } from '~/shared/types/permission'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
-    templateResponsible: { findFirst: vi.fn(), findMany: vi.fn() },
     role: { findMany: vi.fn() },
     event: { findMany: vi.fn() },
     eventKindScheduleTemplate: { findMany: vi.fn() },

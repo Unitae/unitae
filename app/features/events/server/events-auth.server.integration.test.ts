@@ -556,8 +556,8 @@ describe('responsibility scope (integration)', () => {
     ).rejects.toThrow()
   })
 
-  // The CHECK constraint. An unrecognised scope would match no `scopesCovering`
-  // set and so silently delegate to nobody; it has to fail at the write instead.
+  // The CHECK constraint. The sync reads the two scopes only: an unrecognised one would silently delegate to
+  // nobody, so it has to fail at the write instead.
   it('rejects a scope outside the catalogue', async () => {
     await expect(
       withScope(primaryCongId, tx =>
