@@ -58,6 +58,13 @@ export interface ScheduleAddOption {
   kind: ScheduleKind
   /** The event kinds it belongs to: what tells two unnamed templates apart. */
   usedBy: string[]
+  /** The role that answers for its schedules, if any: named beside it, as the board does. */
+  responsible: { key: string; name: string | null } | null
+  /**
+   * A suggestion the meeting cannot take, shown greyed with why (design round A): it is already there, or the
+   * meeting holds a schedule of its kind (one of each).
+   */
+  unavailable?: 'present' | 'kind-held'
 }
 
 /** What « Ajouter un planning » offers a reader: templates the event kind suggests, the others, empty kinds. */
@@ -65,11 +72,18 @@ export interface ScheduleAddOptions {
   suggested: ScheduleAddOption[]
   others: ScheduleAddOption[]
   emptyKinds: ScheduleKind[]
+  /** The reader adds as a template's responsible, not with « Gérer »: the menu says « Votre modèle ». */
+  asResponsible?: boolean
 }
 
 /** A kind « Changer le type » offers (D40), with the schedule templates it suggests, in its order. */
 export interface KindChangeOption {
   id: number
   name: string
-  suggested: { id: number; name: string | null; kind: ScheduleKind }[]
+  suggested: {
+    id: number
+    name: string | null
+    kind: ScheduleKind
+    responsible: { key: string; name: string | null } | null
+  }[]
 }

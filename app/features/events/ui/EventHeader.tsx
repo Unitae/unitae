@@ -49,7 +49,10 @@ export function EventHeader({
   onChangeKind,
 }: EventHeaderProps) {
   const { options } = addSchedule
-  const mayAdd = options.suggested.length + options.others.length + options.emptyKinds.length > 0
+  // Something it can add: a greyed suggestion alone offers nothing.
+  const mayAdd =
+    options.suggested.some(option => option.unavailable == null) ||
+    options.others.length + options.emptyKinds.length > 0
   return (
     <PageHeader
       leading={<DateChip date={event.startDate} timeZone={timeZone} />}

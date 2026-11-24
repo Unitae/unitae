@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useFetcher } from 'react-router'
 import { type KindChangeOption, ScheduleKind, ScheduleStatus } from '~/features/events/model/schedule.type'
 import * as m from '~/i18n/paraglide/messages'
+import { getRoleDisplayName } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Checkbox } from '~/shared/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/shared/ui/dialog'
@@ -162,6 +163,7 @@ export function KindChangeDialog({
                     title={scheduleTitle(suggestion)}
                     detail={[
                       ...kindUnlessTitled(scheduleTitle(suggestion), suggestion.kind),
+                      ...(suggestion.responsible ? [getRoleDisplayName(suggestion.responsible)] : []),
                       ...(held ? [unavailable(suggestion.kind)] : []),
                     ].join(' · ')}
                   />

@@ -2138,6 +2138,13 @@
             }
         }
     ],
+    "programs_schedule_add_present": "Already there",
+    "programs_schedule_add_kind_taken": "A {kind} schedule is already there: a meeting has one",
+    "programs_schedule_add_yours": "Your template",
+    "programs_schedule_add_yours_note": "You add the schedules of the templates you are in charge of.",
+    "programs_schedule_add_kind_programme_hint": "Parts, with their speaker and reader",
+    "programs_schedule_add_kind_duty_hint": "Tasks given to people",
+    "programs_schedule_add_kind_unavailable": "Unavailable: this meeting has one",
     "programs_schedule_add": "Add a schedule",
     "programs_schedule_add_suggested": "Suggested by “{kind}”",
     "programs_schedule_add_others": "Other templates",

@@ -2143,6 +2143,13 @@
             }
         }
     ],
+    "programs_schedule_add_present": "Déjà présent",
+    "programs_schedule_add_kind_taken": "Un planning {kind} est déjà présent : une réunion n’en a qu’un",
+    "programs_schedule_add_yours": "Votre modèle",
+    "programs_schedule_add_yours_note": "Vous ajoutez les plannings des modèles dont vous êtes responsable.",
+    "programs_schedule_add_kind_programme_hint": "Des parties, avec leur orateur et leur lecteur",
+    "programs_schedule_add_kind_duty_hint": "Des tâches confiées à des personnes",
+    "programs_schedule_add_kind_unavailable": "Indisponible : cette réunion en a un",
     "programs_schedule_add": "Ajouter un planning",
     "programs_schedule_add_suggested": "Suggérés par « {kind} »",
     "programs_schedule_add_others": "Autres modèles",

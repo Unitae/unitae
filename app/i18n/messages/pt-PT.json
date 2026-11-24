@@ -2138,6 +2138,13 @@
             }
         }
     ],
+    "programs_schedule_add_present": "Já presente",
+    "programs_schedule_add_kind_taken": "Já existe um planeamento {kind}: uma reunião tem um",
+    "programs_schedule_add_yours": "O seu modelo",
+    "programs_schedule_add_yours_note": "Adiciona os planeamentos dos modelos de que é responsável.",
+    "programs_schedule_add_kind_programme_hint": "Partes, com o orador e o leitor",
+    "programs_schedule_add_kind_duty_hint": "Tarefas confiadas a pessoas",
+    "programs_schedule_add_kind_unavailable": "Indisponível: esta reunião já tem um",
     "programs_schedule_add": "Adicionar um planeamento",
     "programs_schedule_add_suggested": "Sugeridos por «{kind}»",
     "programs_schedule_add_others": "Outros modelos",
