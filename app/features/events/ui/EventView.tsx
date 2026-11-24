@@ -158,7 +158,7 @@ export function EventView({
   // kind, while an event holds one schedule of each (see maySeeSchedule): its items carry no schedule of their own.
   const programmeSchedule = event.schedules.find(schedule => schedule.kind === ScheduleKind.Programme)
   const dutySchedule = event.schedules.find(schedule => schedule.kind === ScheduleKind.Duty)
-  const headingOf = (schedule: EventScheduleView | undefined, fill: string, assignees: number) =>
+  const headingOf = (schedule: EventScheduleView | undefined, fill: string, assignments: number) =>
     schedule && {
       title: <ScheduleTitle schedule={schedule} />,
       actions: (
@@ -172,7 +172,7 @@ export function EventView({
                 title: scheduleTitle(schedule),
                 published: schedule.status === ScheduleStatus.Published,
               }}
-              assignees={assignees}
+              assignments={assignments}
             />
           )}
         </>

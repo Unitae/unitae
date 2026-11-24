@@ -2062,6 +2062,7 @@
             }
         }
     ],
+    "programs_schedule_name_invalid": "Dê-lhe um nome.",
     "programs_schedule_rename": "Renomear nesta reunião",
     "programs_schedule_delete": "Eliminar o planeamento",
     "programs_schedule_rename_title": "Renomear o planeamento",
@@ -2080,8 +2081,8 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "Este planeamento está publicado: a pessoa designada recebe «Designação cancelada».",
-                "countPlural=*": "Este planeamento está publicado: as {count} pessoas designadas recebem «Designação cancelada»."
+                "countPlural=one": "Este planeamento está publicado: a sua designação é cancelada, e a pessoa designada é avisada se tiver uma conta.",
+                "countPlural=*": "Este planeamento está publicado: as suas {count} designações são canceladas, e cada pessoa designada é avisada se tiver uma conta."
             }
         }
     ],

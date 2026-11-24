@@ -2062,6 +2062,7 @@
             }
         }
     ],
+    "programs_schedule_name_invalid": "Give it a name.",
     "programs_schedule_rename": "Rename for this meeting",
     "programs_schedule_delete": "Delete the schedule",
     "programs_schedule_rename_title": "Rename the schedule",
@@ -2080,8 +2081,8 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "This schedule is published: the assigned person is told “Assignment cancelled”.",
-                "countPlural=*": "This schedule is published: the {count} assigned people are told “Assignment cancelled”."
+                "countPlural=one": "This schedule is published: its assignment is cancelled, and the assigned person is told if they have an account.",
+                "countPlural=*": "This schedule is published: its {count} assignments are cancelled, and each assigned person is told if they have an account."
             }
         }
     ],

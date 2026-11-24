@@ -60,17 +60,17 @@ export const DELEGATES: Record<string, { file: string; enforces: RegExp }> = {
     file: 'app/features/events/server/event-publishing.server.ts',
     enforces: ENFORCES_PERMISSION,
   },
-  // Renaming and deleting one schedule (design round A, D41, D44): « Gérer » named in its file.
+  unpublishEventSchedule: {
+    file: 'app/features/events/server/event-publishing.server.ts',
+    enforces: ENFORCES_PERMISSION,
+  },
+  // Renaming and deleting one schedule (D41, D44): « Gérer » named in its file.
   renameEventSchedule: {
     file: 'app/features/events/server/schedule-changes.server.ts',
     enforces: ENFORCES_PERMISSION,
   },
   deleteEventSchedule: {
     file: 'app/features/events/server/schedule-changes.server.ts',
-    enforces: ENFORCES_PERMISSION,
-  },
-  unpublishEventSchedule: {
-    file: 'app/features/events/server/event-publishing.server.ts',
     enforces: ENFORCES_PERMISSION,
   },
   filterEventsByRight: { file: 'app/features/events/server/schedule-rights.server.ts', enforces: ENFORCES_PERMISSION },

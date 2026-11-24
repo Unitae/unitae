@@ -187,7 +187,7 @@ export async function renameEventSchedule(
   scheduleId: number,
   name: string,
   congregationId: number,
-) {
+): Promise<{ result: { schedule: ScheduleRef; changed: boolean } } | { refused: true } | null> {
   if ((await eventOfSchedule(db, eventId, scheduleId, congregationId)) == null) return null
   if (!(await canChangeSchedule(db, can, userId, scheduleId, congregationId))) return { refused: true as const }
   const result = await renameSchedule(db, scheduleId, name, congregationId, userId)
@@ -202,7 +202,14 @@ export async function deleteEventSchedule(
   eventId: number,
   scheduleId: number,
   congregationId: number,
-) {
+): Promise<
+  | {
+      event: NonNullable<Awaited<ReturnType<typeof eventOfSchedule>>>
+      result: { schedule: ScheduleRef; notifyTargets: NotifyTarget[] }
+    }
+  | { refused: true }
+  | null
+> {
   const event = await eventOfSchedule(db, eventId, scheduleId, congregationId)
   if (event == null) return null
   if (!(await canChangeSchedule(db, can, userId, scheduleId, congregationId))) return { refused: true as const }

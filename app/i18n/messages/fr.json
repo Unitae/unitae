@@ -2067,6 +2067,7 @@
             }
         }
     ],
+    "programs_schedule_name_invalid": "Donnez-lui un nom.",
     "programs_schedule_rename": "Renommer pour cette réunion",
     "programs_schedule_delete": "Supprimer le planning",
     "programs_schedule_rename_title": "Renommer le planning",
@@ -2085,8 +2086,8 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "Ce planning est publié : la personne attribuée reçoit « Attribution annulée ».",
-                "countPlural=*": "Ce planning est publié : les {count} personnes attribuées reçoivent « Attribution annulée »."
+                "countPlural=one": "Ce planning est publié : son attribution est annulée, et la personne attribuée en est avertie si elle a un compte.",
+                "countPlural=*": "Ce planning est publié : ses {count} attributions sont annulées, et chaque personne attribuée en est avertie si elle a un compte."
             }
         }
     ],

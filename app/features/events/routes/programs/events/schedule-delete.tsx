@@ -1,7 +1,6 @@
 import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { fireReleaseNotifications } from '~/features/events/server/event-status.server'
-import { PROGRAMME_ASSIGNMENT_TYPE } from '~/features/events/server/notifications.server'
+import { fireCancellationNotifications } from '~/features/events/server/event-status.server'
 import { deleteEventSchedule } from '~/features/events/server/schedule-changes.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -40,14 +39,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   })
   if (outcome == null || 'refused' in outcome) throw redirect('/programs')
 
-  await fireReleaseNotifications(
-    outcome.event,
-    outcome.result.notifyTargets,
-    congregationId,
-    currentUser.id,
-    { locale: cong.locale, timezone: cong.timezone },
-    PROGRAMME_ASSIGNMENT_TYPE.unassigned,
-  )
+  await fireCancellationNotifications(outcome.event, outcome.result.notifyTargets, congregationId, currentUser.id, {
+    locale: cong.locale,
+    timezone: cong.timezone,
+  })
   session.flash('success', m.programs_schedule_deleted())
   logger.info(`Schedule deleted. User: ${currentUser.id}. Event: ${eventId}. Schedule: ${scheduleId}.`)
   return data({ ok: true as const }, { headers: { 'Set-Cookie': await commitSession(session) } })
