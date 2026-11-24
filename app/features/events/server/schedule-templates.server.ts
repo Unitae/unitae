@@ -39,17 +39,17 @@ export async function syncTemplateScheduleTemplates(db: TransactionClient, templ
   if (!template || isSystemTemplate(template.key)) return
 
   const roleOf = (scope: string) => template.responsibles.find(row => row.scope === scope)?.roleId ?? null
-  const programmeRole = roleOf(ResponsibilityScope.Programme)
   const wanted = {
     [ScheduleKind.Programme]: {
       hasItems: template._count.parts > 0,
       name: template.name,
-      responsibleRoleId: programmeRole,
+      responsibleRoleId: roleOf(ResponsibilityScope.Programme),
     },
     [ScheduleKind.Duty]: {
       hasItems: template._count.serviceParts > 0,
       name: null,
-      responsibleRoleId: roleOf(ResponsibilityScope.Service) ?? programmeRole,
+      // Its own responsible only: without one the managers see to it, whoever runs the programme (user, 2026-11-24).
+      responsibleRoleId: roleOf(ResponsibilityScope.Service),
     },
   }
 

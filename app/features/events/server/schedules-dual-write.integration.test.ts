@@ -244,7 +244,7 @@ describe('templates written with their schedule templates', () => {
     })
   })
 
-  it('gives the schedule templates the responsibles named on the template, the duties to the service one (D31)', async () => {
+  it('gives the schedule templates the responsibles named on the template, the duties to the service one alone', async () => {
     await inCongregation(async ({ db, congregationId, template, scheduleTemplates }) => {
       const midweek = await template('Réunion de semaine', { parts: 1, services: 1 })
       const programmeRole = (await db.role.create({ data: { key: `p-${midweek}`, name: 'P', congregationId } })).id
@@ -256,12 +256,9 @@ describe('templates written with their schedule templates', () => {
       const both = (await scheduleTemplates(midweek)).map(row => row.responsibleRoleId)
       await removeTemplateResponsible(db, midweek, congregationId, ResponsibilityScope.Service)
 
-      expect(programmeOnly).toEqual([programmeRole, programmeRole])
+      expect(programmeOnly).toEqual([programmeRole, null])
       expect(both).toEqual([programmeRole, serviceRole])
-      expect((await scheduleTemplates(midweek)).map(row => row.responsibleRoleId)).toEqual([
-        programmeRole,
-        programmeRole,
-      ])
+      expect((await scheduleTemplates(midweek)).map(row => row.responsibleRoleId)).toEqual([programmeRole, null])
     })
   })
 

@@ -78,8 +78,8 @@ async function inCongregation(fn: (fixture: Fixture) => Promise<void>) {
         const programmeRole = await tx.role.create({ data: { key: `p-${stamp}`, name: 'p', congregationId } })
         const dutyRole = await tx.role.create({ data: { key: `d-${stamp}`, name: 'd', congregationId } })
         const midweekId = (await tx.eventTemplate.findFirstOrThrow({ where: { key: 'midweek-meeting' } })).id
-        // As Réglages names them: a role per scope on the template, which the sync gives its schedule templates (D31:
-        // the services one to the duties alone).
+        // As Réglages names them: a role per scope on the template, which the sync gives its schedule templates (the
+        // services one to the duties alone; without it the duties have no responsible).
         for (const [roleId, scope] of [
           [programmeRole.id, 'programme'],
           [dutyRole.id, 'service'],
@@ -89,9 +89,12 @@ async function inCongregation(fn: (fixture: Fixture) => Promise<void>) {
         await syncTemplateScheduleTemplates(db, midweekId, congregationId)
         const weekendId = (await tx.eventTemplate.findFirstOrThrow({ where: { key: 'weekend-meeting' } })).id
         const weekendRole = await tx.role.create({ data: { key: `w-${stamp}`, name: 'w', congregationId } })
-        await tx.templateResponsible.create({
-          data: { templateId: weekendId, roleId: weekendRole.id, scope: 'programme', congregationId },
-        })
+        // The weekend's lead answers for both its schedules.
+        for (const scope of ['programme', 'service'] as const) {
+          await tx.templateResponsible.create({
+            data: { templateId: weekendId, roleId: weekendRole.id, scope, congregationId },
+          })
+        }
         await syncTemplateScheduleTemplates(db, weekendId, congregationId)
         const meeting = await createProgrammeOnDay(
           db,

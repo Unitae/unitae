@@ -150,7 +150,7 @@ describe('updateScheduleTemplate', () => {
     })
   })
 
-  it('writes a programme template’s responsible to its kind’s programme scope, which the duties follow while unset', async () => {
+  it('writes a programme template’s responsible to its kind’s programme scope, never to the duties', async () => {
     await inCongregation(async ({ db, congregationId, actorId, role, midweekId, templateOf, roleOf }) => {
       const programme = await templateOf(midweekId, 'programme')
       const duties = await templateOf(midweekId, 'duty')
@@ -159,8 +159,8 @@ describe('updateScheduleTemplate', () => {
       await updateScheduleTemplate(db, programme.id, { responsibleRoleId: roleId }, congregationId, actorId)
 
       expect(await rowsOf(db, midweekId)).toEqual([{ scope: 'programme', roleId }])
-      // The derivation's fallback, unchanged by this page: a duties template without its own takes the programme's.
-      expect(await roleOf(duties.id)).toBe(roleId)
+      // A duties template answers for itself: without its own responsible it is the managers' (user, 2026-11-24).
+      expect(await roleOf(duties.id)).toBeNull()
 
       await updateScheduleTemplate(db, programme.id, { responsibleRoleId: null }, congregationId, actorId)
       expect(await rowsOf(db, midweekId)).toEqual([])
@@ -190,7 +190,7 @@ describe('updateScheduleTemplate', () => {
     })
   })
 
-  it('renaming a duties template that shows the programme’s responsible leaves it following the programme', async () => {
+  it('renaming a duties template leaves it without a responsible when the programme gets one', async () => {
     await inCongregation(async ({ db, congregationId, actorId, role, midweekId, templateOf, roleOf }) => {
       const programme = await templateOf(midweekId, 'programme')
       const duties = await templateOf(midweekId, 'duty')
@@ -198,22 +198,22 @@ describe('updateScheduleTemplate', () => {
       const second = await role('Q')
       await updateScheduleTemplate(db, programme.id, { responsibleRoleId: first }, congregationId, actorId)
 
-      // The page posts the role it shows back with the new name.
+      // The page posts the role it shows back with the new name: none.
       await updateScheduleTemplate(
         db,
         duties.id,
-        { name: 'Accueil et sono', responsibleRoleId: first },
+        { name: 'Accueil et sono', responsibleRoleId: null },
         congregationId,
         actorId,
       )
       expect(await rowsOf(db, midweekId)).toEqual([{ scope: 'programme', roleId: first }])
 
       await updateScheduleTemplate(db, programme.id, { responsibleRoleId: second }, congregationId, actorId)
-      expect(await roleOf(duties.id)).toBe(second)
+      expect(await roleOf(duties.id)).toBeNull()
     })
   })
 
-  it('clearing a duties template while the programme has one: the programme’s is stored, and the audit says so', async () => {
+  it('clears a duties template’s responsible while the programme keeps its own, and the audit says so', async () => {
     await inCongregation(async ({ db, congregationId, actorId, role, midweekId, templateOf, roleOf }) => {
       const programme = await templateOf(midweekId, 'programme')
       const duties = await templateOf(midweekId, 'duty')
@@ -224,9 +224,10 @@ describe('updateScheduleTemplate', () => {
 
       await updateScheduleTemplate(db, duties.id, { responsibleRoleId: null }, congregationId, actorId)
 
-      expect(await roleOf(duties.id)).toBe(first)
+      expect(await roleOf(duties.id)).toBeNull()
+      expect(await roleOf(programme.id)).toBe(first)
       const audits = await auditsOf(db, congregationId, duties.id)
-      expect(JSON.parse(audits.at(-1)?.metadata ?? '{}').responsibleRoleId).toEqual({ from: own, to: first })
+      expect(JSON.parse(audits.at(-1)?.metadata ?? '{}').responsibleRoleId).toEqual({ from: own, to: null })
     })
   })
 

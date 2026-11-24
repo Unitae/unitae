@@ -252,7 +252,7 @@ describe('settling the schedules of an archive that carries none (2.20 and older
         }),
       ).toEqual([
         { kind: 'programme', name: 'Réunion', key: null, responsibleRoleId: roleId },
-        { kind: 'duty', name: null, key: 'services', responsibleRoleId: roleId },
+        { kind: 'duty', name: null, key: 'services', responsibleRoleId: null },
       ])
       expect(await schedulesOf(db)).toMatchObject([
         { eventId: releasedId, kind: 'programme', status: 'published', _count: { parts: 1, serviceParts: 0 } },

@@ -67,6 +67,8 @@ export async function updateScheduleTemplate(
     ? (await db.scheduleTemplate.findFirstOrThrow({ where: { id: scheduleTemplateId, congregationId } }))
         .responsibleRoleId
     : template.responsibleRoleId
+  // A role asked for that the derivation did not keep changed nothing a reader sees: no « updated » line for it.
+  if (!nameChanges && stored === template.responsibleRoleId) return { ok: true }
   await auditInTransaction(db, {
     action: AuditAction.ScheduleTemplateUpdated,
     congregationId,
@@ -90,8 +92,8 @@ export async function updateScheduleTemplate(
 /**
  * The responsible goes where the kind's derivation reads it until 6a-2: each suggesting kind's TemplateResponsible row
  * of the template's side (the programme scope, or the services'), from which syncTemplateScheduleTemplates sets the
- * template's role — so the next save of the kind keeps it. A duties template whose services row is removed falls back
- * to the programme's responsible there, as it always has. A template no kind suggests holds its role alone.
+ * template's role — so the next save of the kind keeps it. A duties template takes the services row only: without one
+ * it has no responsible, whoever runs the programme (user, 2026-11-24). A template no kind suggests holds its role alone.
  */
 async function saveResponsible(
   db: TransactionClient,
