@@ -56,22 +56,24 @@ export function KindChangeDialog({
   const fetcher = useFetcher<{ ok: boolean }>()
   useCloseOnSave(fetcher, onClose)
   const [kindId, setKindId] = useState('')
-  const [kept, setKept] = useState<number[]>([])
+  // The schedules unticked: one the page shows since opening (added in another tab) arrives kept, never removed.
+  const [removed, setRemoved] = useState<number[]>([])
   const [added, setAdded] = useState<number[]>([])
   const [wasOpen, setWasOpen] = useState(open)
-  // Each opening starts over: every schedule kept, no kind chosen.
+  // Each opening starts over: nothing unticked, no kind chosen.
   if (open !== wasOpen) {
     setWasOpen(open)
     if (open) {
       setKindId('')
-      setKept(schedules.map(schedule => schedule.id))
+      setRemoved([])
       setAdded([])
     }
   }
   const kind = kinds.find(option => String(option.id) === kindId)
-  const heldKinds = new Set(schedules.filter(schedule => kept.includes(schedule.id)).map(schedule => schedule.kind))
+  const isKept = (id: number) => !removed.includes(id)
+  const heldKinds = new Set(schedules.filter(schedule => isKept(schedule.id)).map(schedule => schedule.kind))
   const losesPublished = schedules.some(
-    schedule => !kept.includes(schedule.id) && schedule.status === ScheduleStatus.Published && schedule.assignments > 0,
+    schedule => !isKept(schedule.id) && schedule.status === ScheduleStatus.Published && schedule.assignments > 0,
   )
   const choose = (value: string) => {
     setKindId(value)
@@ -118,9 +120,9 @@ export function KindChangeDialog({
                   // Every schedule listed is sent, kept or removed: one the dialog never showed is never removed.
                   uncheckedName="remove"
                   value={schedule.id}
-                  checked={kept.includes(schedule.id)}
+                  checked={isKept(schedule.id)}
                   disabled={!schedule.removable}
-                  onChange={on => setKept(toggle(kept, schedule.id, on))}
+                  onChange={on => setRemoved(toggle(removed, schedule.id, !on))}
                   title={schedule.title}
                   detail={[
                     kindLabel(schedule.kind),
