@@ -259,10 +259,10 @@ export async function cancelPendingAssignmentNotices(
 }
 
 /**
- * Who among these targets never received their « vous êtes assigné » on these items: one still waits out its debounce
- * and none was sent since their last « Attribution annulée ». Withdrawn and republished, someone told at the first
- * publication has a new one waiting, and was told all the same. Read before the notices are cancelled; matched by
- * item and by the account a notice goes to, the item's legacy keys included (plan T12).
+ * Who among these targets has a « vous êtes assigné » still waiting out its debounce on these items. On a schedule's
+ * first publication they were never told; after a withdraw and a republish they may have been, since sent notices
+ * are cleaned up after seven days: the caller decides (deleteSchedule). Read before the notices are cancelled;
+ * matched by item and by the account a notice goes to, the item's legacy keys included (plan T12).
  */
 export async function awaitingAssignedNotice<T extends { entityId: number; memberId: number }>(
   db: TransactionClient,
@@ -284,18 +284,17 @@ export async function awaitingAssignedNotice<T extends { entityId: number; membe
   const notices = await db.notificationEvent.findMany({
     where: {
       congregationId,
-      status: { in: ['pending', 'sent'] },
-      type: { in: [PROGRAMME_ASSIGNMENT_TYPE.assigned, PROGRAMME_ASSIGNMENT_TYPE.unassigned] },
+      status: 'pending',
+      type: PROGRAMME_ASSIGNMENT_TYPE.assigned,
       recipientId: { not: null },
       OR: [...itemOf.keys()].map(key => {
         const [entityType, id] = key.split(':')
         return { entityType, entityId: Number(id) }
       }),
     },
-    select: { entityType: true, entityId: true, recipientId: true, type: true, status: true },
-    orderBy: { id: 'asc' },
+    select: { entityType: true, entityId: true, recipientId: true },
   })
-  if (!notices.some(notice => notice.status === 'pending')) return () => false
+  if (notices.length === 0) return () => false
   const accounts = await db.userAccount.findMany({
     where: { memberId: { in: [...new Set(targets.map(target => target.memberId))] }, congregationId },
     select: { id: true, memberId: true },
@@ -303,13 +302,6 @@ export async function awaitingAssignedNotice<T extends { entityId: number; membe
   const memberOf = new Map(accounts.map(account => [account.id, account.memberId]))
   const keyOf = (notice: (typeof notices)[number]) =>
     `${itemOf.get(`${notice.entityType}:${notice.entityId}`)}:${memberOf.get(notice.recipientId ?? 0)}`
-  const waiting = new Set<string>()
-  // The last notice each received: « vous êtes assigné » means they were told.
-  const lastSent = new Map<string, string>()
-  for (const notice of notices) {
-    if (notice.status === 'sent') lastSent.set(keyOf(notice), notice.type)
-    else if (notice.type === PROGRAMME_ASSIGNMENT_TYPE.assigned) waiting.add(keyOf(notice))
-  }
-  const neverTold = new Set([...waiting].filter(key => lastSent.get(key) !== PROGRAMME_ASSIGNMENT_TYPE.assigned))
-  return target => neverTold.has(`${target.entityId}:${target.memberId}`)
+  const waiting = new Set(notices.map(keyOf))
+  return target => waiting.has(`${target.entityId}:${target.memberId}`)
 }

@@ -121,8 +121,9 @@ export async function deleteSchedule(
   })
   const ref = refOf(schedule)
   const isProgramme = ref.kind === ScheduleKind.Programme
-  // Only the assignees of a published schedule may have been told; a draft's never heard of their assignment, nor has
-  // anyone whose notice still waits out its debounce (published a moment ago).
+  // Only the assignees of a published schedule may have been told; a draft's never heard of their assignment. On its
+  // first publication, neither has anyone whose notice still waits out its debounce; published before, they may have
+  // been told then, and are told now.
   const assignees =
     schedule.status === ScheduleStatus.Published
       ? computeNotifyTargets(
@@ -130,7 +131,8 @@ export async function deleteSchedule(
           isProgramme ? [] : schedule.items.map(({ assistantId: _assistant, ...service }) => service),
         )
       : []
-  const stillWaiting = await awaitingAssignedNotice(db, congregationId, assignees)
+  const firstTime = assignees.length > 0 && (await publicationCount(db, ref, congregationId)) === 1
+  const stillWaiting = firstTime ? await awaitingAssignedNotice(db, congregationId, assignees) : () => false
   const notifyTargets = assignees.filter(target => !stillWaiting(target))
   const itemIds = schedule.items.map(item => item.id)
   const cancelledCount = await cancelPendingAssignmentNotices(db, congregationId, itemIds)
@@ -168,6 +170,22 @@ export async function deleteSchedule(
     toTell: toTellMemberIds,
   })
   return { schedule: ref, notifyTargets }
+}
+
+/**
+ * How many times the schedule was published, from the audit trail, which no cleanup prunes: its own publications,
+ * and its event's releases from before schedules published on their own.
+ */
+function publicationCount(db: TransactionClient, schedule: ScheduleRef, congregationId: number): Promise<number> {
+  return db.auditLog.count({
+    where: {
+      congregationId,
+      OR: [
+        { action: AuditAction.SchedulePublished, entityType: 'Schedule', entityId: schedule.id },
+        { action: AuditAction.EventReleased, entityType: 'Event', entityId: schedule.eventId },
+      ],
+    },
+  })
 }
 
 /** The event a schedule of it belongs to, or null when the schedule is not this event's in the congregation. */
