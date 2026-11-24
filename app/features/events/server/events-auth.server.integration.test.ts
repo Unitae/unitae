@@ -248,6 +248,9 @@ afterAll(async () => {
   for (const congId of [primaryCongId, otherCongId]) {
     if (!congId) continue
     await withScope(congId, async tx => {
+      // saveTemplateResponsibles audits fire-and-forget, on its own connection: its row outlives the rolled-back test
+      // and would hold the congregation (AuditLog_congregationId_fkey).
+      await tx.auditLog.deleteMany({})
       await tx.eventServicePart.deleteMany({})
       await tx.event.deleteMany({})
       await tx.templateResponsible.deleteMany({})
