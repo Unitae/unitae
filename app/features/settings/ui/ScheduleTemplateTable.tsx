@@ -40,7 +40,8 @@ export function ScheduleTemplateTable({
                 row.id === selectedId ? 'bg-selected' : 'hover:bg-hover',
               )}
             >
-              <td className={cellClass}>
+              {/* Three lines on a phone: room above and below them. */}
+              <td className={cn(cellClass, 'max-md:h-auto max-md:py-2.5')}>
                 <button
                   type="button"
                   aria-pressed={row.id === selectedId}
