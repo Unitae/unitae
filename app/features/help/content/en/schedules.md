@@ -14,6 +14,12 @@ A meeting has its **schedules**: its **spiritual** schedule (the parts, with the
 
 A schedule’s person in charge is the role its template names: its holder and its assistants. Whoever holds that role fills and publishes the schedule. A schedule with no one in charge is left to those who manage the programs.
 
+## Create meetings
+
+In **Meetings › Programs**, **New** opens **Create meetings**. Each meeting created comes with the schedules its kind suggests: the page shows them under each kind, with what they hold. Meetings already created ahead, still empty, receive theirs instead of being created again; those already prepared do not change.
+
+A schedule a meeting does not need is deleted afterwards from that meeting. Other templates (a videoconference, a cleaning…) are added from the meeting, with **Add a schedule**.
+
 ## Publish a schedule
 
 Each schedule is published at its own pace: the services can go out before the spiritual schedule.

@@ -14,6 +14,12 @@ Uma reunião tem os seus **planeamentos**: o seu planeamento **espiritual** (as 
 
 O responsável de um planeamento é a função que o seu modelo indica: o seu titular e os seus ajudantes. Quem tem essa função preenche e publica o planeamento. Um planeamento sem responsável fica a cargo de quem gere os programas.
 
+## Criar reuniões
+
+Em **Reuniões › Programas**, **Novo** abre **Criar reuniões**. Cada reunião criada vem com os planeamentos que o seu tipo sugere: a página mostra-os sob cada tipo, com o que contêm. As reuniões já criadas antecipadamente, ainda vazias, recebem os seus em vez de serem criadas outra vez; as que já estão preparadas não mudam.
+
+Um planeamento de que uma reunião não precisa elimina-se depois nessa reunião. Os outros modelos (uma videoconferência, uma limpeza…) adicionam-se a partir da reunião, com **Adicionar um planeamento**.
+
 ## Publicar um planeamento
 
 Cada planeamento é publicado ao seu ritmo: os serviços podem sair antes do planeamento espiritual.
