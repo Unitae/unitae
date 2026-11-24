@@ -1,9 +1,12 @@
 import { Plus } from 'lucide-react'
+import { useId, useState } from 'react'
 import { groupTemplateParts, type ListedPart } from '~/features/settings/model/schedule-template-list'
 import * as m from '~/i18n/paraglide/messages'
 import { getRoleDisplayName, type RoleOption } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
+import { Input } from '~/shared/ui/input'
 import { cn } from '~/shared/utils/utils'
+import { PartGroupHeader } from './PartGroupHeader'
 
 /** What a part's row says: who may take it. */
 export interface ItemListPart extends ListedPart {
@@ -18,6 +21,14 @@ export interface ItemListService {
 }
 
 export type ItemKind = 'part' | 'service'
+
+/** Where a new part starts: its section and hall, and its place (after its group's last part). */
+export interface PartDraft {
+  section: string
+  track: string
+  trackOrder: number | null
+  order: number
+}
 
 /** The `data-item` mark of an item's row, where focus goes back after its form closes. */
 export const itemMark = (kind: ItemKind, id: number) => `${kind}-${id}`
@@ -43,8 +54,10 @@ export function ScheduleTemplateItemList({
   services: ItemListService[]
   roles: RoleOption[]
   onOpen: (kind: ItemKind, id: number) => void
-  onAdd: (kind: ItemKind) => void
+  onAdd: (kind: ItemKind, draft?: PartDraft) => void
 }) {
+  const [newSection, setNewSection] = useState<string | null>(null)
+  const newSectionId = useId()
   const roleNames = (ids: number[]) =>
     roles
       .filter(role => ids.includes(role.id))
@@ -109,6 +122,23 @@ export function ScheduleTemplateItemList({
   }
 
   const { runs, total } = groupTemplateParts(parts)
+  const lastOrder = parts.reduce((max, part) => Math.max(max, part.order), -1)
+  const after = (group: ItemListPart[]) => (group.at(-1)?.order ?? lastOrder) + 1
+  const addPart = (label: string, draft: PartDraft) => (
+    <div className="flex min-h-10 items-center border-border border-b px-2">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="text-muted-foreground"
+        aria-label={m.settings_schedule_templates_add_part_to({ name: label })}
+        onClick={() => onAdd('part', draft)}
+      >
+        <Plus aria-hidden="true" />
+        {m.settings_schedule_templates_part_short()}
+      </Button>
+    </div>
+  )
   return (
     <div className="flex flex-col gap-2">
       <span className="font-medium text-sm">{m.settings_schedule_templates_parts_label()}</span>
@@ -124,26 +154,52 @@ export function ScheduleTemplateItemList({
               // biome-ignore lint/suspicious/noArrayIndexKey: two runs may share a section, apart in the order
               <div key={`${run.section ?? ''}-${index}`}>
                 {inSection && (
-                  <div className="flex flex-wrap items-baseline gap-x-2 border-border border-b bg-subtle px-3 py-2.5 text-xs">
-                    <span className="font-semibold text-foreground text-sm">{run.section}</span>
-                    <span className="text-muted-foreground tabular-nums">
-                      {[
-                        ...(run.minutes > 0 ? [m.settings_schedule_templates_minutes({ minutes: run.minutes })] : []),
-                        ...(run.halls.length > 1
-                          ? [m.settings_schedule_templates_parallel({ count: run.halls.length })]
-                          : []),
-                      ].join(' · ')}
-                    </span>
-                  </div>
+                  <PartGroupHeader
+                    level="section"
+                    name={run.section ?? ''}
+                    meta={[
+                      ...(run.minutes > 0 ? [m.settings_schedule_templates_minutes({ minutes: run.minutes })] : []),
+                      ...(run.halls.length > 1
+                        ? [m.settings_schedule_templates_parallel({ count: run.halls.length })]
+                        : []),
+                    ].join(' · ')}
+                    onAddHall={() =>
+                      onAdd('part', {
+                        section: run.section ?? '',
+                        track: run.halls.length === 0 ? m.settings_schedule_templates_second_hall() : '',
+                        trackOrder: run.halls.length === 0 ? 2 : run.halls.length + 1,
+                        order: after([...run.parts, ...run.halls.flatMap(hall => hall.parts)]),
+                      })
+                    }
+                  />
                 )}
                 {run.parts.map(part => partRow(part, inSection ? 'pl-6' : ''))}
+                {inSection &&
+                  run.halls.length === 0 &&
+                  addPart(run.section ?? '', {
+                    section: run.section ?? '',
+                    track: '',
+                    trackOrder: null,
+                    order: after(run.parts),
+                  })}
                 {run.halls.map(hall => (
                   <div key={hall.name}>
-                    <div className="border-border border-b px-3 py-1.5 pl-6 text-muted-foreground text-xs">
-                      {m.settings_schedule_templates_hall({ name: hall.name, count: hall.parts.length })}
-                      {hall.minutes > 0 && ` · ${m.settings_schedule_templates_minutes({ minutes: hall.minutes })}`}
-                    </div>
+                    <PartGroupHeader
+                      level="hall"
+                      name={hall.name}
+                      section={run.section ?? ''}
+                      meta={[
+                        m.programs_new_parts({ count: hall.parts.length }),
+                        ...(hall.minutes > 0 ? [m.settings_schedule_templates_minutes({ minutes: hall.minutes })] : []),
+                      ].join(' · ')}
+                    />
                     {hall.parts.map(part => partRow(part, 'pl-9'))}
+                    {addPart(hall.name, {
+                      section: run.section ?? '',
+                      track: hall.name,
+                      trackOrder: hall.parts[0]?.trackOrder ?? null,
+                      order: after(hall.parts),
+                    })}
                   </div>
                 ))}
               </div>
@@ -157,7 +213,54 @@ export function ScheduleTemplateItemList({
           </div>
         </div>
       )}
-      <AddButton label={m.settings_schedule_templates_add_part()} onClick={() => onAdd('part')} />
+      {newSection != null && (
+        <div className="flex flex-col gap-2 rounded-md border border-border p-2">
+          <label htmlFor={newSectionId} className="sr-only">
+            {m.settings_schedule_templates_section_name()}
+          </label>
+          {/* biome-ignore lint/a11y/noAutofocus: the section the person just asked to add */}
+          <Input
+            id={newSectionId}
+            value={newSection}
+            onChange={event => setNewSection(event.target.value)}
+            onKeyDown={event => {
+              if (event.key !== 'Escape') return
+              event.preventDefault()
+              event.stopPropagation()
+              setNewSection(null)
+            }}
+            placeholder={m.settings_schedule_templates_section_name()}
+            maxLength={80}
+            autoFocus
+          />
+          <p className="text-faint text-xs">{m.settings_schedule_templates_new_section_hint()}</p>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              size="sm"
+              disabled={newSection.trim() === ''}
+              onClick={() =>
+                onAdd('part', { section: newSection.trim(), track: '', trackOrder: null, order: lastOrder + 1 })
+              }
+            >
+              <Plus aria-hidden="true" />
+              {m.settings_schedule_templates_first_part()}
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setNewSection(null)}>
+              {m.common_cancel()}
+            </Button>
+          </div>
+        </div>
+      )}
+      <div className="flex flex-wrap gap-2">
+        <AddButton
+          label={m.settings_schedule_templates_add_part_loose()}
+          onClick={() => onAdd('part', { section: '', track: '', trackOrder: null, order: lastOrder + 1 })}
+        />
+        {newSection == null && (
+          <AddButton label={m.settings_schedule_templates_add_section()} onClick={() => setNewSection('')} />
+        )}
+      </div>
       <p className="text-faint text-xs">{m.settings_schedule_templates_list_note()}</p>
     </div>
   )

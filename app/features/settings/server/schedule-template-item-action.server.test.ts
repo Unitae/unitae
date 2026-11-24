@@ -19,12 +19,31 @@ vi.mock('./template-item-action.server', async importOriginal => ({
   }),
 }))
 
+vi.mock('~/features/events/index.server', () => ({
+  renameTemplateSection: vi.fn(async (_db: unknown, kindId: number, from: string, to: string) => {
+    calls.push(['rename-section', kindId, from, to])
+    return from === 'Absente' ? 0 : 2
+  }),
+  renameTemplateHall: vi.fn(async (_db: unknown, kindId: number, section: string, from: string, to: string) => {
+    calls.push(['rename-hall', kindId, section, from, to])
+    return 1
+  }),
+  splitSectionIntoHalls: vi.fn(async (_db: unknown, kindId: number, section: string, main: string) => {
+    calls.push(['split', kindId, section, main])
+    return 2
+  }),
+  makeRoomAtTemplateOrder: vi.fn(async (_db: unknown, kindId: number, order: number) => {
+    calls.push(['room', kindId, order])
+  }),
+}))
+
 const { handleScheduleTemplateItem } = await import('./schedule-template-item-action.server')
 
 const ACTOR = { id: 7, congregationId: 1 }
-const form = (intent: string) => {
+const form = (intent: string, fields: Record<string, string> = {}) => {
   const formData = new FormData()
   formData.set('intent', intent)
+  for (const [name, value] of Object.entries(fields)) formData.set(name, value)
   return formData
 }
 
@@ -56,5 +75,74 @@ describe('handleScheduleTemplateItem', () => {
     items.current = null
     expect(await handleScheduleTemplateItem({} as never, 5, form('upsert-service-role'), ACTOR)).toBeNull()
     expect(calls).toEqual([])
+  })
+
+  it('renames a section or a hall of a programme template, through its first kind', async () => {
+    items.current = { kind: 'programme', kindId: 270 }
+    const section = await handleScheduleTemplateItem(
+      {} as never,
+      3,
+      form('rename-section', { from: 'Joyaux', to: 'Joyaux de la Parole' }),
+      ACTOR,
+    )
+    await handleScheduleTemplateItem(
+      {} as never,
+      3,
+      form('rename-hall', { section: 'Ministère', from: 'Salle B', to: 'Deuxième salle' }),
+      ACTOR,
+    )
+    expect(section).toMatchObject({ kind: 'saved', message: 'Section renommée.' })
+    expect(calls).toEqual([
+      ['rename-section', 270, 'Joyaux', 'Joyaux de la Parole'],
+      ['rename-hall', 270, 'Ministère', 'Salle B', 'Deuxième salle'],
+    ])
+  })
+
+  it('refuses a rename on a duties template, and answers a section no longer there', async () => {
+    items.current = { kind: 'duty', kindId: 270 }
+    const onDuties = await handleScheduleTemplateItem(
+      {} as never,
+      4,
+      form('rename-section', { from: 'A', to: 'B' }),
+      ACTOR,
+    )
+    items.current = { kind: 'programme', kindId: 270 }
+    const gone = await handleScheduleTemplateItem(
+      {} as never,
+      3,
+      form('rename-section', { from: 'Absente', to: 'B' }),
+      ACTOR,
+    )
+    expect([onDuties?.kind, gone?.kind]).toEqual(['refused', 'refused'])
+  })
+
+  it('makes room for a new part where it was added, a new hall turning its section into halls first', async () => {
+    items.current = { kind: 'programme', kindId: 270 }
+    await handleScheduleTemplateItem(
+      {} as never,
+      3,
+      form('upsert-part', { partName: 'Visite', partSection: 'Joyaux', partTrack: 'Salle B', partOrder: '11' }),
+      ACTOR,
+    )
+    expect(calls).toEqual([
+      ['split', 270, 'Joyaux', 'Salle principale'],
+      ['room', 270, 11],
+      [270, 'upsert-part'],
+    ])
+  })
+
+  it('moves nothing for a part that is edited, or a new one the form refuses', async () => {
+    items.current = { kind: 'programme', kindId: 270 }
+    await handleScheduleTemplateItem(
+      {} as never,
+      3,
+      form('upsert-part', { partId: '11', partName: 'X', partOrder: '4' }),
+      ACTOR,
+    )
+    await handleScheduleTemplateItem({} as never, 3, form('upsert-part', { partOrder: '4' }), ACTOR)
+    expect(calls).toEqual([
+      [270, 'upsert-part'],
+      [270, 'upsert-part'],
+    ])
   })
 })

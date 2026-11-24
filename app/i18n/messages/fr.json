@@ -4449,7 +4449,6 @@
     "settings_schedule_templates_suggested_none": "Aucun type : il s’ajoute depuis la réunion, avec « Ajouter un planning ».",
     "settings_schedule_templates_parts_label": "Parties",
     "settings_schedule_templates_services_label": "Services",
-    "settings_schedule_templates_add_part": "Ajouter une partie",
     "settings_schedule_templates_add_service": "Ajouter un service",
     "settings_schedule_templates_anyone": "Tous les proclamateurs",
     "settings_schedule_templates_with_reader": "avec deuxième orateur",
@@ -4464,19 +4463,6 @@
             "match": {
                 "countPlural=one": "{count} salle en parallèle",
                 "countPlural=*": "{count} salles en parallèle"
-            }
-        }
-    ],
-    "settings_schedule_templates_hall": [
-        {
-            "declarations": [
-                "input count",
-                "local countPlural = count: plural"
-            ],
-            "selectors": ["countPlural"],
-            "match": {
-                "countPlural=one": "{name} · {count} partie",
-                "countPlural=*": "{name} · {count} parties"
             }
         }
     ],
@@ -4510,6 +4496,23 @@
     "settings_schedule_templates_no_kind": "Aucun type n’utilise ce modèle : son contenu se modifie une fois qu’un type l’utilise.",
     "settings_schedule_templates_save_part": "Enregistrer la partie",
     "settings_schedule_templates_save_service": "Enregistrer le service",
+    "settings_schedule_templates_section_renamed": "Section renommée.",
+    "settings_schedule_templates_hall_renamed": "Salle renommée.",
+    "settings_schedule_templates_main_hall": "Salle principale",
+    "settings_schedule_templates_rename": "Renommer",
+    "settings_schedule_templates_add_hall": "Ajouter une salle en parallèle",
+    "settings_schedule_templates_delete_when_empty": "Supprimer : retirez d’abord ses parties.",
+    "settings_schedule_templates_section_actions": "Actions de la section {name}",
+    "settings_schedule_templates_hall_actions": "Actions de la salle {name}",
+    "settings_schedule_templates_add_part_to": "Ajouter une partie à {name}",
+    "settings_schedule_templates_part_short": "Partie",
+    "settings_schedule_templates_section_name": "Nom de la section",
+    "settings_schedule_templates_hall_name": "Nom de la salle",
+    "settings_schedule_templates_new_section_hint": "Une section sans partie n’est pas gardée : ajoutez sa première partie. Si vous fermez le panneau avant, elle est abandonnée.",
+    "settings_schedule_templates_first_part": "Première partie",
+    "settings_schedule_templates_add_section": "Ajouter une section",
+    "settings_schedule_templates_add_part_loose": "Ajouter une partie hors section",
+    "settings_schedule_templates_second_hall": "Deuxième salle",
     "settings_schedule_templates_services_empty": "Aucun service. Ajoutez le premier.",
     "settings_schedule_templates_used": [
         {

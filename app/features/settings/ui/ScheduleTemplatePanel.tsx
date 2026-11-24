@@ -124,7 +124,7 @@ export function ScheduleTemplatePanel({
           services={items.services}
           roles={items.roles}
           onOpen={(kind, id) => onOpenItem({ kind, id })}
-          onAdd={kind => onOpenItem({ kind, id: null })}
+          onAdd={(kind, draft) => onOpenItem({ kind, id: null, draft })}
         />
       )}
     </div>
@@ -132,10 +132,25 @@ export function ScheduleTemplatePanel({
   const levelTwo =
     item == null || items == null ? null : item.kind === 'part' ? (
       <PartEditor
-        key={`part-${item.id ?? 'new'}`}
+        key={`part-${item.id ?? `new-${item.draft?.section}-${item.draft?.track}-${item.draft?.order}`}`}
         mode="template"
         fetcher={itemFetcher}
-        part={part ?? null}
+        part={
+          part ??
+          (item.draft == null
+            ? null
+            : {
+                name: '',
+                section: item.draft.section,
+                track: item.draft.track,
+                trackOrder: item.draft.trackOrder,
+                order: item.draft.order,
+                durationMin: null,
+                presetId: null,
+                allowedSpeakerRoleIds: [],
+                allowedReaderRoleIds: [],
+              })
+        }
         defaultOrder={items.parts.length + 1}
         roles={items.roles}
         presets={items.presets}

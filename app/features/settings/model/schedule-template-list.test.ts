@@ -7,6 +7,7 @@ const part = (id: number, section: string, durationMin: number | null, track = '
   section,
   track,
   trackOrder,
+  order: id,
   durationMin,
 })
 

@@ -5,6 +5,7 @@ export interface ListedPart {
   section: string
   track: string
   trackOrder: number | null
+  order: number
   durationMin: number | null
 }
 
