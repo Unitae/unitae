@@ -48,7 +48,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   const isManager = permissions.has(Permission.CanManageProgramTemplates)
 
   return withScopeFromContext(context, async (db, congregationId) => {
-    const page = await getTemplatePage(db, templateId, congregationId, { withResponsibles: isManager })
+    const page = await getTemplatePage(db, templateId, congregationId)
     if (!page) throw redirect('/settings/templates')
     const responsible = (await isTemplateResponsible(db, templateId, currentUser.id, congregationId)) != null
     // A template's responsible and the managers change it; whoever reads the programmes may look at it.
@@ -176,7 +176,7 @@ export default function TemplatePage({ loaderData }: Route.ComponentProps) {
           editable={editable}
           fetcher={infoFetcher}
           onDirtyChange={setInfoDirty}
-          responsibles={page.responsibles ?? undefined}
+          manager={isManager}
         />
         {builtIn ? (
           <p className="text-muted-foreground text-sm">{m.settings_template_system_body_freeform()}</p>

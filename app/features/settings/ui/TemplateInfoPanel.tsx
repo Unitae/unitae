@@ -17,11 +17,6 @@ const FORM_ID = 'template-info-form'
 const NONE = 'none'
 const WEEK = [1, 2, 3, 4, 5, 6, 0]
 
-interface Responsible {
-  roleId: number | null
-  holders: string[]
-}
-
 export interface TemplateInfo {
   name: string
   weekDay: number | null
@@ -35,28 +30,26 @@ interface TemplateInfoPanelProps {
   template: TemplateInfo
   /** A built-in template: only its colour. */
   builtIn: boolean
-  /** Who runs the programme and the services, for a template manager to change; absent for anyone else. */
-  responsibles?: { programme: Responsible; service: Responsible; roles: { id: number; label: string }[] }
+  /** A template manager: how its meetings count in attendance, and where its responsibles are set. */
+  manager: boolean
   editable: boolean
   fetcher: ReturnType<typeof useFetcher>
   onDirtyChange: (dirty: boolean) => void
 }
 
-/** The template's name, day, times and colour, and who runs it, saved from the save bar once something changed. */
+/** The template's name, day, times and colour, saved from the save bar once something changed. */
 export function TemplateInfoPanel(props: TemplateInfoPanelProps) {
   const [version, setVersion] = useState(0)
-  const { template, responsibles } = props
+  const { template } = props
   // A new starting point after « Annuler », and once a save brings the saved values back.
-  const key = [version, JSON.stringify(template), responsibles?.programme.roleId, responsibles?.service.roleId].join(
-    '|',
-  )
+  const key = [version, JSON.stringify(template)].join('|')
   return <TemplateInfoForm key={key} {...props} onCancel={() => setVersion(current => current + 1)} />
 }
 
 function TemplateInfoForm({
   template,
   builtIn,
-  responsibles,
+  manager,
   editable,
   fetcher,
   onDirtyChange,
@@ -134,13 +127,13 @@ function TemplateInfoForm({
           )}
           <p className="text-faint text-xs">{m.settings_template_color_hint()}</p>
         </div>
-        {responsibles && !builtIn && (
+        {manager && !builtIn && (
           <div className="grid gap-3 @md:grid-cols-2">
             <AttendanceKindField value={parseAttendanceKind(template.attendanceKind)} />
           </div>
         )}
         {/* Who answers for its schedules moved to each schedule template (6a-1b, plan §11). */}
-        {responsibles && !builtIn && (
+        {manager && !builtIn && (
           <p className="border-t pt-4 text-muted-foreground text-sm">
             {m.settings_template_responsibles_moved()}{' '}
             <Link to="/settings/schedule-templates" className="text-brand-text underline-offset-4 hover:underline">

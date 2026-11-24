@@ -1,24 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // The template page's intents, run against an in-memory record of what each would write. A built-in template only
-// takes its colour, an item of another template is refused, and who runs a template, duplicating and deleting it stay
-// with the template managers.
+// takes its colour, an item of another template is refused, and duplicating and deleting it stay with the
+// template managers.
 
 const { writes, state } = vi.hoisted(() => ({
   writes: [] as string[],
-  state: { ownParts: new Set<number>(), responsiblesRefused: false },
+  state: { ownParts: new Set<number>() },
 }))
 
-vi.mock('~/features/events/index.server', async () => {
-  const { ValidationError } = await import('~/shared/errors/app-error.server')
+vi.mock('~/features/events/index.server', () => {
   return {
     updateTemplate: vi.fn(async (_db: unknown, id: number, fields: { name?: string; attendanceKind?: string }) => {
       writes.push(['update', id, fields.name, fields.attendanceKind].filter(Boolean).join(' '))
-    }),
-    saveTemplateResponsibles: vi.fn(async (_db: unknown, id: number, wanted: { programmeRoleId: number | null }) => {
-      if (state.responsiblesRefused) throw new ValidationError('roleId', 'This role cannot run a template')
-      writes.push(`responsibles ${id} ${wanted.programmeRoleId}`)
-      return true
     }),
     templateItemBelongsToTemplate: vi.fn(async (_db: unknown, _kind: string, itemId: number) =>
       state.ownParts.has(itemId),
@@ -64,7 +58,6 @@ function form(fields: Record<string, string>): FormData {
 beforeEach(() => {
   writes.length = 0
   state.ownParts = new Set([11])
-  state.responsiblesRefused = false
 })
 
 describe('handleTemplateAction', () => {
@@ -85,26 +78,19 @@ describe('handleTemplateAction', () => {
     expect(writes).toEqual([])
   })
 
-  // Who runs its schedules is set on each schedule template since 6a-1b, never from the kind's page.
-  it('saves the fields for a manager, never who runs the template', async () => {
-    const result = await handleTemplateAction(
-      dbWith('midweek'),
-      4,
-      form({ intent: 'update-template', name: 'Semaine', programmeRoleId: '3', serviceRoleId: 'none' }),
-      MANAGER,
-    )
-    expect(result?.kind).toBe('saved')
-    expect(writes).toEqual(['update 4 Semaine'])
-  })
-
-  it('saves a responsible’s fields but never who runs the template', async () => {
-    await handleTemplateAction(
-      dbWith('midweek'),
-      4,
-      form({ intent: 'update-template', name: 'Semaine', programmeRoleId: '3', serviceRoleId: 'none' }),
-      RESPONSIBLE,
-    )
-    expect(writes).toEqual(['update 4 Semaine'])
+  it('saves the fields for a manager or a responsible: who runs its schedules is set on each schedule template', async () => {
+    for (const actor of [MANAGER, RESPONSIBLE]) {
+      writes.length = 0
+      const result = await handleTemplateAction(
+        dbWith('midweek'),
+        4,
+        // A tab opened before 6a-1b may still post the old responsible fields: they are ignored.
+        form({ intent: 'update-template', name: 'Semaine', programmeRoleId: '3', serviceRoleId: 'none' }),
+        actor,
+      )
+      expect(result?.kind).toBe('saved')
+      expect(writes).toEqual(['update 4 Semaine'])
+    }
   })
 
   it('saves how a template counts in attendance for a manager, never for a responsible', async () => {
