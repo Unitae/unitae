@@ -93,8 +93,8 @@ importers:
         specifier: ^0.3.0
         version: 0.3.0(@fontsource/ibm-plex-sans@5.3.0)(@protomaps/basemaps@5.7.2)
       '@unitae/ui':
-        specifier: ^0.12.0
-        version: 0.12.0(@unitae/tokens@0.3.0(@fontsource/ibm-plex-sans@5.3.0)(@protomaps/basemaps@5.7.2))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(recharts@3.10.1(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react-is@18.3.1)(react@19.3.1)(redux@5.0.1))
+        specifier: ^0.13.0
+        version: 0.13.0(@unitae/tokens@0.3.0(@fontsource/ibm-plex-sans@5.3.0)(@protomaps/basemaps@5.7.2))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(recharts@3.10.1(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react-is@18.3.1)(react@19.3.1)(redux@5.0.1))
       '@vis.gl/react-maplibre':
         specifier: 8.1.3
         version: 8.1.3(maplibre-gl@6.16.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -2895,8 +2895,8 @@ packages:
       '@protomaps/basemaps':
         optional: true
 
-  '@unitae/ui@0.12.0':
-    resolution: {integrity: sha512-ngjkNirjIudx7HmUrRLLRnBiNXQBJYLGqVwMjqPwGRWXClFfUVpQiPoAlB1phiRmuX+T6T3ygRtmzW57yfvBVg==}
+  '@unitae/ui@0.13.0':
+    resolution: {integrity: sha512-ZoWMAr1cnX2YBQUp3PSEi38IFKwebHYRSPkxIgJl4Qe+3gwAW64kTWlh5KuU9uEH5hLuAlsecawYtRrB7aNI8g==}
     engines: {node: '>=22.22.0'}
     peerDependencies:
       '@unitae/tokens': ^0.1.0 || ^0.2.0 || ^0.3.0
@@ -9644,7 +9644,7 @@ snapshots:
       '@fontsource/ibm-plex-sans': 5.3.0
       '@protomaps/basemaps': 5.7.2
 
-  '@unitae/ui@0.12.0(@unitae/tokens@0.3.0(@fontsource/ibm-plex-sans@5.3.0)(@protomaps/basemaps@5.7.2))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(recharts@3.10.1(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react-is@18.3.1)(react@19.3.1)(redux@5.0.1))':
+  '@unitae/ui@0.13.0(@unitae/tokens@0.3.0(@fontsource/ibm-plex-sans@5.3.0)(@protomaps/basemaps@5.7.2))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(recharts@3.10.1(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react-is@18.3.1)(react@19.3.1)(redux@5.0.1))':
     dependencies:
       '@unitae/tokens': 0.3.0(@fontsource/ibm-plex-sans@5.3.0)(@protomaps/basemaps@5.7.2)
       class-variance-authority: 0.7.1
