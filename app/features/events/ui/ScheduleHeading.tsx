@@ -31,16 +31,19 @@ export function scheduleTitle(schedule: { name: string | null; kind: string }): 
   return schedule.kind === ScheduleKind.Programme ? m.programs_view_spiritual_program() : m.programs_view_services()
 }
 
-/** The section's title: its name and its kind. */
+/** A schedule kind's label: « Spirituel » or « Services ». */
+export function scheduleKindLabel(kind: string): string {
+  return kind === ScheduleKind.Programme ? m.programs_schedule_kind_programme() : m.programs_schedule_kind_duty()
+}
+
+/** The section's title: its name, and its kind unless the name already says it (« Services », the user's choice). */
 export function ScheduleTitle({ schedule }: { schedule: EventScheduleView }) {
+  const title = scheduleTitle(schedule)
+  const kind = scheduleKindLabel(schedule.kind)
   return (
     <span className="flex flex-wrap items-center gap-2">
-      {scheduleTitle(schedule)}
-      <Tag>
-        {schedule.kind === ScheduleKind.Programme
-          ? m.programs_schedule_kind_programme()
-          : m.programs_schedule_kind_duty()}
-      </Tag>
+      {title}
+      {kind !== title && <Tag>{kind}</Tag>}
     </span>
   )
 }
@@ -48,13 +51,12 @@ export function ScheduleTitle({ schedule }: { schedule: EventScheduleView }) {
 /**
  * Who answers for the schedule (D37): the role, then those its section names (the titulaire and the adjoints, the
  * other holders when there is neither), « vous » for the reader, or after them when the reader holds the role unnamed.
- * A schedule without a responsible is the managers' (D47).
+ * A schedule without a responsible shows no line: it is the managers' (D47).
  */
 export function ScheduleResponsibleLine({ schedule }: { schedule: EventScheduleView }) {
   const { responsible } = schedule
-  if (responsible == null) {
-    return <p className="px-4.5 py-2.5 text-muted-foreground text-sm">{m.programs_schedule_no_one_in_charge()}</p>
-  }
+  // Without one, the section says nothing (the user's choice): the managers see to it (D47).
+  if (responsible == null) return null
   const named = responsible.holders.some(holder => holder.you)
   return (
     <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 px-4.5 py-2.5 text-muted-foreground text-sm">

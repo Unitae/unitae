@@ -324,8 +324,8 @@ describe('canChangeEvent (integration)', () => {
 })
 
 describe('listApplicableTemplates (integration)', () => {
-  // Applying a template moves the event onto it, and who may edit an event follows its template: the list offers
-  // only the templates whose events the caller may edit, so applying one never hands the event to someone else.
+  // Moving an event to a kind hands it to that kind's responsibles: the list offers only the kinds whose events the
+  // caller may change, so « Changer le type » never hands the event to someone else.
   it('lists every template of the congregation for a programme manager, by name — never a system one', async () => {
     const result = await withScope(primaryCongId, tx =>
       listApplicableTemplates(tx, allowOnly(Permission.CanManagePrograms), managerId, primaryCongId),

@@ -19,6 +19,7 @@ export const programsRoutes = [
       ...prefix('schedules/:scheduleId', [
         route('publish', 'features/events/routes/programs/events/schedule-publish.tsx'),
         route('unpublish', 'features/events/routes/programs/events/schedule-unpublish.tsx'),
+        route('edit', 'features/events/routes/programs/events/schedule-edit.tsx'),
         route('rename', 'features/events/routes/programs/events/schedule-rename.tsx'),
         route('delete', 'features/events/routes/programs/events/schedule-delete.tsx'),
       ]),

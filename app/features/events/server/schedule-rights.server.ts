@@ -19,8 +19,8 @@ export function fillsEverySchedule(can: (permission: Permission) => boolean): bo
 /**
  * Whether the caller may fill an event's schedule of one kind: its items and who holds them (plan §10, D3, D7, D47).
  * « Attribuer » and « Gérer » reach every schedule; otherwise the responsible of the schedule's template, through the
- * role it names. Every writer makes one schedule of a kind today; should an event hold several, the caller must answer
- * for each, since the routes name a kind and not a schedule. An event without a schedule of that kind yet takes the
+ * role it names. An event holds one schedule of each kind today; should it hold several, the caller must answer for
+ * each, since the editor's intents name a kind and not a schedule. An event without a schedule of that kind yet takes the
  * template its first schedule would get (the writer's: its kind's first suggested one), since filling it starts it. A
  * schedule without a template, and an event without a kind, have no responsible.
  */
@@ -49,28 +49,6 @@ export async function canFillSchedule(
     })
   }
   return allowed
-}
-
-/**
- * Whether the caller may apply a template to an event (plan §10, D31): applying appends its parts and duties and moves
- * the event's schedules onto its schedule templates, so whoever applies it fills each schedule it brings. « Attribuer »
- * and « Gérer », or the responsible of every schedule template the template suggests; one that brings none asks nothing.
- */
-export async function canFillTemplateSchedules(
-  db: TransactionClient,
-  can: (permission: Permission) => boolean,
-  userId: number,
-  templateId: number,
-  congregationId: number,
-): Promise<boolean> {
-  if (fillsEverySchedule(can)) return true
-  const brought = await db.scheduleTemplate.findMany({
-    where: { congregationId, eventKinds: { some: { eventKindId: templateId } } },
-    select: { responsibleRoleId: true },
-  })
-  if (brought.length === 0) return true
-  const roleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
-  return brought.every(template => template.responsibleRoleId != null && roleIds.includes(template.responsibleRoleId))
 }
 
 /**
@@ -112,7 +90,7 @@ export async function canChangeEventsOfKind(
 
 /**
  * Whether the caller may change an event and open its editor: changing events of its kind. Moving it to another kind
- * also asks the target (canChangeEventsOfKind, and canFillTemplateSchedules for what it brings).
+ * also asks the target (canChangeEventsOfKind), and « Changer le type » the rights of each schedule removed or added.
  */
 export async function canChangeEvent(
   db: TransactionClient,
@@ -226,7 +204,7 @@ export async function canDeleteEvent(
 }
 
 /**
- * Whether the caller may publish or unpublish a whole event, until schedules publish one by one (D49): « Publier »,
+ * Whether the caller may publish or unpublish an event holding no schedule, as a whole (D46, D49): « Publier »,
  * or the responsible of every schedule it holds — of every schedule template its kind suggests while it holds none.
  * An event with no kind is the managers' alone.
  */

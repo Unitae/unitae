@@ -4,7 +4,6 @@ import { EVENT_STATUS_ERRORS } from './event-status.policy'
 
 // Schedules are written beside the items (the schedules' expand step); their own tests cover them.
 vi.mock('~/features/events/server/schedules.server', () => ({
-  alignEventSchedules: vi.fn(),
   attachEventItems: vi.fn(),
   deleteEventSchedules: vi.fn(),
   eventScheduleId: vi.fn(),

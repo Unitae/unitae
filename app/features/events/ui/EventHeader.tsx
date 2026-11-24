@@ -80,7 +80,7 @@ export function EventHeader({
                 <Button variant="outline" asChild>
                   <Link to={`/programs/events/${event.id}/edit`}>
                     <Pencil />
-                    {m.common_edit()}
+                    {m.programs_edit_event()}
                   </Link>
                 </Button>
                 {(canDelete || onChangeKind) && (

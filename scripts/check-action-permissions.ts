@@ -73,6 +73,8 @@ export const DELEGATES: Record<string, { file: string; enforces: RegExp }> = {
     file: 'app/features/events/server/schedule-changes.server.ts',
     enforces: ENFORCES_PERMISSION,
   },
+  // « Modifier le planning » posts to the event editor's action (D38): it asks canChangeEvent, then each intent's fill.
+  editAction: { file: 'app/features/events/routes/programs/events/edit.tsx', enforces: /canChangeEvent\(/ },
   // Changing a meeting's kind (D40): the rights of both kinds, and of each schedule removed or added.
   changeEventKind: {
     file: 'app/features/events/server/event-kind-change.server.ts',

@@ -1,6 +1,6 @@
 // End-to-end proof that per-part role labels flow all the way through:
 // schema column exists → template stores them → the three write paths
-// (apply-template, generation, duplicate) denormalize them onto the target
+// (a schedule added from a template, generation, duplicate) denormalize them onto the target
 // row. If the migration, the Prisma client, or any of those copy paths are
 // mismatched, this test breaks — which is what the unit suite (mocked Prisma)
 // cannot catch on its own.
@@ -8,10 +8,10 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
-import { applyTemplateToEvent } from '~/features/events/server/apply-template.server'
 import { duplicateTemplate } from '~/features/events/server/duplicate-template.server'
 import { createProgrammeSeries } from '~/features/events/server/programme-creation.server'
 import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
+import { fillFromKind } from '~/tests/helpers/fill-from-kind'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -120,7 +120,7 @@ afterAll(async () => {
 })
 
 describe('per-part role labels — end-to-end', () => {
-  it('applyTemplateToEvent denormalizes speakerLabel/readerLabel from template parts onto assignments', async () => {
+  it('a schedule added from a template denormalizes speakerLabel/readerLabel onto its assignments', async () => {
     const { templateId } = await seedTemplate(`apply-${ts}`)
     const event = await withScope(congId, tx =>
       tx.event.create({
@@ -136,7 +136,7 @@ describe('per-part role labels — end-to-end', () => {
       }),
     )
 
-    await withScope(congId, tx => applyTemplateToEvent(tx, event.id, templateId, congId, managerAccountId))
+    await withScope(congId, tx => fillFromKind(tx, event.id, templateId, congId, managerAccountId))
 
     const assignments = await testDb.item.findMany({
       where: { eventId: event.id, congregationId: congId },
