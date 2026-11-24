@@ -16,44 +16,37 @@ export interface UserConflictInRange {
   responsibleName: string | null
 }
 
-// Shared between the two `findMany` calls so the query shape stays in sync.
-const eventWithResponsiblesSelect = {
-  startDate: true,
-  template: {
+// The responsible of the item's own schedule template: the role that fills and publishes that schedule (plan §11,
+// per schedule template since 6a). Shared between the two `findMany` calls so the query shape stays in sync.
+const responsibleRoleSelect = {
+  key: true,
+  name: true,
+  members: {
     select: {
-      responsibles: {
+      user: {
         select: {
-          role: {
-            select: {
-              key: true,
-              name: true,
-              members: {
-                select: {
-                  user: {
-                    select: {
-                      firstname: true,
-                      lastname: true,
-                      member: { select: { firstname: true, lastname: true } },
-                    },
-                  },
-                },
-              },
-              // Roles given by hand sit on publisher records since 2.12, not on accounts.
-              memberAssignments: { select: { member: { select: { firstname: true, lastname: true } } } },
-            },
-          },
+          firstname: true,
+          lastname: true,
+          member: { select: { firstname: true, lastname: true } },
         },
       },
     },
   },
-} satisfies Prisma.EventSelect
+  // Roles given by hand sit on publisher records since 2.12, not on accounts.
+  memberAssignments: { select: { member: { select: { firstname: true, lastname: true } } } },
+} satisfies Prisma.RoleSelect
 
-type EventWithResponsibles = Prisma.EventGetPayload<{ select: typeof eventWithResponsiblesSelect }>
+const conflictSelect = {
+  name: true,
+  event: { select: { startDate: true } },
+  schedule: { select: { scheduleTemplate: { select: { responsibleRole: { select: responsibleRoleSelect } } } } },
+} satisfies Prisma.ItemSelect
 
-// `responsibleName` resolves through `accountDisplayName` so a template
-// responsible's linked Member name wins over the account fallback fields.
-// Untemplated events (or templates with no responsible assigned) return
-// `null` so the UI can show a generic fallback line.
+type ResponsibleRole = Prisma.RoleGetPayload<{ select: typeof responsibleRoleSelect }>
+
+// `responsibleName` names the holders of the item's schedule-template responsible, through `accountDisplayName`
+// so a linked Member name wins over the account fallback fields. A schedule without a template, or a template without
+// a responsible, returns `null` so the UI can show a generic fallback line.
 export async function listUserConflictsInRange(
   db: TransactionClient,
   memberId: number,
@@ -71,10 +64,7 @@ export async function listUserConflictsInRange(
         OR: [{ assigneeId: memberId }, { assistantId: memberId }],
         event: { startDate: { lte: endDate }, endDate: { gte: startDate } },
       },
-      select: {
-        name: true,
-        event: { select: eventWithResponsiblesSelect },
-      },
+      select: conflictSelect,
       orderBy: PART_ITEMS_BY_DATE,
     }),
     db.item.findMany({
@@ -85,10 +75,7 @@ export async function listUserConflictsInRange(
         assigneeId: memberId,
         event: { startDate: { lte: endDate }, endDate: { gte: startDate } },
       },
-      select: {
-        name: true,
-        event: { select: eventWithResponsiblesSelect },
-      },
+      select: conflictSelect,
       orderBy: SERVICE_ITEMS_BY_DATE,
     }),
   ])
@@ -96,7 +83,7 @@ export async function listUserConflictsInRange(
   const merged: UserConflictInRange[] = [...partConflicts, ...serviceConflicts].map(a => ({
     eventDate: a.event.startDate,
     assignmentName: a.name,
-    responsibleName: resolveResponsibleName(a.event.template),
+    responsibleName: resolveResponsibleName(a.schedule?.scheduleTemplate?.responsibleRole ?? null),
   }))
 
   merged.sort((a, b) => a.eventDate.getTime() - b.eventDate.getTime())
@@ -109,22 +96,17 @@ export async function listUserConflictsInRange(
 // it falls back to the role's own name: "contact the Responsable VCM" is still more use than
 // the generic no-responsible line, and it hints at the gap the settings page warns about.
 // Names are deterministically ordered so the modal reads the same across renders.
-function resolveResponsibleName(template: EventWithResponsibles['template']): string | null {
-  const responsibles = template?.responsibles ?? []
-  if (responsibles.length === 0) return null
+function resolveResponsibleName(role: ResponsibleRole | null): string | null {
+  if (role == null) return null
 
-  const names = responsibles
-    .flatMap(r => [
-      ...r.role.members.map(seat => accountDisplayName(seat.user)),
-      ...r.role.memberAssignments.map(seat => accountDisplayName(seat.member)),
-    ])
-    .filter(name => name.length > 0)
+  const names = [
+    ...role.members.map(seat => accountDisplayName(seat.user)),
+    ...role.memberAssignments.map(seat => accountDisplayName(seat.member)),
+  ].filter(name => name.length > 0)
 
   if (names.length === 0) {
-    const roleNames = responsibles.map(r => getRoleDisplayName(r.role)).filter(name => name.length > 0)
-    if (roleNames.length === 0) return null
-    roleNames.sort((a, b) => a.localeCompare(b))
-    return roleNames.join(', ')
+    const roleName = getRoleDisplayName(role)
+    return roleName.length > 0 ? roleName : null
   }
 
   names.sort((a, b) => a.localeCompare(b))
