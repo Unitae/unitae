@@ -113,7 +113,8 @@ export function ScheduleStatusBadge({ schedule, fill }: { schedule: EventSchedul
 
 /**
  * A panel whose description holds only a part marked `data-phone-only` hides that line from md up, so its desktop
- * header keeps one line.
+ * header keeps one line. It reaches into Panel's markup (@unitae/ui: the description is the `div` right after the
+ * title's `h2`): if Panel's header changes shape, recheck it, or give Panel a class for its description.
  */
 export const PHONE_ONLY_DESCRIPTION = 'md:[&_h2+div:has(>[data-phone-only]:only-child)]:hidden'
 

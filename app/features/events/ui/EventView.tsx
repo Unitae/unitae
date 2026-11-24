@@ -2,6 +2,7 @@ import { Pencil } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useFetcher } from 'react-router'
 import type { ExternalSpeakerOption } from '~/features/events/model/external-speaker.type'
+import { schedulePublishAction } from '~/features/events/model/programme-access'
 import { parseAssignKey } from '~/features/events/model/reassign'
 import type { KindChangeOption, ScheduleAddOptions } from '~/features/events/model/schedule.type'
 import { ScheduleKind, ScheduleStatus } from '~/features/events/model/schedule.type'
@@ -172,9 +173,10 @@ export function EventView({
   // kind, while an event holds one schedule of each (see maySeeSchedule): its items carry no schedule of their own.
   const programmeSchedule = event.schedules.find(schedule => schedule.kind === ScheduleKind.Programme)
   const dutySchedule = event.schedules.find(schedule => schedule.kind === ScheduleKind.Duty)
+  const mayEditStructure = (schedule: EventScheduleView) =>
+    canEdit && (schedule.kind === ScheduleKind.Programme ? canAssign : canAssignService)
   const editLink = (schedule: EventScheduleView, className: string) =>
-    canEdit &&
-    (schedule.kind === ScheduleKind.Programme ? canAssign : canAssignService) && (
+    mayEditStructure(schedule) && (
       <Button variant="ghost" size="sm" className={className} asChild>
         <Link to={`/programs/events/${event.id}/schedules/${schedule.id}/edit`}>
           <Pencil />
@@ -220,7 +222,8 @@ export function EventView({
       ),
       intro: <ScheduleConflictNotice schedule={schedule} items={itemsOf(schedule.kind)} />,
       // On a phone, « Publier » and « Modifier le planning » below the rows, which stay unfolded (the user's choice).
-      foot: (
+      // Only when there is a button to put there: a reader who can act on nothing gets no empty strip.
+      foot: (schedulePublishAction(schedule) != null || mayEditStructure(schedule)) && (
         <>
           <ScheduleStatusControl
             eventId={event.id}
