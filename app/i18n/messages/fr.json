@@ -794,8 +794,8 @@
     ],
     "email_territory_sync_subject": "Mise à jour des données du territoire",
     "email_territory_sync_failed_subject": "La synchronisation avec la BANO a échoué",
-    "email_programme_assigned_subject": "Vous avez une affectation au programme",
-    "email_programme_unassigned_subject": "Votre affectation au programme a été annulée",
+    "email_programme_assigned_subject": "Vous avez une attribution au programme",
+    "email_programme_unassigned_subject": "Votre attribution au programme a été annulée",
     "verify_email_title": "Vérifiez votre adresse e-mail",
     "verify_email_message": "Pour terminer, ouvrez le lien envoyé à {email}. Il est valable 24 heures.",
     "verify_email_resend": "Renvoyer l’e-mail",
@@ -1054,7 +1054,7 @@
     "settings_user_add_to_congregation_submit": "Ajouter à l’assemblée",
     "settings_user_add_to_congregation_success": "{email} a été ajouté à l’assemblée.",
     "settings_user_add_to_congregation_self_title": "Créer ma fiche",
-    "settings_user_add_to_congregation_self_subtitle": "Créez votre fiche de membre de l’assemblée. Votre compte y sera rattaché : vous pourrez recevoir des territoires et des affectations au programme.",
+    "settings_user_add_to_congregation_self_subtitle": "Créez votre fiche de membre de l’assemblée. Votre compte y sera rattaché : vous pourrez recevoir des territoires et des attributions au programme.",
     "settings_user_add_to_congregation_self_success": "Votre fiche a été créée.",
     "settings_user_add_to_congregation_error_conflict": "Ce compte est déjà rattaché à une fiche de membre.",
     "settings_user_add_to_congregation_is_publisher_label": "Inscrire comme proclamateur",
@@ -1118,9 +1118,9 @@
     "publishers_privilege_missionary": "Missionnaire",
     "publishers_table_name": "Nom",
     "publishers_table_privileges": "Privilèges",
-    "publishers_table_last_assignment": "Dernière affectation",
+    "publishers_table_last_assignment": "Dernière attribution",
     "publishers_table_next_absence": "Absence prévue",
-    "publishers_no_recent_assignment": "Aucune affectation depuis 12 mois",
+    "publishers_no_recent_assignment": "Aucune attribution depuis 12 mois",
     "publishers_select_all": "Tout sélectionner",
     "publishers_select_one": "Sélectionner {name}",
     "publishers_selection": [
@@ -1610,8 +1610,8 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "{count} affectation pendant cette absence",
-                "countPlural=*": "{count} affectations pendant cette absence"
+                "countPlural=one": "{count} attribution pendant cette absence",
+                "countPlural=*": "{count} attributions pendant cette absence"
             }
         }
     ],
@@ -1619,13 +1619,13 @@
     "days_off_conflict_warn_fallback": "{date} · prévenir le responsable du programme",
     "days_off_delete_aria": "Supprimer l’absence {period}",
     "days_off_delete_dialog_title": "Supprimer cette absence ?",
-    "days_off_delete_dialog_description": "Les responsables des programmes ne la verront plus, et les affectations de ces jours ne seront plus signalées.",
+    "days_off_delete_dialog_description": "Les responsables des programmes ne la verront plus, et les attributions de ces jours ne seront plus signalées.",
     "days_off_form_period_title": "Période",
     "days_off_form_period_description": "Les jours où vous ne pourrez assurer ni partie ni service. Le dernier jour compte jusqu’au soir.",
     "days_off_form_first": "Premier jour",
     "days_off_form_last": "Dernier jour",
     "days_off_form_last_help": "Pour un seul jour, la même date que le premier.",
-    "days_off_form_save_hint": "Après l’enregistrement, vous verrez les affectations qui tombent pendant ces jours.",
+    "days_off_form_save_hint": "Après l’enregistrement, vous verrez les attributions qui tombent pendant ces jours.",
     "days_off_form_submit": "Ajouter l’absence",
     "days_off_form_day_invalid": "Choisissez une date.",
     "days_off_form_first_required": "Choisissez le premier jour.",
@@ -1640,8 +1640,8 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "{count} affectation tombe pendant ces jours",
-                "countPlural=*": "{count} affectations tombent pendant ces jours"
+                "countPlural=one": "{count} attribution tombe pendant ces jours",
+                "countPlural=*": "{count} attributions tombent pendant ces jours"
             }
         }
     ],
@@ -1672,7 +1672,7 @@
     "dashboard_urgent_responsible_conflict_extras": " (+{count} autres)",
     "programs_absences_meta_title": "Absences - Unitae",
     "programs_absences_title": "Absences",
-    "programs_absences_subtitle": "Ce que chacun déclare dans « Mes absences ». Une affectation qui tombe pendant une absence est à revoir.",
+    "programs_absences_subtitle": "Ce que chacun déclare dans « Mes absences ». Une attribution qui tombe pendant une absence est à revoir.",
     "programs_absences_count": [
         {
             "declarations": [
@@ -1694,8 +1694,8 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "{count} affectation à revoir",
-                "countPlural=*": "{count} affectations à revoir"
+                "countPlural=one": "{count} attribution à revoir",
+                "countPlural=*": "{count} attributions à revoir"
             }
         }
     ],
@@ -1755,7 +1755,7 @@
     "programs_absences_no_match_description": "sur la période choisie.",
     "programs_absences_clear_search": "Effacer la recherche",
     "programs_absences_nothing_to_review_title": "Rien à revoir",
-    "programs_absences_nothing_to_review_description": "Aucune affectation ne tombe pendant une absence sur ces semaines.",
+    "programs_absences_nothing_to_review_description": "Aucune attribution ne tombe pendant une absence sur ces semaines.",
     "programs_meta_title": "Programmes - Unitae",
     "programs_count": [
         {
@@ -3737,19 +3737,19 @@
     "email_board_updated_document_heading": "Document mis à jour",
     "email_board_updated_document_greeting": "Bonjour {name},",
     "email_board_updated_document_body": "Le document « {filename} » vient d’être mis à jour. Veuillez vérifier les changements.",
-    "email_programme_assigned_preview": "Vous avez reçu une nouvelle affectation au programme…",
-    "email_programme_assigned_heading": "Nouvelle affectation au programme.",
+    "email_programme_assigned_preview": "Vous avez reçu une nouvelle attribution au programme…",
+    "email_programme_assigned_heading": "Nouvelle attribution au programme.",
     "email_programme_assigned_greeting": "Bonjour {name},",
-    "email_programme_assigned_body_1": "Vous avez été affecté(e) comme {role} pour « {assignmentName} » lors de {eventName} ({eventDate}).",
+    "email_programme_assigned_body_1": "Vous avez été désigné(e) comme {role} pour « {assignmentName} » lors de {eventName} ({eventDate}).",
     "email_programme_assigned_body_2": "Consultez la page du programme pour le sujet, les détails et les ressources associées.",
     "email_programme_assigned_button": "Ouvrir le programme",
     "email_programme_assigned_regards": "Bien cordialement,",
     "email_programme_assigned_team": "L’équipe {platformName}",
     "email_programme_assigned_footer": "Cet e-mail est destiné à {email}. Si vous ne vous attendiez pas à recevoir cet e-mail, vous pouvez l’ignorer.",
-    "email_programme_unassigned_preview": "Votre affectation au programme a été annulée…",
-    "email_programme_unassigned_heading": "Affectation annulée.",
+    "email_programme_unassigned_preview": "Votre attribution au programme a été annulée…",
+    "email_programme_unassigned_heading": "Attribution annulée.",
     "email_programme_unassigned_greeting": "Bonjour {name},",
-    "email_programme_unassigned_body_1": "Votre affectation comme {role} pour « {assignmentName} » lors de {eventName} ({eventDate}) a été annulée.",
+    "email_programme_unassigned_body_1": "Votre attribution comme {role} pour « {assignmentName} » lors de {eventName} ({eventDate}) a été annulée.",
     "email_programme_unassigned_body_2": "Consultez la page du programme pour voir le planning à jour.",
     "email_programme_unassigned_button": "Ouvrir le programme",
     "email_programme_unassigned_regards": "Bien cordialement,",
@@ -4075,9 +4075,9 @@
             }
         }
     ],
-    "dashboard_upcoming_assignments": "Mes prochaines affectations",
-    "dashboard_upcoming_assignments_empty": "Aucune affectation à venir",
-    "dashboard_upcoming_assignments_empty_hint": "Vos affectations au programme des prochaines semaines apparaîtront ici.",
+    "dashboard_upcoming_assignments": "Mes prochaines attributions",
+    "dashboard_upcoming_assignments_empty": "Aucune attribution à venir",
+    "dashboard_upcoming_assignments_empty_hint": "Vos attributions au programme des prochaines semaines apparaîtront ici.",
     "dashboard_upcoming_assignments_service": "Service",
     "programs_default_speaker_label": "Orateur",
     "programs_default_reader_label": "Lecteur",
@@ -4132,8 +4132,8 @@
     "data_transfer_entity_programme_template_service_roles": "Rôles de service",
     "data_transfer_entity_programme_template_responsibles": "Responsables de programme",
     "data_transfer_entity_events": "Événements",
-    "data_transfer_entity_programme_part_assignments": "Affectations de parties",
-    "data_transfer_entity_programme_service_role_assignments": "Affectations de rôles de service",
+    "data_transfer_entity_programme_part_assignments": "Attributions de parties",
+    "data_transfer_entity_programme_service_role_assignments": "Attributions de rôles de service",
     "data_transfer_entity_board_sections": "Sections du panneau",
     "data_transfer_entity_board_documents": "Documents du panneau",
     "data_transfer_entity_board_document_versions": "Versions de documents",
@@ -4265,7 +4265,7 @@
     "dashboard_urgent_show_less": "Afficher moins",
     "dashboard_meeting_assign": "Attribuer",
     "dashboard_assignment_partner": "avec {name}",
-    "dashboard_calendar_prompt": "Recevez vos affectations dans votre agenda",
+    "dashboard_calendar_prompt": "Recevez vos attributions dans votre agenda",
     "dashboard_calendar_prompt_action": "Activer",
     "dashboard_absences_plan": "Planifier",
     "dashboard_documents_add": "Ajouter",
@@ -4318,7 +4318,7 @@
     "dashboard_roll_link": "Voir les proclamateurs",
     "dashboard_setup_description": "Ce qu’il reste à faire pour bien démarrer.",
     "dashboard_setup_two_factor": "Activer la vérification en deux étapes",
-    "publishers_view_no_upcoming_assignments": "Aucune affectation à venir.",
+    "publishers_view_no_upcoming_assignments": "Aucune attribution à venir.",
     "publishers_left_error_future": "La date du départ ne peut pas être dans le futur.",
     "publishers_left_error_too_old": "La date du départ peut remonter d’un mois au plus.",
     "publishers_edit_page_subtitle": "Modifier sa fiche. Son statut, son identifiant de connexion et son service de pionnier se gèrent depuis la fiche.",
@@ -4430,8 +4430,8 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "{count} affectation à venir",
-                "countPlural=*": "{count} affectations à venir"
+                "countPlural=one": "{count} attribution à venir",
+                "countPlural=*": "{count} attributions à venir"
             }
         }
     ],
