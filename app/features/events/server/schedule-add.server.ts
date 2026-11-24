@@ -72,6 +72,50 @@ function bringsNothing(kind: string, counts: { parts: number; serviceParts: numb
   return counts == null || (kind === ScheduleKind.Programme ? counts.parts : counts.serviceParts) === 0
 }
 
+/**
+ * Locks the event's template row, then the event's — the order « Créer le programme » takes them in, reading the items
+ * under the template's lock: it must never fill a schedule added in between — and reads what adding decides on.
+ */
+async function lockEventForAdd(db: TransactionClient, eventId: number, congregationId: number) {
+  const kindOf = await db.event.findFirst({ where: { id: eventId, congregationId }, select: { templateId: true } })
+  if (kindOf == null) return null
+  if (kindOf.templateId != null) {
+    await db.$queryRaw`SELECT "id" FROM "EventTemplate" WHERE "id" = ${kindOf.templateId} AND "congregationId" = ${congregationId} FOR UPDATE`
+  }
+  await db.$queryRaw`SELECT "id" FROM "Event" WHERE "id" = ${eventId} AND "congregationId" = ${congregationId} FOR UPDATE`
+  return db.event.findFirst({
+    where: { id: eventId, congregationId },
+    select: {
+      status: true,
+      origin: true,
+      schedules: { select: { kind: true } },
+      _count: { select: { items: true } },
+      template: { select: { key: true, _count: { select: { parts: true, serviceParts: true } } } },
+    },
+  })
+}
+
+/** Writes the template's parts into a programme, or its duties into a duty schedule, each with who may take it. */
+function fillFromTemplate(
+  db: TransactionClient,
+  schedule: ScheduleRef,
+  template: Prisma.ScheduleTemplateGetPayload<{ include: typeof TEMPLATE_ITEMS }>,
+  congregationId: number,
+) {
+  const isProgramme = schedule.kind === ScheduleKind.Programme
+  return writeTemplateItems(
+    db,
+    {
+      eventId: schedule.eventId,
+      programmeId: isProgramme ? schedule.id : null,
+      dutiesId: isProgramme ? null : schedule.id,
+      parts: isProgramme ? template.parts : [],
+      services: isProgramme ? [] : template.serviceParts,
+    },
+    congregationId,
+  )
+}
+
 /** Why the event refuses a schedule of this kind bringing these items, or null when it takes it. */
 function refusalOf(
   event: {
@@ -114,23 +158,7 @@ export async function addSchedule(
   if (fromTemplate(source) && template == null) return null
   const kind = template != null ? (template.kind as ScheduleKind) : (source.kind as ScheduleKind)
 
-  // « Créer le programme » reads the items under the template's lock: it must never fill a schedule added in between.
-  const kindOf = await db.event.findFirst({ where: { id: eventId, congregationId }, select: { templateId: true } })
-  if (kindOf == null) return null
-  if (kindOf.templateId != null) {
-    await db.$queryRaw`SELECT "id" FROM "EventTemplate" WHERE "id" = ${kindOf.templateId} AND "congregationId" = ${congregationId} FOR UPDATE`
-  }
-  await db.$queryRaw`SELECT "id" FROM "Event" WHERE "id" = ${eventId} AND "congregationId" = ${congregationId} FOR UPDATE`
-  const event = await db.event.findFirst({
-    where: { id: eventId, congregationId },
-    select: {
-      status: true,
-      origin: true,
-      schedules: { select: { kind: true } },
-      _count: { select: { items: true } },
-      template: { select: { key: true, _count: { select: { parts: true, serviceParts: true } } } },
-    },
-  })
+  const event = await lockEventForAdd(db, eventId, congregationId)
   if (event == null) return null
   const counts = template && { parts: template.parts.length, serviceParts: template.serviceParts.length }
   const reason = refusalOf(event, kind, counts)
@@ -153,20 +181,7 @@ export async function addSchedule(
       congregationId,
     },
   })
-  if (template != null) {
-    const isProgramme = kind === ScheduleKind.Programme
-    await writeTemplateItems(
-      db,
-      {
-        eventId,
-        programmeId: isProgramme ? created.id : null,
-        dutiesId: isProgramme ? null : created.id,
-        parts: isProgramme ? template.parts : [],
-        services: isProgramme ? [] : template.serviceParts,
-      },
-      congregationId,
-    )
-  }
+  if (template != null) await fillFromTemplate(db, { id: created.id, eventId, kind }, template, congregationId)
   if (event.origin === EventOrigin.Job) {
     await db.event.updateMany({
       where: { id: eventId, congregationId, origin: EventOrigin.Job },
