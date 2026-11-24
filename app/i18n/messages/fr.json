@@ -2156,6 +2156,21 @@
     "programs_schedule_kind_programme": "Spirituel",
     "programs_schedule_kind_duty": "Services",
     "programs_schedule_you": "vous",
+    "programs_publish_unfilled_title": "Publier avec des places à pourvoir ?",
+    "programs_publish_unfilled_body": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} place n’a encore personne : elle paraîtra « À pourvoir » sur le tableau jusqu’à ce que quelqu’un la prenne.",
+                "countPlural=*": "{count} places n’ont encore personne : elles paraîtront « À pourvoir » sur le tableau jusqu’à ce que quelqu’un les prenne."
+            }
+        }
+    ],
+    "programs_publish_unfilled_confirm": "Publier quand même",
     "programs_publish_all": "Tout publier",
     "programs_publish_mine": [
         {

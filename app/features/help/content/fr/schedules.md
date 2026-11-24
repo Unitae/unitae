@@ -21,6 +21,8 @@ Chaque planning se publie à son rythme : les services peuvent partir avant le p
 1. Ouvrez la réunion.
 2. Dans le bloc du planning, cliquez sur **Publier**.
 
+Si des places n’ont encore personne, la page demande d’abord : **Publier quand même** publie, et ces places paraissent « À pourvoir » sur le tableau.
+
 Les personnes de ce planning sont averties ; celles des autres plannings ne le sont pas. Sur le tableau, les membres voient les plannings publiés, et rien des autres.
 
 En haut de la page, **Tout publier** publie d’un coup tous les plannings en brouillon que vous pouvez publier, et dit ce qui reste en brouillon, et pourquoi. Si vous publiez les plannings dont vous êtes responsable, ce bouton s’appelle **Publier votre planning** ou **Publier vos plannings**.

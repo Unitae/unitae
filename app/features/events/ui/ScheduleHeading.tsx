@@ -1,5 +1,6 @@
 import { Status, Tag } from '@unitae/ui'
 import { FileText, Loader2, Send } from 'lucide-react'
+import { useState } from 'react'
 import { useFetcher } from 'react-router'
 import { schedulePublishAction } from '~/features/events/model/programme-access'
 import { ScheduleKind, ScheduleStatus } from '~/features/events/model/schedule.type'
@@ -8,6 +9,7 @@ import * as m from '~/i18n/paraglide/messages'
 import { getRoleDisplayName } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { formatPersonName } from '~/shared/utils/format-person-name'
+import { PublishUnfilledDialog } from './PublishUnfilledDialog'
 
 /** A schedule as its section on the event page shows it (D37, D43, D45: the reader sees only those they may). */
 export interface EventScheduleView {
@@ -86,15 +88,20 @@ export function ScheduleStatusControl({
   eventId,
   schedule,
   fill,
+  unfilled,
 }: {
   eventId: number
   schedule: EventScheduleView
   fill: string | null
+  /** Its slots nobody holds: publishing asks first when there are some. */
+  unfilled: number
 }) {
   const fetcher = useFetcher<{ ok: boolean }>()
+  const [asking, setAsking] = useState(false)
   const published = schedule.status === ScheduleStatus.Published
   const action = `/programs/events/${eventId}/schedules/${schedule.id}/${published ? 'unpublish' : 'publish'}`
   const inFlight = fetcher.state !== 'idle'
+  const submit = () => fetcher.submit({}, { method: 'POST', action })
   const Icon = published ? FileText : Send
   return (
     <span className="flex flex-wrap items-center gap-2">
@@ -109,12 +116,21 @@ export function ScheduleStatusControl({
           className="max-md:h-11"
           variant={published ? 'ghost' : 'default'}
           disabled={inFlight}
-          onClick={() => fetcher.submit({}, { method: 'POST', action })}
+          onClick={() => (!published && unfilled > 0 ? setAsking(true) : submit())}
         >
           {inFlight ? <Loader2 className="animate-spin" /> : <Icon />}
           {published ? m.programs_event_unrelease_button() : m.programs_event_release_button()}
         </Button>
       )}
+      <PublishUnfilledDialog
+        open={asking}
+        unfilled={unfilled}
+        onCancel={() => setAsking(false)}
+        onConfirm={() => {
+          setAsking(false)
+          submit()
+        }}
+      />
     </span>
   )
 }

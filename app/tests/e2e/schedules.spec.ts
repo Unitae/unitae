@@ -1,6 +1,14 @@
 import { expect, test } from '@playwright/test'
 import { E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD, login } from './helpers/auth'
-import { assign, createPublisher, farTuesday, openMeeting, programmeDocument, withdrawAll } from './helpers/programmes'
+import {
+  assign,
+  createPublisher,
+  farTuesday,
+  openMeeting,
+  programmeDocument,
+  publishAnyway,
+  withdrawAll,
+} from './helpers/programmes'
 
 // Each schedule of a meeting publishes on its own (D8): the services first, the board shows them alone and nothing of
 // the draft spiritual schedule (D46: members see published schedules only); then the spiritual one, and the board
@@ -30,7 +38,14 @@ test.describe('Schedules', () => {
 
     const duties = page.getByRole('region', { name: DUTIES })
     const programme = page.getByRole('region', { name: PROGRAMME })
+    // Most services have nobody: publishing asks first, and « Annuler » publishes nothing.
     await duties.getByRole('button', { name: 'Publier', exact: true }).click()
+    const asked = page.getByRole('alertdialog', { name: 'Publier avec des places à pourvoir ?' })
+    await expect(asked).toContainText('n’ont encore personne')
+    await asked.getByRole('button', { name: 'Annuler' }).click()
+    await expect(duties.getByRole('button', { name: 'Publier', exact: true })).toBeVisible()
+    await duties.getByRole('button', { name: 'Publier', exact: true }).click()
+    await publishAnyway(page)
     await expect(duties.getByRole('button', { name: 'Repasser en brouillon' })).toBeVisible()
     await expect(programme.getByRole('button', { name: 'Publier', exact: true })).toBeVisible()
 
@@ -45,6 +60,7 @@ test.describe('Schedules', () => {
 
     await page.goto(`/programs/events/${eventId}`)
     await programme.getByRole('button', { name: 'Publier', exact: true }).click()
+    await publishAnyway(page)
     await expect(programme.getByRole('button', { name: 'Repasser en brouillon' })).toBeVisible()
 
     await page.goto(viewer)

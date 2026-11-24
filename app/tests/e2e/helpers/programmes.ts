@@ -121,3 +121,10 @@ export async function withdrawAll(page: Page) {
     await expect(withdraw).toHaveCount(left - 1)
   }
 }
+
+/** Answers « Publier quand même » when publishing asks about slots nobody holds yet (the user's rule: warn, allow). */
+export async function publishAnyway(page: Page) {
+  const dialog = page.getByRole('alertdialog', { name: 'Publier avec des places à pourvoir ?' })
+  await dialog.getByRole('button', { name: 'Publier quand même' }).click()
+  await expect(dialog).toBeHidden()
+}

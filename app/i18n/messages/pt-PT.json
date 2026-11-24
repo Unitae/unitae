@@ -2151,6 +2151,21 @@
     "programs_schedule_kind_programme": "Espiritual",
     "programs_schedule_kind_duty": "Serviços",
     "programs_schedule_you": "você",
+    "programs_publish_unfilled_title": "Publicar com lugares por preencher?",
+    "programs_publish_unfilled_body": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} lugar ainda não tem ninguém: aparece «Por preencher» no quadro até alguém o ocupar.",
+                "countPlural=*": "{count} lugares ainda não têm ninguém: aparecem «Por preencher» no quadro até alguém os ocupar."
+            }
+        }
+    ],
+    "programs_publish_unfilled_confirm": "Publicar mesmo assim",
     "programs_publish_all": "Publicar tudo",
     "programs_publish_mine": [
         {

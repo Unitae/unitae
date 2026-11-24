@@ -21,6 +21,8 @@ Each schedule is published at its own pace: the services can go out before the s
 1. Open the meeting.
 2. In the schedule’s block, click **Publish**.
 
+If some slots have no one yet, the page asks first: **Publish anyway** publishes, and those slots show as “Unfilled” on the board.
+
 The people on that schedule are told; those on the other schedules are not. On the board, members see the published schedules, and nothing of the others.
 
 At the top of the page, **Publish all** publishes at once every draft schedule you may publish, and says what stays a draft, and why. If you publish the schedules you are in charge of, the button reads **Publish your schedule** or **Publish your schedules**.

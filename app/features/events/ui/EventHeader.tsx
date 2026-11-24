@@ -1,5 +1,6 @@
 import { Status } from '@unitae/ui'
 import { CalendarDays, FileText, ListPlus, Loader2, MoreHorizontal, Pencil, Send, Shapes, Trash2 } from 'lucide-react'
+import { useState } from 'react'
 import { Link, useFetcher } from 'react-router'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import type { ScheduleAddOptions } from '~/features/events/model/schedule.type'
@@ -7,6 +8,7 @@ import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { PublishUnfilledDialog } from './PublishUnfilledDialog'
 import { ScheduleAddMenu } from './ScheduleAddMenu'
 
 interface EventHeaderProps {
@@ -15,7 +17,7 @@ interface EventHeaderProps {
   /** A meeting created ahead with no programme yet: « Créer le programme » replaces publishing it. */
   awaitingProgramme: boolean
   /** « Tout publier » on an event holding schedules (D43); null for one without, which publishes as a whole. */
-  publishAll: { count: number; everyone: boolean } | null
+  publishAll: { count: number; everyone: boolean; unfilled: number } | null
   /** « Ajouter un planning » (D39): what the reader may add, and the event's kind its suggestions come from. */
   addSchedule: { options: ScheduleAddOptions; eventKindName: string | null }
   canRelease: boolean
@@ -145,7 +147,7 @@ function EventPublishAction({
 }: {
   eventId: number
   awaitingProgramme: boolean
-  publishAll: { count: number; everyone: boolean } | null
+  publishAll: { count: number; everyone: boolean; unfilled: number } | null
   canRelease: boolean
   canUnrelease: boolean
   canCreateProgramme: boolean
@@ -161,17 +163,38 @@ function EventPublishAction({
 }
 
 /** « Tout publier », or « Publier votre planning » for a responsible (D43): the drafts the reader may publish. */
-function PublishAllButton({ eventId, count, everyone }: { eventId: number; count: number; everyone: boolean }) {
+function PublishAllButton({
+  eventId,
+  count,
+  everyone,
+  unfilled,
+}: {
+  eventId: number
+  count: number
+  everyone: boolean
+  /** The slots nobody holds in the drafts it publishes: it asks first when there are some. */
+  unfilled: number
+}) {
   const fetcher = useFetcher<{ ok: boolean }>()
+  const [asking, setAsking] = useState(false)
   const inFlight = fetcher.state !== 'idle'
+  const submit = () => fetcher.submit({}, { method: 'POST', action: `/programs/events/${eventId}/release` })
   return (
-    <Button
-      onClick={() => fetcher.submit({}, { method: 'POST', action: `/programs/events/${eventId}/release` })}
-      disabled={inFlight}
-    >
-      {inFlight ? <Loader2 className="animate-spin" /> : <Send />}
-      {everyone ? m.programs_publish_all() : m.programs_publish_mine({ count })}
-    </Button>
+    <>
+      <Button onClick={() => (unfilled > 0 ? setAsking(true) : submit())} disabled={inFlight}>
+        {inFlight ? <Loader2 className="animate-spin" /> : <Send />}
+        {everyone ? m.programs_publish_all() : m.programs_publish_mine({ count })}
+      </Button>
+      <PublishUnfilledDialog
+        open={asking}
+        unfilled={unfilled}
+        onCancel={() => setAsking(false)}
+        onConfirm={() => {
+          setAsking(false)
+          submit()
+        }}
+      />
+    </>
   )
 }
 
