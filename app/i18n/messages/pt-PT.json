@@ -2110,6 +2110,43 @@
     "programs_schedule_edit_meta_title": "Editar o planeamento - Unitae",
     "programs_schedule_edit": "Editar o planeamento",
     "programs_edit_event": "Editar a reunião",
+    "programs_schedule_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} planeamento",
+                "countPlural=*": "{count} planeamentos"
+            }
+        }
+    ],
+    "programs_schedules_footer": "Os planeamentos publicados aparecem no quadro sob a reunião, por esta ordem. Publicar um planeamento só avisa os seus designados; um planeamento em rascunho fica invisível para quem não o prepara.",
+    "programs_schedule_conflict_title": "Ainda não pode ser publicado.",
+    "programs_schedule_conflict_body": [
+        {
+            "declarations": [
+                "input count",
+                "input parts",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Uma pessoa designada está ausente nesse dia, em {parts}. Designe outra pessoa, ou retire-a, e depois publique.",
+                "countPlural=*": "Há pessoas designadas ausentes nesse dia, em {parts}. Designe outras pessoas, ou retire-as, e depois publique."
+            }
+        }
+    ],
+    "programs_schedule_add_present": "Já presente",
+    "programs_schedule_add_kind_taken_programme": "Já existe um planeamento espiritual: uma reunião tem um",
+    "programs_schedule_add_kind_taken_duty": "Já existe um planeamento de serviços: uma reunião tem um",
+    "programs_schedule_add_yours": "O seu modelo",
+    "programs_schedule_add_yours_note": "Adiciona os planeamentos dos modelos de que é responsável.",
+    "programs_schedule_add_kind_programme_hint": "Partes, com o orador e o leitor",
+    "programs_schedule_add_kind_duty_hint": "Tarefas confiadas a pessoas",
+    "programs_schedule_add_kind_unavailable": "Indisponível: esta reunião já tem um",
     "programs_schedule_add": "Adicionar um planeamento",
     "programs_schedule_add_suggested": "Sugeridos por «{kind}»",
     "programs_schedule_add_others": "Outros modelos",

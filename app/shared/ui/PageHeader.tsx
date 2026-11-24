@@ -17,6 +17,8 @@ interface PageHeaderProps {
   backTo?: string
   /** What the page is about, drawn in a quiet tile before the title (a building, a group…). */
   icon?: LucideIcon
+  /** In place of the icon's tile, before the title: the day of a meeting as a date chip. */
+  leading?: React.ReactNode
   /** A line of facts under the subtitle, e.g. « Territoire 14 · 14 foyers · 3 entrées ». */
   meta?: React.ReactNode
   /** Controls over what the page shows (a filter, a period), on the title's row. Actions go in the top bar. */
@@ -33,13 +35,20 @@ export function PageHeader({
   subtitle,
   breadcrumbs,
   icon: Icon,
+  leading,
   meta,
   controls,
   trailEnd,
 }: PageHeaderProps) {
   const titleBlock = (
-    <div className={cn('flex animate-fade-in-up', Icon ? 'items-start gap-4' : 'items-center gap-3')}>
-      {Icon && (
+    <div
+      className={cn(
+        'flex animate-fade-in-up',
+        leading ? 'items-center gap-4' : Icon ? 'items-start gap-4' : 'items-center gap-3',
+      )}
+    >
+      {leading}
+      {Icon && leading == null && (
         <span className="grid size-11 shrink-0 place-content-center rounded-lg border border-border bg-sidebar">
           <Icon className="size-5 text-faint" aria-hidden="true" />
         </span>
