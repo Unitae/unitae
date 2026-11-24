@@ -1,6 +1,10 @@
 import type { AttendanceKind } from '~/features/events/model/attendance-kind.type'
 import { isSystemTemplate } from '~/features/events/model/event-template.type'
-import { ResponsibilityScope, scopesCovering } from '~/features/events/model/responsibility-scope.type'
+import {
+  ResponsibilityScope,
+  scheduleKindsCovering,
+  scopesCovering,
+} from '~/features/events/model/responsibility-scope.type'
 import { syncTemplateScheduleTemplates } from '~/features/events/server/schedule-templates.server'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
@@ -176,7 +180,18 @@ export async function isTemplateResponsible(
   const roleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
   if (roleIds.length === 0) return null
 
-  return db.templateResponsible.findFirst({
+  // A TemplateResponsible row (until 6a-2), or a schedule template the kind suggests naming one of the caller's roles.
+  const row = await db.templateResponsible.findFirst({
     where: { templateId, congregationId, roleId: { in: roleIds }, scope: { in: scopesCovering(scope) } },
+    select: { id: true },
+  })
+  if (row != null) return row
+  return db.eventKindScheduleTemplate.findFirst({
+    where: {
+      eventKindId: templateId,
+      congregationId,
+      scheduleTemplate: { responsibleRoleId: { in: roleIds }, kind: { in: scheduleKindsCovering(scope) } },
+    },
+    select: { id: true },
   })
 }

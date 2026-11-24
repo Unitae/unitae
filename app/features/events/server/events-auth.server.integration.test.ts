@@ -774,3 +774,64 @@ describe('mayReadSlotFacts (integration)', () => {
     expect(result).toBe(true)
   })
 })
+
+describe('responsibility through the schedule templates (integration, 6a-1a)', () => {
+  // Réglages edits each schedule template's responsible (6a); someone named only there answers for the kinds suggesting
+  // it, as a TemplateResponsible row did: a programme responsible covers the whole meeting, a duties' one the services.
+  it('opens a kind to whoever holds a role its schedule templates name, with no TemplateResponsible row', async () => {
+    const { isTemplateResponsible } = await import('./event-templates.server')
+    class Rollback extends Error {}
+    await testDb
+      .$transaction(async tx => {
+        await tx.$executeRawUnsafe(`SET LOCAL app.congregation_id = '${String(primaryCongId)}'`)
+        const db = tx as never
+        const role = (kind: string) =>
+          tx.role.create({ data: { key: `st-${kind}-${ts}`, name: kind, congregationId: primaryCongId } })
+        const holder = async (name: string, roleId: number) => {
+          const account = await tx.userAccount.create({
+            data: { email: `st-${name}-${ts}@test.com`, password: 'x', congregationId: primaryCongId },
+          })
+          await tx.userRoleAssignment.create({ data: { userId: account.id, roleId, congregationId: primaryCongId } })
+          return account.id
+        }
+        const kind = await tx.eventTemplate.create({
+          data: { name: `Kind ${ts}`, key: `kind-${ts}`, congregationId: primaryCongId },
+        })
+        const [programmeRole, dutyRole] = [await role('programme'), await role('duty')]
+        for (const [kindName, roleId, order] of [
+          ['programme', programmeRole.id, 0],
+          ['duty', dutyRole.id, 1],
+        ] as const) {
+          await tx.scheduleTemplate.create({
+            data: {
+              name: kindName,
+              kind: kindName,
+              responsibleRoleId: roleId,
+              congregationId: primaryCongId,
+              eventKinds: { create: { eventKindId: kind.id, order, congregationId: primaryCongId } },
+            },
+          })
+        }
+        const programmeLead = await holder('programme', programmeRole.id)
+        const dutyLead = await holder('duty', dutyRole.id)
+
+        expect(await getResponsibleTemplateIds(db, programmeLead, primaryCongId)).toEqual([kind.id])
+        expect(await getResponsibleTemplateIds(db, programmeLead, primaryCongId, ResponsibilityScope.Service)).toEqual([
+          kind.id,
+        ])
+        expect(await getResponsibleTemplateIds(db, dutyLead, primaryCongId)).toEqual([])
+        expect(await getResponsibleTemplateIds(db, dutyLead, primaryCongId, ResponsibilityScope.Service)).toEqual([
+          kind.id,
+        ])
+        expect(
+          await isTemplateResponsible(db, kind.id, dutyLead, primaryCongId, ResponsibilityScope.Service),
+        ).not.toBeNull()
+        expect(await isTemplateResponsible(db, kind.id, dutyLead, primaryCongId)).toBeNull()
+        expect(await isTemplateResponsible(db, kind.id, programmeLead, primaryCongId)).not.toBeNull()
+        throw new Rollback()
+      })
+      .catch(error => {
+        if (!(error instanceof Rollback)) throw error
+      })
+  })
+})

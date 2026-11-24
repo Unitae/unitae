@@ -39,6 +39,14 @@ export function scopesCovering(scope: ResponsibilityScope): ResponsibilityScope[
 }
 
 /**
+ * The schedule template kinds whose responsible answers for `scope`, as the sync derives them (D31): a programme
+ * responsible covers the whole meeting, so asking about the services also accepts the programme's template.
+ */
+export function scheduleKindsCovering(scope: ResponsibilityScope): string[] {
+  return scope === ResponsibilityScope.Service ? ['programme', 'duty'] : ['programme']
+}
+
+/**
  * The row for exactly one scope out of an included `responsibles` relation.
  *
  * Deliberately an exact match, not a covering one: the settings screens show

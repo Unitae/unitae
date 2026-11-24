@@ -1,5 +1,9 @@
 import { SYSTEM_TEMPLATE_KEYS } from '~/features/events/model/event-template.type'
-import { ResponsibilityScope, scopesCovering } from '~/features/events/model/responsibility-scope.type'
+import {
+  ResponsibilityScope,
+  scheduleKindsCovering,
+  scopesCovering,
+} from '~/features/events/model/responsibility-scope.type'
 import {
   type ItemKind,
   itemIdFromRequest,
@@ -34,11 +38,22 @@ export async function getResponsibleTemplateIds(
   const roleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
   if (roleIds.length === 0) return []
 
-  const rows = await db.templateResponsible.findMany({
-    where: { roleId: { in: roleIds }, congregationId, scope: { in: scopesCovering(scope) } },
-    select: { templateId: true },
-  })
-  return [...new Set(rows.map(r => r.templateId))]
+  // Through a schedule template the kind suggests (what Réglages edits since 6a), or a TemplateResponsible row still
+  // written by the kind's page until 6a-2: either opens the kind, so nobody loses access while both exist.
+  const [rows, links] = await Promise.all([
+    db.templateResponsible.findMany({
+      where: { roleId: { in: roleIds }, congregationId, scope: { in: scopesCovering(scope) } },
+      select: { templateId: true },
+    }),
+    db.eventKindScheduleTemplate.findMany({
+      where: {
+        congregationId,
+        scheduleTemplate: { responsibleRoleId: { in: roleIds }, kind: { in: scheduleKindsCovering(scope) } },
+      },
+      select: { eventKindId: true },
+    }),
+  ])
+  return [...new Set([...rows.map(r => r.templateId), ...links.map(link => link.eventKindId)])]
 }
 
 /**
