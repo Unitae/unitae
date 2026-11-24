@@ -328,7 +328,7 @@ describe('Change its date, hours, fields, kind: the same (D28)', () => {
 
   it('leaves an event with no kind to « Gérer » (D49)', async () => {
     await inCongregation(async ({ db, congregationId, programmeLead }) => {
-      const bare = await db.event.create({
+      await db.event.create({
         data: {
           name: 'Import',
           startDate: new Date('2027-07-15T17:00:00Z'),

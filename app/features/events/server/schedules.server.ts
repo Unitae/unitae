@@ -1,6 +1,5 @@
 import { EventStatus } from '~/features/events/model/event-status.type'
 import {
-  isScheduleKind,
   SCHEDULE_ORDER,
   ScheduleKind,
   ScheduleStatus,
@@ -87,7 +86,7 @@ export async function eventScheduleId(
   // event's status, so adding a part to an event published as it is never hides it from members (D52).
   const status =
     takeEventStatus || event._count.schedules === 0 ? scheduleStatusFor(event.status) : ScheduleStatus.Draft
-  // Applied to another template meanwhile: made from that one's.
+  // Moved to another kind meanwhile: made from that kind's.
   if (event.templateId !== before.templateId) {
     madeFrom = await scheduleTemplateFor(db, event.templateId, kind, congregationId)
   }
@@ -119,8 +118,9 @@ async function findEventSchedule(
 }
 
 /**
- * The event's schedules of these kinds, made where missing, for one action that brings several (giving a programme): on an event holding none, they all take the event's status alike; beside a schedule it holds,
- * the ones made start as drafts (D52). The schedules it already holds come back as they are. Kinds not asked for are
+ * The event's schedules of these kinds, made where missing, for one action that brings several (giving a programme):
+ * on an event holding none, they all take the event's status alike; beside a schedule it holds, the ones made start as
+ * drafts (D52). The schedules it already holds come back as they are. Kinds not asked for are
  * null. The count is read before eventScheduleId locks the event (the template's row comes first): a writer making a
  * schedule meanwhile can only leave this action's schedules with the event's status, as before D52.
  */

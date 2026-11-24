@@ -306,7 +306,7 @@ describe('old item tables mirrored into the new ones', () => {
         where: { eventKindId: weekend },
         select: { scheduleTemplateId: true },
       })
-      await changeEventKind(
+      const moved = await changeEventKind(
         db,
         () => true,
         actorId,
@@ -321,6 +321,7 @@ describe('old item tables mirrored into the new ones', () => {
         },
         congregationId,
       )
+      expect(moved).toMatchObject({ event: { id: second } })
       const copy = await duplicateTemplate(db, weekend, congregationId, actorId)
       if (!copy) throw new Error('the template was not duplicated')
       expect(await db.templateItem.count({ where: { templateId: copy.id } })).toBeGreaterThan(0)

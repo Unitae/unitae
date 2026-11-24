@@ -2112,6 +2112,7 @@
             }
         }
     ],
+    "programs_schedule_edit_meta_title": "Modifier le planning - Unitae",
     "programs_schedule_edit": "Modifier le planning",
     "programs_edit_event": "Modifier la réunion",
     "programs_schedule_add": "Ajouter un planning",
