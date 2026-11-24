@@ -119,8 +119,7 @@ async function findEventSchedule(
 }
 
 /**
- * The event's schedules of these kinds, made where missing, for one action that brings several (giving a programme,
- * applying a template): on an event holding none, they all take the event's status alike; beside a schedule it holds,
+ * The event's schedules of these kinds, made where missing, for one action that brings several (giving a programme): on an event holding none, they all take the event's status alike; beside a schedule it holds,
  * the ones made start as drafts (D52). The schedules it already holds come back as they are. Kinds not asked for are
  * null. The count is read before eventScheduleId locks the event (the template's row comes first): a writer making a
  * schedule meanwhile can only leave this action's schedules with the event's status, as before D52.

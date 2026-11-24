@@ -74,7 +74,7 @@ Each event's structure (parts and service roles) can be edited independently fro
 
 - **Add/remove parts** — Custom parts can be added to any event, even template-based ones. Custom parts can also specify a **track** to run in parallel with other parts at the same order position
 - **Add/remove service roles** — Same flexibility for service attributions
-- **Apply a template** — Freeform events can retroactively adopt a template's structure
+- **Change the kind** — « Changer le type » moves a meeting to another kind: the schedules kept stay as they are, the ones unticked go with their assignments, and the new kind's suggestions can be added
 
 Parts and service roles are stored inline on each event (with name, section, order, duration), so editing one event's structure does not affect the template or other events.
 

@@ -42,10 +42,9 @@ export async function getResponsibleTemplateIds(
 }
 
 /**
- * The templates (kinds) the caller may apply to an event: all of them for a programme manager, otherwise the kinds
- * suggesting a schedule template they answer for, the duties' included (D28, D49). Applying moves the event onto the
- * kind, so offering any other would let a responsible hand their event to kinds they cannot change; the editor keeps
- * only those whose every schedule they may fill (canFillTemplateSchedules).
+ * The kinds the caller may move an event to: all of them for a programme manager, otherwise the kinds suggesting a
+ * schedule template they answer for, the duties' included (D28, D49). Offering any other would let a responsible hand
+ * their event to kinds they cannot change; « Changer le type » offers these (kindChangeOptions), never a system one.
  */
 export async function listApplicableTemplates(
   db: TransactionClient,

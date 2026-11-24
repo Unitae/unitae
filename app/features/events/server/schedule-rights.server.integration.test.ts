@@ -23,7 +23,6 @@ const {
   canChangeEventsOfKind,
   canDeleteEvent,
   canFillSchedule,
-  canFillTemplateSchedules,
   canPublishEvent,
   filterEventsByRight,
   responsibleKindIds,
@@ -257,31 +256,6 @@ describe('Add a schedule: « Attribuer », « Gérer », or the responsible of t
       expect(
         await canFillSchedule(db, only(Permission.CanManagePrograms), programmeLead, event, 'part', congregationId),
       ).toBe(true)
-    })
-  })
-})
-
-// Applying a template appends its parts and duties and moves the event's schedules onto its schedule templates: whoever
-// applies it fills the schedules it brings, so the check reads the target template's, not the event's (plan §10, D31).
-describe('Apply a template: « Attribuer », « Gérer », or the responsible of every schedule template it brings', () => {
-  it('lets the responsible of all its schedule templates apply it, and refuses one who answers for a part of them', async () => {
-    await inCongregation(async ({ db, congregationId, programmeLead, weekendLead, midweekId, weekendId }) => {
-      expect(await canFillTemplateSchedules(db, nothing, weekendLead, weekendId, congregationId)).toBe(true)
-      // The midweek duties are the services responsible's (D31).
-      expect(await canFillTemplateSchedules(db, nothing, programmeLead, midweekId, congregationId)).toBe(false)
-      expect(await canFillTemplateSchedules(db, nothing, weekendLead, midweekId, congregationId)).toBe(false)
-    })
-  })
-
-  it('lets « Attribuer » and « Gérer » apply any template, and asks nothing for a template that brings no schedule', async () => {
-    await inCongregation(async ({ db, congregationId, nobody, midweekId }) => {
-      for (const can of [only(Permission.CanAssignProgramParts), only(Permission.CanManagePrograms)]) {
-        expect(await canFillTemplateSchedules(db, can, nobody, midweekId, congregationId)).toBe(true)
-      }
-      const empty = await db.eventTemplate.create({
-        data: { name: 'Vide', key: `empty-${congregationId}`, congregationId },
-      })
-      expect(await canFillTemplateSchedules(db, nothing, nobody, empty.id, congregationId)).toBe(true)
     })
   })
 })

@@ -45,7 +45,7 @@ export async function createFreeformEvent(
 }
 
 // Explicit allowlist. Wider mutations (status, templateId, createdById) belong to
-// dedicated mutators (release/unrelease/applyTemplate) so their invariants and audit
+// dedicated mutators (release/unrelease/changeEventKind) so their invariants and audit
 // trails live with the operation. Metadata logs field names only — no values.
 export interface UpdateEventFields {
   name?: string
