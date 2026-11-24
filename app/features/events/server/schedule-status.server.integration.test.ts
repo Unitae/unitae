@@ -216,14 +216,15 @@ describe('publishSchedule', () => {
     })
   })
 
-  it('publishes empty duties, and an empty programme whose template gives duties alone', async () => {
+  it('never publishes an empty schedule, duties or a programme whose template gives no part: none is mandatory', async () => {
     await withMeeting(async ({ db, congregationId, actorId, midweekId, programme, duties }) => {
       await db.item.deleteMany({ where: { id: { in: [...programme.itemIds, ...duties.itemIds] } } })
-      expect(await publishSchedule(db, duties.id, congregationId, actorId)).toMatchObject({ changed: true })
+      expect(await publishSchedule(db, duties.id, congregationId, actorId)).toMatchObject({ reason: 'empty' })
+      expect(await statusOf(db, duties.id)).toBe('draft')
 
       await db.templatePart.deleteMany({ where: { templateId: midweekId } })
-      expect(await publishSchedule(db, programme.id, congregationId, actorId)).toMatchObject({ changed: true })
-      expect(await statusOf(db, programme.id)).toBe('published')
+      expect(await publishSchedule(db, programme.id, congregationId, actorId)).toMatchObject({ reason: 'empty' })
+      expect(await statusOf(db, programme.id)).toBe('draft')
     })
   })
 

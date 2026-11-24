@@ -30,9 +30,12 @@ export interface ScheduleRef {
 export type PublishScheduleResult =
   /** `changed`: this call published it; false when it already was, and no one is told again. */
   | { schedule: ScheduleRef; changed: boolean; notifyTargets: NotifyTarget[] }
-  // Absence conflicts to resolve, or a programme still to give: callers switch on `reason`; `error` is the event's
-  // wording, for a caller that has nothing better.
-  | { schedule: ScheduleRef; error: string; reason: 'conflicts' | 'awaiting' }
+  // Absence conflicts to resolve, a programme still to give, or nothing in it: callers switch on `reason`; `error` is
+  // the event's wording, for a caller that has nothing better.
+  | { schedule: ScheduleRef; error: string; reason: PublishRefusal }
+
+/** Why a schedule the caller may publish stays a draft: absence conflicts, a programme still to give, or nothing in it. */
+export type PublishRefusal = 'conflicts' | 'awaiting' | 'empty'
 
 /** `changed`: this call withdrew it; false when it was a draft already, and nothing was written. */
 export type UnpublishScheduleResult = { schedule: ScheduleRef; changed: boolean }
@@ -138,6 +141,8 @@ export async function publishSchedule(
   if (programmeAwaits({ kind: ref.kind, items: schedule.items.length, fromTemplate }, schedule.event.template)) {
     return { schedule: ref, error: EVENT_STATUS_ERRORS.releaseAwaitingProgramme, reason: 'awaiting' }
   }
+  // No schedule is mandatory on a meeting: one with nothing in it stays a draft, never published empty.
+  if (schedule.items.length === 0) return { schedule: ref, error: EVENT_STATUS_ERRORS.publishEmpty, reason: 'empty' }
   try {
     assertCanRelease({ eventParts: parts, eventServiceParts: services })
   } catch (error) {

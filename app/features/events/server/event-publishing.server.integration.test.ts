@@ -148,6 +148,17 @@ describe('publishEvent, « Tout publier »', () => {
     })
   })
 
+  it('publishes the schedules holding something, and reports the empty one left a draft', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, meetingId, duties, statuses }) => {
+      await db.item.deleteMany({ where: { id: { in: duties.itemIds } } })
+
+      const result = await publishEvent(db, publishes, actorId, meetingId, congregationId)
+
+      expect(result).toMatchObject({ changed: true, blocked: [{ schedule: { id: duties.id }, reason: 'empty' }] })
+      expect(await statuses()).toEqual({ programme: 'published', duty: 'draft', event: 'released' })
+    })
+  })
+
   it('publishes a responsible’s own schedule, and counts the other left a draft', async () => {
     await withMeeting(async ({ db, congregationId, dutyLead, meetingId, duties, statuses }) => {
       const result = await publishEvent(db, nothing, dutyLead, meetingId, congregationId)
