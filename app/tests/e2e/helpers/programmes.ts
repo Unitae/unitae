@@ -60,7 +60,7 @@ export async function openMeeting(page: Page, typed: string): Promise<string> {
   await page.getByText(MIDWEEK_RE).first().click()
   await retype(page.locator('#creation-day'), typed)
   await page.getByRole('button', { name: SUBMIT_SINGLE_RE }).click()
-  const existing = page.getByRole('link', { name: 'Voir ce programme' })
+  const existing = page.getByRole('link', { name: 'Voir cette réunion' })
   await Promise.race([page.waitForURL(EVENT_URL_RE), existing.waitFor()])
   if (!EVENT_URL_RE.test(page.url())) {
     await page.goto(`${await existing.getAttribute('href')}`)

@@ -63,7 +63,7 @@ async function openMeeting(page: Page, template: RegExp, day: Day) {
   await retype(page.locator('#creation-day'), day.typed)
   await page.getByRole('button', { name: SUBMIT_SINGLE_RE }).click()
   // Created, the meeting's page opens; already there, the page offers it. Its details are on « Modifier la réunion ».
-  const existing = page.getByRole('link', { name: 'Voir ce programme' })
+  const existing = page.getByRole('link', { name: 'Voir cette réunion' })
   await Promise.race([page.waitForURL(EVENT_URL_RE), existing.waitFor()])
   const meeting = EVENT_URL_RE.test(page.url()) ? new URL(page.url()).pathname : await existing.getAttribute('href')
   await page.goto(`${meeting}/edit`)

@@ -32,7 +32,10 @@ test.describe('Programme creation', () => {
     const submit = page.getByRole('button', { name: SUBMIT_SERIES_RE })
     await submit.waitFor({ state: 'visible' })
     const before = submitCount(await submit.textContent())
-    test.skip(!(before > 1), 'needs at least two programmes to create in the default period')
+    // A label the parser no longer reads fails here rather than skipping as « not enough data ».
+    expect(before).not.toBeNaN()
+    test.skip(!(before > 1), 'needs at least two meetings to create or complete in the default period')
+    await expect(submit).toBeEnabled()
 
     await page.getByRole('checkbox', { name: ROW_RE }).first().click()
 
