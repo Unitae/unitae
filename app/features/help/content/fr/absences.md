@@ -24,7 +24,7 @@ Déclarez les jours où vous ne serez pas disponible. Les responsables des progr
 
 L’absence apparaît dans la liste, à sa date. Elle est marquée **En cours** pendant la période.
 
-## Affectations pendant une absence
+## Attributions pendant une absence
 
 Si une attribution tombe pendant ces jours, la ligne le signale : le nombre d’attributions, puis, pour chacune, la date et la personne à prévenir. Prévenez cette personne : c’est elle qui décide de la suite.
 
