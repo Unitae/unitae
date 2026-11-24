@@ -247,7 +247,7 @@ describe('addSchedule, beside what the event holds', () => {
     })
   })
 
-  it('keeps an empty programme added by hand a draft, as every empty schedule: none is published empty', async () => {
+  it('refuses to publish an empty programme added by hand: it stays a draft', async () => {
     await withMeeting(async ({ db, congregationId, actorId, meetingId, programme }) => {
       await db.schedule.delete({ where: { id: programme.id } })
       const added = await addSchedule(

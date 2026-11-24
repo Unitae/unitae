@@ -2032,8 +2032,8 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "{count} planeamento vazio continua em rascunho.",
-                "countPlural=*": "{count} planeamentos vazios continuam em rascunho."
+                "countPlural=one": "{count} planeamento vazio fica em rascunho.",
+                "countPlural=*": "{count} planeamentos vazios ficam em rascunho."
             }
         }
     ],

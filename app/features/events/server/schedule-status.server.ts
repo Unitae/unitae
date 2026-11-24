@@ -108,8 +108,8 @@ export async function lockScheduleEvent(db: TransactionClient, scheduleId: numbe
 /**
  * Publishes one schedule (tx-only, like releaseEvent). The caller fires the notices after commit from the targets
  * returned, with the event it already holds (fireReleaseNotifications). Refused while its own items hold a conflict,
- * and for a programme left without parts while its template has parts to give; duties publish as they are. Publishing
- * it again writes nothing and tells no one; the event's row is locked first, so two calls at once tell them once.
+ * for a programme left without parts while its template has parts to give, and for any schedule with nothing in it:
+ * none is mandatory, so none is published empty. Publishing it again writes nothing and tells no one; the event's row is locked first, so two calls at once tell them once.
  */
 export async function publishSchedule(
   db: TransactionClient,
@@ -142,7 +142,10 @@ export async function publishSchedule(
     return { schedule: ref, error: EVENT_STATUS_ERRORS.releaseAwaitingProgramme, reason: 'awaiting' }
   }
   // No schedule is mandatory on a meeting: one with nothing in it stays a draft, never published empty.
-  if (schedule.items.length === 0) return { schedule: ref, error: EVENT_STATUS_ERRORS.publishEmpty, reason: 'empty' }
+  if (schedule.items.length === 0) {
+    logger.info('publishing refused: empty schedule', { scheduleId, kind: ref.kind, congregationId, actorId })
+    return { schedule: ref, error: EVENT_STATUS_ERRORS.publishEmpty, reason: 'empty' }
+  }
   try {
     assertCanRelease({ eventParts: parts, eventServiceParts: services })
   } catch (error) {
