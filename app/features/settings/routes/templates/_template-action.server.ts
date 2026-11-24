@@ -8,8 +8,6 @@ import {
   type TemplateActionResult,
 } from '~/features/settings/server/template-item-action.server'
 
-export type { TemplateActionResult }
-
 import * as m from '~/i18n/paraglide/messages'
 import type { TransactionClient } from '~/shared/infra/db.server'
 

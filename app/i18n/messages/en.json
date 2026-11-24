@@ -4461,8 +4461,8 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "{count} hall in parallel",
-                "countPlural=*": "{count} halls in parallel"
+                "countPlural=one": "{count} room in parallel",
+                "countPlural=*": "{count} rooms in parallel"
             }
         }
     ],
@@ -4497,22 +4497,22 @@
     "settings_schedule_templates_save_part": "Save the part",
     "settings_schedule_templates_save_service": "Save the service",
     "settings_schedule_templates_section_renamed": "Section renamed.",
-    "settings_schedule_templates_hall_renamed": "Hall renamed.",
-    "settings_schedule_templates_main_hall": "Main hall",
+    "settings_schedule_templates_hall_renamed": "Room renamed.",
+    "settings_schedule_templates_main_hall": "Main room",
     "settings_schedule_templates_rename": "Rename",
-    "settings_schedule_templates_add_hall": "Add a parallel hall",
+    "settings_schedule_templates_add_hall": "Add a parallel room",
     "settings_schedule_templates_delete_when_empty": "Delete: remove its parts first.",
     "settings_schedule_templates_section_actions": "Actions for the section {name}",
-    "settings_schedule_templates_hall_actions": "Actions for the hall {name}",
+    "settings_schedule_templates_hall_actions": "Actions for the room {name}",
     "settings_schedule_templates_add_part_to": "Add a part to {name}",
     "settings_schedule_templates_part_short": "Part",
     "settings_schedule_templates_section_name": "Section name",
-    "settings_schedule_templates_hall_name": "Hall name",
+    "settings_schedule_templates_hall_name": "Room name",
     "settings_schedule_templates_new_section_hint": "A section with no part is not kept: add its first part. If you close the panel first, it is dropped.",
     "settings_schedule_templates_first_part": "First part",
     "settings_schedule_templates_add_section": "Add a section",
     "settings_schedule_templates_add_part_loose": "Add a part outside any section",
-    "settings_schedule_templates_second_hall": "Second hall",
+    "settings_schedule_templates_second_hall": "Second room",
     "settings_schedule_templates_services_empty": "No service. Add the first one.",
     "settings_schedule_templates_used": [
         {

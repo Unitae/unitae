@@ -16,7 +16,8 @@ const DRAFT_PARAMS = ['section', 'hall', 'hallOrder', 'order'] as const
 const ITEM = /^(part|service)-(\d+)$/
 const NEW_ITEM = /^new-(part|service)$/
 
-function readItem(params: URLSearchParams): OpenItem | null {
+/** The item the address opens: one of the template's (`part-12`), or a new one with its starting point. */
+export function readItem(params: URLSearchParams): OpenItem | null {
   const value = params.get('item')
   const existing = value?.match(ITEM)
   if (existing) return { kind: existing[1] as ItemKind, id: Number(existing[2]) }
@@ -40,7 +41,8 @@ function readItem(params: URLSearchParams): OpenItem | null {
  * Réglages › « Modèles de planning » keeps what is open in the address, so a reload stays on it and the browser's Back
  * goes up one level: `?template=3` opens a template's panel, `&item=part-12` (or `new-part`) one of its items in the
  * same panel. Entering an item adds a history entry; leaving it goes back through that entry, or drops the parameter
- * when the page was opened on it. Every way out of unsaved changes asks first, browser Back included.
+ * when the page was opened on it. Leaving unsaved changes inside the app asks first, browser Back included (a reload
+ * or closing the tab does not).
  */
 export function useScheduleTemplatePage({
   templateIds,
@@ -57,6 +59,8 @@ export function useScheduleTemplatePage({
   const location = useLocation()
   const navigate = useNavigate()
   const [pending, setPending] = useState<(() => void) | null>(null)
+  // Bumped by a discard: the panel starts again from what is stored, even when nothing in the address changes.
+  const [resetKey, setResetKey] = useState(0)
   // Leaving after a save or a delete, or once the person chose to discard: the next navigation goes through.
   const pass = useRef(false)
   // biome-ignore lint/correctness/useExhaustiveDependencies: closes the pass once the address has changed
@@ -68,21 +72,37 @@ export function useScheduleTemplatePage({
   const templateId = templateIds.includes(asked) ? asked : null
   const askedItem = templateId == null ? null : readItem(params)
   const item = askedItem != null && (askedItem.id == null || itemExists(askedItem)) ? askedItem : null
+  // An item the address names that is no longer there (deleted, here or elsewhere): back to the first level.
+  const stale = askedItem != null && item == null
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the item goes, with the address of then
+  useEffect(() => {
+    if (!stale) return
+    pass.current = true
+    setParams(
+      prev => {
+        prev.delete('item')
+        return prev
+      },
+      { preventScrollReset: true, replace: true },
+    )
+  }, [stale])
+  // Changes count while a template is open: a panel closed with them discarded leaves none behind.
+  const unsaved = dirty && templateId != null
 
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
-      dirty &&
+      unsaved &&
       !pass.current &&
-      pending == null &&
       (currentLocation.pathname !== nextLocation.pathname || currentLocation.search !== nextLocation.search),
   )
 
-  const guard = (run: () => void) => (dirty ? setPending(() => run) : run())
+  const guard = (run: () => void) => (unsaved ? setPending(() => run) : run())
   const keep = { preventScrollReset: true }
 
   return {
     templateId,
     item,
+    resetKey,
     /** Opens a template's panel (its first level), or closes the panel with `null`. */
     open: (id: number | null) => guard(() => setParams(id == null ? {} : { template: String(id) }, keep)),
     /** Enters one of the template's items, or a new one. */
@@ -115,9 +135,11 @@ export function useScheduleTemplatePage({
         if (blocker.state === 'blocked') blocker.reset()
       },
       onDiscard: () => {
-        const run = pending
+        // Browser Back while the dialog was open: that navigation is the one going ahead.
+        const run = blocker.state === 'blocked' ? null : pending
         setPending(null)
         pass.current = true
+        setResetKey(current => current + 1)
         if (blocker.state === 'blocked') blocker.proceed()
         else run?.()
       },

@@ -1,5 +1,6 @@
 import { Plus } from 'lucide-react'
 import { useId, useState } from 'react'
+import { resolvePartCapability } from '~/features/events'
 import { groupTemplateParts, type ListedPart } from '~/features/settings/model/schedule-template-list'
 import * as m from '~/i18n/paraglide/messages'
 import { getRoleDisplayName, type RoleOption } from '~/shared/types/role'
@@ -12,6 +13,10 @@ import { PartGroupHeader } from './PartGroupHeader'
 export interface ItemListPart extends ListedPart {
   allowedSpeakerRoleIds: number[]
   allowedReaderRoleIds: number[]
+  presetId: number | null
+  speakerLabel?: string | null
+  readerLabel?: string | null
+  allowExternalSpeaker?: boolean
 }
 
 export interface ItemListService {
@@ -46,6 +51,7 @@ export function ScheduleTemplateItemList({
   parts,
   services,
   roles,
+  presets,
   onOpen,
   onAdd,
 }: {
@@ -53,6 +59,14 @@ export function ScheduleTemplateItemList({
   parts: ItemListPart[]
   services: ItemListService[]
   roles: RoleOption[]
+  /** The part types, which say whether a part has a second speaker. */
+  presets: {
+    id: number
+    speakerLabel: string | null
+    readerLabel: string | null
+    hasReaderSlot: boolean
+    allowExternalSpeaker: boolean
+  }[]
   onOpen: (kind: ItemKind, id: number) => void
   onAdd: (kind: ItemKind, draft?: PartDraft) => void
 }) {
@@ -66,7 +80,17 @@ export function ScheduleTemplateItemList({
   const partDetail = (part: ItemListPart) =>
     [
       roleNames(part.allowedSpeakerRoleIds) || m.settings_schedule_templates_anyone(),
-      ...(part.allowedReaderRoleIds.length > 0 ? [m.settings_schedule_templates_with_reader()] : []),
+      // The second slot as the part's type gives it (always without a type), as the meeting's form does.
+      ...(resolvePartCapability(
+        {
+          speakerLabel: part.speakerLabel,
+          readerLabel: part.readerLabel,
+          allowExternalSpeaker: part.allowExternalSpeaker,
+        },
+        presets.find(preset => preset.id === part.presetId),
+      ).hasReaderSlot
+        ? [m.settings_schedule_templates_with_reader()]
+        : []),
     ].join(' · ')
 
   const partRow = (part: ItemListPart, indent: string) => (

@@ -52,4 +52,19 @@ describe('groupTemplateParts', () => {
       withoutDuration: 1,
     })
   })
+
+  it('lists a section’s parts outside any hall before its halls, the halls in their own order', () => {
+    const { runs } = groupTemplateParts([
+      part(1, 'Ministère', 2),
+      part(2, 'Ministère', 4, 'Salle B', 2),
+      part(3, 'Ministère', 3, 'Salle principale', 1),
+      part(4, 'Ministère', 5, 'Salle B', 2),
+    ])
+    expect(runs[0]?.parts.map(each => each.id)).toEqual([1])
+    expect(runs[0]?.halls.map(hall => [hall.name, hall.parts.map(each => each.id)])).toEqual([
+      ['Salle principale', [3]],
+      ['Salle B', [2, 4]],
+    ])
+    expect(runs[0]?.minutes).toBe(2 + 9)
+  })
 })

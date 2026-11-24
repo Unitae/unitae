@@ -1,4 +1,4 @@
-import { SidePanel } from '@unitae/ui'
+import { Callout, SidePanel } from '@unitae/ui'
 import { ChevronLeft, MoreHorizontal } from 'lucide-react'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { useFetcher } from 'react-router'
@@ -19,7 +19,6 @@ import * as m from '~/i18n/paraglide/messages'
 import type { RoleOption } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
-import { useCloseOnSave } from '~/shared/ui/hooks/use-close-on-save'
 import { useFormChanges } from '~/shared/ui/hooks/use-form-changes'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '~/shared/ui/sheet'
@@ -76,22 +75,38 @@ export function ScheduleTemplatePanel({
 }) {
   const fields = useFormChanges()
   const itemForm = useFormChanges()
-  const itemFetcher = useFetcher()
-  const deleteFetcher = useFetcher()
+  // One fetcher per item: a refusal stays with the item it answers.
+  const mark = item == null ? null : item.id == null ? `new-${item.kind}` : itemMark(item.kind, item.id)
+  const itemFetcher = useFetcher({ key: `schedule-template-${template.id}-${mark ?? 'none'}` })
+  // The delete's settles once its item is gone from the data: its key must not follow the item.
+  const deleteFetcher = useFetcher({ key: `schedule-template-${template.id}-delete` })
   const [version, setVersion] = useState(0)
   const [deleting, setDeleting] = useState(false)
-  useCloseOnSave(itemFetcher, onLeaveItem)
-  useCloseOnSave(deleteFetcher, onLeaveItem)
+  // Leaves once the save has settled, its reload included: leaving earlier lets that navigation drop the reload.
+  useOnSettled(itemFetcher, onLeaveItem)
+  useOnSettled(deleteFetcher, onLeaveItem)
+  // Saved: the form starts again from what is stored, and its footer goes.
+  useOnSettled(fetcher, () => setVersion(current => current + 1))
+  const refusal = replyMessages(itemFetcher) ?? replyMessages(deleteFetcher)
 
   const part = item?.kind === 'part' && item.id != null ? items?.parts.find(each => each.id === item.id) : undefined
   const service =
     item?.kind === 'service' && item.id != null ? items?.services.find(each => each.id === item.id) : undefined
   const dirty = item == null ? fields.changes > 0 : itemForm.changes > 0
   useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange])
+  // Closed with changes discarded: the page has nothing unsaved any more.
+  useEffect(() => () => onDirtyChange(false), [onDirtyChange])
 
-  // The row the item was opened from gets focus back: read on the way back, its list renders anew.
+  // The row the item was opened from gets focus back: read on the way back, its list renders anew. A new item has no
+  // row yet: focus then stays with the panel.
   const left = useRef<string | null>(null)
-  if (item?.id != null) left.current = itemMark(item.kind, item.id)
+  if (item != null) left.current = item.id == null ? null : itemMark(item.kind, item.id)
+  // The sheet has no focus rule of its own between levels: back at the first, its row takes it.
+  const wasOpen = useRef(item != null)
+  useEffect(() => {
+    if (wasOpen.current && item == null && !docked) requestAnimationFrame(() => rowOf(left.current)?.focus())
+    wasOpen.current = item != null
+  }, [item, docked])
 
   const description =
     template.schedules === 0
@@ -123,13 +138,14 @@ export function ScheduleTemplatePanel({
           parts={items.parts}
           services={items.services}
           roles={items.roles}
+          presets={items.presets}
           onOpen={(kind, id) => onOpenItem({ kind, id })}
           onAdd={(kind, draft) => onOpenItem({ kind, id: null, draft })}
         />
       )}
     </div>
   )
-  const levelTwo =
+  const itemEditor =
     item == null || items == null ? null : item.kind === 'part' ? (
       <PartEditor
         key={`part-${item.id ?? `new-${item.draft?.section}-${item.draft?.track}-${item.draft?.order}`}`}
@@ -151,7 +167,8 @@ export function ScheduleTemplatePanel({
                 allowedReaderRoleIds: [],
               })
         }
-        defaultOrder={items.parts.length + 1}
+        // After the last part, whatever their numbering (a reorder writes them five apart).
+        defaultOrder={items.parts.reduce((max, each) => Math.max(max, each.order), -1) + 1}
         roles={items.roles}
         presets={items.presets}
         sectionSuggestions={items.sectionSuggestions}
@@ -169,6 +186,17 @@ export function ScheduleTemplatePanel({
       />
     )
 
+  const levelTwo = (
+    <div className="flex flex-col gap-4">
+      {refusal != null && (
+        <Callout tone="danger" role="alert">
+          {refusal}
+        </Callout>
+      )}
+      {itemEditor}
+    </div>
+  )
+
   const footer: ReactNode =
     item != null ? (
       <>
@@ -177,7 +205,7 @@ export function ScheduleTemplatePanel({
         </Button>
         <SubmitButton
           form={item.kind === 'part' ? PART_FORM_ID : SERVICE_FORM_ID}
-          disabled={itemFetcher.state !== 'idle'}
+          disabled={itemFetcher.state !== 'idle' || deleteFetcher.state !== 'idle'}
         >
           {item.kind === 'part'
             ? m.settings_schedule_templates_save_part()
@@ -277,4 +305,25 @@ export function ScheduleTemplatePanel({
 
 function rowOf(mark: string | null): HTMLElement | null {
   return mark == null ? null : document.querySelector<HTMLElement>(`[data-item="${mark}"]`)
+}
+
+/** Runs once a fetcher's submission has settled with `{ ok: true }`: answered and its reload done. */
+function useOnSettled(fetcher: Pick<ReturnType<typeof useFetcher>, 'state' | 'data'>, onSettled: () => void) {
+  const previous = useRef(fetcher.state)
+  const latest = useRef(onSettled)
+  latest.current = onSettled
+  useEffect(() => {
+    const ok = (fetcher.data as { ok?: boolean } | undefined)?.ok
+    if (previous.current !== 'idle' && fetcher.state === 'idle' && ok) latest.current()
+    previous.current = fetcher.state
+  }, [fetcher.state, fetcher.data])
+}
+
+/** What a refused item save says: the form's errors (a conform reply) or the page's refusal. */
+function replyMessages(fetcher: Pick<ReturnType<typeof useFetcher>, 'state' | 'data'>): string | null {
+  if (fetcher.state !== 'idle' || fetcher.data == null) return null
+  const data = fetcher.data as { ok?: boolean; errors?: string[]; error?: Record<string, string[] | null> }
+  if (data.ok === true) return null
+  const messages = [...(data.errors ?? []), ...Object.values(data.error ?? {}).flatMap(each => each ?? [])]
+  return messages.length > 0 ? messages.join(' ') : null
 }
