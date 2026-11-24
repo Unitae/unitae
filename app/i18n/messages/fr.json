@@ -4441,6 +4441,7 @@
     "settings_schedule_templates_name_hint": "Les plannings déjà créés gardent leur nom.",
     "settings_schedule_templates_responsible": "Responsable",
     "settings_schedule_templates_responsible_none": "Aucun : ceux qui gèrent les programmes",
+    "settings_schedule_templates_responsible_none_short": "Aucun",
     "settings_schedule_templates_responsible_hint": "Le titulaire et les adjoints de ce rôle remplissent et publient les plannings faits de ce modèle, sur toutes les réunions. Qui tient le rôle se change dans l’organigramme.",
     "settings_schedule_templates_holders": "Aujourd’hui : {names}.",
     "settings_schedule_templates_holders_none": "Personne n’a ce rôle aujourd’hui.",

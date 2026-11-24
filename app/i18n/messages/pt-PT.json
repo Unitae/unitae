@@ -4441,6 +4441,7 @@
     "settings_schedule_templates_name_hint": "Os planeamentos já criados mantêm o seu nome.",
     "settings_schedule_templates_responsible": "Responsável",
     "settings_schedule_templates_responsible_none": "Nenhum: quem gere os programas",
+    "settings_schedule_templates_responsible_none_short": "Nenhum",
     "settings_schedule_templates_responsible_hint": "O titular e os adjuntos desta função preenchem e publicam os planeamentos feitos a partir deste modelo, em todas as reuniões. Quem ocupa a função muda-se no organograma.",
     "settings_schedule_templates_holders": "Atualmente: {names}.",
     "settings_schedule_templates_holders_none": "Atualmente, ninguém tem esta função.",
