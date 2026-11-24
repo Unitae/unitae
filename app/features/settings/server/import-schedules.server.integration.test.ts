@@ -318,6 +318,41 @@ describe('restoring a 2.21 archive exported before the duties had their own resp
     })
   })
 
+  // Restored into a congregation that already has the kind (matched by its key): the archive's schedule templates merge
+  // into the kind's own, which says nothing about the archive's responsible.
+  for (const [label, archived] of [
+    ['keeps the role of a duties schedule template that merges into the kind’s own', true],
+    ['leaves the duties without one when the merged duties schedule template had none', false],
+  ] as const) {
+    it(label, async () => {
+      await restored(async ({ db, congregationId, templateId, roleId }) => {
+        await syncTemplateScheduleTemplates(db, templateId, congregationId)
+        const zip = new JsZip()
+        writeNdjsonFile(zip, 'schedules', [])
+        writeNdjsonFile(zip, 'schedule-templates', [
+          { id: 11, name: 'Réunion', key: null, kind: 'programme', responsibleRoleId: 5 },
+          { id: 12, name: null, key: 'services', kind: 'duty', responsibleRoleId: archived ? 5 : null },
+        ])
+        writeNdjsonFile(zip, 'kind-schedule-templates', [
+          { eventKindId: 2, scheduleTemplateId: 11, order: 0 },
+          { eventKindId: 2, scheduleTemplateId: 12, order: 1 },
+        ])
+        const idMap = new EntityIdMap()
+        idMap.set('programme-templates', 2, templateId)
+        idMap.set('roles', 5, roleId)
+
+        await importScheduleTemplates(zip, db, idMap, congregationId)
+        const merged = await importKindScheduleTemplates(zip, db, idMap, congregationId)
+        await settleImportedSchedules(zip, db, congregationId, merged)
+
+        expect(merged).toEqual([templateId])
+        const duties = await db.scheduleTemplate.findFirstOrThrow({ where: { kind: 'duty' } })
+        const services = await db.templateResponsible.findFirst({ where: { templateId, scope: 'service' } })
+        expect([duties.responsibleRoleId, services?.roleId ?? null]).toEqual(archived ? [roleId, roleId] : [null, null])
+      })
+    })
+  }
+
   it('leaves a duties schedule template without a responsible as it is: after the upgrade that is a choice', async () => {
     await restored(async ({ db, congregationId, templateId }) => {
       await syncTemplateScheduleTemplates(db, templateId, congregationId)

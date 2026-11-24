@@ -110,7 +110,7 @@ export async function importKindScheduleTemplates(
     (
       await db.scheduleTemplate.findMany({
         where: { congregationId, id: { in: resolved.map(link => link.scheduleTemplateId) } },
-        select: { id: true, kind: true, name: true },
+        select: { id: true, kind: true, name: true, responsibleRoleId: true },
       })
     ).map(row => [row.id, row]),
   )
@@ -124,11 +124,17 @@ export async function importKindScheduleTemplates(
       row => row.eventKindId === link.eventKindId && row.scheduleTemplate.kind === archived?.kind,
     )
     if (own) {
-      // Its name is Réglages' since 6a-1b, which the kind's derivation no longer writes: the archive's name wins.
-      if (archived?.name != null && !renamed.has(own.scheduleTemplate.id)) {
+      // Its name is Réglages' since 6a-1b, which the kind's derivation no longer writes: the archive's name wins. So does
+      // its responsible, which a pre-upgrade archive's duties held without a services row: writeInheritedServiceResponsibles
+      // reads it there (the congregation's own role says nothing about the archive).
+      const carried = {
+        ...(archived?.name != null && { name: archived.name }),
+        ...(archived?.responsibleRoleId != null && { responsibleRoleId: archived.responsibleRoleId }),
+      }
+      if (Object.keys(carried).length > 0 && !renamed.has(own.scheduleTemplate.id)) {
         await db.scheduleTemplate.update({
           where: { id_congregationId: { id: own.scheduleTemplate.id, congregationId } },
-          data: { name: archived.name },
+          data: carried,
         })
         renamed.add(own.scheduleTemplate.id)
       }
