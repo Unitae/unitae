@@ -134,9 +134,8 @@ describe('listUserConflictsInRange', () => {
     expect(result[0].responsibleName).toBeNull()
   })
 
-  // When a templated event has no responsible assigned yet, the UI still
-  // shows the generic fallback wording — the query surfaces null the same
-  // way as for untemplated events.
+  // When the schedule's template has no responsible yet, the UI still shows the generic fallback wording — the query
+  // surfaces null the same way as for a schedule without a template.
   it('returns responsibleName as null when the schedule template has no responsible', async () => {
     vi.mocked(db.eventPart.findMany).mockResolvedValue([
       {
@@ -232,6 +231,51 @@ describe('listUserConflictsInRange', () => {
     const result = await listUserConflictsInRange(db, 5000, new Date(2026, 6, 1), new Date(2026, 6, 10))
 
     expect(result[0].responsibleName).toBe('Responsable VCM')
+  })
+
+  it('gives each line of one meeting its own schedule’s responsible, never the meeting’s others', async () => {
+    const day = new Date(2026, 6, 5)
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([
+      {
+        name: 'Discours',
+        event: { startDate: day },
+        schedule: {
+          scheduleTemplate: {
+            responsibleRole: {
+              key: 'prog',
+              name: 'prog',
+              members: [{ user: { firstname: 'Julien', lastname: 'Girard', member: null } }],
+              memberAssignments: [],
+            },
+          },
+        },
+      },
+    ] as never)
+    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([
+      {
+        name: 'Sono',
+        event: { startDate: day },
+        schedule: {
+          scheduleTemplate: {
+            responsibleRole: {
+              key: 'duty',
+              name: 'duty',
+              members: [{ user: { firstname: 'Philippe', lastname: 'Martin', member: null } }],
+              memberAssignments: [],
+            },
+          },
+        },
+      },
+      { name: 'Accueil', event: { startDate: day }, schedule: { scheduleTemplate: null } },
+    ] as never)
+
+    const result = await listUserConflictsInRange(db, 5000, new Date(2026, 6, 1), new Date(2026, 6, 10))
+
+    expect(result.map(row => [row.assignmentName, row.responsibleName])).toEqual([
+      ['Discours', 'Julien Girard'],
+      ['Sono', 'Philippe Martin'],
+      ['Accueil', null],
+    ])
   })
 
   it('merges part + service conflicts and sorts by eventDate ascending', async () => {

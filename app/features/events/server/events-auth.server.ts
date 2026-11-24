@@ -21,8 +21,8 @@ const logger = createLogger('events-auth')
  * that would make "user holds no roles" correct by accident rather than by intent.
  *
  * Read only by Réglages, whose template responsibles it shows and gates until PR 6 rewrites them per schedule
- * template. Every right, and every other screen but the absences' « who to contact » (listUserConflictsInRange, read
- * from the same template responsibles), goes by the schedules' responsibles (schedule-rights.server.ts).
+ * template. Every right, and every other screen (the absences' « who to contact » included, since 6a-0), goes by the
+ * schedules' responsibles (schedule-rights.server.ts).
  * Scoped to the programme by default; pass `ResponsibilityScope.Service` only for a question about the service parts.
  */
 export async function getResponsibleTemplateIds(

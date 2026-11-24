@@ -16,8 +16,8 @@ export interface UserConflictInRange {
   responsibleName: string | null
 }
 
-// The responsible of the item's own schedule template: the role that fills and publishes that schedule (plan §11,
-// per schedule template since 6a). Shared between the two `findMany` calls so the query shape stays in sync.
+// The responsible of the item's own schedule template: the role that fills and publishes that schedule (plan §10,
+// read here since 6a-0). Shared between the two `findMany` calls so the query shape stays in sync.
 const responsibleRoleSelect = {
   key: true,
   name: true,

@@ -53,6 +53,26 @@ beforeAll(async () => {
       await tx.eventServicePart.create({ data: { name, order, ...clash } })
     }
     await settleFixtureSchedules(tx as never, congregationId)
+
+    // Each schedule's template names its own responsible: the programme's role held on an account, the duties' role
+    // on a publisher record.
+    const programmeRole = await tx.role.create({ data: { key: `prog-${ts}`, name: 'Programme', congregationId } })
+    const dutyRole = await tx.role.create({ data: { key: `duty-${ts}`, name: 'Services', congregationId } })
+    const account = await tx.userAccount.create({
+      data: { email: `prog-${ts}@test.com`, password: 'x', firstname: 'Julien', lastname: 'GIRARD', congregationId },
+    })
+    await tx.userRoleAssignment.create({ data: { userId: account.id, roleId: programmeRole.id, congregationId } })
+    const holder = await tx.member.create({ data: { firstname: 'Philippe', lastname: 'MARTIN', congregationId } })
+    await tx.memberRoleAssignment.create({ data: { memberId: holder.id, roleId: dutyRole.id, congregationId } })
+    for (const [kind, roleId] of [
+      ['programme', programmeRole.id],
+      ['duty', dutyRole.id],
+    ] as const) {
+      const template = await tx.scheduleTemplate.create({
+        data: { name: kind, kind, responsibleRoleId: roleId, congregationId },
+      })
+      await tx.schedule.updateMany({ where: { eventId: event.id, kind }, data: { scheduleTemplateId: template.id } })
+    }
   })
 })
 
@@ -60,6 +80,11 @@ afterAll(async () => {
   if (ids.cong) {
     await withScope(ids.cong, async tx => {
       await tx.event.deleteMany({})
+      await tx.scheduleTemplate.deleteMany({})
+      await tx.userRoleAssignment.deleteMany({})
+      await tx.memberRoleAssignment.deleteMany({})
+      await tx.userAccount.deleteMany({})
+      await tx.role.deleteMany({})
       await tx.member.deleteMany({})
     })
     await testDb.congregation.deleteMany({ where: { id: ids.cong } })
@@ -78,6 +103,19 @@ describe('listUserConflictsInRange', () => {
       'Cantique de conclusion',
       'Accueil',
       'Nettoyage',
+    ])
+  })
+
+  it('names, on each line, the holders of its own schedule template’s responsible', async () => {
+    const conflicts = await withScope(ids.cong, tx =>
+      listUserConflictsInRange(tx, ids.member, new Date('2027-03-15T00:00:00Z'), new Date('2027-03-17T00:00:00Z')),
+    )
+
+    expect(conflicts.map(conflict => [conflict.assignmentName, conflict.responsibleName])).toEqual([
+      ['Lecture de la Bible', 'Julien GIRARD'],
+      ['Cantique de conclusion', 'Julien GIRARD'],
+      ['Accueil', 'Philippe MARTIN'],
+      ['Nettoyage', 'Philippe MARTIN'],
     ])
   })
 })
