@@ -251,8 +251,8 @@ afterAll(async () => {
   for (const congId of [primaryCongId, otherCongId]) {
     if (!congId) continue
     await withScope(congId, async tx => {
-      // saveTemplateResponsibles audits fire-and-forget, on its own connection: its row outlives the rolled-back test
-      // and would hold the congregation (AuditLog_congregationId_fkey).
+      // A fire-and-forget audit writes on its own connection: its row outlives a rolled-back test and would hold the
+      // congregation (AuditLog_congregationId_fkey).
       await tx.auditLog.deleteMany({})
       await tx.eventServicePart.deleteMany({})
       await tx.event.deleteMany({})
@@ -858,16 +858,26 @@ describe('isTemplateResponsible, the TemplateResponsible source (integration)', 
     })
   })
 
-  it('closes both sources when the kind’s responsibles are removed through its page', async () => {
+  it('closes both sources when its schedule templates’ responsibles are cleared in Réglages', async () => {
     const { isTemplateResponsible } = await import('./event-templates.server')
-    const { saveTemplateResponsibles } = await import('./template-responsibles.server')
+    const { updateScheduleTemplate } = await import('./schedule-template-settings.server')
     class Rollback extends Error {}
     await testDb
       .$transaction(async tx => {
         await tx.$executeRawUnsafe(`SET LOCAL app.congregation_id = '${String(primaryCongId)}'`)
         const db = tx as never
-        const set = (programmeRoleId: number | null, serviceRoleId: number | null) =>
-          saveTemplateResponsibles(db, templateOwnedId, { programmeRoleId, serviceRoleId }, primaryCongId, managerId)
+        const templateOf = async (kind: 'programme' | 'duty') =>
+          (
+            await tx.scheduleTemplate.findFirstOrThrow({
+              where: { kind, eventKinds: { some: { eventKindId: templateOwnedId } } },
+            })
+          ).id
+        const set = async (programmeRoleId: number | null, dutyRoleId: number | null) => {
+          const programme = await templateOf('programme')
+          const duties = await templateOf('duty')
+          await updateScheduleTemplate(db, programme, { responsibleRoleId: programmeRoleId }, primaryCongId, managerId)
+          await updateScheduleTemplate(db, duties, { responsibleRoleId: dutyRoleId }, primaryCongId, managerId)
+        }
         await set(responsibleRoleId, serviceRoleId)
         expect(await isTemplateResponsible(db, templateOwnedId, responsibleId, primaryCongId)).not.toBeNull()
         expect(

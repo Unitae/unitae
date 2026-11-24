@@ -67,4 +67,3 @@ export {
   upsertTemplatePart,
   upsertTemplateServicePart,
 } from './server/template-items.server'
-export { saveTemplateResponsibles, type TemplateResponsibles } from './server/template-responsibles.server'

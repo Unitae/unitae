@@ -104,17 +104,28 @@ export async function importKindScheduleTemplates(
     (
       await db.scheduleTemplate.findMany({
         where: { congregationId, id: { in: resolved.map(link => link.scheduleTemplateId) } },
-        select: { id: true, kind: true },
+        select: { id: true, kind: true, name: true },
       })
-    ).map(row => [row.id, row.kind]),
+    ).map(row => [row.id, row]),
   )
   const merged = new Set<number>()
   const replaced = new Set<number>()
+  const renamed = new Set<number>()
   const links: { eventKindId: number; scheduleTemplateId: number; order: number; congregationId: number }[] = []
   for (const link of resolved) {
-    const kind = kinds.get(link.scheduleTemplateId)
-    const own = present.find(row => row.eventKindId === link.eventKindId && row.scheduleTemplate.kind === kind)
+    const archived = kinds.get(link.scheduleTemplateId)
+    const own = present.find(
+      row => row.eventKindId === link.eventKindId && row.scheduleTemplate.kind === archived?.kind,
+    )
     if (own) {
+      // Its name is Réglages' since 6a-1b, which the kind's derivation no longer writes: the archive's name wins.
+      if (archived?.name != null && !renamed.has(own.scheduleTemplate.id)) {
+        await db.scheduleTemplate.update({
+          where: { id_congregationId: { id: own.scheduleTemplate.id, congregationId } },
+          data: { name: archived.name },
+        })
+        renamed.add(own.scheduleTemplate.id)
+      }
       idMap.set('schedule-templates', link.archived, own.scheduleTemplate.id)
       replaced.add(link.scheduleTemplateId)
       merged.add(link.eventKindId)

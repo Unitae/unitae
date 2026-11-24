@@ -1,3 +1,4 @@
+import { ScheduleKind } from '~/features/events/model/schedule.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 /** A schedule template as Réglages › « Modèles de planning » lists it. */
@@ -43,7 +44,7 @@ export async function listScheduleTemplatesForSettings(
     name: row.name,
     key: row.key,
     kind: row.kind,
-    items: row.kind === 'programme' ? row._count.parts : row._count.serviceParts,
+    items: row.kind === ScheduleKind.Programme ? row._count.parts : row._count.serviceParts,
     responsibleRole: row.responsibleRole,
     kinds: row.eventKinds.map(link => link.eventKind),
     schedules: row._count.schedules,
