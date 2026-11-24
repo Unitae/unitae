@@ -78,8 +78,8 @@ async function inCongregation(fn: (fixture: Fixture) => Promise<void>) {
         const programmeRole = await tx.role.create({ data: { key: `p-${stamp}`, name: 'p', congregationId } })
         const dutyRole = await tx.role.create({ data: { key: `d-${stamp}`, name: 'd', congregationId } })
         const midweekId = (await tx.eventTemplate.findFirstOrThrow({ where: { key: 'midweek-meeting' } })).id
-        // As Réglages names them: a role per scope on the template, which the sync gives its schedule templates (D31:
-        // the services one to the duties alone).
+        // As Réglages names them: a role per scope on the template, which the sync gives its schedule templates (the
+        // services one to the duties alone; without it the duties have no responsible).
         for (const [roleId, scope] of [
           [programmeRole.id, 'programme'],
           [dutyRole.id, 'service'],
@@ -89,9 +89,12 @@ async function inCongregation(fn: (fixture: Fixture) => Promise<void>) {
         await syncTemplateScheduleTemplates(db, midweekId, congregationId)
         const weekendId = (await tx.eventTemplate.findFirstOrThrow({ where: { key: 'weekend-meeting' } })).id
         const weekendRole = await tx.role.create({ data: { key: `w-${stamp}`, name: 'w', congregationId } })
-        await tx.templateResponsible.create({
-          data: { templateId: weekendId, roleId: weekendRole.id, scope: 'programme', congregationId },
-        })
+        // The weekend's lead answers for both its schedules.
+        for (const scope of ['programme', 'service'] as const) {
+          await tx.templateResponsible.create({
+            data: { templateId: weekendId, roleId: weekendRole.id, scope, congregationId },
+          })
+        }
         await syncTemplateScheduleTemplates(db, weekendId, congregationId)
         const meeting = await createProgrammeOnDay(
           db,
@@ -163,9 +166,25 @@ describe('Fill a schedule (items, assignees): « Attribuer », « Gérer », or 
         expect(await canFillSchedule(db, nothing, lead, event, 'part', congregationId)).toBe(false)
         expect(await canFillSchedule(db, nothing, lead, event, 'service', congregationId)).toBe(false)
       }
-      // A template naming a programme responsible alone gives them its duties too.
+      // The weekend's lead is named on both scopes: both schedules are theirs.
       expect(await canFillSchedule(db, nothing, weekendLead, event, 'part', congregationId)).toBe(true)
       expect(await canFillSchedule(db, nothing, weekendLead, event, 'service', congregationId)).toBe(true)
+    })
+  })
+
+  // Decided 2026-11-24: the duties answer to their own responsible only; without one they are the managers'.
+  it('leaves the duties of a kind naming a programme responsible alone to the managers', async () => {
+    await inCongregation(async fixture => {
+      const { db, congregationId, weekendLead, weekendId } = fixture
+      await db.templateResponsible.deleteMany({ where: { templateId: weekendId, scope: 'service' } })
+      await syncTemplateScheduleTemplates(db, weekendId, congregationId)
+      const event = await weekendMeeting(fixture)
+
+      expect(await canFillSchedule(db, nothing, weekendLead, event, 'part', congregationId)).toBe(true)
+      expect(await canFillSchedule(db, nothing, weekendLead, event, 'service', congregationId)).toBe(false)
+      // The whole meeting asks for every schedule's responsible.
+      expect(await canDeleteEvent(db, nothing, weekendLead, event, congregationId)).toBe(false)
+      expect(await canPublishEvent(db, nothing, weekendLead, event, congregationId)).toBe(false)
     })
   })
 

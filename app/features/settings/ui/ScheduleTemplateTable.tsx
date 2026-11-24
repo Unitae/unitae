@@ -40,7 +40,8 @@ export function ScheduleTemplateTable({
                 row.id === selectedId ? 'bg-selected' : 'hover:bg-hover',
               )}
             >
-              <td className={cellClass}>
+              {/* Three lines on a phone: room above and below them. */}
+              <td className={cn(cellClass, 'max-md:h-auto max-md:py-2.5')}>
                 <button
                   type="button"
                   aria-pressed={row.id === selectedId}
@@ -49,10 +50,19 @@ export function ScheduleTemplateTable({
                   className="flex flex-col items-start rounded-sm text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <span className="font-medium">{row.title}</span>
-                  <span className="text-faint text-xs tabular-nums">{row.detail}</span>
-                  {/* On a phone the responsible column is gone: its row says it on a line of its own. */}
-                  <span className="text-muted-foreground text-xs md:hidden">
-                    {row.responsible ?? m.settings_schedule_templates_responsible_none()}
+                  <span className="text-faint text-xs tabular-nums">
+                    {row.detail}
+                    {/* On a phone the kinds column is gone: the kind joins this line, unless the title says it. */}
+                    {row.suggestedBy !== row.title && <span className="md:hidden"> · {row.suggestedBy}</span>}
+                  </span>
+                  {/* And so is the responsible's: its own line, a faint « Aucun » without one, as the board draws it. */}
+                  <span
+                    className={cn(
+                      'text-xs md:hidden',
+                      row.responsible == null ? 'text-faint' : 'text-muted-foreground',
+                    )}
+                  >
+                    {row.responsible ?? m.settings_schedule_templates_responsible_none_short()}
                   </span>
                 </button>
               </td>
@@ -66,7 +76,7 @@ export function ScheduleTemplateTable({
               >
                 {row.responsible ?? m.settings_schedule_templates_responsible_none()}
               </td>
-              <td className={cn(cellClass, 'text-right text-muted-foreground')}>{row.suggestedBy}</td>
+              <td className={cn(cellClass, wideOnly, 'text-right text-muted-foreground')}>{row.suggestedBy}</td>
             </tr>
           ))}
         </tbody>

@@ -1,7 +1,8 @@
 import { ScheduleKind } from './schedule.type'
 
 // Which slice of an event a TemplateResponsible row delegates. Since 5a no right reads the scopes: the sync turns
-// them into each schedule template's responsible (D31), and only Réglages still reads them (its templates list and
+// them into each schedule template's responsible (programme → programme, service → duties, no fallback since
+// 2026-11-24), and only Réglages still reads them (its templates list and
 // page, reordering, access, export and import), until PR 6 rewrites them per schedule template; the absences' « who
 // to contact » reads each schedule template's responsible since 6a-0. The asymmetry below matters only there now.
 //
@@ -11,10 +12,10 @@ import { ScheduleKind } from './schedule.type'
 // the one who assigns the public talk — so they are two rows on
 // TemplateResponsible, told apart by this column, rather than two tables.
 //
-// The scopes are NOT peers. 'programme' is the whole-event delegation and has
-// always meant "may edit everything on this event", so it also covers the
-// service parts; 'service' covers only them. Every check goes through
-// `scopesCovering` so that asymmetry lives in one place.
+// The scopes are NOT peers in Réglages: a kind's programme responsible may open and edit the kind's page, services
+// included, while 'service' reaches only them. Every such check goes through `scopesCovering` /
+// `scheduleKindsCovering` so that asymmetry lives in one place. On a meeting it no longer holds: a schedule's rights
+// come from its own template's responsible alone, and the duties have none unless the kind names a services one.
 
 export const ResponsibilityScope = {
   Programme: 'programme',
@@ -41,8 +42,9 @@ export function scopesCovering(scope: ResponsibilityScope): ResponsibilityScope[
 }
 
 /**
- * The schedule template kinds whose responsible answers for `scope`, as the sync derives them (D31): a programme
- * responsible covers the whole meeting, so asking about the services also accepts the programme's template.
+ * The schedule template kinds whose responsible answers for `scope` in Réglages access: the kind's page stays open to
+ * its programme lead, services included, so asking about the services also accepts the programme's template. Not a
+ * meeting right: there, the duties answer to their own template's responsible only.
  */
 export function scheduleKindsCovering(scope: ResponsibilityScope): ScheduleKind[] {
   // A fresh array per call, as scopesCovering: it goes straight into a Prisma `in:` filter.

@@ -15,8 +15,9 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 /**
  * Gives a template the schedule templates its items call for, and brings them up to date: a programme one named after
  * it when it has parts, a duty one when it has services (no name: the catalogue names it), suggested by it in that
- * order. The programme responsible answers for the programme; the service responsible for the duties, else the
- * programme one (D31). Its items join the one of their kind. Never a system template's (the freeform one, which the
+ * order. The programme responsible answers for the programme; the service responsible for the duties, and nobody
+ * else: without one the duties are the managers' (user, 2026-11-24, which replaced D31's fallback). Names are written
+ * on creation only: Réglages › « Modèles de planning » owns them after. Its items join the one of their kind. Never a system template's (the freeform one, which the
  * migration names by its key). Idempotent.
  */
 export async function syncTemplateScheduleTemplates(db: TransactionClient, templateId: number, congregationId: number) {
@@ -39,17 +40,17 @@ export async function syncTemplateScheduleTemplates(db: TransactionClient, templ
   if (!template || isSystemTemplate(template.key)) return
 
   const roleOf = (scope: string) => template.responsibles.find(row => row.scope === scope)?.roleId ?? null
-  const programmeRole = roleOf(ResponsibilityScope.Programme)
   const wanted = {
     [ScheduleKind.Programme]: {
       hasItems: template._count.parts > 0,
       name: template.name,
-      responsibleRoleId: programmeRole,
+      responsibleRoleId: roleOf(ResponsibilityScope.Programme),
     },
     [ScheduleKind.Duty]: {
       hasItems: template._count.serviceParts > 0,
       name: null,
-      responsibleRoleId: roleOf(ResponsibilityScope.Service) ?? programmeRole,
+      // Its own responsible only: without one the managers see to it, whoever runs the programme (user, 2026-11-24).
+      responsibleRoleId: roleOf(ResponsibilityScope.Service),
     },
   }
 

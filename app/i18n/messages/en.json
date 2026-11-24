@@ -4441,6 +4441,7 @@
     "settings_schedule_templates_name_hint": "Schedules already created keep their name.",
     "settings_schedule_templates_responsible": "Person in charge",
     "settings_schedule_templates_responsible_none": "None: those who manage programs",
+    "settings_schedule_templates_responsible_none_short": "None",
     "settings_schedule_templates_responsible_hint": "The holder and deputies of this role fill and publish the schedules made from this template, on every meeting. Who holds the role is changed in the organigram.",
     "settings_schedule_templates_holders": "Today: {names}.",
     "settings_schedule_templates_holders_none": "Nobody holds this role today.",

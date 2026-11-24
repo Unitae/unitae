@@ -50,7 +50,7 @@
           "name": "Préposés à l’accueil",
           "eventId": "<event:midweek-2>",
           "eventDate": "2027-03-16T18:00:00.000Z",
-          "responsibleRoleId": "<id>",
+          "responsibleRoleId": null,
           "published": false
         }
       ]

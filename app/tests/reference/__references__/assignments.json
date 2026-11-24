@@ -52,7 +52,7 @@
           "name": null,
           "key": "services",
           "scheduleTemplate": {
-            "responsibleRoleId": "<id>"
+            "responsibleRoleId": null
           }
         }
       ],

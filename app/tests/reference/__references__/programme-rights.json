@@ -12,7 +12,7 @@
       "midweek": {
         "manageAsProgramme": true,
         "assignAsProgramme": true,
-        "assignAsService": true
+        "assignAsService": false
       },
       "weekend": {
         "manageAsProgramme": false,
@@ -29,11 +29,7 @@
       "midweek"
     ],
     "managesAnyProgramme": true,
-    "manageableEvents": [
-      "midweek-1",
-      "midweek-2",
-      "midweek-3"
-    ],
+    "manageableEvents": [],
     "assignableEvents": [
       "midweek-1",
       "midweek-2",

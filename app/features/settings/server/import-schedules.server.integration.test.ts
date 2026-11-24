@@ -264,6 +264,107 @@ describe('settling the schedules of an archive that carries none (2.20 and older
       ).toBe(0)
     })
   })
+
+  // An archive from before the duties had their own responsible: they inherited the programme's, which the restore
+  // writes once as the kind's services responsible, as the upgrade does on live data.
+  it('keeps the programme responsible on the duties of a kind naming only that one, past a later save', async () => {
+    await restored(async ({ db, congregationId, roleId, templateId }) => {
+      await settleImportedSchedules(new JsZip(), db, congregationId)
+      await syncTemplateScheduleTemplates(db, templateId, congregationId)
+
+      expect(
+        await db.templateResponsible.findMany({
+          where: { templateId },
+          select: { scope: true, roleId: true },
+          orderBy: { scope: 'asc' },
+        }),
+      ).toEqual([
+        { scope: 'programme', roleId },
+        { scope: 'service', roleId },
+      ])
+      expect((await db.scheduleTemplate.findFirstOrThrow({ where: { kind: 'duty' } })).responsibleRoleId).toBe(roleId)
+    })
+  })
+})
+
+describe('restoring a 2.21 archive exported before the duties had their own responsible', () => {
+  it('writes the role its duties schedule template holds as the kind’s services responsible', async () => {
+    await restored(async ({ db, congregationId, templateId }) => {
+      const dutyRole = (await db.role.create({ data: { key: `duty-${templateId}`, name: 'D', congregationId } })).id
+      const zip = new JsZip()
+      writeNdjsonFile(zip, 'schedules', [])
+      writeNdjsonFile(zip, 'schedule-templates', [
+        { id: 11, name: 'Réunion', key: null, kind: 'programme', responsibleRoleId: null },
+        { id: 12, name: null, key: 'services', kind: 'duty', responsibleRoleId: 5 },
+      ])
+      writeNdjsonFile(zip, 'kind-schedule-templates', [
+        { eventKindId: 2, scheduleTemplateId: 11, order: 0 },
+        { eventKindId: 2, scheduleTemplateId: 12, order: 1 },
+      ])
+      const idMap = new EntityIdMap()
+      idMap.set('programme-templates', 2, templateId)
+      idMap.set('roles', 5, dutyRole)
+
+      await importScheduleTemplates(zip, db, idMap, congregationId)
+      await importKindScheduleTemplates(zip, db, idMap, congregationId)
+      await settleImportedSchedules(zip, db, congregationId)
+      // A later write of the kind re-derives its schedule templates from its responsibles.
+      await syncTemplateScheduleTemplates(db, templateId, congregationId)
+
+      expect(
+        await db.templateResponsible.findFirst({ where: { templateId, scope: 'service' }, select: { roleId: true } }),
+      ).toEqual({ roleId: dutyRole })
+      expect((await db.scheduleTemplate.findFirstOrThrow({ where: { kind: 'duty' } })).responsibleRoleId).toBe(dutyRole)
+    })
+  })
+
+  // Restored into a congregation that already has the kind (matched by its key): the archive's schedule templates merge
+  // into the kind's own, which says nothing about the archive's responsible.
+  for (const [label, archived] of [
+    ['keeps the role of a duties schedule template that merges into the kind’s own', true],
+    ['leaves the duties without one when the merged duties schedule template had none', false],
+  ] as const) {
+    it(label, async () => {
+      await restored(async ({ db, congregationId, templateId, roleId }) => {
+        await syncTemplateScheduleTemplates(db, templateId, congregationId)
+        const zip = new JsZip()
+        writeNdjsonFile(zip, 'schedules', [])
+        writeNdjsonFile(zip, 'schedule-templates', [
+          { id: 11, name: 'Réunion', key: null, kind: 'programme', responsibleRoleId: 5 },
+          { id: 12, name: null, key: 'services', kind: 'duty', responsibleRoleId: archived ? 5 : null },
+        ])
+        writeNdjsonFile(zip, 'kind-schedule-templates', [
+          { eventKindId: 2, scheduleTemplateId: 11, order: 0 },
+          { eventKindId: 2, scheduleTemplateId: 12, order: 1 },
+        ])
+        const idMap = new EntityIdMap()
+        idMap.set('programme-templates', 2, templateId)
+        idMap.set('roles', 5, roleId)
+
+        await importScheduleTemplates(zip, db, idMap, congregationId)
+        const merged = await importKindScheduleTemplates(zip, db, idMap, congregationId)
+        await settleImportedSchedules(zip, db, congregationId, merged)
+
+        expect(merged).toEqual([templateId])
+        const duties = await db.scheduleTemplate.findFirstOrThrow({ where: { kind: 'duty' } })
+        const services = await db.templateResponsible.findFirst({ where: { templateId, scope: 'service' } })
+        expect([duties.responsibleRoleId, services?.roleId ?? null]).toEqual(archived ? [roleId, roleId] : [null, null])
+      })
+    })
+  }
+
+  it('leaves a duties schedule template without a responsible as it is: after the upgrade that is a choice', async () => {
+    await restored(async ({ db, congregationId, templateId }) => {
+      await syncTemplateScheduleTemplates(db, templateId, congregationId)
+      const zip = new JsZip()
+      writeNdjsonFile(zip, 'schedules', [])
+
+      await settleImportedSchedules(zip, db, congregationId)
+
+      expect(await db.templateResponsible.count({ where: { templateId, scope: 'service' } })).toBe(0)
+      expect((await db.scheduleTemplate.findFirstOrThrow({ where: { kind: 'duty' } })).responsibleRoleId).toBeNull()
+    })
+  })
 })
 
 describe('restoring a 2.21 archive into templates that already have schedule templates', () => {

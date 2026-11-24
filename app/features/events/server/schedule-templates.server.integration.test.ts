@@ -128,7 +128,7 @@ describe('syncTemplateScheduleTemplates', () => {
     })
   })
 
-  it('gives the duties to the programme responsible when the template names no service one (D31)', async () => {
+  it('leaves the duties without a responsible when the template names only a programme one (user, 2026-11-24)', async () => {
     await inCongregation(async ({ db, congregationId, template, service, role, responsible, read }) => {
       const cleaning = await template('Nettoyage')
       await service(cleaning)
@@ -138,7 +138,7 @@ describe('syncTemplateScheduleTemplates', () => {
       await syncTemplateScheduleTemplates(db, cleaning, congregationId)
 
       expect((await read(cleaning)).scheduleTemplates).toMatchObject([
-        { kind: 'duty', responsibleRoleId: programmeRole, order: 1 },
+        { kind: 'duty', responsibleRoleId: null, order: 1 },
       ])
     })
   })
@@ -181,7 +181,7 @@ describe('syncTemplateScheduleTemplates', () => {
       expect(after.scheduleTemplates).toMatchObject([
         // Its name belongs to Réglages › « Modèles de planning » since 6a: the kind's rename leaves it.
         { id: before[0].id, kind: 'programme', name: 'Réunion de week-end', responsibleRoleId: second },
-        { kind: 'duty', responsibleRoleId: second },
+        { kind: 'duty', responsibleRoleId: null },
       ])
       expect(after.parts).toEqual([before[0].id, before[0].id])
       expect(after.services).toEqual([after.scheduleTemplates[1].id])
