@@ -18,7 +18,7 @@ A schedule’s person in charge is the role its template names: its holder and i
 
 In **Meetings › Programs**, **New** opens **Create meetings**. Each meeting created comes with the schedules its kind suggests: the page shows them under each kind, with what they hold. Meetings already created ahead, still empty, receive theirs instead of being created again; those already prepared do not change.
 
-A schedule a meeting does not need is deleted afterwards from that meeting. Other templates (a videoconference, a cleaning…) are added from the meeting, with **Add a schedule**.
+An unticked date is skipped; if a meeting had been created ahead that day, it is removed. A schedule a meeting does not need can be deleted afterwards from that meeting. A meeting has one schedule of each kind: another template (a videoconference, a cleaning…) replaces one of the same kind once it is deleted, with **Add a schedule**.
 
 ## Publish a schedule
 

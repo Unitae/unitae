@@ -18,7 +18,7 @@ O responsável de um planeamento é a função que o seu modelo indica: o seu ti
 
 Em **Reuniões › Programas**, **Novo** abre **Criar reuniões**. Cada reunião criada vem com os planeamentos que o seu tipo sugere: a página mostra-os sob cada tipo, com o que contêm. As reuniões já criadas antecipadamente, ainda vazias, recebem os seus em vez de serem criadas outra vez; as que já estão preparadas não mudam.
 
-Um planeamento de que uma reunião não precisa elimina-se depois nessa reunião. Os outros modelos (uma videoconferência, uma limpeza…) adicionam-se a partir da reunião, com **Adicionar um planeamento**.
+Uma data desmarcada é ignorada; se uma reunião tinha sido criada antecipadamente nesse dia, é retirada. Um planeamento de que uma reunião não precisa pode ser eliminado depois nessa reunião. Uma reunião tem um planeamento de cada tipo: outro modelo (uma videoconferência, uma limpeza…) substitui um do mesmo tipo depois de este ser eliminado, com **Adicionar um planeamento**.
 
 ## Publicar um planeamento
 
