@@ -137,7 +137,7 @@ export async function changeEventKind(
     logger.warn('kind change refused', { eventId, kindId: kind.id, offered, userId, congregationId })
     return { refused: true }
   }
-  const reason = refusalOf(event.schedules, kept, removed, added, change.add)
+  const reason = refusalOf(event.schedules, change, kept, added)
   if (reason != null) {
     logger.info('kind change refused', { reason, eventId, kindId: kind.id, userId, congregationId })
     return { reason }
@@ -217,13 +217,14 @@ async function lockForChange(db: TransactionClient, eventId: number, kindId: num
 /** Why the change cannot be made as sent, once the caller may make it; null when it can. */
 function refusalOf(
   schedules: { id: number }[],
+  change: KindChange,
   kept: { kind: string }[],
-  removed: { id: number }[],
   added: { kind: string; _count: { parts: number; serviceParts: number } }[],
-  asked: number[],
 ): KindChangeRefusal | null {
-  if (kept.length + removed.length !== schedules.length) return 'stale'
-  if (added.length !== new Set(asked).size || !added.every(bringsItems)) return 'not-suggested'
+  // Every schedule of the meeting in exactly one list: the dialog listed it, and said what becomes of it.
+  const listedOnce = (id: number) => change.keep.includes(id) !== change.remove.includes(id)
+  if (!schedules.every(schedule => listedOnce(schedule.id))) return 'stale'
+  if (added.length !== new Set(change.add).size || !added.every(bringsItems)) return 'not-suggested'
   const kinds = [...kept, ...added].map(schedule => schedule.kind)
   return new Set(kinds).size === kinds.length ? null : 'kind-held'
 }
