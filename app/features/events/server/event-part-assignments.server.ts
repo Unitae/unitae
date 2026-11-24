@@ -46,7 +46,17 @@ export async function getEventProgramme(db: TransactionClient, eventId: number, 
     where: { id: eventId, congregationId },
     include: {
       template: { include: { _count: { select: { parts: true, serviceParts: true } } } },
-      schedules: { select: { kind: true, status: true }, orderBy: [{ order: 'asc' }, { id: 'asc' }] },
+      schedules: {
+        select: {
+          id: true,
+          kind: true,
+          status: true,
+          name: true,
+          key: true,
+          scheduleTemplate: { select: { responsibleRoleId: true } },
+        },
+        orderBy: [{ order: 'asc' }, { id: 'asc' }],
+      },
     },
   })
   if (!event) return null

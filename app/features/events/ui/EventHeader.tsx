@@ -12,9 +12,8 @@ interface EventHeaderProps {
   subtitle: string
   /** A meeting created ahead with no programme yet: « Créer le programme » replaces publishing it. */
   awaitingProgramme: boolean
-  /** How many of the shown parts and services have someone; null where that block is not shown. */
-  partsAssigned: { count: number; total: number } | null
-  servicesFilled: { count: number; total: number } | null
+  /** « Tout publier » on an event holding schedules (D43); null for one without, which publishes as a whole. */
+  publishAll: { count: number; everyone: boolean } | null
   canRelease: boolean
   canUnrelease: boolean
   canEdit: boolean
@@ -23,13 +22,12 @@ interface EventHeaderProps {
   onDelete: () => void
 }
 
-/** The event's title, status and counts, and what the reader may do with it as a whole. */
+/** The event's title and status, and what the reader may do with it as a whole; each schedule's section says its own. */
 export function EventHeader({
   event,
   subtitle,
   awaitingProgramme,
-  partsAssigned,
-  servicesFilled,
+  publishAll,
   canRelease,
   canUnrelease,
   canEdit,
@@ -44,29 +42,26 @@ export function EventHeader({
       subtitle={subtitle}
       meta={
         <>
-          {awaitingProgramme ? (
-            <Status tone="neutral">{m.programs_awaiting_badge()}</Status>
-          ) : event.status === EventStatus.Draft ? (
-            <Status tone="warning">{m.programs_event_draft_badge()}</Status>
-          ) : (
-            <Status tone="success">{m.programs_view_released()}</Status>
-          )}
-          {partsAssigned && <span>{m.programs_view_parts_assigned(partsAssigned)}</span>}
-          {servicesFilled && <span>{m.programs_view_services_filled(servicesFilled)}</span>}
+          <EventStatusBadge
+            awaitingProgramme={awaitingProgramme}
+            bySchedule={publishAll != null}
+            status={event.status}
+          />
         </>
       }
       breadcrumbs={[{ label: m.sidebar_programs(), to: '/programs' }, { label: event.name }]}
       actions={
-        (canRelease || canUnrelease || canEdit) && (
+        // Only when something shows: with schedules the header publishes their drafts, each section withdrawing its own.
+        (canEdit || (publishAll != null ? publishAll.count > 0 : canRelease || canUnrelease)) && (
           <>
-            {awaitingProgramme ? (
-              canCreateProgramme && <CreateProgrammeButton eventId={event.id} />
-            ) : (
-              <>
-                {canRelease && <PublishButton eventId={event.id} release />}
-                {canUnrelease && <PublishButton eventId={event.id} release={false} />}
-              </>
-            )}
+            <EventPublishAction
+              eventId={event.id}
+              awaitingProgramme={awaitingProgramme}
+              publishAll={publishAll}
+              canRelease={canRelease}
+              canUnrelease={canUnrelease}
+              canCreateProgramme={canCreateProgramme}
+            />
             {canEdit && (
               <>
                 <Button variant="outline" asChild>
@@ -99,6 +94,66 @@ export function EventHeader({
   )
 }
 
+/** The event's own status, for one without schedules; with them each section carries its own. */
+function EventStatusBadge({
+  awaitingProgramme,
+  bySchedule,
+  status,
+}: {
+  awaitingProgramme: boolean
+  bySchedule: boolean
+  status: string
+}) {
+  if (awaitingProgramme) return <Status tone="neutral">{m.programs_awaiting_badge()}</Status>
+  if (bySchedule) return null
+  if (status === EventStatus.Draft) return <Status tone="warning">{m.programs_event_draft_badge()}</Status>
+  return <Status tone="success">{m.programs_view_released()}</Status>
+}
+
+/**
+ * Publishing from the header: « Créer le programme » while a meeting awaits it; « Tout publier » on an event holding
+ * schedules (D43), each section withdrawing its own; « Publier » / « Retirer » on one without (D46).
+ */
+function EventPublishAction({
+  eventId,
+  awaitingProgramme,
+  publishAll,
+  canRelease,
+  canUnrelease,
+  canCreateProgramme,
+}: {
+  eventId: number
+  awaitingProgramme: boolean
+  publishAll: { count: number; everyone: boolean } | null
+  canRelease: boolean
+  canUnrelease: boolean
+  canCreateProgramme: boolean
+}) {
+  if (awaitingProgramme) return canCreateProgramme ? <CreateProgrammeButton eventId={eventId} /> : null
+  if (publishAll != null) return publishAll.count > 0 ? <PublishAllButton eventId={eventId} {...publishAll} /> : null
+  return (
+    <>
+      {canRelease && <PublishButton eventId={eventId} release />}
+      {canUnrelease && <PublishButton eventId={eventId} release={false} />}
+    </>
+  )
+}
+
+/** « Tout publier », or « Publier votre planning » for a responsible (D43): the drafts the reader may publish. */
+function PublishAllButton({ eventId, count, everyone }: { eventId: number; count: number; everyone: boolean }) {
+  const fetcher = useFetcher<{ ok: boolean }>()
+  const inFlight = fetcher.state !== 'idle'
+  return (
+    <Button
+      onClick={() => fetcher.submit({}, { method: 'POST', action: `/programs/events/${eventId}/release` })}
+      disabled={inFlight}
+    >
+      {inFlight ? <Loader2 className="animate-spin" /> : <Send />}
+      {everyone ? m.programs_publish_all() : m.programs_publish_mine({ count })}
+    </Button>
+  )
+}
+
 function CreateProgrammeButton({ eventId }: { eventId: number }) {
   const fetcher = useFetcher<{ ok: boolean }>()
   const inFlight = fetcher.state !== 'idle'
@@ -113,7 +168,7 @@ function CreateProgrammeButton({ eventId }: { eventId: number }) {
   )
 }
 
-/** « Publier » (every draft schedule of the reader's) or « Retirer » (every published one), D43. */
+/** « Publier » or « Retirer » on an event holding no schedule, which publishes as a whole (D46). */
 function PublishButton({ eventId, release }: { eventId: number; release: boolean }) {
   const fetcher = useFetcher<{ ok: boolean }>()
   const action = release ? `/programs/events/${eventId}/release` : `/programs/events/${eventId}/unrelease`

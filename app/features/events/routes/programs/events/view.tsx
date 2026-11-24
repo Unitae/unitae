@@ -1,14 +1,16 @@
 import { redirect } from 'react-router'
 import { resolveProgrammeLink } from '~/features/display-board/index.server'
-import { isAwaitingProgramme, programmeTemplate } from '~/features/events/model/empty-meetings'
+import { isAwaitingProgramme, programmeAwaits, programmeTemplate } from '~/features/events/model/empty-meetings'
 import { mayOpenEvent, maySeeSchedule } from '~/features/events/model/programme-access'
-import { ScheduleKind } from '~/features/events/model/schedule.type'
+import { ScheduleKind, ScheduleStatus } from '~/features/events/model/schedule.type'
+import { responsibleForPage } from '~/features/events/model/schedule-responsible'
 import { buildAssignmentCandidates } from '~/features/events/server/assignment-candidates.server'
 import { eventHasAttendance } from '~/features/events/server/attendance.queries'
 import { buildShareTextsForEvent } from '~/features/events/server/build-share-message.server'
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
-import { publishActionsFor } from '~/features/events/server/event-publishing.server'
+import { publishActionsFor, publishableScheduleIds } from '~/features/events/server/event-publishing.server'
 import { listExternalSpeakerOptions } from '~/features/events/server/external-speakers.queries'
+import { listScheduleResponsibles } from '~/features/events/server/schedule-responsibles.queries'
 import {
   canChangeEvent,
   canDeleteEvent,
@@ -17,6 +19,7 @@ import {
 } from '~/features/events/server/schedule-rights.server'
 import { EventView } from '~/features/events/ui/EventView'
 import * as m from '~/i18n/paraglide/messages'
+import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import {
   congregationContext,
   currentAccountContext,
@@ -66,7 +69,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const canCreateProgramme = canEdit && event.templateId != null
     const canAssignAnything = canAssign || canAssignService
     const rights = { canEdit, canPublish, canAssign, canAssignService }
-    // « Tout publier » / « Tout retirer » by the reader's own schedules (D43, D52); a bare event by canPublishEvent (D46).
+    // « Publier » / « Retirer » for an event holding no schedule, by canPublishEvent (D46); one holding schedules offers
+    // each section's and « Tout publier » (publishAll, below).
     const actions = (await publishActionsFor(db, can, currentUser.id, [event], congregationId, () => canPublish)).get(
       event.id,
     ) ?? { canRelease: false, canUnrelease: false }
@@ -81,6 +85,48 @@ export function loader({ params, context }: Route.LoaderArgs) {
       eventParts: hidden.has(ScheduleKind.Programme) ? [] : event.eventParts,
       eventServiceParts: hidden.has(ScheduleKind.Duty) ? [] : event.eventServiceParts,
     }
+
+    // Each schedule the reader sees, as its section shows it: its responsible (D37) and whether they may publish it.
+    const [mine, viewerRoleIds] = await Promise.all([
+      publishableScheduleIds(db, can, currentUser.id, [event.id], congregationId),
+      resolveEffectiveRoleIds(db, currentUser.id, congregationId),
+    ])
+    const viewer = { accountId: currentUser.id, memberId: currentUser.memberId, roleIds: viewerRoleIds }
+    const roleOf = (schedule: (typeof shown.schedules)[number]) => schedule.scheduleTemplate?.responsibleRoleId ?? null
+    const responsibles = await listScheduleResponsibles(
+      db,
+      shown.schedules.flatMap(schedule => roleOf(schedule) ?? []),
+      congregationId,
+    )
+    // From what this reader sees: a programme hidden from them is, for them, still to come.
+    const awaitingProgramme = isAwaitingProgramme({
+      parts: shown.eventParts.length,
+      services: shown.eventServiceParts.length,
+      template: programmeTemplate(event.template),
+    })
+    const schedules = shown.schedules.map(schedule => {
+      const roleId = roleOf(schedule)
+      const responsible = roleId == null ? undefined : responsibles.get(roleId)
+      const mayPublish = mine.has(schedule.id)
+      // By kind, while an event holds one schedule of each (see maySeeSchedule): its items are its kind's.
+      const items = schedule.kind === ScheduleKind.Programme ? shown.eventParts.length : shown.eventServiceParts.length
+      return {
+        id: schedule.id,
+        kind: schedule.kind,
+        status: schedule.status,
+        name: schedule.name,
+        responsible: roleId == null || responsible == null ? null : responsibleForPage(roleId, responsible, viewer),
+        mayPublish,
+        // Never offered what publishing would refuse: a programme still to give (programmeAwaits, as publishSchedule).
+        // A meeting still awaiting its programme offers « Créer le programme », never publishing (as before schedules).
+        publishable:
+          !awaitingProgramme &&
+          mayPublish &&
+          schedule.status === ScheduleStatus.Draft &&
+          !programmeAwaits({ kind: schedule.kind, items }, event.template),
+      }
+    })
+    const myDrafts = schedules.filter(schedule => schedule.publishable).length
 
     // The delete dialog says what deleting does: with counts, only the programme goes.
     const hasAttendance = canDelete && (await eventHasAttendance(db, eventId, congregationId))
@@ -113,14 +159,11 @@ export function loader({ params, context }: Route.LoaderArgs) {
     logger.info(`Loading event programme. User ID: ${currentUser.id}. Event ID: ${eventId}.`)
 
     return {
-      event: shown,
+      event: { ...shown, schedules },
+      // « Tout publier » (D43): the drafts the reader may publish, all of them for « Publier ».
+      publishAll: { count: myDrafts, everyone: can(Permission.CanPublishPrograms) },
       // Created ahead and still empty: the page offers « Créer le programme » instead of publishing it.
-      // From what this reader sees: a programme hidden from them is, for them, still to come.
-      awaitingProgramme: isAwaitingProgramme({
-        parts: shown.eventParts.length,
-        services: shown.eventServiceParts.length,
-        template: programmeTemplate(event.template),
-      }),
+      awaitingProgramme,
       hasAttendance,
       canEdit,
       canDelete,

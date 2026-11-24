@@ -80,3 +80,16 @@ export function planMeetingMoves(input: {
   }
   return { move, remove }
 }
+
+/**
+ * Whether a schedule is a programme still to give, which publishing refuses: no part while its kind's template has
+ * parts to give. Only the template's parts count, its duties filling the other schedule; duties never wait.
+ */
+export function programmeAwaits(
+  schedule: { kind: string; items: number },
+  template: { key: string | null; _count: { parts: number; serviceParts: number } } | null,
+): boolean {
+  if (schedule.kind !== 'programme') return false
+  const given = programmeTemplate(template)
+  return isAwaitingProgramme({ parts: schedule.items, services: 0, template: given && { ...given, services: 0 } })
+}

@@ -2060,6 +2060,25 @@
             }
         }
     ],
+    "programs_schedule_in_charge": "A cargo de:",
+    "programs_schedule_no_one_in_charge": "Sem responsável: quem gere os programas trata dele.",
+    "programs_schedule_kind_programme": "Programa",
+    "programs_schedule_kind_duty": "Tarefas",
+    "programs_schedule_you": "você",
+    "programs_publish_all": "Publicar tudo",
+    "programs_publish_mine": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Publicar o seu planeamento",
+                "countPlural=*": "Publicar os seus {count} planeamentos"
+            }
+        }
+    ],
     "programs_schedule_publish_success": "Planeamento publicado.",
     "programs_schedule_unpublish_success": "Planeamento voltou a rascunho.",
     "programs_bulk_skipped": [

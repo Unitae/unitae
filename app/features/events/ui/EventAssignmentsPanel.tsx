@@ -1,5 +1,6 @@
 import { Panel } from '@unitae/ui'
 import { UserPlus, X } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { Fragment } from 'react'
 import { resolvePartCapability } from '~/features/events/model/part-capability'
 import { partReaderLabel, partSpeakerLabel } from '~/features/events/model/part-labels'
@@ -42,6 +43,8 @@ interface EventAssignmentsPanelProps {
   onUnassign: (target: UnassignTarget) => void
   /** What the empty table says instead of « Aucune partie au programme ». */
   emptyHint?: string
+  /** The schedule's own heading on the event page: its title, its controls, and a first line (its responsible). */
+  heading?: { title: ReactNode; actions?: ReactNode; intro?: ReactNode }
 }
 
 /**
@@ -58,12 +61,14 @@ export function EventAssignmentsPanel({
   onAssign,
   onUnassign,
   emptyHint,
+  heading,
 }: EventAssignmentsPanelProps) {
   const sections = groupProgrammeParts(parts)
 
   return (
     <Panel
-      title={m.programs_view_spiritual_program()}
+      title={heading?.title ?? m.programs_view_spiritual_program()}
+      actions={heading?.actions}
       footer={
         parts.length > 0 && (
           <>
@@ -73,6 +78,7 @@ export function EventAssignmentsPanel({
         )
       }
     >
+      {heading?.intro && <div className="border-border border-b">{heading.intro}</div>}
       {parts.length === 0 ? (
         <p className="px-4.5 py-6 text-muted-foreground text-sm">{emptyHint ?? m.dashboard_meeting_no_parts()}</p>
       ) : (
