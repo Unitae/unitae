@@ -55,6 +55,13 @@ const CATALOG: CatalogEntry[] = [
     opens: (can, access) => can(Permission.CanManageProgramTemplates) || access.templateResponsible,
   },
   {
+    key: 'schedule-templates',
+    group: 'congregation',
+    href: '/settings/schedule-templates',
+    // Its name and responsible are the templates' managers' to set (plan §11); a responsible edits their items (6a-1c).
+    opens: can => can(Permission.CanManageProgramTemplates),
+  },
+  {
     key: 'part-types',
     group: 'congregation',
     href: '/settings/part-types',

@@ -970,8 +970,6 @@
     "settings_template_edit_service_role_deleted": "Rôle de service supprimé.",
     "settings_template_new_name_placeholder": "Ex : Réunion de semaine",
     "settings_template_new_success": "Modèle « {name} » créé.",
-    "settings_template_responsible_programme_hint": "Gère les évènements générés à partir de ce modèle : leur contenu, leurs parties et toutes les attributions.",
-    "settings_template_responsible_service_hint": "Remplit uniquement les parties de service (audio-vidéo, estrade, préposés à l’accueil, nettoyage). Ne peut pas toucher au programme spirituel.",
     "settings_template_view_duplicate_success": "Modèle dupliqué : « {name} ».",
     "settings_template_view_delete_success": "Modèle supprimé : « {name} ».",
     "settings_template_view_delete_error": "Impossible de supprimer ce modèle.",
@@ -4437,6 +4435,49 @@
     "publishers_enrolment_error_overlap": "Ce proclamateur a déjà une inscription sur cette période. Corrigez-la ou supprimez-la d’abord.",
     "publishers_enrolment_error_end_before_start": "Le dernier mois doit être le premier ou venir après.",
     "settings_presets_meta_title": "Types de parties - Réglages - Unitae",
+    "settings_schedule_templates_meta_title": "Modèles de planning - Unitae",
+    "settings_schedule_templates_subtitle": "Ce que contient un planning, et qui en répond. Un modèle sert à tous les types qui le suggèrent.",
+    "settings_schedule_templates_name": "Nom",
+    "settings_schedule_templates_name_hint": "Les plannings déjà créés gardent leur nom.",
+    "settings_schedule_templates_responsible": "Responsable",
+    "settings_schedule_templates_responsible_none": "Aucun : ceux qui gèrent les programmes",
+    "settings_schedule_templates_responsible_hint": "Le titulaire et les adjoints de ce rôle remplissent et publient les plannings faits de ce modèle, sur toutes les réunions. Qui tient le rôle se change dans l’organigramme.",
+    "settings_schedule_templates_suggested_by": "Suggéré par",
+    "settings_schedule_templates_suggested_none": "Aucun type : il s’ajoute depuis la réunion, avec « Ajouter un planning ».",
+    "settings_schedule_templates_items_note": "Ses parties et ses services se modifient encore depuis le type, dans Modèles de programme.",
+    "settings_schedule_templates_used": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Utilisé par {count} planning",
+                "countPlural=*": "Utilisé par {count} plannings"
+            }
+        }
+    ],
+    "settings_schedule_templates_used_none": "Aucun planning fait de ce modèle",
+    "settings_schedule_templates_kinds": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} type",
+                "countPlural=*": "{count} types"
+            }
+        }
+    ],
+    "settings_schedule_templates_kinds_none": "aucun type",
+    "settings_schedule_templates_saved": "Modèle de planning enregistré.",
+    "settings_schedule_templates_error_name": "Donnez-lui un nom.",
+    "settings_schedule_templates_error_role": "Ce rôle ne peut pas répondre d’un modèle : rechargez la page.",
+    "settings_schedule_templates_error_vanished": "Ce modèle n’existe plus : rechargez la page.",
+    "settings_schedule_templates_empty": "Aucun modèle de planning pour l’instant : ils naissent avec les parties ou les services d’un type, dans Modèles de programme.",
     "settings_presets_subtitle": "Ce qu’est chaque partie d’un programme, et le message envoyé à la personne qui la reçoit.",
     "settings_presets_new_button": "Nouveau type",
     "settings_presets_form_name_label": "Nom",
@@ -5808,6 +5849,7 @@
     "settings_entry_general": "Général",
     "settings_entry_publishers": "Proclamateurs",
     "settings_entry_templates": "Modèles de programme",
+    "settings_entry_schedule_templates": "Modèles de planning",
     "settings_entry_part_types": "Types de parties",
     "settings_entry_territories": "Territoires",
     "settings_entry_map": "Carte de l’assemblée",
@@ -6230,10 +6272,6 @@
     "settings_template_attendance_weekend": "Réunion de week-end",
     "settings_template_attendance_separate": "Comptée à part",
     "settings_template_attendance_hint": "Les moyennes et le S-88 ne prennent que les réunions de semaine et de week-end. « Comptée à part » enregistre l’assistance hors des moyennes et du S-88 (le Mémorial).",
-    "settings_template_programme_responsible": "Responsable du programme",
-    "settings_template_service_responsible": "Responsable des services",
-    "settings_template_holders": "Aujourd’hui : {names}.",
-    "settings_template_holders_none": "Personne n’a ce rôle aujourd’hui.",
     "settings_template_parts_empty": "Aucune partie. Ajoutez la première.",
     "settings_template_duplicate": "Dupliquer",
     "settings_template_delete": "Supprimer…",
@@ -6253,6 +6291,7 @@
         }
     ],
     "settings_template_saved": "Modèle enregistré.",
+    "settings_template_responsibles_moved": "Qui remplit et publie ses plannings se règle sur chaque modèle de planning :",
     "settings_template_read_only": "Vous voyez ce modèle sans pouvoir le modifier.",
     "settings_presets_form_has_reader_hint": "Une seconde personne sur la partie.",
     "settings_presets_form_insert": "Insérer :",
@@ -6338,6 +6377,7 @@
     "audit_log_action_event_template_responsibles_changed": "Responsables d’un modèle modifiés",
     "audit_log_action_service_role_allowed_roles_changed": "Rôles d’un service modifiés",
     "audit_log_action_part_preset_created": "Type de partie créé",
+    "audit_log_action_schedule_template_updated": "Modèle de planning modifié",
     "audit_log_action_part_preset_updated": "Type de partie modifié",
     "audit_log_action_part_preset_deleted": "Type de partie supprimé",
     "audit_log_action_calendar_feed_token_created": "Lien d’agenda créé",

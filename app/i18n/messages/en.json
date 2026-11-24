@@ -968,8 +968,6 @@
     "settings_template_edit_service_role_deleted": "Service role deleted.",
     "settings_template_new_name_placeholder": "E.g.: Life and Ministry Meeting",
     "settings_template_new_success": "Template “{name}” created.",
-    "settings_template_responsible_programme_hint": "Manages the events generated from this template: their content, their parts and every assignment.",
-    "settings_template_responsible_service_hint": "Fills in the service parts only (audio and video, stage, attendants, cleaning). Cannot touch the spiritual program.",
     "settings_template_view_duplicate_success": "Template duplicated: “{name}”.",
     "settings_template_view_delete_success": "Template deleted: “{name}”.",
     "settings_template_view_delete_error": "Unable to delete this template.",
@@ -4437,6 +4435,49 @@
     "external_speakers_empty_title": "No visiting speakers",
     "external_speakers_empty_description": "When a congregation sends you its list of speakers, add it here: you can then invite them from the programmes.",
     "settings_presets_meta_title": "Part types - Settings - Unitae",
+    "settings_schedule_templates_meta_title": "Schedule templates - Unitae",
+    "settings_schedule_templates_subtitle": "What a schedule holds, and who answers for it. A template serves every kind that suggests it.",
+    "settings_schedule_templates_name": "Name",
+    "settings_schedule_templates_name_hint": "Schedules already created keep their name.",
+    "settings_schedule_templates_responsible": "Person in charge",
+    "settings_schedule_templates_responsible_none": "None: those who manage programs",
+    "settings_schedule_templates_responsible_hint": "The holder and deputies of this role fill and publish the schedules made from this template, on every meeting. Who holds the role is changed in the organigram.",
+    "settings_schedule_templates_suggested_by": "Suggested by",
+    "settings_schedule_templates_suggested_none": "No kind: it is added from the meeting, with “Add a schedule”.",
+    "settings_schedule_templates_items_note": "Its parts and services are still edited from the kind, in Program templates.",
+    "settings_schedule_templates_used": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Used by {count} schedule",
+                "countPlural=*": "Used by {count} schedules"
+            }
+        }
+    ],
+    "settings_schedule_templates_used_none": "No schedule made from this template",
+    "settings_schedule_templates_kinds": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} kind",
+                "countPlural=*": "{count} kinds"
+            }
+        }
+    ],
+    "settings_schedule_templates_kinds_none": "no kind",
+    "settings_schedule_templates_saved": "Schedule template saved.",
+    "settings_schedule_templates_error_name": "Give it a name.",
+    "settings_schedule_templates_error_role": "This role cannot be in charge of a template: reload the page.",
+    "settings_schedule_templates_error_vanished": "This template no longer exists: reload the page.",
+    "settings_schedule_templates_empty": "No schedule template yet: they come with a kind’s parts or services, in Program templates.",
     "settings_presets_subtitle": "What each part of a program is, and the message sent to the person who receives it.",
     "settings_presets_new_button": "New type",
     "settings_presets_form_name_label": "Name",
@@ -5808,6 +5849,7 @@
     "settings_entry_general": "General",
     "settings_entry_publishers": "Publishers",
     "settings_entry_templates": "Program templates",
+    "settings_entry_schedule_templates": "Schedule templates",
     "settings_entry_part_types": "Part types",
     "settings_entry_territories": "Territories",
     "settings_entry_map": "Congregation map",
@@ -6230,10 +6272,6 @@
     "settings_template_attendance_weekend": "Weekend meeting",
     "settings_template_attendance_separate": "Counted separately",
     "settings_template_attendance_hint": "Averages and the S-88 only take midweek and weekend meetings. “Counted separately” records the attendance outside the averages and the S-88 (the Memorial).",
-    "settings_template_programme_responsible": "Program responsible",
-    "settings_template_service_responsible": "Services responsible",
-    "settings_template_holders": "Today: {names}.",
-    "settings_template_holders_none": "Nobody holds this role today.",
     "settings_template_parts_empty": "No part yet. Add the first one.",
     "settings_template_duplicate": "Duplicate",
     "settings_template_delete": "Delete…",
@@ -6253,6 +6291,7 @@
         }
     ],
     "settings_template_saved": "Template saved.",
+    "settings_template_responsibles_moved": "Who fills and publishes its schedules is set on each schedule template:",
     "settings_template_read_only": "You see this template without being able to change it.",
     "settings_presets_form_has_reader_hint": "A second person on the part.",
     "settings_presets_form_insert": "Insert:",
@@ -6338,6 +6377,7 @@
     "audit_log_action_event_template_responsibles_changed": "Template responsibles changed",
     "audit_log_action_service_role_allowed_roles_changed": "Service roles changed",
     "audit_log_action_part_preset_created": "Part type created",
+    "audit_log_action_schedule_template_updated": "Schedule template changed",
     "audit_log_action_part_preset_updated": "Part type changed",
     "audit_log_action_part_preset_deleted": "Part type deleted",
     "audit_log_action_calendar_feed_token_created": "Calendar link created",

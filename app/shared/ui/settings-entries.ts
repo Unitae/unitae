@@ -4,6 +4,7 @@ import {
   ClipboardList,
   CreditCard,
   HardDrive,
+  ListChecks,
   type LucideIcon,
   Map as MapIcon,
   MapPin,
@@ -20,6 +21,7 @@ export type SettingsEntryKey =
   | 'general'
   | 'publishers'
   | 'templates'
+  | 'schedule-templates'
   | 'part-types'
   | 'external-speakers'
   | 'territories'
@@ -41,6 +43,7 @@ export const SETTINGS_ENTRY_DISPLAY: Record<SettingsEntryKey, { label: () => str
   general: { label: m.settings_entry_general, icon: Settings },
   publishers: { label: m.settings_entry_publishers, icon: Users },
   templates: { label: m.settings_entry_templates, icon: CalendarDays },
+  'schedule-templates': { label: m.settings_entry_schedule_templates, icon: ListChecks },
   'part-types': { label: m.settings_entry_part_types, icon: BookOpen },
   'external-speakers': { label: m.settings_entry_external_speakers, icon: Mic },
   territories: { label: m.settings_entry_territories, icon: MapIcon },

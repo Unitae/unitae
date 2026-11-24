@@ -968,8 +968,6 @@
     "settings_template_edit_service_role_deleted": "Função de serviço eliminada.",
     "settings_template_new_name_placeholder": "Por exemplo: Reunião Vida e Ministério",
     "settings_template_new_success": "Modelo “{name}” criado.",
-    "settings_template_responsible_programme_hint": "Gere os eventos criados a partir deste modelo: o conteúdo, as partes e todas as designações.",
-    "settings_template_responsible_service_hint": "Preenche apenas as partes de serviço (áudio e vídeo, palco, assistentes, limpeza). Não pode alterar o programa espiritual.",
     "settings_template_view_duplicate_success": "Modelo duplicado: “{name}”.",
     "settings_template_view_delete_success": "Modelo eliminado: “{name}”.",
     "settings_template_view_delete_error": "Não foi possível eliminar este modelo.",
@@ -4437,6 +4435,49 @@
     "external_speakers_empty_title": "Não há oradores visitantes",
     "external_speakers_empty_description": "Quando uma congregação lhe enviar a lista de oradores, adicione-a aqui. Depois, poderá convidá-los para os programas.",
     "settings_presets_meta_title": "Tipos de parte - Definições - Unitae",
+    "settings_schedule_templates_meta_title": "Modelos de planeamento - Unitae",
+    "settings_schedule_templates_subtitle": "O que um planeamento contém e quem responde por ele. Um modelo serve todos os tipos que o sugerem.",
+    "settings_schedule_templates_name": "Nome",
+    "settings_schedule_templates_name_hint": "Os planeamentos já criados mantêm o seu nome.",
+    "settings_schedule_templates_responsible": "Responsável",
+    "settings_schedule_templates_responsible_none": "Nenhum: quem gere os programas",
+    "settings_schedule_templates_responsible_hint": "O titular e os adjuntos desta função preenchem e publicam os planeamentos feitos a partir deste modelo, em todas as reuniões. Quem ocupa a função muda-se no organograma.",
+    "settings_schedule_templates_suggested_by": "Sugerido por",
+    "settings_schedule_templates_suggested_none": "Nenhum tipo: adiciona-se a partir da reunião, com «Adicionar um planeamento».",
+    "settings_schedule_templates_items_note": "As suas partes e serviços ainda se editam a partir do tipo, em Modelos de programa.",
+    "settings_schedule_templates_used": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Usado por {count} planeamento",
+                "countPlural=*": "Usado por {count} planeamentos"
+            }
+        }
+    ],
+    "settings_schedule_templates_used_none": "Nenhum planeamento feito a partir deste modelo",
+    "settings_schedule_templates_kinds": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} tipo",
+                "countPlural=*": "{count} tipos"
+            }
+        }
+    ],
+    "settings_schedule_templates_kinds_none": "nenhum tipo",
+    "settings_schedule_templates_saved": "Modelo de planeamento guardado.",
+    "settings_schedule_templates_error_name": "Dê-lhe um nome.",
+    "settings_schedule_templates_error_role": "Esta função não pode ser responsável por um modelo: recarregue a página.",
+    "settings_schedule_templates_error_vanished": "Este modelo já não existe: recarregue a página.",
+    "settings_schedule_templates_empty": "Ainda não há modelos de planeamento: nascem com as partes ou os serviços de um tipo, em Modelos de programa.",
     "settings_presets_subtitle": "O que é cada parte do programa e que mensagem é enviada à pessoa a quem é atribuída.",
     "settings_presets_new_button": "Novo tipo",
     "settings_presets_form_name_label": "Nome",
@@ -5808,6 +5849,7 @@
     "settings_entry_general": "Geral",
     "settings_entry_publishers": "Publicadores",
     "settings_entry_templates": "Modelos de programa",
+    "settings_entry_schedule_templates": "Modelos de planeamento",
     "settings_entry_part_types": "Tipos de parte",
     "settings_entry_territories": "Territórios",
     "settings_entry_map": "Mapa da congregação",
@@ -6230,10 +6272,6 @@
     "settings_template_attendance_weekend": "Reunião de fim de semana",
     "settings_template_attendance_separate": "Contabilizada à parte",
     "settings_template_attendance_hint": "Só as reuniões de semana e de fim de semana contam para as médias e para o S-88. “Contabilizada à parte” regista a assistência fora das médias e do S-88 (por exemplo, à Celebração).",
-    "settings_template_programme_responsible": "Responsável pelo programa",
-    "settings_template_service_responsible": "Responsável pelos serviços",
-    "settings_template_holders": "Atualmente: {names}.",
-    "settings_template_holders_none": "Atualmente, ninguém tem esta função.",
     "settings_template_parts_empty": "Ainda não há partes. Adicione a primeira.",
     "settings_template_duplicate": "Duplicar",
     "settings_template_delete": "Eliminar…",
@@ -6253,6 +6291,7 @@
         }
     ],
     "settings_template_saved": "Modelo guardado.",
+    "settings_template_responsibles_moved": "Quem preenche e publica os seus planeamentos define-se em cada modelo de planeamento:",
     "settings_template_read_only": "Pode ver este modelo, mas não o pode alterar.",
     "settings_presets_form_has_reader_hint": "Uma segunda pessoa na parte.",
     "settings_presets_form_insert": "Inserir:",
@@ -6338,6 +6377,7 @@
     "audit_log_action_event_template_responsibles_changed": "Responsáveis pelos modelos alterados",
     "audit_log_action_service_role_allowed_roles_changed": "Funções de serviço alteradas",
     "audit_log_action_part_preset_created": "Tipo de parte criado",
+    "audit_log_action_schedule_template_updated": "Modelo de planeamento alterado",
     "audit_log_action_part_preset_updated": "Tipo de parte alterado",
     "audit_log_action_part_preset_deleted": "Tipo de parte eliminado",
     "audit_log_action_calendar_feed_token_created": "Ligação do calendário criada",

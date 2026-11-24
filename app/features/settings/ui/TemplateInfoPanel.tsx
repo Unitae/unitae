@@ -1,6 +1,6 @@
 import { Panel } from '@unitae/ui'
 import { useEffect, useState } from 'react'
-import type { useFetcher } from 'react-router'
+import { Link, type useFetcher } from 'react-router'
 import { dayLabel, parseAttendanceKind } from '~/features/events'
 import { AttendanceKindField } from '~/features/settings/ui/AttendanceKindField'
 import * as m from '~/i18n/paraglide/messages'
@@ -139,25 +139,14 @@ function TemplateInfoForm({
             <AttendanceKindField value={parseAttendanceKind(template.attendanceKind)} />
           </div>
         )}
+        {/* Who answers for its schedules moved to each schedule template (6a-1b, plan §11). */}
         {responsibles && !builtIn && (
-          <div className="grid gap-3 border-t pt-4 @md:grid-cols-2">
-            <ResponsibleField
-              id="template-programme-responsible"
-              name="programmeRoleId"
-              label={m.settings_template_programme_responsible()}
-              hint={m.settings_template_responsible_programme_hint()}
-              responsible={responsibles.programme}
-              roles={responsibles.roles}
-            />
-            <ResponsibleField
-              id="template-service-responsible"
-              name="serviceRoleId"
-              label={m.settings_template_service_responsible()}
-              hint={m.settings_template_responsible_service_hint()}
-              responsible={responsibles.service}
-              roles={responsibles.roles}
-            />
-          </div>
+          <p className="border-t pt-4 text-muted-foreground text-sm">
+            {m.settings_template_responsibles_moved()}{' '}
+            <Link to="/settings/schedule-templates" className="text-brand-text underline-offset-4 hover:underline">
+              {m.settings_entry_schedule_templates()}
+            </Link>
+          </p>
         )}
       </fetcher.Form>
       {editable && changes > 0 && (
@@ -171,46 +160,5 @@ function TemplateInfoForm({
         </FormSaveBar>
       )}
     </Panel>
-  )
-}
-
-interface ResponsibleFieldProps {
-  id: string
-  name: string
-  label: string
-  hint: string
-  responsible: Responsible
-  roles: { id: number; label: string }[]
-}
-
-/** A role that runs part of the template, and who holds it today while it is the saved one. */
-function ResponsibleField({ id, name, label, hint, responsible, roles }: ResponsibleFieldProps) {
-  const saved = responsible.roleId == null ? NONE : String(responsible.roleId)
-  const [value, setValue] = useState(saved)
-  const holders =
-    value === saved && responsible.roleId != null
-      ? responsible.holders.length > 0
-        ? m.settings_template_holders({ names: responsible.holders.join(', ') })
-        : m.settings_template_holders_none()
-      : null
-
-  return (
-    <div className="flex min-w-0 flex-col gap-1.5">
-      <Label htmlFor={id}>{label}</Label>
-      <Select name={name} value={value} onValueChange={setValue}>
-        <SelectTrigger id={id} className="w-full">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={NONE}>{m.settings_templates_managers()}</SelectItem>
-          {roles.map(role => (
-            <SelectItem key={role.id} value={String(role.id)}>
-              {role.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <p className="text-faint text-xs">{holders ? `${holders} ${hint}` : hint}</p>
-    </div>
   )
 }
