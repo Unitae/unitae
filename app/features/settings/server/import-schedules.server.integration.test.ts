@@ -252,7 +252,7 @@ describe('settling the schedules of an archive that carries none (2.20 and older
         }),
       ).toEqual([
         { kind: 'programme', name: 'Réunion', key: null, responsibleRoleId: roleId },
-        { kind: 'duty', name: null, key: 'services', responsibleRoleId: null },
+        { kind: 'duty', name: null, key: 'services', responsibleRoleId: roleId },
       ])
       expect(await schedulesOf(db)).toMatchObject([
         { eventId: releasedId, kind: 'programme', status: 'published', _count: { parts: 1, serviceParts: 0 } },
@@ -262,6 +262,72 @@ describe('settling the schedules of an archive that carries none (2.20 and older
         (await db.templatePart.count({ where: { scheduleTemplateId: null } })) +
           (await db.templateServicePart.count({ where: { scheduleTemplateId: null } })),
       ).toBe(0)
+    })
+  })
+
+  // An archive from before the duties had their own responsible: they inherited the programme's, which the restore
+  // writes once as the kind's services responsible, as the upgrade does on live data.
+  it('keeps the programme responsible on the duties of a kind naming only that one, past a later save', async () => {
+    await restored(async ({ db, congregationId, roleId, templateId }) => {
+      await settleImportedSchedules(new JsZip(), db, congregationId)
+      await syncTemplateScheduleTemplates(db, templateId, congregationId)
+
+      expect(
+        await db.templateResponsible.findMany({
+          where: { templateId },
+          select: { scope: true, roleId: true },
+          orderBy: { scope: 'asc' },
+        }),
+      ).toEqual([
+        { scope: 'programme', roleId },
+        { scope: 'service', roleId },
+      ])
+      expect((await db.scheduleTemplate.findFirstOrThrow({ where: { kind: 'duty' } })).responsibleRoleId).toBe(roleId)
+    })
+  })
+})
+
+describe('restoring a 2.21 archive exported before the duties had their own responsible', () => {
+  it('writes the role its duties schedule template holds as the kind’s services responsible', async () => {
+    await restored(async ({ db, congregationId, templateId }) => {
+      const dutyRole = (await db.role.create({ data: { key: `duty-${templateId}`, name: 'D', congregationId } })).id
+      const zip = new JsZip()
+      writeNdjsonFile(zip, 'schedules', [])
+      writeNdjsonFile(zip, 'schedule-templates', [
+        { id: 11, name: 'Réunion', key: null, kind: 'programme', responsibleRoleId: null },
+        { id: 12, name: null, key: 'services', kind: 'duty', responsibleRoleId: 5 },
+      ])
+      writeNdjsonFile(zip, 'kind-schedule-templates', [
+        { eventKindId: 2, scheduleTemplateId: 11, order: 0 },
+        { eventKindId: 2, scheduleTemplateId: 12, order: 1 },
+      ])
+      const idMap = new EntityIdMap()
+      idMap.set('programme-templates', 2, templateId)
+      idMap.set('roles', 5, dutyRole)
+
+      await importScheduleTemplates(zip, db, idMap, congregationId)
+      await importKindScheduleTemplates(zip, db, idMap, congregationId)
+      await settleImportedSchedules(zip, db, congregationId)
+      // A later write of the kind re-derives its schedule templates from its responsibles.
+      await syncTemplateScheduleTemplates(db, templateId, congregationId)
+
+      expect(
+        await db.templateResponsible.findFirst({ where: { templateId, scope: 'service' }, select: { roleId: true } }),
+      ).toEqual({ roleId: dutyRole })
+      expect((await db.scheduleTemplate.findFirstOrThrow({ where: { kind: 'duty' } })).responsibleRoleId).toBe(dutyRole)
+    })
+  })
+
+  it('leaves a duties schedule template without a responsible as it is: after the upgrade that is a choice', async () => {
+    await restored(async ({ db, congregationId, templateId }) => {
+      await syncTemplateScheduleTemplates(db, templateId, congregationId)
+      const zip = new JsZip()
+      writeNdjsonFile(zip, 'schedules', [])
+
+      await settleImportedSchedules(zip, db, congregationId)
+
+      expect(await db.templateResponsible.count({ where: { templateId, scope: 'service' } })).toBe(0)
+      expect((await db.scheduleTemplate.findFirstOrThrow({ where: { kind: 'duty' } })).responsibleRoleId).toBeNull()
     })
   })
 })

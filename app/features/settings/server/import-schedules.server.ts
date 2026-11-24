@@ -1,5 +1,11 @@
 import type JsZip from 'jszip'
-import { isScheduleKind, ScheduleStatus, UNNAMED_SCHEDULE_KEY } from '~/features/events'
+import {
+  isScheduleKind,
+  ResponsibilityScope,
+  ScheduleKind,
+  ScheduleStatus,
+  UNNAMED_SCHEDULE_KEY,
+} from '~/features/events'
 import { attachEventItems, syncTemplateScheduleTemplates } from '~/features/events/index.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
@@ -212,6 +218,45 @@ export function scheduleOfItem(
 }
 
 /**
+ * An archive from before the duties had their own responsible (2026-11-24) restores as the upgrade migrates live data
+ * (20261128090000_duties_own_responsible): a kind naming a programme responsible and no services one, with services,
+ * gets the role its duties inherited written once as its services responsible: its duties schedule template's role
+ * (2.21 and later), or the programme's when it has none yet (2.20 and older). A duties schedule template without a
+ * role is left alone: after the upgrade it is a choice, and no newer archive holds a role there without a services row.
+ */
+async function writeInheritedServiceResponsibles(db: TransactionClient, congregationId: number) {
+  const kinds = await db.eventTemplate.findMany({
+    where: {
+      congregationId,
+      serviceParts: { some: {} },
+      responsibles: { some: { scope: ResponsibilityScope.Programme }, none: { scope: ResponsibilityScope.Service } },
+    },
+    select: {
+      id: true,
+      responsibles: { where: { scope: ResponsibilityScope.Programme }, select: { roleId: true } },
+      scheduleTemplates: {
+        where: { scheduleTemplate: { kind: ScheduleKind.Duty } },
+        orderBy: [{ order: 'asc' }, { scheduleTemplateId: 'asc' }],
+        select: { scheduleTemplate: { select: { responsibleRoleId: true } } },
+      },
+    },
+  })
+  let written = 0
+  for (const kind of kinds) {
+    const duties = kind.scheduleTemplates[0]?.scheduleTemplate
+    const roleId = duties == null ? kind.responsibles[0]?.roleId : duties.responsibleRoleId
+    if (roleId == null) continue
+    await db.templateResponsible.create({
+      data: { templateId: kind.id, roleId, scope: ResponsibilityScope.Service, congregationId },
+    })
+    written++
+  }
+  if (written > 0) {
+    logger.info(`Wrote the inherited services responsible of ${written} restored template(s)`, { congregationId })
+  }
+}
+
+/**
  * Last: it finds the items that came without a schedule, so every item must be in. An archive that carries its
  * schedules keeps their names and statuses, but for a template it touches: a template merged into one the congregation
  * had (`mergedTemplateIds`), or holding an item that came without a schedule template, is brought up to date by the
@@ -228,6 +273,7 @@ export async function settleImportedSchedules(
   mergedTemplateIds: number[] = [],
 ) {
   const carriesSchedules = zip.file('data/schedules.ndjson') != null
+  await writeInheritedServiceResponsibles(db, congregationId)
   const withoutTemplate = { scheduleTemplateId: null }
   const templates = await db.eventTemplate.findMany({
     where: {
