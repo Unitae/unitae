@@ -2024,6 +2024,19 @@
     ],
     "programs_bulk_not_permitted": "You do not have permission to publish the selected programs.",
     "programs_bulk_delete_not_permitted": "You do not have permission to delete the selected programs.",
+    "programs_schedules_empty": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} empty schedule stays a draft.",
+                "countPlural=*": "{count} empty schedules stay drafts."
+            }
+        }
+    ],
     "programs_schedules_conflicted": [
         {
             "declarations": [
@@ -7144,6 +7157,7 @@
     "event_part_error_day_off_publisher": "This publisher has an absence on this date.",
     "event_part_error_day_off_reader": "The second speaker has an absence on this date.",
     "event_status_error_release_blocked": "Cannot publish: this event has absence conflicts to resolve.",
+    "event_status_error_publish_empty": "Cannot publish: this schedule is empty.",
     "event_status_error_release_awaiting": "Cannot publish: this meeting has no program yet.",
     "role_tree_error_cycle": "A service cannot sit under itself or under one of the services that depend on it.",
     "role_tree_error_too_deep": "The organization chart cannot go deeper than {max} levels.",

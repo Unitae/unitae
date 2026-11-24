@@ -29,6 +29,8 @@ export type BulkReleaseResult = {
   heldSchedules: number
   /** Schedules of the published events their own absence conflicts held back as drafts. */
   conflictedSchedules: number
+  /** Empty schedules left drafts, never published empty, whether the rest of their event was published or not. */
+  emptySchedules: number
 }
 
 // Notifications fire outside each event's tx to keep it pure and rollback-safe; a Prisma error inside one (pool
@@ -49,6 +51,7 @@ export async function bulkReleaseEvents(
     failed: [],
     heldSchedules: 0,
     conflictedSchedules: 0,
+    emptySchedules: 0,
   }
 
   for (const id of eventIds) {
@@ -70,14 +73,18 @@ export async function bulkReleaseEvents(
       continue
     }
     out.heldSchedules += result.skipped
-    const held = result.blocked[0]
-    if (!result.changed && held != null) {
-      if (held.reason === 'awaiting') out.awaiting.push(id)
-      else out.blocked.push({ id, error: held.error })
+    out.emptySchedules += result.blocked.filter(blocked => blocked.reason === 'empty').length
+    if (!result.changed && result.blocked.length > 0) {
+      // Nothing published: a meeting awaiting its programme, an absence conflict, or only empty schedules, which the
+      // count above already says.
+      const conflict = result.blocked.find(blocked => blocked.reason === 'conflicts')
+      if (result.blocked.some(blocked => blocked.reason === 'awaiting')) out.awaiting.push(id)
+      else if (conflict != null) out.blocked.push({ id, error: conflict.error })
       continue
     }
     out.released.push(id)
-    // Published in part: what stayed a draft is said, a programme still to give with the meetings awaiting one.
+    // Published in part: what stayed a draft is said, a programme still to give with the meetings awaiting one, the
+    // empty schedules counted above.
     out.conflictedSchedules += result.blocked.filter(blocked => blocked.reason === 'conflicts').length
     if (result.blocked.some(blocked => blocked.reason === 'awaiting')) out.awaiting.push(id)
     // Notifications AFTER the event's tx has committed. Any per-target failure is swallowed inside

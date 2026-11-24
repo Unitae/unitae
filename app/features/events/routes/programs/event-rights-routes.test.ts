@@ -279,6 +279,30 @@ describe('« Tout publier » says what stayed a draft, schedule by schedule', ()
     expect(response).toMatchObject({ data: { ok: false } })
     expect(state.flashed).toEqual([`error:${m.programs_schedules_conflicted({ count: 2 })}`])
   })
+
+  const empty = (kind: string) => ({
+    schedule: { id: 2, kind },
+    reason: 'empty',
+    error: 'Impossible : ce planning est vide.',
+  })
+
+  it('publishes the programme and says the empty duties stayed a draft', async () => {
+    state.answers.publish = true
+    state.publishOutcome = { blocked: [empty('duty')] }
+    await post(releaseRoute.action as Action, '/programs/events/40/release')
+    expect(state.flashed).toEqual([
+      `success:${m.programs_release_success()}`,
+      `error:${m.programs_schedules_empty({ count: 1 })}`,
+    ])
+  })
+
+  it('never says « publié » when every schedule left was empty', async () => {
+    state.answers.publish = true
+    state.publishOutcome = { changed: false, blocked: [empty('programme'), empty('duty')] }
+    const response = await post(releaseRoute.action as Action, '/programs/events/40/release')
+    expect(response).toMatchObject({ data: { ok: false } })
+    expect(state.flashed).toEqual([`error:${m.programs_schedules_empty({ count: 2 })}`])
+  })
 })
 
 describe('« Tout retirer » with another schedule left published', () => {

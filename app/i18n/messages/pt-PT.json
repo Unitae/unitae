@@ -2024,6 +2024,19 @@
     ],
     "programs_bulk_not_permitted": "Não tem permissão para publicar os programas selecionados.",
     "programs_bulk_delete_not_permitted": "Não tem permissão para eliminar os programas selecionados.",
+    "programs_schedules_empty": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} planeamento vazio fica em rascunho.",
+                "countPlural=*": "{count} planeamentos vazios ficam em rascunho."
+            }
+        }
+    ],
     "programs_schedules_conflicted": [
         {
             "declarations": [
@@ -7144,6 +7157,7 @@
     "event_part_error_day_off_publisher": "Este publicador está ausente nesta data.",
     "event_part_error_day_off_reader": "O segundo orador está ausente nesta data.",
     "event_status_error_release_blocked": "Não é possível publicar: este evento tem conflitos de ausência por resolver.",
+    "event_status_error_publish_empty": "Não é possível publicar: este planeamento está vazio.",
     "event_status_error_release_awaiting": "Não é possível publicar: esta reunião ainda não tem programa.",
     "role_tree_error_cycle": "Um serviço não pode depender de si próprio nem de um dos serviços que dependem dele.",
     "role_tree_error_too_deep": "O organigrama não pode ter mais de {max} níveis.",

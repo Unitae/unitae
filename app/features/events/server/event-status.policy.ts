@@ -18,6 +18,9 @@ export const EVENT_STATUS_ERRORS = {
   get releaseAwaitingProgramme() {
     return m.event_status_error_release_awaiting()
   },
+  get publishEmpty() {
+    return m.event_status_error_publish_empty()
+  },
 }
 
 export type PartReleaseAssignment = { hasConflict: boolean }
