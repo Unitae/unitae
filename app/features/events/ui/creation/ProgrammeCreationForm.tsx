@@ -22,6 +22,7 @@ export interface CreationActionData {
 interface ProgrammeCreationFormProps {
   templates: CreationTemplate[]
   existing: ExistingProgramme[]
+  ahead: ExistingProgramme[]
   today: string
   /** Manages every programme: « Autre évènement » and the way to the templates. */
   canManage: boolean
@@ -36,16 +37,17 @@ interface ProgrammeCreationFormProps {
 export function ProgrammeCreationForm({
   templates,
   existing,
+  ahead,
   today,
   canManage,
   week,
   result,
 }: ProgrammeCreationFormProps) {
-  const state = useProgrammeCreation({ templates, existing, today, canFreeform: canManage, week })
+  const state = useProgrammeCreation({ templates, existing, ahead, today, canFreeform: canManage, week })
   const errors = result?.result.error ?? {}
   const series = state.mode === 'series'
   const mode = series ? 'series' : state.choice === 'freeform' ? 'freeform' : 'single'
-  const ready = series ? state.count.create > 0 : state.choice != null
+  const ready = series ? state.count.create + state.count.fill > 0 : state.choice != null
 
   return (
     <Form method="post" className="flex flex-col gap-4 pb-24">
@@ -96,7 +98,7 @@ export function ProgrammeCreationForm({
           <Link to="/programs">{m.common_cancel()}</Link>
         </Button>
         <SubmitButton disabled={!ready}>
-          {series ? submitLabel(state.count.create) : m.programs_new_submit_single()}
+          {series ? submitLabel(state.count) : m.programs_new_submit_single()}
         </SubmitButton>
       </FormSaveBar>
     </Form>

@@ -2414,14 +2414,15 @@
     "programs_bulk_invalid_payload": "La sélection est invalide. Actualisez la page et réessayez.",
     "programs_empty_title": "Aucun programme pour l’instant",
     "programs_empty_description": "Les réunions se créent à partir des modèles de l’assemblée, plusieurs semaines d’un coup.",
-    "programs_new_meta_title": "Créer les programmes - Unitae",
-    "programs_new_page_title": "Créer les programmes",
+    "programs_new_meta_title": "Créer des réunions - Unitae",
+    "programs_new_page_title": "Créer des réunions",
     "programs_new_mode_title": "Ce que vous créez",
     "programs_new_mode_description": "Les réunions régulières, plusieurs semaines d’un coup. Une seule date pour le Mémorial, une réunion déplacée ou un autre évènement.",
     "programs_new_mode_series": "Plusieurs semaines",
     "programs_new_mode_single": "Une seule date",
-    "programs_new_meetings_title": "Réunions",
-    "programs_new_meetings_description": "Cochez celles à créer : chacune se place sur son jour, avec ses parties et ses services.",
+    "programs_new_meetings_title": "Réunions et plannings",
+    "programs_new_meetings_description": "Cochez les réunions à créer. Chacune arrive avec les plannings que son type suggère ; un planning qui ne sert pas pour une réunion se supprime ensuite depuis celle-ci.",
+    "programs_new_meetings_settings_hint": "Pour qu’un type n’ait plus un planning, retirez-le de ses plannings dans Réglages › Modèles de programme.",
     "programs_new_every": "Chaque {weekday} · {hours}",
     "programs_new_usually": "Habituellement le {weekday} · {hours}",
     "programs_new_parts": [
@@ -2450,13 +2451,13 @@
             }
         }
     ],
-    "programs_new_created_until": "Créés jusqu’au {date}",
+    "programs_new_created_until": "Préparées jusqu’au {date}",
     "programs_new_none_to_come": "Aucun programme à venir",
     "programs_new_no_meetings_title": "Aucune réunion régulière pour l’instant",
     "programs_new_no_meetings_body": "Les réunions se créent à partir des modèles de l’assemblée : leur jour, leurs horaires, leurs parties et leurs services.",
     "programs_new_no_meetings_link": "Créer un modèle dans les réglages",
     "programs_new_period_title": "Période",
-    "programs_new_period_description": "Elle part du lendemain du dernier programme déjà créé : rien en double, rien d’oublié entre deux.",
+    "programs_new_period_description": "Elle part du lendemain de la dernière réunion préparée : rien en double, rien d’oublié entre deux.",
     "programs_new_from_label": "Du",
     "programs_new_to_label": "Jusqu’au",
     "programs_new_until_label": "Jusqu’à",
@@ -2474,7 +2475,7 @@
             }
         }
     ],
-    "programs_new_follows_last": "À la suite du dernier programme créé, le {date}.",
+    "programs_new_follows_last": "À la suite de la dernière réunion préparée, le {date}.",
     "programs_new_template_title": "Modèle",
     "programs_new_template_description": "Une réunion régulière peut aussi se créer seule, un autre jour que le sien.",
     "programs_new_freeform_name": "Autre évènement",
@@ -2497,11 +2498,53 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "{count} programme",
-                "countPlural=*": "{count} programmes"
+                "countPlural=one": "{count} réunion",
+                "countPlural=*": "{count} réunions"
             }
         }
     ],
+    "programs_new_schedules": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} planning",
+                "countPlural=*": "{count} plannings"
+            }
+        }
+    ],
+    "programs_new_new": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} nouvelle",
+                "countPlural=*": "{count} nouvelles"
+            }
+        }
+    ],
+    "programs_new_fill": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} déjà créée d’avance, qui reçoit ses plannings",
+                "countPlural=*": "{count} déjà créées d’avance, qui reçoivent les leurs"
+            }
+        }
+    ],
+    "programs_new_row_ahead": "déjà créée",
+    "programs_new_schedules_title": "Plannings",
+    "programs_new_no_schedule": "Aucun planning suggéré : la réunion se crée sans, puis sa page s’ouvre avec « Ajouter un planning ».",
     "programs_new_count_none": "Rien à créer",
     "programs_new_existing": [
         {
@@ -2540,7 +2583,7 @@
     "programs_new_pick_template": "Choisissez un modèle.",
     "programs_new_from_template": "Ses parties et ses services viennent du modèle.",
     "programs_new_freeform_empty": "Sans partie ni service pour l’instant.",
-    "programs_new_then_edit": "Ensuite, le programme s’ouvre pour le compléter.",
+    "programs_new_then_edit": "Ensuite, la réunion s’ouvre pour la compléter.",
     "programs_new_draft_note": "Créés en brouillon : seuls ceux qui préparent les programmes les voient, jusqu’à la publication.",
     "programs_new_draft_note_short": "En brouillon",
     "programs_new_submit": [
@@ -2551,12 +2594,26 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "Créer {count} programme",
-                "countPlural=*": "Créer {count} programmes"
+                "countPlural=one": "Créer {count} réunion",
+                "countPlural=*": "Créer {count} réunions"
             }
         }
     ],
-    "programs_new_submit_single": "Créer le programme",
+    "programs_new_submit_fill": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Compléter {count} réunion",
+                "countPlural=*": "Compléter {count} réunions"
+            }
+        }
+    ],
+    "programs_new_submit_both": "Créer {create}, compléter {fill}",
+    "programs_new_submit_single": "Créer la réunion",
     "programs_new_error_day": "Choisissez une date.",
     "programs_new_error_past": "Pas avant aujourd’hui.",
     "programs_new_error_to_before_from": "Après le premier jour.",
@@ -2577,13 +2634,13 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "{count} programme créé, en brouillon.",
-                "countPlural=*": "{count} programmes créés, en brouillon."
+                "countPlural=one": "{count} réunion préparée, en brouillon.",
+                "countPlural=*": "{count} réunions préparées, en brouillon."
             }
         }
     ],
     "programs_new_flash_none": "Rien à créer : ces dates ont déjà leurs programmes.",
-    "programs_new_flash_single": "Programme créé, en brouillon.",
+    "programs_new_flash_single": "Réunion créée, en brouillon.",
     "programs_view_meta_title": "Programme - Unitae",
     "programs_view_spiritual_program": "Programme spirituel",
     "programs_view_services": "Services",

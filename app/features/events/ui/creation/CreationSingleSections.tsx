@@ -10,6 +10,7 @@ import { RadioGroup, RadioGroupItem } from '~/shared/ui/radio-group'
 import { isCalendarDay } from '~/shared/utils/calendar-day'
 import { cn } from '~/shared/utils/utils'
 
+import { CreationScheduleList } from './CreationScheduleList'
 import { DayField, FieldError } from './CreationSeriesSections'
 import { hoursLabel, templateLine, weekdayName } from './creation-labels'
 import type { ProgrammeCreationState } from './use-programme-creation'
@@ -32,36 +33,58 @@ export function CreationSingleSections({ state, templates, errors, today, canFre
   const freeform = state.choice === FREEFORM
   const weekDay = isCalendarDay(state.day) ? new Date(`${state.day}T12:00:00Z`).getUTCDay() : null
   const moved = template?.weekDay != null && weekDay != null && weekDay !== template.weekDay
+  // A responsible of one kind only has nothing to choose: the kind is stated, not offered as a lone radio.
+  const lone = templates.length === 1 && !canFreeform ? templates[0] : undefined
 
   return (
     <>
       <FormSection title={m.programs_new_template_title()} description={m.programs_new_template_description()}>
-        <RadioGroup
-          value={state.choice == null ? '' : String(state.choice)}
-          onValueChange={value => state.setChoice(value === FREEFORM ? FREEFORM : Number(value))}
-          aria-label={m.programs_new_template_title()}
-          className="col-span-full gap-1.5"
-        >
-          {templates.map(option => (
-            <ChoiceCard
-              key={option.id}
-              value={String(option.id)}
-              picked={state.choice === option.id}
-              color={option.color}
-              label={option.name}
-              description={templateLine(option, true)}
-            />
-          ))}
-          {canFreeform && (
-            <ChoiceCard
-              value={FREEFORM}
-              picked={freeform}
-              label={m.programs_new_freeform_name()}
-              description={m.programs_new_freeform_description()}
-            />
-          )}
-        </RadioGroup>
+        {lone != null ? (
+          <p className="col-span-full flex flex-col gap-0.5 rounded-md border border-border px-3 py-2.5">
+            <span className="flex items-center gap-2 font-medium text-sm">
+              <span
+                aria-hidden="true"
+                className="size-2 shrink-0 rounded-full"
+                style={{ backgroundColor: lone.color }}
+              />
+              {lone.name}
+            </span>
+            <span className="text-muted-foreground text-sm tabular-nums">{templateLine(lone, true)}</span>
+          </p>
+        ) : (
+          <RadioGroup
+            value={state.choice == null ? '' : String(state.choice)}
+            onValueChange={value => state.setChoice(value === FREEFORM ? FREEFORM : Number(value))}
+            aria-label={m.programs_new_template_title()}
+            className="col-span-full gap-1.5"
+          >
+            {templates.map(option => (
+              <ChoiceCard
+                key={option.id}
+                value={String(option.id)}
+                picked={state.choice === option.id}
+                color={option.color}
+                label={option.name}
+                description={templateLine(option, true)}
+              />
+            ))}
+            {canFreeform && (
+              <ChoiceCard
+                value={FREEFORM}
+                picked={freeform}
+                label={m.programs_new_freeform_name()}
+                description={m.programs_new_freeform_description()}
+              />
+            )}
+          </RadioGroup>
+        )}
         {template != null && <input type="hidden" name="templateId" value={template.id} />}
+        {template != null && (
+          <div className="col-span-full rounded-md border border-border">
+            <p className="border-border border-b px-3 py-2 font-medium text-sm">{m.programs_new_schedules_title()}</p>
+            <CreationScheduleList schedules={template.schedules} typeName={template.name} className="py-1" />
+          </div>
+        )}
         <FieldError messages={errors.templateId} />
       </FormSection>
 

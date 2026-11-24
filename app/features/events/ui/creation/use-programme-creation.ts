@@ -18,6 +18,8 @@ export type SingleChoice = number | 'freeform' | null
 interface Options {
   templates: CreationTemplate[]
   existing: ExistingProgramme[]
+  /** Meetings created ahead, empty: the series fills them. */
+  ahead: ExistingProgramme[]
   today: string
   canFreeform: boolean
   /** The Monday of a week asked for from the programmes list: the series covers that week only. */
@@ -31,7 +33,7 @@ const LONGEST_SERIES_DAYS = 365
  * The creation page's state and what follows from it: the programmes a series would hold, counted, and the single
  * programme otherwise. A series starts after the last programmes already created, unless a week was asked for.
  */
-export function useProgrammeCreation({ templates, existing, today, canFreeform, week }: Options) {
+export function useProgrammeCreation({ templates, existing, ahead, today, canFreeform, week }: Options) {
   const recurring = templates.filter(isRecurring)
   const [mode, setMode] = useState<CreationMode>(recurring.length > 0 ? 'series' : 'single')
   const [selected, setSelected] = useState(() => new Set(recurring.map(template => template.id)))
@@ -44,7 +46,7 @@ export function useProgrammeCreation({ templates, existing, today, canFreeform, 
 
   const chosen = recurring.filter(template => selected.has(template.id))
   const periodOk = isCalendarDay(from) && isCalendarDay(to) && to >= from && daysBetween(from, to) < LONGEST_SERIES_DAYS
-  const planned = periodOk ? plannedSeries(chosen, from, to, existing) : []
+  const planned = periodOk ? plannedSeries(chosen, from, to, existing, ahead) : []
   const count = countSeries(planned, skipped)
   const usualStart = seriesStart(chosen, today)
 

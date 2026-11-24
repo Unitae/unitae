@@ -10,7 +10,8 @@ import { Checkbox } from '~/shared/ui/checkbox'
 import { DateInput } from '~/shared/ui/DateInput'
 import { Label } from '~/shared/ui/label'
 import { cn } from '~/shared/utils/utils'
-import { contentLabel, monthName, shortDate, templateLine, weeksLabel } from './creation-labels'
+import { CreationScheduleList } from './CreationScheduleList'
+import { monthName, shortDate, templateLine, weeksLabel } from './creation-labels'
 import type { ProgrammeCreationState } from './use-programme-creation'
 
 interface SectionsProps {
@@ -39,6 +40,7 @@ export function CreationSeriesSections({ state, errors, today, canManage }: Sect
             />
           ))}
           <FieldError messages={errors.templateIds} />
+          {canManage && <p className="text-faint text-sm">{m.programs_new_meetings_settings_hint()}</p>}
         </div>
       </FormSection>
 
@@ -110,36 +112,45 @@ function TemplateCheckCard({
       ? m.programs_new_created_until({ date: shortDate(template.lastDay) })
       : m.programs_new_none_to_come()
   return (
-    <label
-      htmlFor={id}
-      className={cn(
-        'flex cursor-pointer items-start gap-3 rounded-md border px-3 py-2.5 transition-colors duration-(--u-duration-fast)',
-        checked ? 'border-brand bg-brand-soft' : 'border-border hover:bg-hover',
-      )}
-    >
-      <Checkbox
-        id={id}
-        name="templateIds"
-        value={String(template.id)}
-        checked={checked}
-        onCheckedChange={onToggle}
-        className="mt-0.5"
-      />
-      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="flex items-center gap-2 font-medium text-sm">
-          <span
-            aria-hidden="true"
-            className="size-2 shrink-0 rounded-full"
-            style={{ backgroundColor: template.color }}
-          />
-          {template.name}
+    <div className={cn('flex flex-col rounded-md border', checked ? 'border-brand' : 'border-border')}>
+      <label
+        htmlFor={id}
+        className={cn(
+          'flex cursor-pointer items-start gap-3 rounded-md px-3 py-2.5 transition-colors duration-(--u-duration-fast)',
+          checked ? 'rounded-b-none bg-brand-soft' : 'hover:bg-hover',
+        )}
+      >
+        <Checkbox
+          id={id}
+          name="templateIds"
+          value={String(template.id)}
+          checked={checked}
+          onCheckedChange={onToggle}
+          className="mt-0.5"
+        />
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="flex items-center gap-2 font-medium text-sm">
+            <span
+              aria-hidden="true"
+              className="size-2 shrink-0 rounded-full"
+              style={{ backgroundColor: template.color }}
+            />
+            {template.name}
+          </span>
+          <span className="text-muted-foreground text-sm tabular-nums">{templateLine(template)}</span>
+          <span className="text-faint text-sm tabular-nums sm:hidden">{last}</span>
         </span>
-        <span className="text-muted-foreground text-sm tabular-nums">{templateLine(template)}</span>
-        <span className="text-faint text-sm tabular-nums">{contentLabel(template)}</span>
-        <span className="text-faint text-sm tabular-nums sm:hidden">{last}</span>
-      </span>
-      <span className="shrink-0 text-faint text-sm tabular-nums max-sm:hidden">{last}</span>
-    </label>
+        <span className="shrink-0 text-faint text-sm tabular-nums max-sm:hidden">{last}</span>
+      </label>
+      {/* What each meeting of it arrives with; a kind left unticked hides them. */}
+      {checked && (
+        <CreationScheduleList
+          schedules={template.schedules}
+          typeName={template.name}
+          className="border-border border-t py-1 pl-6"
+        />
+      )}
+    </div>
   )
 }
 
