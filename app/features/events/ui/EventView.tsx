@@ -204,12 +204,9 @@ export function EventView({
           )}
         </>
       ),
-      intro: (
-        <>
-          <ScheduleConflictNotice schedule={schedule} items={itemsOf(schedule.kind)} />
-          <ScheduleResponsibleLine schedule={schedule} />
-        </>
-      ),
+      // The board's header line: who answers for the schedule, under its title.
+      description: <ScheduleResponsibleLine schedule={schedule} />,
+      intro: <ScheduleConflictNotice schedule={schedule} items={itemsOf(schedule.kind)} />,
     }
   const bySchedule = event.schedules.length > 0
   const assignedParts = event.eventParts.filter(item => item.assigneeId ?? item.externalSpeakerId).length

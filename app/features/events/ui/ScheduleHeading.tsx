@@ -61,7 +61,7 @@ export function ScheduleResponsibleLine({ schedule }: { schedule: EventScheduleV
   if (responsible == null) return null
   const named = responsible.holders.some(holder => holder.you)
   return (
-    <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 px-4.5 py-2.5 text-muted-foreground text-sm">
+    <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
       <span>{m.programs_schedule_in_charge()}</span>
       <span className="font-medium text-foreground">{getRoleDisplayName(responsible.role)}</span>
       {responsible.holders.map(holder => (
@@ -79,7 +79,7 @@ export function ScheduleResponsibleLine({ schedule }: { schedule: EventScheduleV
           <span className="font-medium text-brand-text">{m.programs_schedule_you()}</span>
         </span>
       )}
-    </p>
+    </span>
   )
 }
 
