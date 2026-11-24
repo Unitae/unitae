@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ConflictError } from '~/shared/errors/app-error.server'
-import { assertCanRelease, EVENT_STATUS_ERRORS } from './event-status.policy'
+import { assertCanRelease, EVENT_STATUS_ERRORS, scheduleRefusal } from './event-status.policy'
 
 describe('assertCanRelease', () => {
   it('does not throw when there are no assignments', () => {
@@ -40,5 +40,31 @@ describe('assertCanRelease', () => {
       expect(e).toBeInstanceOf(ConflictError)
       expect((e as Error).message).toBe(EVENT_STATUS_ERRORS.releaseBlockedByConflicts)
     }
+  })
+})
+
+describe('scheduleRefusal, what publishing a schedule refuses (shared by publishing and its preview)', () => {
+  const midweek = { key: 'midweek', _count: { parts: 12, serviceParts: 5 } }
+  const item = (hasConflict = false) => ({ hasConflict })
+
+  it('lets through a schedule with items and nobody away, filled or not', () => {
+    expect(scheduleRefusal({ kind: 'programme', items: [item()], fromTemplate: true }, midweek)).toBeNull()
+    expect(scheduleRefusal({ kind: 'duty', items: [item(), item()], fromTemplate: true }, midweek)).toBeNull()
+  })
+
+  it('holds back a programme still to give, before anything else', () => {
+    expect(scheduleRefusal({ kind: 'programme', items: [], fromTemplate: true }, midweek)).toBe('awaiting')
+  })
+
+  it('holds back an empty schedule: no schedule is published empty', () => {
+    expect(scheduleRefusal({ kind: 'duty', items: [], fromTemplate: true }, midweek)).toBe('empty')
+    // Added by hand, a programme has no template's parts to wait for: it is empty, not awaiting.
+    expect(scheduleRefusal({ kind: 'programme', items: [], fromTemplate: false }, midweek)).toBe('empty')
+  })
+
+  it('holds back a schedule where someone assigned is away that day', () => {
+    expect(scheduleRefusal({ kind: 'duty', items: [item(), item(true)], fromTemplate: true }, midweek)).toBe(
+      'conflicts',
+    )
   })
 })
