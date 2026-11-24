@@ -59,9 +59,15 @@ export function ScheduleAddMenu({
   // The board's line under each template: its kind and who answers for it; greyed with why when it cannot be added.
   const detail = (option: ScheduleAddOption) => {
     if (option.unavailable === 'present') return m.programs_schedule_add_present()
-    if (option.unavailable === 'kind-held') return m.programs_schedule_add_kind_taken({ kind: kindLabel(option.kind) })
-    const who = option.responsible ? getRoleDisplayName(option.responsible) : null
-    return [kindLabel(option.kind), ...(who ? [who] : option.usedBy)].join(' · ')
+    if (option.unavailable === 'kind-held') {
+      return option.kind === ScheduleKind.Programme
+        ? m.programs_schedule_add_kind_taken_programme()
+        : m.programs_schedule_add_kind_taken_duty()
+    }
+    // The kind unless the name already says it, who answers for it, and the meeting kinds that tell two unnamed apart.
+    const kind = kindLabel(option.kind) === optionName(option) ? [] : [kindLabel(option.kind)]
+    const who = option.responsible ? [getRoleDisplayName(option.responsible)] : []
+    return [...kind, ...who, ...option.usedBy].join(' · ')
   }
   const item = (option: ScheduleAddOption) => (
     <DropdownMenuItem

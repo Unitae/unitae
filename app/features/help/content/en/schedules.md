@@ -29,7 +29,7 @@ At the top of the page, **Publish all** publishes at once every draft schedule y
 
 A schedule cannot be published:
 
-- while someone assigned is away that day: its block says so, with who and on which part; assign someone else, or remove them. The meeting’s other schedules are not held back;
+- while someone assigned is away that day: its block says so, and on which part; assign someone else, or remove them. The meeting’s other schedules are not held back;
 - while it is empty: no schedule is required, so one with no part or service stays a draft.
 
 A meeting created ahead with no program offers **Create the program** instead of publishing it.

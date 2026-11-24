@@ -3,6 +3,7 @@ import { FileText, ListPlus, Loader2, MoreHorizontal, Pencil, Send, Shapes, Tras
 import { useState } from 'react'
 import { Link, useFetcher } from 'react-router'
 import { EventStatus } from '~/features/events/model/event-status.type'
+import { publishActionShown } from '~/features/events/model/publish-action'
 import type { ScheduleAddOptions } from '~/features/events/model/schedule.type'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
@@ -70,7 +71,8 @@ export function EventHeader({
       breadcrumbs={[{ label: m.sidebar_programs(), to: '/programs' }, { label: event.name }]}
       // The board's title row: publishing the drafts, then adding a schedule; the top bar keeps the meeting's own.
       controls={
-        (mayAdd || (publishAll != null ? publishAll.count > 0 : canRelease || canUnrelease || canCreateProgramme)) && (
+        (mayAdd ||
+          publishActionShown({ awaitingProgramme, canCreateProgramme, publishAll, canRelease, canUnrelease })) && (
           <>
             <EventPublishAction
               eventId={event.id}

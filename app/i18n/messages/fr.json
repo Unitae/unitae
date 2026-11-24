@@ -2134,17 +2134,19 @@
         {
             "declarations": [
                 "input count",
+                "input parts",
                 "local countPlural = count: plural"
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "{who} est absent ce jour-là. Attribuez quelqu’un d’autre, ou retirez la personne, puis publiez.",
-                "countPlural=*": "{who} sont absents ce jour-là. Attribuez quelqu’un d’autre, ou retirez ces personnes, puis publiez."
+                "countPlural=one": "Une personne attribuée est absente ce jour-là, sur {parts}. Attribuez quelqu’un d’autre, ou retirez la personne, puis publiez.",
+                "countPlural=*": "Des personnes attribuées sont absentes ce jour-là, sur {parts}. Attribuez quelqu’un d’autre, ou retirez ces personnes, puis publiez."
             }
         }
     ],
     "programs_schedule_add_present": "Déjà présent",
-    "programs_schedule_add_kind_taken": "Un planning {kind} est déjà présent : une réunion n’en a qu’un",
+    "programs_schedule_add_kind_taken_programme": "Un planning spirituel est déjà présent : une réunion n’en a qu’un",
+    "programs_schedule_add_kind_taken_duty": "Un planning de services est déjà présent : une réunion n’en a qu’un",
     "programs_schedule_add_yours": "Votre modèle",
     "programs_schedule_add_yours_note": "Vous ajoutez les plannings des modèles dont vous êtes responsable.",
     "programs_schedule_add_kind_programme_hint": "Des parties, avec leur orateur et leur lecteur",

@@ -41,7 +41,12 @@ export function PageHeader({
   trailEnd,
 }: PageHeaderProps) {
   const titleBlock = (
-    <div className={cn('flex animate-fade-in-up', Icon || leading ? 'items-center gap-4' : 'items-center gap-3')}>
+    <div
+      className={cn(
+        'flex animate-fade-in-up',
+        leading ? 'items-center gap-4' : Icon ? 'items-start gap-4' : 'items-center gap-3',
+      )}
+    >
       {leading}
       {Icon && leading == null && (
         <span className="grid size-11 shrink-0 place-content-center rounded-lg border border-border bg-sidebar">

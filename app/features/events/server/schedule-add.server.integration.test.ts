@@ -311,6 +311,9 @@ describe('scheduleAddOptions, what « Ajouter un planning » offers', () => {
         expect.objectContaining({ id: dutiesTemplate, kind: 'duty' }),
       ])
       expect(options.suggested[1]?.unavailable).toBeUndefined()
+      // Who answers for it, named beside it; « Gérer » adds as itself, not as a responsible.
+      expect(options.suggested[1]?.responsible).toEqual({ key: expect.stringContaining('duty-'), name: 'duty' })
+      expect(options.asResponsible).toBeUndefined()
       // The other kinds' duties too, seeded with the congregation, and never the programme the event holds.
       expect(options.others).toEqual(
         expect.arrayContaining([expect.objectContaining({ id: other.id, name: 'Nettoyage' })]),
@@ -323,7 +326,29 @@ describe('scheduleAddOptions, what « Ajouter un planning » offers', () => {
     })
   })
 
-  it('offers a responsible their own template only, never an empty one, and nothing of a kind the event holds', async () => {
+  it('greys a suggestion whose kind the meeting holds from another template', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, meetingId, programme, duties }) => {
+      const dutiesTemplate = await templateOf(db, duties.id)
+      const programmeTemplate = await templateOf(db, programme.id)
+      const other = await db.scheduleTemplate.create({ data: { name: 'Nettoyage', kind: 'duty', congregationId } })
+      await db.schedule.update({
+        where: { id_congregationId: { id: duties.id, congregationId } },
+        data: { scheduleTemplateId: other.id },
+      })
+      await db.schedule.delete({ where: { id: programme.id } })
+
+      const options = await scheduleAddOptions(db, manages, actorId, meetingId, congregationId)
+
+      expect(options.suggested).toEqual([
+        expect.objectContaining({ id: programmeTemplate, kind: 'programme' }),
+        expect.objectContaining({ id: dutiesTemplate, kind: 'duty', unavailable: 'kind-held' }),
+      ])
+      // The other templates only of the kind it lacks.
+      expect(options.others.every(template => template.kind === 'programme')).toBe(true)
+    })
+  })
+
+  it('offers a responsible their own template only, never an empty one, and greys their own the event holds', async () => {
     await withMeeting(async ({ db, congregationId, programmeLead, dutyLead, meetingId, duties }) => {
       const dutiesTemplate = await templateOf(db, duties.id)
       expect(await scheduleAddOptions(db, nothing, dutyLead, meetingId, congregationId)).toEqual({

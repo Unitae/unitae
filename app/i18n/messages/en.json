@@ -2129,17 +2129,19 @@
         {
             "declarations": [
                 "input count",
+                "input parts",
                 "local countPlural = count: plural"
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "{who} is away that day. Assign someone else, or remove them, then publish.",
-                "countPlural=*": "{who} are away that day. Assign someone else, or remove them, then publish."
+                "countPlural=one": "Someone assigned is away that day, on {parts}. Assign someone else, or remove them, then publish.",
+                "countPlural=*": "People assigned are away that day, on {parts}. Assign someone else, or remove them, then publish."
             }
         }
     ],
     "programs_schedule_add_present": "Already there",
-    "programs_schedule_add_kind_taken": "A {kind} schedule is already there: a meeting has one",
+    "programs_schedule_add_kind_taken_programme": "A spiritual schedule is already there: a meeting has one",
+    "programs_schedule_add_kind_taken_duty": "A services schedule is already there: a meeting has one",
     "programs_schedule_add_yours": "Your template",
     "programs_schedule_add_yours_note": "You add the schedules of the templates you are in charge of.",
     "programs_schedule_add_kind_programme_hint": "Parts, with their speaker and reader",

@@ -2129,17 +2129,19 @@
         {
             "declarations": [
                 "input count",
+                "input parts",
                 "local countPlural = count: plural"
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "{who} está ausente nesse dia. Designe outra pessoa, ou retire-a, e depois publique.",
-                "countPlural=*": "{who} estão ausentes nesse dia. Designe outras pessoas, ou retire-as, e depois publique."
+                "countPlural=one": "Uma pessoa designada está ausente nesse dia, em {parts}. Designe outra pessoa, ou retire-a, e depois publique.",
+                "countPlural=*": "Há pessoas designadas ausentes nesse dia, em {parts}. Designe outras pessoas, ou retire-as, e depois publique."
             }
         }
     ],
     "programs_schedule_add_present": "Já presente",
-    "programs_schedule_add_kind_taken": "Já existe um planeamento {kind}: uma reunião tem um",
+    "programs_schedule_add_kind_taken_programme": "Já existe um planeamento espiritual: uma reunião tem um",
+    "programs_schedule_add_kind_taken_duty": "Já existe um planeamento de serviços: uma reunião tem um",
     "programs_schedule_add_yours": "O seu modelo",
     "programs_schedule_add_yours_note": "Adiciona os planeamentos dos modelos de que é responsável.",
     "programs_schedule_add_kind_programme_hint": "Partes, com o orador e o leitor",

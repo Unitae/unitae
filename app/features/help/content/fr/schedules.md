@@ -29,7 +29,7 @@ En haut de la page, **Tout publier** publie d’un coup tous les plannings en br
 
 Un planning ne se publie pas :
 
-- tant qu’une personne attribuée est absente ce jour-là : son bloc le dit, avec qui et sur quelle partie ; attribuez quelqu’un d’autre, ou retirez-la. Les autres plannings de la réunion ne sont pas retenus pour autant ;
+- tant qu’une personne attribuée est absente ce jour-là : son bloc le dit, et sur quelle partie ; attribuez quelqu’un d’autre, ou retirez-la. Les autres plannings de la réunion ne sont pas retenus pour autant ;
 - tant qu’il est vide : aucun planning n’est obligatoire, un planning sans partie ni service reste en brouillon.
 
 Une réunion créée à l’avance sans programme propose **Créer le programme** plutôt que de la publier.
