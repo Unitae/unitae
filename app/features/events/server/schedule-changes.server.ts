@@ -140,7 +140,8 @@ export async function deleteSchedule(
   if ((await db.schedule.count({ where: { eventId: ref.eventId, congregationId } })) === 0) {
     await db.event.updateMany({ where: { id: ref.eventId, congregationId }, data: { status: EventStatus.Draft } })
   }
-  const toldMemberIds = [...new Set(notifyTargets.map(target => target.memberId))]
+  // Who is to be told, before anything is sent: the notice skips those without an account.
+  const toTellMemberIds = [...new Set(notifyTargets.map(target => target.memberId))]
   await auditInTransaction(db, {
     action: AuditAction.ScheduleDeleted,
     congregationId,
@@ -153,7 +154,7 @@ export async function deleteSchedule(
       name: schedule.name,
       status: schedule.status,
       itemCount: itemIds.length,
-      toldMemberIds,
+      toTellMemberIds,
     },
   })
   logger.info('schedule deleted', {
@@ -164,7 +165,7 @@ export async function deleteSchedule(
     actorId,
     itemCount: itemIds.length,
     cancelledCount,
-    toTell: toldMemberIds,
+    toTell: toTellMemberIds,
   })
   return { schedule: ref, notifyTargets }
 }

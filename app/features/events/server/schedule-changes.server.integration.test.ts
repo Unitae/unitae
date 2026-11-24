@@ -130,6 +130,7 @@ describe('renameSchedule', () => {
 
       expect(await renameSchedule(db, duties.id, 'Accueil et sono', congregationId, actorId)).toMatchObject({
         schedule: { id: duties.id },
+        changed: true,
       })
 
       expect((await db.schedule.findFirstOrThrow({ where: { id: duties.id } })).name).toBe('Accueil et sono')
@@ -249,10 +250,11 @@ describe('deleteSchedule', () => {
     })
   })
 
-  it('sends the event back to a draft when its last schedule goes, published or not, as removing a programme does', async () => {
+  it('sends the event back to a draft when its last schedule goes, as removing a programme does', async () => {
     await withMeeting(async ({ db, congregationId, actorId, meetingId, programme, duties }) => {
       await publishSchedule(db, programme.id, congregationId, actorId)
       await deleteSchedule(db, duties.id, congregationId, actorId)
+      expect((await db.event.findFirstOrThrow({ where: { id: meetingId } })).status).toBe('released')
       await deleteSchedule(db, programme.id, congregationId, actorId)
       // Else a programme created later is born published, and every assignment on it notifies at once.
       expect((await db.event.findFirstOrThrow({ where: { id: meetingId } })).status).toBe('draft')
@@ -279,13 +281,52 @@ describe('deleteSchedule', () => {
           congregationId,
           status: 'pending',
           payload: '{}',
-          debounceKey: `Item:${duties.itemIds[0]}:${usherAccount.id}`,
+          debounceKey: `Item:${duties.itemIds[0]}:user:${usherAccount.id}`,
         },
       })
 
       const result = await deleteSchedule(db, duties.id, congregationId, actorId)
 
       expect(result?.notifyTargets.map(target => target.memberId)).toEqual([told])
+    })
+  })
+
+  it('tells whoever already received « vous êtes assigné », a newer one waiting after a withdraw and a republish', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, programme, member }) => {
+      const speaker = await member()
+      const reader = await member()
+      const itemId = programme.itemIds[0]
+      await db.item.update({ where: { id: itemId }, data: { assigneeId: speaker, assistantId: reader } })
+      const accountOf = async (memberId: number) =>
+        (
+          await db.userAccount.create({
+            data: { email: `m-${memberId}@test.com`, password: 'x', congregationId, memberId },
+          })
+        ).id
+      const notice = (recipientId: number, status: string) =>
+        db.notificationEvent.create({
+          data: {
+            type: 'programme.assignment.assigned',
+            entityType: 'Item',
+            entityId: itemId,
+            recipientId,
+            congregationId,
+            status,
+            payload: '{}',
+            debounceKey: `Item:${itemId}:user:${recipientId}`,
+          },
+        })
+      const speakerAccount = await accountOf(speaker)
+      const readerAccount = await accountOf(reader)
+      // The speaker heard of it at the first publication; withdrawn and republished, a new notice waits for both.
+      await notice(speakerAccount, 'sent')
+      await notice(speakerAccount, 'pending')
+      await notice(readerAccount, 'pending')
+      await publishSchedule(db, programme.id, congregationId, actorId)
+
+      const result = await deleteSchedule(db, programme.id, congregationId, actorId)
+
+      expect(result?.notifyTargets.map(target => [target.memberId, target.role])).toEqual([[speaker, 'speaker']])
     })
   })
 
@@ -297,7 +338,7 @@ describe('deleteSchedule', () => {
       await deleteSchedule(db, duties.id, congregationId, actorId)
       const audit = await db.auditLog.findFirstOrThrow({ where: { action: 'schedule.deleted' } })
       const metadata = JSON.parse(String(audit.metadata))
-      expect(metadata).toMatchObject({ toldMemberIds: [usher] })
+      expect(metadata).toMatchObject({ toTellMemberIds: [usher] })
       expect(metadata).toHaveProperty('name')
     })
   })
