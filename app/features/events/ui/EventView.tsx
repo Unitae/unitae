@@ -5,6 +5,7 @@ import type { ExternalSpeakerOption } from '~/features/events/model/external-spe
 import { parseAssignKey } from '~/features/events/model/reassign'
 import type { KindChangeOption, ScheduleAddOptions } from '~/features/events/model/schedule.type'
 import { ScheduleKind, ScheduleStatus } from '~/features/events/model/schedule.type'
+import { unfilledSlots } from '~/features/events/model/unfilled-slots'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { Button } from '~/shared/ui/button'
@@ -174,7 +175,12 @@ export function EventView({
       title: <ScheduleTitle schedule={schedule} />,
       actions: (
         <>
-          <ScheduleStatusControl eventId={event.id} schedule={schedule} fill={fill} />
+          <ScheduleStatusControl
+            eventId={event.id}
+            schedule={schedule}
+            fill={fill}
+            unfilled={unfilledOf(schedule.kind)}
+          />
           {/* « Modifier le planning » (D38): its structure on its own page, for whoever changes the meeting and fills it. */}
           {canEdit && (schedule.kind === ScheduleKind.Programme ? canAssign : canAssignService) && (
             <Button variant="ghost" size="sm" className="max-md:h-11" asChild>
@@ -202,6 +208,12 @@ export function EventView({
   const bySchedule = event.schedules.length > 0
   const assignedParts = event.eventParts.filter(item => item.assigneeId ?? item.externalSpeakerId).length
   const filledServices = event.eventServiceParts.filter(item => item.assigneeId).length
+  // Slots nobody holds, by kind: publishing a schedule that has some asks first (the user's rule).
+  const unfilled = unfilledSlots({ parts: event.eventParts, services: event.eventServiceParts })
+  const unfilledOf = (kind: string) => (kind === ScheduleKind.Programme ? unfilled.programme : unfilled.duty)
+  const draftsUnfilled = event.schedules
+    .filter(schedule => schedule.publishable)
+    .reduce((count, schedule) => count + unfilledOf(schedule.kind), 0)
   // Each speaker and each reader: what a schedule deleted takes with it.
   const programmeAssignments =
     event.eventParts.filter(item => item.assigneeId != null).length +
@@ -223,7 +235,7 @@ export function EventView({
         subtitle={`${date} · ${times}`}
         awaitingProgramme={awaitingProgramme}
         // With schedules, each section carries its status and its « Publier »; the header publishes them all (D43).
-        publishAll={bySchedule ? publishAll : null}
+        publishAll={bySchedule ? { ...publishAll, unfilled: draftsUnfilled } : null}
         addSchedule={addSchedule}
         canRelease={canRelease}
         canUnrelease={canUnrelease}

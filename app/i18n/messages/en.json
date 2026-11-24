@@ -2151,6 +2151,21 @@
     "programs_schedule_kind_programme": "Spiritual",
     "programs_schedule_kind_duty": "Services",
     "programs_schedule_you": "you",
+    "programs_publish_unfilled_title": "Publish with unfilled slots?",
+    "programs_publish_unfilled_body": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} slot has no one yet: it shows as “Unfilled” on the board until someone takes it.",
+                "countPlural=*": "{count} slots have no one yet: they show as “Unfilled” on the board until someone takes them."
+            }
+        }
+    ],
+    "programs_publish_unfilled_confirm": "Publish anyway",
     "programs_publish_all": "Publish all",
     "programs_publish_mine": [
         {
