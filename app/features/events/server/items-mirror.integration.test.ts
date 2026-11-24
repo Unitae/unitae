@@ -21,7 +21,8 @@ const testDb = new PrismaClient({ adapter })
 const { seedDefaultTemplates } = await import('./seed-templates.server')
 const { createProgrammeOnDay } = await import('./programme-creation.server')
 const { addPartAssignment, addServicePartAssignment } = await import('./event-parts.server')
-const { applyTemplateToEvent } = await import('./apply-template.server')
+const { changeEventKind } = await import('./event-kind-change.server')
+const { syncTemplateScheduleTemplates } = await import('./schedule-templates.server')
 const { bulkDeleteEvents } = await import('./delete-events.server')
 const { duplicateTemplate } = await import('./duplicate-template.server')
 const { deleteTemplate } = await import('./delete-template.server')
@@ -263,7 +264,7 @@ describe('old item tables mirrored into the new ones', () => {
     })
   })
 
-  it('follows cascades and SET NULL: a member, a template part, a template applied, deleted events and templates', async () => {
+  it('follows cascades and SET NULL: a member, a template part, a kind changed, deleted events and templates', async () => {
     await inCongregation(async ({ db, congregationId, actorId, inStep, templateId, roleId }) => {
       const midweek = await templateId('midweek-meeting')
       const weekend = await templateId('weekend-meeting')
@@ -299,7 +300,20 @@ describe('old item tables mirrored into the new ones', () => {
       // The programme's part and service, both made from the template rows just deleted.
       expect(await db.item.count({ where: { eventId: first, templateItemId: null } })).toBe(2)
 
-      await applyTemplateToEvent(db, second, weekend, congregationId, actorId)
+      // The second meeting moved to the weekend kind: its schedules replaced by the weekend's, items and all.
+      await syncTemplateScheduleTemplates(db, weekend, congregationId)
+      const weekendTemplates = await db.eventKindScheduleTemplate.findMany({
+        where: { eventKindId: weekend },
+        select: { scheduleTemplateId: true },
+      })
+      await changeEventKind(
+        db,
+        () => true,
+        actorId,
+        second,
+        { kindId: weekend, keep: [], add: weekendTemplates.map(link => link.scheduleTemplateId) },
+        congregationId,
+      )
       const copy = await duplicateTemplate(db, weekend, congregationId, actorId)
       if (!copy) throw new Error('the template was not duplicated')
       expect(await db.templateItem.count({ where: { templateId: copy.id } })).toBeGreaterThan(0)

@@ -23,7 +23,7 @@ function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promi
 }
 
 const { addServicePartAssignment } = await import('./event-parts.server')
-const { applyTemplateToEvent } = await import('./apply-template.server')
+const { fillFromKind } = await import('~/tests/helpers/fill-from-kind')
 const { getTemplateById } = await import('./event-templates.server')
 const { upsertTemplateServicePart } = await import('./template-items.server')
 const { getEventProgramme } = await import('./event-part-assignments.server')
@@ -101,10 +101,10 @@ function newEvent(tx: Tx, name: string, templateId: number | null = null) {
 }
 
 describe('the order of services', () => {
-  it('copies the template’s order when a template is applied to an event', async () => {
+  it('copies the template’s order when its duties are added to an event', async () => {
     const names = await withScope(ids.cong, async tx => {
       const event = await newEvent(tx, 'Appliqué')
-      await applyTemplateToEvent(tx, event.id, ids.template, ids.cong, ids.actor)
+      await fillFromKind(tx, event.id, ids.template, ids.cong, ids.actor)
       return eventServices(tx, event.id)
     })
 
@@ -124,7 +124,7 @@ describe('the order of services', () => {
   it('puts a service added to an event after the ones it has', async () => {
     const names = await withScope(ids.cong, async tx => {
       const event = await newEvent(tx, 'Ajout')
-      await applyTemplateToEvent(tx, event.id, ids.template, ids.cong, ids.actor)
+      await fillFromKind(tx, event.id, ids.template, ids.cong, ids.actor)
       await addServicePartAssignment(
         tx,
         { eventId: event.id, name: 'Micros', allowedRoleIds: [], congregationId: ids.cong },

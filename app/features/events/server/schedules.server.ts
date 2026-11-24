@@ -14,9 +14,9 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 // An event's schedules, written beside its items' `eventId` and its own `status` until the readers move over. The rule
 // is the add_schedules migration's, for one event: keep the two in step. While it lasts, an event has one programme at
 // most (a unique index, D9) and one duty schedule at most: every writer goes through eventScheduleId, and adding one
-// (addSchedule) only adds a kind the event lacks. Its schedules follow its template: applying a template rewrites the
-// template, name and key of each by kind (alignEventSchedules), one added by hand included, for now; a schedule's
-// status starts from D52 and is then its own, the event's settling from them (settleEventStatus, D51).
+// (addSchedule) only adds a kind the event lacks. A schedule keeps the template it was made from, even when the event
+// moves to another kind (« Changer le type », D40); its status starts from D52 and is then its own, the event's
+// settling from them (settleEventStatus, D51).
 //
 // Locks: a template's row before an event's, the order of every path that creates or moves events of a template.
 
@@ -135,23 +135,6 @@ export async function eventSchedulesOf(
   const ids: Record<ScheduleKind, number | null> = { programme: null, duty: null }
   for (const kind of kinds) ids[kind] = await eventScheduleId(db, eventId, kind, congregationId, { takeEventStatus })
   return ids
-}
-
-/** Points the event's schedules at its template's schedule templates, by kind: after the event changed template. */
-export async function alignEventSchedules(db: TransactionClient, eventId: number, congregationId: number) {
-  const event = await db.event.findFirst({
-    where: { id: eventId, congregationId },
-    select: { templateId: true, schedules: { select: { id: true, kind: true } } },
-  })
-  if (!event) throw new NotFoundError('Event', eventId)
-  for (const schedule of event.schedules) {
-    // Pinned by Schedule_kind_check: a schedule of another kind cannot exist.
-    if (!isScheduleKind(schedule.kind)) continue
-    await db.schedule.update({
-      where: { id_congregationId: { id: schedule.id, congregationId } },
-      data: await scheduleTemplateFor(db, event.templateId, schedule.kind, congregationId),
-    })
-  }
 }
 
 /** Every schedule of these events takes the status the events were given. */
