@@ -24,8 +24,8 @@ export interface BulkPublishPreview {
   publish: (PreviewSchedule & { unfilled: number })[]
   /** Someone else's to publish, with the role in charge of it when its template names one. */
   notYours: (PreviewSchedule & { responsible: { key: string; name: string | null } | null })[]
-  /** Someone assigned is away that day: who, and on which part. */
-  conflicts: (PreviewSchedule & { away: { person: string; part: string }[] })[]
+  /** Someone assigned is away that day, on these parts (the flag covers speaker and reader alike: by part, not person). */
+  conflicts: (PreviewSchedule & { away: string[] })[]
   /** Nothing in it: no schedule is published empty. */
   empty: PreviewSchedule[]
   /** A programme still to give. */

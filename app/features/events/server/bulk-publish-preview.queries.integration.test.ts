@@ -132,7 +132,7 @@ describe('bulkPublishPreview, what bulk « Publier » announces', () => {
       const preview = await bulkPublishPreview(db, publishes, actorId, [meetingId], congregationId)
 
       expect(ids(preview.conflicts)).toEqual([programme.id])
-      expect(preview.conflicts[0]?.away).toEqual([{ person: 'Paul TEST', part: expect.any(String) }])
+      expect(preview.conflicts[0]?.away).toEqual([expect.any(String)])
       expect(ids(preview.publish)).toEqual([duties.id])
       // Every service but the one given has nobody yet: said beside it, publishing anyway.
       expect(preview.publish[0]?.unfilled).toBe(duties.itemIds.length - 1)

@@ -69,7 +69,7 @@ export function BulkPublishDialog({
   ]
   const conflicts: Line[] = preview.conflicts.map(schedule => ({
     ...scheduleLine(schedule),
-    note: schedule.away.map(({ person, part }) => `${person}, ${part}`).join(' · '),
+    note: schedule.away.join(', '),
   }))
   const empty: Line[] = preview.empty.map(scheduleLine)
   const awaiting: Line[] = [...preview.awaiting.map(scheduleLine), ...preview.events.awaiting.map(eventLine)]

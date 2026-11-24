@@ -5,7 +5,6 @@ import { type ScheduleKind, ScheduleStatus } from '~/features/events/model/sched
 import { unfilledSlots } from '~/features/events/model/unfilled-slots'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { Permission } from '~/shared/types/permission'
-import { formatPersonName } from '~/shared/utils/format-person-name'
 import { publishableScheduleIds } from './event-publishing.server'
 import { scheduleRefusal } from './event-status.policy'
 import { TEMPLATE_PROGRAMME_COUNT } from './give-programme.server'
@@ -16,8 +15,6 @@ import { filterEventsByRight } from './schedule-rights.server'
 // selection in the bucket publishEvent puts it in, by the same rights (publishableScheduleIds) and the same refusals
 // (scheduleRefusal). A read: the selection may change before the person confirms, and the toast after publishing
 // stays what happened.
-
-const PERSON = { select: { firstname: true, lastname: true } } as const
 
 export async function bulkPublishPreview(
   db: TransactionClient,
@@ -59,8 +56,6 @@ export async function bulkPublishPreview(
               assistantId: true,
               externalSpeakerId: true,
               preset: { select: { hasReaderSlot: true } },
-              assignee: PERSON,
-              assistant: PERSON,
             },
             orderBy: MIXED_ITEM_ORDER,
           },
@@ -110,7 +105,11 @@ export async function bulkPublishPreview(
       const refusal = scheduleRefusal({ kind: schedule.kind, items: schedule.items, fromTemplate }, event.template)
       if (refusal === 'awaiting') preview.awaiting.push(named)
       else if (refusal === 'empty') preview.empty.push(named)
-      else if (refusal === 'conflicts') preview.conflicts.push({ ...named, away: awayOf(schedule.items) })
+      else if (refusal === 'conflicts')
+        preview.conflicts.push({
+          ...named,
+          away: schedule.items.filter(item => item.hasConflict).map(item => item.name),
+        })
       else preview.publish.push({ ...named, unfilled: unfilledOf(schedule.kind, schedule.items) })
     }
   }
@@ -124,19 +123,6 @@ type PreviewItem = {
   assistantId: number | null
   externalSpeakerId: number | null
   preset: { hasReaderSlot: boolean } | null
-  assignee: { firstname: string | null; lastname: string | null } | null
-  assistant: { firstname: string | null; lastname: string | null } | null
-}
-
-/** Who is away on which part: the flag covers both slots, so each person the item holds is named. */
-function awayOf(items: PreviewItem[]) {
-  return items
-    .filter(item => item.hasConflict)
-    .flatMap(item =>
-      [item.assignee, item.assistant]
-        .filter(person => person != null)
-        .map(person => ({ person: formatPersonName(person), part: item.name })),
-    )
 }
 
 function unfilledOf(kind: string, items: PreviewItem[]) {
