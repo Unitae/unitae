@@ -828,6 +828,52 @@ describe('responsibility through the schedule templates (integration, 6a-1a)', (
         ).not.toBeNull()
         expect(await isTemplateResponsible(db, kind.id, dutyLead, primaryCongId)).toBeNull()
         expect(await isTemplateResponsible(db, kind.id, programmeLead, primaryCongId)).not.toBeNull()
+        // Only the kind asked about: another kind's editor stays closed to both.
+        expect(await isTemplateResponsible(db, templateOtherId, programmeLead, primaryCongId)).toBeNull()
+        expect(
+          await isTemplateResponsible(db, templateOtherId, dutyLead, primaryCongId, ResponsibilityScope.Service),
+        ).toBeNull()
+        throw new Rollback()
+      })
+      .catch(error => {
+        if (!(error instanceof Rollback)) throw error
+      })
+  })
+})
+
+describe('isTemplateResponsible, the TemplateResponsible source (integration)', () => {
+  it('answers for the template asked about and a role the caller holds, nothing else', async () => {
+    const { isTemplateResponsible } = await import('./event-templates.server')
+    await withScope(primaryCongId, async tx => {
+      const db = tx as never
+      expect(await isTemplateResponsible(db, templateOwnedId, responsibleId, primaryCongId)).not.toBeNull()
+      expect(await isTemplateResponsible(db, templateOtherId, responsibleId, primaryCongId)).toBeNull()
+      expect(await isTemplateResponsible(db, templateOwnedId, plainId, primaryCongId)).toBeNull()
+    })
+  })
+
+  it('closes both sources when the kind’s responsibles are removed through its page', async () => {
+    const { isTemplateResponsible } = await import('./event-templates.server')
+    const { saveTemplateResponsibles } = await import('./template-responsibles.server')
+    class Rollback extends Error {}
+    await testDb
+      .$transaction(async tx => {
+        await tx.$executeRawUnsafe(`SET LOCAL app.congregation_id = '${String(primaryCongId)}'`)
+        const db = tx as never
+        const set = (programmeRoleId: number | null, serviceRoleId: number | null) =>
+          saveTemplateResponsibles(db, templateOwnedId, { programmeRoleId, serviceRoleId }, primaryCongId, managerId)
+        await set(responsibleRoleId, serviceRoleId)
+        expect(await isTemplateResponsible(db, templateOwnedId, responsibleId, primaryCongId)).not.toBeNull()
+        expect(
+          await getResponsibleTemplateIds(db, serviceResponsibleId, primaryCongId, ResponsibilityScope.Service),
+        ).toContain(templateOwnedId)
+
+        await set(null, null)
+        // The rows go, and the sync clears the schedule templates' role: neither source opens the kind.
+        expect(await isTemplateResponsible(db, templateOwnedId, responsibleId, primaryCongId)).toBeNull()
+        expect(
+          await getResponsibleTemplateIds(db, serviceResponsibleId, primaryCongId, ResponsibilityScope.Service),
+        ).not.toContain(templateOwnedId)
         throw new Rollback()
       })
       .catch(error => {

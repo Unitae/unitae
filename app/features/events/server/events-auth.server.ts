@@ -19,7 +19,8 @@ import { Permission } from '~/shared/types/permission'
 const logger = createLogger('events-auth')
 
 /**
- * The templates the caller is responsible for, via the roles they hold.
+ * The templates (kinds) the caller is responsible for, via the roles they hold: through a TemplateResponsible row, or
+ * through a schedule template the kind suggests naming one of those roles (6a-1a).
  *
  * The empty guard is deliberate: `roleId: { in: [] }` matches nothing today, but relying on
  * that would make "user holds no roles" correct by accident rather than by intent.
@@ -38,8 +39,8 @@ export async function getResponsibleTemplateIds(
   const roleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
   if (roleIds.length === 0) return []
 
-  // Through a schedule template the kind suggests (what Réglages edits since 6a), or a TemplateResponsible row still
-  // written by the kind's page until 6a-2: either opens the kind, so nobody loses access while both exist.
+  // Through a schedule template the kind suggests (which Réglages › « Modèles de planning » will edit, 6a-1b), or a
+  // TemplateResponsible row still written by the kind's page until 6a-2: either opens the kind while both exist.
   const [rows, links] = await Promise.all([
     db.templateResponsible.findMany({
       where: { roleId: { in: roleIds }, congregationId, scope: { in: scopesCovering(scope) } },

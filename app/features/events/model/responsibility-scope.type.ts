@@ -1,3 +1,5 @@
+import { ScheduleKind } from './schedule.type'
+
 // Which slice of an event a TemplateResponsible row delegates. Since 5a no right reads the scopes: the sync turns
 // them into each schedule template's responsible (D31), and only Réglages still reads them (its templates list and
 // page, reordering, access, export and import), until PR 6 rewrites them per schedule template; the absences' « who
@@ -42,8 +44,9 @@ export function scopesCovering(scope: ResponsibilityScope): ResponsibilityScope[
  * The schedule template kinds whose responsible answers for `scope`, as the sync derives them (D31): a programme
  * responsible covers the whole meeting, so asking about the services also accepts the programme's template.
  */
-export function scheduleKindsCovering(scope: ResponsibilityScope): string[] {
-  return scope === ResponsibilityScope.Service ? ['programme', 'duty'] : ['programme']
+export function scheduleKindsCovering(scope: ResponsibilityScope): ScheduleKind[] {
+  // A fresh array per call, as scopesCovering: it goes straight into a Prisma `in:` filter.
+  return scope === ResponsibilityScope.Service ? [ScheduleKind.Programme, ScheduleKind.Duty] : [ScheduleKind.Programme]
 }
 
 /**

@@ -157,7 +157,8 @@ export async function removeTemplateResponsible(
 }
 
 /**
- * The responsible row for this template, if the caller holds the role it points at.
+ * Whether the caller answers for this template (kind): `{ id }` of the TemplateResponsible row, or of the link to a
+ * schedule template of the kind naming one of their roles (6a-1a); null when neither does.
  *
  * Still keyed by `userId` from the caller's side — the question routes ask has not changed —
  * but the answer now goes through the role. `resolveEffectiveRoleIds` is the canonical

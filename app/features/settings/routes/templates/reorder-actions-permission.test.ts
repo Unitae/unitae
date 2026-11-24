@@ -9,6 +9,7 @@ const { state } = vi.hoisted(() => ({
     responsible: false,
     templateKey: 'midweek-meeting',
     written: [] as { kind: 'parts' | 'services'; templateId: number; orderedIds: number[] }[],
+    asked: [] as number[],
   },
 }))
 
@@ -19,7 +20,11 @@ vi.mock('~/shared/auth/route-context.server', async importOriginal => ({
 }))
 
 vi.mock('~/features/events/index.server', () => ({
-  isTemplateResponsible: () => Promise.resolve(state.responsible ? { roleId: 1, roleName: 'Responsable' } : null),
+  // The write routes ask with the default programme scope: a duties-only responsible never writes the parts or services.
+  isTemplateResponsible: (...args: unknown[]) => {
+    state.asked.push(args.length)
+    return Promise.resolve(state.responsible ? { id: 1 } : null)
+  },
   reorderTemplateParts: (_db: unknown, _cong: number, templateId: number, orderedIds: number[]) => {
     state.written.push({ kind: 'parts', templateId, orderedIds })
     return Promise.resolve(true)
@@ -53,6 +58,7 @@ beforeEach(() => {
   state.responsible = false
   state.templateKey = 'midweek-meeting'
   state.written = []
+  state.asked = []
 })
 
 describe.each([
@@ -71,6 +77,8 @@ describe.each([
 
     expect(await post(action, [], { orderedIds: [2, 1] })).toEqual({ ok: true })
     expect(state.written).toHaveLength(1)
+    // Asked with the default programme scope (no fifth argument): a duties-only responsible does not write here.
+    expect(state.asked).toEqual([4])
   })
 
   it('refuses a caller with neither', async () => {
