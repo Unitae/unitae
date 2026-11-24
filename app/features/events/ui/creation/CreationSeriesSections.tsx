@@ -18,12 +18,13 @@ interface SectionsProps {
   state: ProgrammeCreationState
   errors: Record<string, string[] | null | undefined>
   today: string
-  canManage: boolean
+  /** The templates' managers get the way to them when there is no regular meeting. */
+  mayEditTemplates: boolean
 }
 
 /** « Plusieurs semaines »: the meetings to create, ticked, and the period they cover. */
-export function CreationSeriesSections({ state, errors, today, canManage }: SectionsProps) {
-  if (state.recurring.length === 0) return <NoMeetings canManage={canManage} />
+export function CreationSeriesSections({ state, errors, today, mayEditTemplates }: SectionsProps) {
+  if (state.recurring.length === 0) return <NoMeetings mayEditTemplates={mayEditTemplates} />
   const weeks = byWeek(state.planned).length
 
   return (
@@ -197,14 +198,14 @@ export function FieldError({ id, messages }: { id?: string; messages: string[] |
 }
 
 /** No regular meeting to create: where templates are made, for whoever can make them. */
-function NoMeetings({ canManage }: { canManage: boolean }) {
+function NoMeetings({ mayEditTemplates }: { mayEditTemplates: boolean }) {
   return (
     <FormSection title={m.programs_new_meetings_title()}>
       <div className="col-span-full flex flex-col items-start gap-2 rounded-md border border-border bg-card p-5">
         <CalendarDays aria-hidden="true" className="size-4 text-faint" />
         <p className="font-medium">{m.programs_new_no_meetings_title()}</p>
         <p className="max-w-prose text-muted-foreground text-sm">{m.programs_new_no_meetings_body()}</p>
-        {canManage && (
+        {mayEditTemplates && (
           <Button asChild variant="outline" size="sm">
             <Link to="/settings/templates">
               <Settings aria-hidden="true" />

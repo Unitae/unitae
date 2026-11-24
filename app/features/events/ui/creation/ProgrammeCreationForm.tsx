@@ -28,8 +28,10 @@ interface ProgrammeCreationFormProps {
   existing: ExistingProgramme[]
   ahead: ExistingProgramme[]
   today: string
-  /** Manages every programme: « Autre évènement » and the way to the templates. */
+  /** Manages every programme: « Autre évènement ». */
   canManage: boolean
+  /** Manages the templates: the way to them when there is no regular meeting. */
+  mayEditTemplates: boolean
   week: string | null
   result: CreationActionData | undefined
 }
@@ -44,6 +46,7 @@ export function ProgrammeCreationForm({
   ahead,
   today,
   canManage,
+  mayEditTemplates,
   week,
   result,
 }: ProgrammeCreationFormProps) {
@@ -72,7 +75,7 @@ export function ProgrammeCreationForm({
             />
           </FormSection>
           {series ? (
-            <CreationSeriesSections state={state} errors={errors} today={today} canManage={canManage} />
+            <CreationSeriesSections state={state} errors={errors} today={today} mayEditTemplates={mayEditTemplates} />
           ) : (
             <CreationSingleSections
               state={state}
