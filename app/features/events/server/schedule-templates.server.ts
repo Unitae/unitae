@@ -76,10 +76,12 @@ async function syncScheduleTemplate(
   let scheduleTemplateId: number
   if (existing) {
     scheduleTemplateId = existing.id
-    if (existing.name !== name || existing.responsibleRoleId !== responsibleRoleId) {
+    // Its name belongs to Réglages › « Modèles de planning » since 6a: the kind gives it one on creation only. Its
+    // responsible still follows the kind's TemplateResponsible rows, which that page writes too until 6a-2.
+    if (existing.responsibleRoleId !== responsibleRoleId) {
       await db.scheduleTemplate.update({
         where: { id_congregationId: { id: existing.id, congregationId } },
-        data: { name, responsibleRoleId },
+        data: { responsibleRoleId },
       })
     }
   } else if (hasItems) {

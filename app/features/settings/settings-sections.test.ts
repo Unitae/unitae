@@ -22,7 +22,19 @@ const keysOf = (a: SettingsAccess, billingUrl: string | null = null) =>
 describe('settingsGroups', () => {
   it('lists every part, grouped and in order, for an administrator with billing configured', () => {
     expect(keysOf(ADMIN, BILLING)).toEqual([
-      ['congregation', ['general', 'publishers', 'templates', 'part-types', 'external-speakers', 'territories', 'map']],
+      [
+        'congregation',
+        [
+          'general',
+          'publishers',
+          'templates',
+          'schedule-templates',
+          'part-types',
+          'external-speakers',
+          'territories',
+          'map',
+        ],
+      ],
       ['access', ['users', 'roles']],
       ['data', ['data', 'audit']],
       ['account', ['subscription']],
@@ -34,7 +46,9 @@ describe('settingsGroups', () => {
   })
 
   it('points the subscription at the billing page, outside the app', () => {
-    const subscription = settingsGroups(ADMIN, BILLING).flatMap(group => group.entries)[11]
+    const subscription = settingsGroups(ADMIN, BILLING)
+      .flatMap(group => group.entries)
+      .find(entry => entry.key === 'subscription')
     expect(subscription).toEqual({ key: 'subscription', href: BILLING, external: true })
   })
 

@@ -7,7 +7,6 @@ import {
   deleteTemplateServicePart,
   duplicateTemplate,
   moveEmptyMeetings,
-  saveTemplateResponsibles,
   templateItemBelongsToTemplate,
   updateTemplate,
   upsertTemplatePart,
@@ -21,7 +20,6 @@ import {
   upsertServicePartSchema,
 } from '~/features/settings/schemas/template.schema'
 import * as m from '~/i18n/paraglide/messages'
-import { ValidationError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export interface TemplateActor {
@@ -69,8 +67,7 @@ export async function handleTemplateAction(
   if (intent === 'update-template') {
     const submission = parseWithZod(formData, { schema: updateTemplateSchema })
     if (submission.status !== 'success') return refused(submission.reply())
-    const { name, weekDay, color, startTime, endTime, attendanceKind, programmeRoleId, serviceRoleId } =
-      submission.value
+    const { name, weekDay, color, startTime, endTime, attendanceKind } = submission.value
     // How a template counts in attendance is the managers' call, like who runs it.
     const counting = actor.isManager ? { attendanceKind } : {}
     await updateTemplate(
@@ -80,14 +77,6 @@ export async function handleTemplateAction(
       congregationId,
       actorId,
     )
-    if (actor.isManager && programmeRoleId !== undefined && serviceRoleId !== undefined) {
-      try {
-        await saveTemplateResponsibles(db, templateId, { programmeRoleId, serviceRoleId }, congregationId, actorId)
-      } catch (error) {
-        if (!(error instanceof ValidationError)) throw error
-        return refused(submission.reply({ formErrors: [m.error_forbidden()] }))
-      }
-    }
     return { kind: 'saved', message: m.settings_template_saved() }
   }
 

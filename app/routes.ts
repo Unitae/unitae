@@ -117,6 +117,7 @@ export default [
         route(':templateId/reorder-parts', 'features/settings/routes/templates/reorder-parts.tsx'),
         route(':templateId/reorder-services', 'features/settings/routes/templates/reorder-services.tsx'),
       ]),
+      route('schedule-templates', 'features/settings/routes/schedule-templates.tsx'),
       route('part-types', 'features/settings/routes/part-types.tsx'),
       route('external-speakers', 'features/settings/routes/external-speakers.tsx'),
       route('data', 'features/settings/routes/data/settings.tsx'),

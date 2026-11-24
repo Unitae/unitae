@@ -85,7 +85,8 @@ describe('handleTemplateAction', () => {
     expect(writes).toEqual([])
   })
 
-  it('saves the fields and who runs it for a manager', async () => {
+  // Who runs its schedules is set on each schedule template since 6a-1b, never from the kind's page.
+  it('saves the fields for a manager, never who runs the template', async () => {
     const result = await handleTemplateAction(
       dbWith('midweek'),
       4,
@@ -93,7 +94,7 @@ describe('handleTemplateAction', () => {
       MANAGER,
     )
     expect(result?.kind).toBe('saved')
-    expect(writes).toEqual(['update 4 Semaine', 'responsibles 4 3'])
+    expect(writes).toEqual(['update 4 Semaine'])
   })
 
   it('saves a responsible’s fields but never who runs the template', async () => {
@@ -134,17 +135,6 @@ describe('handleTemplateAction', () => {
     )
     expect(result?.kind).toBe('refused')
     expect(writes).toEqual([])
-  })
-
-  it('refuses a role that cannot run a template', async () => {
-    state.responsiblesRefused = true
-    const result = await handleTemplateAction(
-      dbWith('midweek'),
-      4,
-      form({ intent: 'update-template', programmeRoleId: '999', serviceRoleId: 'none' }),
-      MANAGER,
-    )
-    expect(result?.kind).toBe('refused')
   })
 
   it('edits and deletes a part of this template', async () => {
