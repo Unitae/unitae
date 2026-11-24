@@ -47,8 +47,13 @@ export function loader({ context, request }: Route.LoaderArgs) {
     // The kinds suggesting a schedule template the caller answers for (D28).
     const templateIds = canManage ? null : await responsibleKindIds(db, accountId, congregationId)
     if (templateIds?.length === 0) throw redirect('/programs')
-    const { templates, existing } = await getProgrammeCreationData(db, { congregationId, timezone, today, templateIds })
-    return { templates, existing, today, canManage, week: isCalendarDay(week) ? mondayOf(week) : null }
+    const { templates, existing, ahead } = await getProgrammeCreationData(db, {
+      congregationId,
+      timezone,
+      today,
+      templateIds,
+    })
+    return { templates, existing, ahead, today, canManage, week: isCalendarDay(week) ? mondayOf(week) : null }
   })
 }
 

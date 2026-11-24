@@ -14,6 +14,12 @@ Une réunion a ses **plannings** : son planning **spirituel** (les parties, avec
 
 Le responsable d’un planning est le rôle que son modèle nomme : son titulaire et ses adjoints. Ceux qui tiennent ce rôle remplissent et publient ce planning. Un planning sans responsable revient à ceux qui gèrent les programmes.
 
+## Créer des réunions
+
+Dans **Réunions › Programmes**, **Nouveau** ouvre **Créer des réunions**. Chaque réunion créée arrive avec les plannings que son type suggère : la page les montre sous chaque type, avec ce qu’ils contiennent. Les réunions déjà créées d’avance, encore vides, reçoivent les leurs au lieu d’être créées une seconde fois ; celles déjà préparées ne changent pas.
+
+Une date décochée est passée ; si une réunion avait été créée d’avance ce jour-là, elle est retirée. Un planning qui ne sert pas pour une réunion se supprime ensuite depuis celle-ci. Une réunion n’a qu’un planning de chaque sorte : un autre modèle (une visioconférence, un nettoyage…) en remplace un de la même sorte une fois celui-ci supprimé, avec **Ajouter un planning**.
+
 ## Publier un planning
 
 Chaque planning se publie à son rythme : les services peuvent partir avant le planning spirituel.

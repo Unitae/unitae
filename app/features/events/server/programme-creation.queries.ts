@@ -1,5 +1,7 @@
+import { EventOrigin } from '~/features/events/model/event-origin.type'
 import { SYSTEM_TEMPLATE_KEYS } from '~/features/events/model/event-template.type'
 import type { CreationTemplate, ExistingProgramme } from '~/features/events/model/programme-creation'
+import { ScheduleKind } from '~/features/events/model/schedule.type'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { dayOf, startOfDay } from '~/shared/utils/calendar-day'
@@ -7,6 +9,8 @@ import { dayOf, startOfDay } from '~/shared/utils/calendar-day'
 export interface ProgrammeCreationData {
   templates: CreationTemplate[]
   existing: ExistingProgramme[]
+  /** Meetings to come created ahead without a programme: a series fills them rather than creating others. */
+  ahead: ExistingProgramme[]
 }
 
 /**
@@ -34,15 +38,25 @@ export async function getProgrammeCreationData(
       endTime: true,
       // biome-ignore lint/style/useNamingConvention: Prisma's relation count key
       _count: { select: { parts: true, serviceParts: true } },
+      scheduleTemplates: {
+        select: {
+          scheduleTemplate: {
+            // biome-ignore lint/style/useNamingConvention: Prisma's relation count key
+            select: { name: true, kind: true, _count: { select: { parts: true, serviceParts: true } } },
+          },
+        },
+        orderBy: [{ order: 'asc' }, { id: 'asc' }],
+      },
     },
   })
-  if (rows.length === 0) return { templates: [], existing: [] }
+  if (rows.length === 0) return { templates: [], existing: [], ahead: [] }
 
   const ids = rows.map(row => row.id)
   // Only events with a programme: a meeting the recurring-events job created ahead is a day still to prepare, which
   // the series fills rather than starting after it.
   const hasProgramme = { items: { some: {} } }
-  const [latest, upcoming] = await Promise.all([
+  const toCome = { congregationId, templateId: { in: ids }, startDate: { gte: startOfDay(input.today, timezone) } }
+  const [latest, upcoming, waiting] = await Promise.all([
     db.event.groupBy({
       by: ['templateId'],
       where: { congregationId, templateId: { in: ids }, ...hasProgramme },
@@ -50,13 +64,12 @@ export async function getProgrammeCreationData(
       _max: { startDate: true },
     }),
     db.event.findMany({
-      where: {
-        congregationId,
-        templateId: { in: ids },
-        startDate: { gte: startOfDay(input.today, timezone) },
-        ...hasProgramme,
-      },
+      where: { ...toCome, ...hasProgramme },
       select: { id: true, templateId: true, startDate: true },
+    }),
+    db.event.findMany({
+      where: { ...toCome, items: { none: {} } },
+      select: { id: true, templateId: true, startDate: true, origin: true, attendance: { select: { id: true } } },
     }),
   ])
   const lastDays = new Map(
@@ -77,15 +90,27 @@ export async function getProgrammeCreationData(
       endTime: row.endTime,
       parts: row._count.parts,
       services: row._count.serviceParts,
+      // What giveProgramme creates — one schedule of each kind with items, none empty — as long as the sync keeps one
+      // schedule template per kind holding all the kind's items (syncTemplateScheduleTemplates).
+      schedules: row.scheduleTemplates.flatMap(({ scheduleTemplate: { name, kind, _count } }) => {
+        const items = kind === ScheduleKind.Programme ? _count.parts : _count.serviceParts
+        return items > 0 ? [{ name, kind, items }] : []
+      }),
       lastDay: lastDays.get(row.id) ?? null,
     }))
     .sort(byWeekThenName)
-  const existing = upcoming.flatMap(event =>
-    event.templateId == null
-      ? []
-      : [{ templateId: event.templateId, day: dayOf(event.startDate, timezone), eventId: event.id }],
-  )
-  return { templates, existing }
+  const onDays = (events: { id: number; templateId: number | null; startDate: Date }[]) =>
+    events.flatMap(event =>
+      event.templateId == null
+        ? []
+        : [{ templateId: event.templateId, day: dayOf(event.startDate, timezone), eventId: event.id }],
+    )
+  // A passed day removes only the job's empty meeting (EMPTY_MEETING): the row says so only for that one.
+  const ahead = onDays(waiting).map((event, index) => ({
+    ...event,
+    removable: waiting[index]?.origin === EventOrigin.Job && waiting[index]?.attendance == null,
+  }))
+  return { templates, existing: onDays(upcoming), ahead }
 }
 
 /** Monday first, as the weeks of the programmes list; templates without a day of their own last. */

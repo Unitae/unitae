@@ -1,4 +1,5 @@
-import type { CreationTemplate } from '~/features/events/model/programme-creation'
+import type { CreationSchedule, CreationTemplate, SeriesCount } from '~/features/events/model/programme-creation'
+import { ScheduleKind } from '~/features/events/model/schedule.type'
 import * as m from '~/i18n/paraglide/messages'
 import { addDays } from '~/shared/utils/calendar-day'
 import { formatDay } from '~/shared/utils/format-day'
@@ -23,11 +24,11 @@ export function templateLine(template: CreationTemplate, usually = false): strin
   return usually ? m.programs_new_usually({ weekday, hours }) : m.programs_new_every({ weekday, hours })
 }
 
-/** « 15 parties, 4 services ». */
-export function contentLabel(template: CreationTemplate): string {
-  const parts = m.programs_new_parts({ count: template.parts })
-  const services = m.programs_new_services({ count: template.services })
-  return `${parts}, ${services}`
+/** What a schedule holds: « 15 parties », « 4 services ». */
+export function scheduleContent(schedule: CreationSchedule): string {
+  return schedule.kind === ScheduleKind.Programme
+    ? m.programs_new_parts({ count: schedule.items })
+    : m.programs_new_services({ count: schedule.items })
 }
 
 /** « jeu. 31 déc. ». */
@@ -52,14 +53,29 @@ export function programmesCount(count: number): string {
   return m.programs_new_count({ count: count })
 }
 
-export function submitLabel(count: number): string {
-  if (count === 0) return m.programs_new_count_none()
-  return m.programs_new_submit({ count: count })
+/** « 16 réunions · 32 plannings »: the meetings created or filled, and the schedules they arrive with. */
+export function meetingsCount(count: SeriesCount): string {
+  const meetings = count.create + count.fill
+  if (meetings === 0) return m.programs_new_count_none()
+  if (count.schedules === 0) return programmesCount(meetings)
+  return `${programmesCount(meetings)} · ${m.programs_new_schedules({ count: count.schedules })}`
 }
 
-/** « 1 existe déjà · 2 dates passées », or « Tous nouveaux ». */
-export function restLabel(existing: number, skipped: number): string {
+/** What the button does (the user's choice): « Créer 9, compléter 7 », « Créer 16 réunions », « Compléter 7 réunions ». */
+export function submitLabel(count: SeriesCount): string {
+  if (count.create > 0 && count.fill > 0) return m.programs_new_submit_both({ create: count.create, fill: count.fill })
+  if (count.fill > 0) return m.programs_new_submit_fill({ count: count.fill })
+  if (count.create > 0) return m.programs_new_submit({ count: count.create })
+  return m.programs_new_count_none()
+}
+
+/** « 9 nouvelles · 7 déjà créées d’avance, qui reçoivent les leurs · 1 date passée », or « Tous nouveaux ». */
+export function restLabel({ create, fill, existing, skipped }: SeriesCount): string {
   const parts: string[] = []
+  if (fill > 0) {
+    if (create > 0) parts.push(m.programs_new_new({ count: create }))
+    parts.push(m.programs_new_fill({ count: fill }))
+  }
   if (existing > 0) {
     parts.push(m.programs_new_existing({ count: existing }))
   }

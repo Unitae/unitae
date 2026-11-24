@@ -3,16 +3,22 @@ import { E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD, login } from './helpers/auth'
 
 // Nothing here is saved: the page is checked up to what it would create, so the suite leaves no programme behind.
 
-const SUBMIT_SERIES_RE = /^Créer (\d+) programmes?$/
+// « Créer 9, compléter 7 », « Créer 16 réunions », « Compléter 7 réunions ».
+const SUBMIT_SERIES_RE = /^(Créer|Compléter) \d+/
+const BOTH_RE = /^Créer (\d+), compléter (\d+)$/
+const ONE_RE = /^(?:Créer|Compléter) (\d+) réunions?$/
 const ROW_RE = /^Créer .+ du /
 const SINGLE_RE = /^Une seule date$/
 const OTHER_EVENT_RE = /^Autre évènement/
-const SUBMIT_SINGLE_RE = /^Créer le programme$/
+const SUBMIT_SINGLE_RE = /^Créer la réunion$/
 const END_ERROR_RE = /Après le début/
 const NEW_URL_RE = /\/programs\/new/
 
+/** The meetings the series button will create or complete, whichever of its three forms it reads. */
 function submitCount(label: string | null): number {
-  return Number(label?.match(SUBMIT_SERIES_RE)?.[1] ?? Number.NaN)
+  const both = label?.match(BOTH_RE)
+  if (both) return Number(both[1]) + Number(both[2])
+  return Number(label?.match(ONE_RE)?.[1] ?? Number.NaN)
 }
 
 test.describe('Programme creation', () => {
@@ -26,11 +32,14 @@ test.describe('Programme creation', () => {
     const submit = page.getByRole('button', { name: SUBMIT_SERIES_RE })
     await submit.waitFor({ state: 'visible' })
     const before = submitCount(await submit.textContent())
-    test.skip(!(before > 1), 'needs at least two programmes to create in the default period')
+    // A label the parser no longer reads fails here rather than skipping as « not enough data ».
+    expect(before).not.toBeNaN()
+    test.skip(!(before > 1), 'needs at least two meetings to create or complete in the default period')
+    await expect(submit).toBeEnabled()
 
     await page.getByRole('checkbox', { name: ROW_RE }).first().click()
 
-    await expect(submit).toHaveText(`Créer ${before - 1} programme${before - 1 === 1 ? '' : 's'}`)
+    await expect.poll(async () => submitCount(await submit.textContent())).toBe(before - 1)
     await expect(page.locator('input[name="skip"]')).toHaveCount(1)
   })
 

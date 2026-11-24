@@ -7,7 +7,7 @@ const TIME_ZONE = 'Europe/Paris'
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const TUESDAY = 2
 const SINGLE_RE = /^Une seule date$/
-const SUBMIT_SINGLE_RE = /^Créer le programme$/
+const SUBMIT_SINGLE_RE = /^Créer la réunion$/
 const MIDWEEK_RE = /^Réunion de semaine/
 // Created, a programme opens on the meeting's page.
 const EVENT_URL_RE = /\/programs\/events\/(\d+)(?:[?#]|$)/
@@ -60,7 +60,7 @@ export async function openMeeting(page: Page, typed: string): Promise<string> {
   await page.getByText(MIDWEEK_RE).first().click()
   await retype(page.locator('#creation-day'), typed)
   await page.getByRole('button', { name: SUBMIT_SINGLE_RE }).click()
-  const existing = page.getByRole('link', { name: 'Voir ce programme' })
+  const existing = page.getByRole('link', { name: 'Voir cette réunion' })
   await Promise.race([page.waitForURL(EVENT_URL_RE), existing.waitFor()])
   if (!EVENT_URL_RE.test(page.url())) {
     await page.goto(`${await existing.getAttribute('href')}`)

@@ -9,7 +9,7 @@ import { isCalendarDay } from '~/shared/utils/calendar-day'
 import { formatDay } from '~/shared/utils/format-day'
 import { cn } from '~/shared/utils/utils'
 
-import { chipDay, chipMonth, monthName, programmesCount, restLabel, shortDate } from './creation-labels'
+import { chipDay, chipMonth, meetingsCount, monthName, programmesCount, restLabel, shortDate } from './creation-labels'
 import type { ProgrammeCreationState } from './use-programme-creation'
 
 /** What the series will create, week by week like the list: what exists stays, an unticked day is passed. */
@@ -21,11 +21,9 @@ export function SeriesPreview({ state, today }: { state: ProgrammeCreationState;
     <Panel title={m.programs_new_preview_title()}>
       <div className="flex flex-col gap-0.5 border-border border-b px-4 py-3">
         <p className="font-semibold text-base tabular-nums" aria-live="polite">
-          {programmesCount(count.create)}
+          {meetingsCount(count)}
         </p>
-        {planned.length > 0 && (
-          <p className="text-faint text-sm tabular-nums">{restLabel(count.existing, count.skipped)}</p>
-        )}
+        {planned.length > 0 && <p className="text-faint text-sm tabular-nums">{restLabel(count)}</p>}
       </div>
       {planned.length === 0 ? (
         <p className="px-4 py-3 text-muted-foreground text-sm">{m.programs_new_tick_meeting()}</p>
@@ -37,7 +35,7 @@ export function SeriesPreview({ state, today }: { state: ProgrammeCreationState;
           ))}
         </div>
       )}
-      {count.create === 0 && planned.length > 0 && (
+      {count.create + count.fill === 0 && planned.length > 0 && (
         <div className="flex flex-col items-start gap-2 border-border border-t px-4 py-3">
           <p className="text-muted-foreground text-sm">{m.programs_new_nothing_left()}</p>
           {further != null && (
@@ -105,6 +103,7 @@ function PreviewRow({ row, passed, onToggle }: { row: PlannedProgramme; passed: 
         <span className="flex items-center gap-1.5 text-faint text-xs tabular-nums">
           <span aria-hidden="true" className="size-1.5 rounded-full" style={{ backgroundColor: row.template.color }} />
           {date} · {row.template.startTime}
+          {row.aheadId != null && ` · ${m.programs_new_row_ahead()}`}
         </span>
       </span>
     </>
@@ -133,10 +132,19 @@ function PreviewRow({ row, passed, onToggle }: { row: PlannedProgramme; passed: 
           id={id}
           checked={!passed}
           onCheckedChange={onToggle}
-          aria-label={m.programs_new_row_create({ name: row.template.name, date })}
+          aria-label={
+            row.aheadId != null
+              ? m.programs_new_row_fill({ name: row.template.name, date })
+              : m.programs_new_row_create({ name: row.template.name, date })
+          }
         />
         {content}
-        {passed && <span className="shrink-0 text-faint text-xs">{m.programs_new_row_skipped()}</span>}
+        {/* Passing a day removes the job's meeting created ahead on it (createProgrammeSeries): said where it happens. */}
+        {passed && (
+          <span className="shrink-0 text-faint text-xs">
+            {row.aheadRemovable ? m.programs_new_row_skipped_ahead() : m.programs_new_row_skipped()}
+          </span>
+        )}
       </label>
     </li>
   )
@@ -155,7 +163,11 @@ export function SinglePreview({ state }: { state: ProgrammeCreationState }) {
         <p className="px-4 py-3 text-muted-foreground text-sm">{m.programs_new_pick_template()}</p>
       ) : (
         <>
-          <p className="border-border border-b px-4 py-3 font-semibold text-base">{programmesCount(1)}</p>
+          <p className="border-border border-b px-4 py-3 font-semibold text-base">
+            {template != null && template.schedules.length > 0
+              ? `${programmesCount(1)} · ${m.programs_new_schedules({ count: template.schedules.length })}`
+              : programmesCount(1)}
+          </p>
           <div className="flex min-h-12 items-center gap-2.5 border-border border-b px-4 py-1.5">
             {day != null && <DateChip month={chipMonth(day)} day={chipDay(day)} />}
             <span className="flex min-w-0 flex-col">
@@ -169,7 +181,11 @@ export function SinglePreview({ state }: { state: ProgrammeCreationState }) {
             </span>
           </div>
           <div className="flex flex-col gap-1.5 px-4 py-3 text-muted-foreground text-sm">
-            <p>{freeform ? m.programs_new_freeform_empty() : m.programs_new_from_template()}</p>
+            {freeform ? (
+              <p>{m.programs_new_freeform_empty()}</p>
+            ) : (
+              template != null && template.schedules.length > 0 && <p>{m.programs_new_from_template()}</p>
+            )}
             <p>{m.programs_new_then_edit()}</p>
           </div>
         </>
