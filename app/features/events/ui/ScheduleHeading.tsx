@@ -31,16 +31,19 @@ export function scheduleTitle(schedule: { name: string | null; kind: string }): 
   return schedule.kind === ScheduleKind.Programme ? m.programs_view_spiritual_program() : m.programs_view_services()
 }
 
-/** The section's title: its name and its kind. */
+/** A schedule kind's label: « Spirituel » or « Services ». */
+export function scheduleKindLabel(kind: string): string {
+  return kind === ScheduleKind.Programme ? m.programs_schedule_kind_programme() : m.programs_schedule_kind_duty()
+}
+
+/** The section's title: its name, and its kind unless the name already says it (« Services », the user's choice). */
 export function ScheduleTitle({ schedule }: { schedule: EventScheduleView }) {
+  const title = scheduleTitle(schedule)
+  const kind = scheduleKindLabel(schedule.kind)
   return (
     <span className="flex flex-wrap items-center gap-2">
-      {scheduleTitle(schedule)}
-      <Tag>
-        {schedule.kind === ScheduleKind.Programme
-          ? m.programs_schedule_kind_programme()
-          : m.programs_schedule_kind_duty()}
-      </Tag>
+      {title}
+      {kind !== title && <Tag>{kind}</Tag>}
     </span>
   )
 }

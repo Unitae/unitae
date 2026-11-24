@@ -2494,13 +2494,13 @@
     "programs_edit_part_order_label": "Order",
     "programs_edit_part_duration_label": "Duration (min)",
     "programs_edit_services_title": "Services",
-    "programs_edit_event_updated": "Event updated.",
+    "programs_edit_event_updated": "Meeting updated.",
     "programs_edit_part_added": "Part added.",
     "programs_edit_part_deleted": "Part deleted.",
     "programs_edit_service_added": "Service added.",
     "programs_edit_service_deleted": "Service deleted.",
     "programs_edit_not_in_event": "This item does not belong to this event.",
-    "programs_edit_view_event": "View event",
+    "programs_edit_view_event": "View the meeting",
     "programs_edit_crumb": "Edit",
     "programs_edit_parts": [
         {
