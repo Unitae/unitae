@@ -270,6 +270,11 @@ export function ScheduleTemplatePanel({
           <SheetContent
             className="sm:max-w-md"
             onEscapeKeyDown={event => {
+              // A rename or a new section's name takes its own Escape (it hears it after this sheet does).
+              if ((event.target as HTMLElement | null)?.closest('[data-own-escape]')) {
+                event.preventDefault()
+                return
+              }
               if (item == null) return
               event.preventDefault()
               onBack()

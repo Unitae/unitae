@@ -1,5 +1,5 @@
 import { Check, MoreHorizontal, X } from 'lucide-react'
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useFetcher } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
@@ -19,6 +19,7 @@ export function PartGroupHeader({
   section,
   meta,
   onAddHall,
+  taken,
 }: {
   level: 'section' | 'hall'
   name: string
@@ -28,51 +29,102 @@ export function PartGroupHeader({
   meta: string
   /** A section's « Ajouter une salle en parallèle ». */
   onAddHall?: () => void
+  /** The other names in use (the template's other sections, or the section's other halls): one of them would merge. */
+  taken: readonly string[]
 }) {
-  const fetcher = useFetcher()
+  const fetcher = useFetcher<{ errors?: string[]; error?: Record<string, string[] | null> }>()
   const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(name)
+  // The name last sent: a refusal shows while the input still holds it, not once it is changed or reopened.
+  const [sent, setSent] = useState<string | null>(null)
   const inputId = useId()
-  useCloseOnSave(fetcher, () => setEditing(false))
+  const errorId = useId()
+  const trigger = useRef<HTMLButtonElement>(null)
+  // Back on the « … » button once the rename closes, saved or cancelled: focus stays in the panel, Escape with it.
+  const refocus = useRef(false)
+  const close = () => {
+    refocus.current = true
+    setEditing(false)
+  }
+  useCloseOnSave(fetcher, close)
+  useEffect(() => {
+    if (editing || !refocus.current) return
+    refocus.current = false
+    trigger.current?.focus()
+  }, [editing])
   const isSection = level === 'section'
+  const next = value.trim()
+  const clash = next !== name && taken.includes(next)
+  const refusal =
+    fetcher.state === 'idle' && fetcher.data != null && sent === next
+      ? [...(fetcher.data.errors ?? []), ...Object.values(fetcher.data.error ?? {}).flatMap(each => each ?? [])]
+      : []
+  const message = clash
+    ? isSection
+      ? m.settings_schedule_templates_section_taken()
+      : m.settings_schedule_templates_hall_taken()
+    : refusal.join(' ')
 
   if (editing) {
     return (
       <fetcher.Form
         method="post"
-        className={cn('flex items-center gap-1.5 border-border border-b px-2 py-1.5', isSection ? 'bg-subtle' : 'pl-5')}
+        // The phone's sheet hears Escape first: this mark tells it the rename takes it, not the panel.
+        data-own-escape=""
+        className={cn('flex flex-col gap-1 border-border border-b px-2 py-1.5', isSection ? 'bg-subtle' : 'pl-5')}
         onKeyDown={event => {
           if (event.key !== 'Escape') return
           event.preventDefault()
           event.stopPropagation()
-          setEditing(false)
+          close()
+        }}
+        onSubmit={event => {
+          // The same name closes; a blank one or a clash is not sent.
+          if (next === name) {
+            event.preventDefault()
+            close()
+          } else if (next === '' || clash) event.preventDefault()
+          else setSent(next)
         }}
       >
-        <input type="hidden" name="intent" value={isSection ? 'rename-section' : 'rename-hall'} />
-        <input type="hidden" name="from" value={name} />
-        {!isSection && <input type="hidden" name="section" value={section ?? ''} />}
-        <label htmlFor={inputId} className="sr-only">
-          {isSection ? m.settings_schedule_templates_section_name() : m.settings_schedule_templates_hall_name()}
-        </label>
-        {/* biome-ignore lint/a11y/noAutofocus: the rename the person just asked for */}
-        <Input id={inputId} name="to" defaultValue={name} maxLength={80} autoFocus required className="h-8 flex-1" />
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          aria-label={m.common_cancel()}
-          onClick={() => setEditing(false)}
-        >
-          <X aria-hidden="true" />
-        </Button>
-        <Button
-          type="submit"
-          variant="ghost"
-          size="icon-sm"
-          aria-label={m.settings_schedule_templates_rename()}
-          disabled={fetcher.state !== 'idle'}
-        >
-          <Check aria-hidden="true" />
-        </Button>
+        <div className="flex items-center gap-1.5">
+          <input type="hidden" name="intent" value={isSection ? 'rename-section' : 'rename-hall'} />
+          <input type="hidden" name="from" value={name} />
+          {!isSection && <input type="hidden" name="section" value={section ?? ''} />}
+          <label htmlFor={inputId} className="sr-only">
+            {isSection ? m.settings_schedule_templates_section_name() : m.settings_schedule_templates_hall_name()}
+          </label>
+          {/* biome-ignore lint/a11y/noAutofocus: the rename the person just asked for */}
+          <Input
+            id={inputId}
+            name="to"
+            value={value}
+            onChange={event => setValue(event.target.value)}
+            maxLength={80}
+            autoFocus
+            required
+            aria-invalid={message !== '' || undefined}
+            aria-describedby={message !== '' ? errorId : undefined}
+            className="h-8 flex-1"
+          />
+          <Button type="button" variant="ghost" size="icon-sm" aria-label={m.common_cancel()} onClick={close}>
+            <X aria-hidden="true" />
+          </Button>
+          <Button
+            type="submit"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={m.settings_schedule_templates_rename()}
+            disabled={fetcher.state !== 'idle' || next === '' || clash}
+          >
+            <Check aria-hidden="true" />
+          </Button>
+        </div>
+        {message !== '' && (
+          <p id={errorId} role="alert" className="px-1 text-danger-text text-xs">
+            {message}
+          </p>
+        )}
       </fetcher.Form>
     )
   }
@@ -93,6 +145,7 @@ export function PartGroupHeader({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
+            ref={trigger}
             type="button"
             variant="ghost"
             size="icon-sm"
@@ -106,13 +159,26 @@ export function PartGroupHeader({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => setEditing(true)}>
+          <DropdownMenuItem
+            onSelect={() => {
+              setValue(name)
+              setSent(null)
+              setEditing(true)
+            }}
+          >
             {m.settings_schedule_templates_rename()}
           </DropdownMenuItem>
           {onAddHall != null && (
             <DropdownMenuItem onSelect={onAddHall}>{m.settings_schedule_templates_add_hall()}</DropdownMenuItem>
           )}
-          <DropdownMenuItem disabled>{m.settings_schedule_templates_delete_when_empty()}</DropdownMenuItem>
+          {/* Reachable with the arrow keys, unlike a disabled item, so its reason is read; choosing it does nothing. */}
+          <DropdownMenuItem
+            aria-disabled="true"
+            className="text-muted-foreground"
+            onSelect={event => event.preventDefault()}
+          >
+            {m.settings_schedule_templates_delete_when_empty()}
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

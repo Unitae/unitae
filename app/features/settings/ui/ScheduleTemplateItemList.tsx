@@ -1,5 +1,5 @@
 import { Plus } from 'lucide-react'
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { resolvePartCapability } from '~/features/events'
 import { groupTemplateParts, type ListedPart } from '~/features/settings/model/schedule-template-list'
 import * as m from '~/i18n/paraglide/messages'
@@ -72,6 +72,19 @@ export function ScheduleTemplateItemList({
 }) {
   const [newSection, setNewSection] = useState<string | null>(null)
   const newSectionId = useId()
+  const newSectionError = useId()
+  // Back on « Ajouter une section » once its name is dropped: focus stays in the panel, Escape with it.
+  const addSection = useRef<HTMLButtonElement>(null)
+  const refocus = useRef(false)
+  const dropNewSection = () => {
+    refocus.current = true
+    setNewSection(null)
+  }
+  useEffect(() => {
+    if (newSection != null || !refocus.current) return
+    refocus.current = false
+    addSection.current?.focus()
+  }, [newSection])
   const roleNames = (ids: number[]) =>
     roles
       .filter(role => ids.includes(role.id))
@@ -146,6 +159,13 @@ export function ScheduleTemplateItemList({
   }
 
   const { runs, total } = groupTemplateParts(parts)
+  const sections = [...new Set(parts.map(part => part.section).filter(section => section !== ''))]
+  const sectionName = newSection?.trim() ?? ''
+  const sectionTaken = sections.includes(sectionName)
+  const startSection = () => {
+    if (sectionName === '' || sectionTaken) return
+    onAdd('part', { section: sectionName, track: '', trackOrder: null, order: lastOrder + 1 })
+  }
   const lastOrder = parts.reduce((max, part) => Math.max(max, part.order), -1)
   const after = (group: ItemListPart[]) => (group.at(-1)?.order ?? lastOrder) + 1
   const addPart = (label: string, draft: PartDraft) => (
@@ -181,6 +201,7 @@ export function ScheduleTemplateItemList({
                   <PartGroupHeader
                     level="section"
                     name={run.section ?? ''}
+                    taken={sections.filter(section => section !== run.section)}
                     meta={[
                       ...(run.minutes > 0 ? [m.settings_schedule_templates_minutes({ minutes: run.minutes })] : []),
                       ...(run.halls.length > 1
@@ -190,7 +211,10 @@ export function ScheduleTemplateItemList({
                     onAddHall={() =>
                       onAdd('part', {
                         section: run.section ?? '',
-                        track: run.halls.length === 0 ? m.settings_schedule_templates_second_hall() : '',
+                        track:
+                          run.halls.length === 0
+                            ? m.settings_schedule_templates_second_hall()
+                            : m.settings_schedule_templates_nth_hall({ number: run.halls.length + 1 }),
                         trackOrder: run.halls.length === 0 ? 2 : run.halls.length + 1,
                         order: after([...run.parts, ...run.halls.flatMap(hall => hall.parts)]),
                       })
@@ -211,6 +235,7 @@ export function ScheduleTemplateItemList({
                     <PartGroupHeader
                       level="hall"
                       name={hall.name}
+                      taken={run.halls.map(each => each.name).filter(each => each !== hall.name)}
                       section={run.section ?? ''}
                       meta={[
                         m.programs_new_parts({ count: hall.parts.length }),
@@ -238,7 +263,8 @@ export function ScheduleTemplateItemList({
         </div>
       )}
       {newSection != null && (
-        <div className="flex flex-col gap-2 rounded-md border border-border p-2">
+        // The phone's sheet hears Escape first: this mark tells it the name takes it, not the panel.
+        <div data-own-escape="" className="flex flex-col gap-2 rounded-md border border-border p-2">
           <label htmlFor={newSectionId} className="sr-only">
             {m.settings_schedule_templates_section_name()}
           </label>
@@ -248,51 +274,68 @@ export function ScheduleTemplateItemList({
             value={newSection}
             onChange={event => setNewSection(event.target.value)}
             onKeyDown={event => {
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                startSection()
+              }
               if (event.key !== 'Escape') return
               event.preventDefault()
               event.stopPropagation()
-              setNewSection(null)
+              dropNewSection()
             }}
+            aria-invalid={sectionTaken || undefined}
+            aria-describedby={sectionTaken ? newSectionError : undefined}
             placeholder={m.settings_schedule_templates_section_name()}
             maxLength={80}
             autoFocus
           />
+          {sectionTaken && (
+            <p id={newSectionError} role="alert" className="text-danger-text text-xs">
+              {m.settings_schedule_templates_section_taken()}
+            </p>
+          )}
           <p className="text-faint text-xs">{m.settings_schedule_templates_new_section_hint()}</p>
           <div className="flex gap-2">
-            <Button
-              type="button"
-              size="sm"
-              disabled={newSection.trim() === ''}
-              onClick={() =>
-                onAdd('part', { section: newSection.trim(), track: '', trackOrder: null, order: lastOrder + 1 })
-              }
-            >
+            <Button type="button" size="sm" disabled={sectionName === '' || sectionTaken} onClick={startSection}>
               <Plus aria-hidden="true" />
               {m.settings_schedule_templates_first_part()}
             </Button>
-            <Button type="button" variant="ghost" size="sm" onClick={() => setNewSection(null)}>
+            <Button type="button" variant="ghost" size="sm" onClick={dropNewSection}>
               {m.common_cancel()}
             </Button>
           </div>
         </div>
       )}
-      <div className="flex flex-wrap gap-2">
-        <AddButton
-          label={m.settings_schedule_templates_add_part_loose()}
-          onClick={() => onAdd('part', { section: '', track: '', trackOrder: null, order: lastOrder + 1 })}
-        />
-        {newSection == null && (
-          <AddButton label={m.settings_schedule_templates_add_section()} onClick={() => setNewSection('')} />
-        )}
-      </div>
+      {/* Hidden while a new section is named: its own « Première partie » is the part to add then. */}
+      {newSection == null && (
+        <div className="flex flex-wrap gap-2">
+          <AddButton
+            label={m.settings_schedule_templates_add_part_loose()}
+            onClick={() => onAdd('part', { section: '', track: '', trackOrder: null, order: lastOrder + 1 })}
+          />
+          <AddButton
+            ref={addSection}
+            label={m.settings_schedule_templates_add_section()}
+            onClick={() => setNewSection('')}
+          />
+        </div>
+      )}
       <p className="text-faint text-xs">{m.settings_schedule_templates_list_note()}</p>
     </div>
   )
 }
 
-function AddButton({ label, onClick }: { label: string; onClick: () => void }) {
+function AddButton({
+  label,
+  onClick,
+  ref,
+}: {
+  label: string
+  onClick: () => void
+  ref?: React.Ref<HTMLButtonElement>
+}) {
   return (
-    <Button type="button" variant="ghost" size="sm" className="self-start" onClick={onClick}>
+    <Button ref={ref} type="button" variant="ghost" size="sm" className="self-start" onClick={onClick}>
       <Plus aria-hidden="true" />
       {label}
     </Button>

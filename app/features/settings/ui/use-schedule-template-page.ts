@@ -28,7 +28,7 @@ export function readItem(params: URLSearchParams): OpenItem | null {
   const order = Number(params.get('order'))
   const hallOrder = Number(params.get('hallOrder'))
   const draft =
-    params.has('order') && Number.isFinite(order)
+    params.get('order') != null && params.get('order') !== '' && Number.isFinite(order)
       ? {
           section: params.get('section') ?? '',
           track: params.get('hall') ?? '',
