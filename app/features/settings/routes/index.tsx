@@ -37,22 +37,22 @@ export default function SettingsIndex() {
       <div className="flex flex-col gap-4">
         {groups.map(group => (
           <section key={group.key} className="flex flex-col gap-1.5">
-            <h2 className="text-faint px-0.5 text-xs font-medium">{SETTINGS_GROUP_LABEL[group.key]()}</h2>
-            <div className="bg-card overflow-hidden rounded-lg border">
+            <h2 className="px-0.5 font-medium text-faint text-xs">{SETTINGS_GROUP_LABEL[group.key]()}</h2>
+            <div className="overflow-hidden rounded-lg border bg-card">
               {group.entries.map(entry => {
                 const { icon: Icon, label } = SETTINGS_ENTRY_DISPLAY[entry.key]
                 return entry.external ? (
                   <a key={entry.key} href={entry.href} target="_blank" rel="noreferrer" className={ROW}>
                     <Icon aria-hidden="true" />
                     <span className="flex-1">{label()}</span>
-                    <ArrowUpRight aria-hidden="true" className="text-faint size-4" />
+                    <ArrowUpRight aria-hidden="true" className="size-4 text-faint" />
                     <span className="sr-only">({m.settings_external_hint()})</span>
                   </a>
                 ) : (
                   <Link key={entry.key} to={entry.href} className={ROW}>
                     <Icon aria-hidden="true" />
                     <span className="flex-1">{label()}</span>
-                    <ChevronRight aria-hidden="true" className="text-faint size-4" />
+                    <ChevronRight aria-hidden="true" className="size-4 text-faint" />
                   </Link>
                 )
               })}

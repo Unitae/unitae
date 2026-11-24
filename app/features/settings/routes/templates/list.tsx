@@ -19,9 +19,8 @@ import type { Route } from './+types/list'
 
 export const meta: Route.MetaFunction = () => [{ title: m.settings_templates_meta_title() }]
 
-export async function loader({ context }: Route.LoaderArgs) {
+export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const _currentUser = context.get(currentAccountContext)
   const isManager = permissions.has(Permission.CanManageProgramTemplates)
 
   return withScopeFromContext(context, async (db, congregationId) => {
@@ -90,7 +89,7 @@ export default function TemplateListPage({ loaderData }: Route.ComponentProps) {
       />
       <div className="flex flex-col gap-6">
         {templates.length === 0 ? (
-          <p className="bg-card text-muted-foreground rounded-lg border px-4.5 py-6 text-center text-sm">
+          <p className="rounded-lg border bg-card px-4.5 py-6 text-center text-muted-foreground text-sm">
             {m.settings_templates_empty()}
           </p>
         ) : (
@@ -98,7 +97,7 @@ export default function TemplateListPage({ loaderData }: Route.ComponentProps) {
         )}
         <BuiltInTemplates rows={builtIn} />
         {showsAttendance != null && (
-          <div className="bg-card overflow-hidden rounded-lg border">
+          <div className="overflow-hidden rounded-lg border bg-card">
             <SettingRow
               title={m.settings_programme_attendance()}
               description={m.settings_programme_attendance_description()}

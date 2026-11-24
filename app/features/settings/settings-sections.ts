@@ -56,7 +56,7 @@ const CATALOG: CatalogEntry[] = [
     key: 'schedule-templates',
     group: 'congregation',
     href: '/settings/schedule-templates',
-    // Its name and responsible are the templates' managers' to set (plan §11); a responsible edits their items (6a-1c).
+    // The templates' managers' alone (6a-1c): a template's responsible fills its schedules on the meetings.
     opens: can => can(Permission.CanManageProgramTemplates),
   },
   {

@@ -41,18 +41,16 @@ export const meta: Route.MetaFunction = ({ loaderData }) => [
   },
 ]
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const _currentUser = context.get(currentAccountContext)
   const templateId = requireParamId(params.templateId, '/settings/templates')
   const isManager = permissions.has(Permission.CanManageProgramTemplates)
+  // The templates' managers' alone since 6a-1c: a template's responsible fills its schedules on the meetings.
+  if (!isManager) throw redirect('/settings/templates')
 
   return withScopeFromContext(context, async (db, congregationId) => {
     const page = await getTemplatePage(db, templateId, congregationId)
     if (!page) throw redirect('/settings/templates')
-    // The managers change it (a template's responsible no longer does, since 6a-1c); whoever reads the programmes may
-    // look at it.
-    if (!isManager && !permissions.has(Permission.CanViewPrograms)) throw redirect('/settings/templates')
     const editable = isManager
     const builtIn = isSystemTemplate(page.template.key)
     // Empty meetings ahead still on the template's old day or hours, for whoever may bring them along.
@@ -75,8 +73,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const isManager = permissions.has(Permission.CanManageProgramTemplates)
   const formData = await request.formData()
 
-  const result = await withScopeFromContext(context, async (db, congregationId) => {
-    if (!isManager) throw redirect('/settings/templates')
+  if (!isManager) throw redirect('/settings/templates')
+  const result = await withScopeFromContext(context, (db, congregationId) => {
     const { timezone: timeZone } = context.get(congregationContext)
     return handleTemplateAction(db, templateId, formData, { id: currentUser.id, congregationId, isManager, timeZone })
   })
@@ -138,7 +136,7 @@ export default function TemplatePage({ loaderData }: Route.ComponentProps) {
                   {m.settings_template_delete()}
                 </DropdownMenuItem>
                 {page.eventCount > 0 && (
-                  <DropdownMenuLabel className="text-faint text-xs font-normal">
+                  <DropdownMenuLabel className="font-normal text-faint text-xs">
                     {m.settings_template_delete_in_use({ count: page.eventCount })}
                   </DropdownMenuLabel>
                 )}
