@@ -90,18 +90,21 @@ function RenameScheduleDialog({
   useCloseOnSave(fetcher, onClose)
   const [value, setValue] = useState(name)
   const [wasOpen, setWasOpen] = useState(open)
+  const [sent, setSent] = useState(false)
   // Each opening starts from the schedule's current name.
   if (open !== wasOpen) {
     setWasOpen(open)
     if (open) setValue(name)
+    setSent(false)
   }
   // Saving the name it already has would record a rename of nothing.
   const unchanged = value.trim() === name.trim() || value.trim() === ''
-  const error = fetcher.state === 'idle' && fetcher.data?.ok === false ? fetcher.data.error : undefined
+  // Only the answer to a submission made since this opening: the fetcher outlives a cancelled dialog.
+  const error = sent && fetcher.state === 'idle' && fetcher.data?.ok === false ? fetcher.data.error : undefined
   return (
     <Dialog open={open} onOpenChange={next => !next && onClose()}>
       <DialogContent>
-        <fetcher.Form method="post" action={action} className="flex flex-col gap-4">
+        <fetcher.Form method="post" action={action} onSubmit={() => setSent(true)} className="flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>{m.programs_schedule_rename_title()}</DialogTitle>
             <DialogDescription>{m.programs_schedule_rename_body()}</DialogDescription>

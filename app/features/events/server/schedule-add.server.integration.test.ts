@@ -215,6 +215,7 @@ describe('addSchedule, beside what the event holds', () => {
         where: { eventId: meetingId, kind: 'programme' },
         select: { items: { select: { name: true }, orderBy: { order: 'asc' } } },
       })
+      expect(parts.length).toBeGreaterThan(1)
       expect(added.items.map(item => item.name)).toEqual(parts.map(part => part.name))
     })
   })
@@ -222,10 +223,42 @@ describe('addSchedule, beside what the event holds', () => {
   it('makes a meeting created ahead its author’s: no template change moves or deletes it from then on', async () => {
     await withMeeting(async ({ db, congregationId, actorId, meetingId, duties }) => {
       const dutiesTemplate = await templateOf(db, duties.id)
-      await db.event.update({ where: { id: meetingId }, data: { origin: 'job' } })
+      await db.event.update({ where: { id: meetingId }, data: { origin: 'job', createdById: null } })
       await db.schedule.delete({ where: { id: duties.id } })
       await addSchedule(db, meetingId, { scheduleTemplateId: dutiesTemplate }, congregationId, actorId)
-      expect((await db.event.findFirstOrThrow({ where: { id: meetingId } })).origin).toBe('manual')
+      const event = await db.event.findFirstOrThrow({ where: { id: meetingId } })
+      expect({ origin: event.origin, author: event.createdById }).toEqual({ origin: 'manual', author: actorId })
+    })
+  })
+
+  it('refuses, while the meeting awaits its programme, a template with nothing of its kind, and offers none of it', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, meetingId, duties }) => {
+      const empty = await db.scheduleTemplate.create({ data: { name: 'Vide', kind: 'duty', congregationId } })
+      const dutiesTemplate = await templateOf(db, duties.id)
+      await db.schedule.deleteMany({ where: { eventId: meetingId } })
+      expect(await addSchedule(db, meetingId, { scheduleTemplateId: empty.id }, congregationId, actorId)).toEqual({
+        reason: 'awaiting-programme',
+      })
+      const options = await scheduleAddOptions(db, manages, actorId, meetingId, congregationId)
+      expect(options.others.some(template => template.id === empty.id)).toBe(false)
+      // The kind's own duties still bring their services: offered.
+      expect(options.suggested.map(template => template.id)).toContain(dutiesTemplate)
+      expect(options.emptyKinds).toEqual([])
+    })
+  })
+
+  it('publishes an empty programme added by hand beside filled duties: no template’s parts to wait for', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, meetingId, programme }) => {
+      await db.schedule.delete({ where: { id: programme.id } })
+      const added = await addSchedule(
+        db,
+        meetingId,
+        { name: 'Programme libre', kind: 'programme' },
+        congregationId,
+        actorId,
+      )
+      if (added == null || !('schedule' in added)) throw new Error('not added')
+      expect(await publishSchedule(db, added.schedule.id, congregationId, actorId)).toMatchObject({ changed: true })
     })
   })
 
@@ -308,6 +341,14 @@ describe('scheduleAddOptions, what « Ajouter un planning » offers', () => {
 })
 
 describe('addEventSchedule, as the route asks', () => {
+  it('finds nothing for a template gone since the page loaded, whatever the rights', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, meetingId }) => {
+      expect(
+        await addEventSchedule(db, manages, actorId, meetingId, { scheduleTemplateId: 999_999 }, congregationId),
+      ).toBeNull()
+    })
+  })
+
   it('adds for whoever may, refuses whoever may not, and finds nothing for another congregation', async () => {
     await withMeeting(async ({ db, congregationId, programmeLead, dutyLead, meetingId, duties }) => {
       const dutiesTemplate = await templateOf(db, duties.id)

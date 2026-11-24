@@ -109,18 +109,21 @@ function EmptyScheduleDialog({
   const preferred = () => (kinds.includes(ScheduleKind.Duty) ? ScheduleKind.Duty : (kinds[0] ?? ScheduleKind.Duty))
   const [kind, setKind] = useState<ScheduleKind>(preferred)
   const [wasOpen, setWasOpen] = useState(open)
+  const [sent, setSent] = useState(false)
   // Each opening starts from the kinds the meeting still lacks: one added since leaves the other.
   if (open !== wasOpen) {
     setWasOpen(open)
     if (open) setKind(preferred())
+    setSent(false)
   }
   const posted = kinds.includes(kind) ? kind : preferred()
-  const error = fetcher.state === 'idle' && fetcher.data?.ok === false ? fetcher.data.error : undefined
+  // Only the answer to a submission made since this opening: the fetcher outlives a cancelled dialog.
+  const error = sent && fetcher.state === 'idle' && fetcher.data?.ok === false ? fetcher.data.error : undefined
   useCloseOnSave(fetcher, onClose)
   return (
     <Dialog open={open} onOpenChange={next => !next && onClose()}>
       <DialogContent>
-        <fetcher.Form method="post" action={action} className="flex flex-col gap-4">
+        <fetcher.Form method="post" action={action} onSubmit={() => setSent(true)} className="flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>{m.programs_schedule_add_empty_title()}</DialogTitle>
             <DialogDescription>{m.programs_schedule_add_empty_body()}</DialogDescription>

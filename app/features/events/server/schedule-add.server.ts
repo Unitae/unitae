@@ -67,11 +67,17 @@ const TEMPLATE_ITEMS = {
 /** Why a schedule could not be added, though the caller may: the kind is held, or the meeting awaits its programme. */
 export type ScheduleAddRefusal = 'kind-held' | 'awaiting-programme'
 
+/** Whether a source brings no item of its kind: empty (no template), or a template with nothing of that kind. */
+function bringsNothing(kind: string, counts: { parts: number; serviceParts: number } | null): boolean {
+  return counts == null || (kind === ScheduleKind.Programme ? counts.parts : counts.serviceParts) === 0
+}
+
 /**
  * Adds a schedule to an event. Null when the event or the template is not the congregation's. Refused when the event
- * already holds one of its kind, or, for an empty one, while the meeting awaits its programme: « Créer le programme »
- * would fill it with the template's items. A meeting the job created ahead becomes its author's, as editing it does.
- * The event's row is locked, as publishing does.
+ * already holds one of its kind, or, for one that brings no item of its kind (empty, or a template with nothing of
+ * it), while the meeting awaits its programme: « Créer le programme » would fill it with the template's items. A
+ * meeting the job created ahead becomes its author's, as editing it does. The event's template row is locked, then
+ * the event's, the order « Créer le programme » takes them in.
  */
 export async function addSchedule(
   db: TransactionClient,
@@ -89,6 +95,12 @@ export async function addSchedule(
   if (fromTemplate(source) && template == null) return null
   const kind = template != null ? (template.kind as ScheduleKind) : (source.kind as ScheduleKind)
 
+  // « Créer le programme » reads the items under the template's lock: it must never fill a schedule added in between.
+  const kindOf = await db.event.findFirst({ where: { id: eventId, congregationId }, select: { templateId: true } })
+  if (kindOf == null) return null
+  if (kindOf.templateId != null) {
+    await db.$queryRaw`SELECT "id" FROM "EventTemplate" WHERE "id" = ${kindOf.templateId} AND "congregationId" = ${congregationId} FOR UPDATE`
+  }
   await db.$queryRaw`SELECT "id" FROM "Event" WHERE "id" = ${eventId} AND "congregationId" = ${congregationId} FOR UPDATE`
   const event = await db.event.findFirst({
     where: { id: eventId, congregationId },
@@ -110,7 +122,8 @@ export async function addSchedule(
     services: 0,
     template: programmeTemplate(event.template),
   })
-  if (template == null && awaits) {
+  const counts = template && { parts: template.parts.length, serviceParts: template.serviceParts.length }
+  if (awaits && bringsNothing(kind, counts)) {
     logger.info('schedule add refused: awaiting programme', { eventId, congregationId, actorId })
     return { reason: 'awaiting-programme' }
   }
@@ -164,8 +177,8 @@ export async function addSchedule(
 /**
  * What « Ajouter un planning » offers the caller on an event (D39): the schedule templates of a kind the event lacks
  * that they may add — those its kind suggests first, in its order, then the others by name, unnamed ones last — and
- * the kinds of an empty schedule, for « Gérer » only and never while the meeting awaits its programme. Nothing of a
- * kind the event holds.
+ * the kinds of an empty schedule, for « Gérer » only. While the meeting awaits its programme, only templates that bring
+ * items of their kind, and no empty one. Nothing of a kind the event holds.
  */
 export async function scheduleAddOptions(
   db: TransactionClient,
@@ -200,6 +213,7 @@ export async function scheduleAddOptions(
       id: true,
       name: true,
       kind: true,
+      _count: { select: { parts: true, serviceParts: true } },
       eventKinds: { select: { eventKindId: true, order: true, eventKind: { select: { name: true } } } },
     },
     orderBy: [{ name: { sort: 'asc', nulls: 'last' } }, { id: 'asc' }],
@@ -212,17 +226,19 @@ export async function scheduleAddOptions(
   })
   const linkOf = (template: (typeof templates)[number]) =>
     template.eventKinds.find(link => link.eventKindId === event.templateId)
-  const suggested = templates
-    .filter(template => linkOf(template) != null)
-    .sort((a, b) => (linkOf(a)?.order ?? 0) - (linkOf(b)?.order ?? 0))
   const awaits = isAwaitingProgramme({
     parts: event._count.items,
     services: 0,
     template: programmeTemplate(event.template),
   })
+  // While the meeting awaits its programme, only what brings items: « Créer le programme » would fill anything else.
+  const offered = awaits ? templates.filter(template => !bringsNothing(template.kind, template._count)) : templates
+  const suggested = offered
+    .filter(template => linkOf(template) != null)
+    .sort((a, b) => (linkOf(a)?.order ?? 0) - (linkOf(b)?.order ?? 0))
   return {
     suggested: suggested.map(option),
-    others: templates.filter(template => linkOf(template) == null).map(option),
+    others: offered.filter(template => linkOf(template) == null).map(option),
     emptyKinds: manages && !awaits ? [...missing] : [],
   }
 }
