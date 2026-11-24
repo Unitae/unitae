@@ -2417,7 +2417,6 @@
     "programs_new_mode_single": "Uma data específica",
     "programs_new_meetings_title": "Reuniões e planeamentos",
     "programs_new_meetings_description": "Assinale as reuniões a criar. Cada uma vem com os planeamentos que o seu tipo sugere; um planeamento de que uma reunião não precisa elimina-se depois nessa reunião.",
-    "programs_new_meetings_settings_hint": "Para que um tipo deixe de ter um planeamento, retire-o dos seus planeamentos em Definições › Modelos de programa.",
     "programs_new_every": "Todas as {weekday} · {hours}",
     "programs_new_usually": "Habitualmente às {weekday} · {hours}",
     "programs_new_parts": [
@@ -2447,7 +2446,7 @@
         }
     ],
     "programs_new_created_until": "Preparadas até {date}",
-    "programs_new_none_to_come": "Não há programas futuros",
+    "programs_new_none_to_come": "Não há reuniões preparadas futuras",
     "programs_new_no_meetings_title": "Ainda não há reuniões regulares",
     "programs_new_no_meetings_body": "As reuniões são criadas a partir dos modelos da congregação: os dias, as horas, as partes e os serviços.",
     "programs_new_no_meetings_link": "Crie um modelo nas definições",
@@ -2471,18 +2470,18 @@
         }
     ],
     "programs_new_follows_last": "Logo a seguir à última reunião preparada, em {date}.",
-    "programs_new_template_title": "Modelo",
+    "programs_new_template_title": "Tipo",
     "programs_new_template_description": "Também pode criar uma reunião regular isoladamente, num dia diferente do habitual.",
     "programs_new_freeform_name": "Outro evento",
     "programs_new_freeform_description": "Um nome e um horário; as partes podem ser adicionadas depois",
     "programs_new_date_title": "Data",
-    "programs_new_date_description_template": "As horas vêm do modelo, mas podem ser alteradas no programa.",
+    "programs_new_date_description_template": "As horas vêm do tipo, mas podem ser alteradas depois na reunião.",
     "programs_new_date_description_freeform": "Nome que aparece na lista e no quadro de anúncios, dia e horário.",
     "programs_new_name_label": "Nome",
     "programs_new_day_label": "Data",
     "programs_new_start_label": "Início",
     "programs_new_end_label": "Fim",
-    "programs_new_template_hours": "{hours}, conforme indicado no modelo",
+    "programs_new_template_hours": "{hours}, conforme o tipo",
     "programs_new_moved_hint": "Às {weekday} em vez de {usual}: a reunião desta semana muda de dia.",
     "programs_new_preview_title": "O que será criado",
     "programs_new_count": [
@@ -2539,7 +2538,7 @@
     ],
     "programs_new_row_ahead": "já criada",
     "programs_new_schedules_title": "Planeamentos",
-    "programs_new_no_schedule": "Nenhum planeamento sugerido: a reunião cria-se sem nenhum e depois abre-se a sua página com «Adicionar um planeamento».",
+    "programs_new_no_schedule": "Nenhum planeamento sugerido: a reunião cria-se sem nenhum; «Adicionar um planeamento» fica depois na sua página.",
     "programs_new_count_none": "Nada a criar",
     "programs_new_existing": [
         {
@@ -2567,19 +2566,21 @@
             }
         }
     ],
-    "programs_new_all_new": "Tudo novo",
+    "programs_new_all_new": "Todas novas",
     "programs_new_skip_hint": "Desmarque uma data para a ignorar: semana da assembleia de circuito, congresso…",
     "programs_new_row_create": "Criar {name} em {date}",
-    "programs_new_row_exists": "Já criado",
-    "programs_new_row_skipped": "Ignorado",
-    "programs_new_nothing_left": "Estas semanas já têm programas.",
+    "programs_new_row_fill": "Completar {name} em {date}",
+    "programs_new_row_exists": "Preparada",
+    "programs_new_row_skipped": "Ignorada",
+    "programs_new_row_skipped_ahead": "Ignorada: a reunião criada antecipadamente é retirada",
+    "programs_new_nothing_left": "Estas semanas já têm as suas reuniões.",
     "programs_new_go_further": "Ir para o fim de {month}",
     "programs_new_tick_meeting": "Assinale uma reunião para ver as datas.",
-    "programs_new_pick_template": "Escolha um modelo.",
-    "programs_new_from_template": "As partes e os serviços vêm do modelo.",
+    "programs_new_pick_template": "Escolha um tipo.",
+    "programs_new_from_template": "Os seus planeamentos vêm do seu tipo.",
     "programs_new_freeform_empty": "Ainda não há partes nem serviços.",
     "programs_new_then_edit": "Depois, abre-se a reunião para que a possa completar.",
-    "programs_new_draft_note": "Criado como rascunho: só quem prepara programas os pode ver até serem publicados.",
+    "programs_new_draft_note": "Criadas como rascunho: só quem prepara programas as pode ver até serem publicadas. Cada planeamento publica-se depois sozinho.",
     "programs_new_draft_note_short": "Como rascunhos",
     "programs_new_submit": [
         {
@@ -2614,13 +2615,13 @@
     "programs_new_error_to_before_from": "Depois do primeiro dia.",
     "programs_new_error_too_long": "No máximo, um ano.",
     "programs_new_error_no_meeting": "Assinale pelo menos uma reunião.",
-    "programs_new_error_template": "Escolha um modelo.",
+    "programs_new_error_template": "Escolha um tipo.",
     "programs_new_error_name": "Dê-lhe um nome.",
     "programs_new_error_time": "Uma hora, por exemplo, 19:00.",
     "programs_new_error_end_before_start": "Depois da hora de início.",
-    "programs_new_error_exists": "Este modelo já tem um programa para esse dia.",
-    "programs_new_see_existing": "Ver esse programa",
-    "programs_new_error_unavailable": "Este modelo já não pode ser usado aqui: atualize a página.",
+    "programs_new_error_exists": "Este tipo já tem uma reunião nesse dia.",
+    "programs_new_see_existing": "Ver esta reunião",
+    "programs_new_error_unavailable": "Este tipo já não pode ser usado aqui: recarregue a página.",
     "programs_new_flash": [
         {
             "declarations": [
@@ -2634,7 +2635,7 @@
             }
         }
     ],
-    "programs_new_flash_none": "Nada a criar: estas datas já têm programas.",
+    "programs_new_flash_none": "Nada a criar: estas datas já têm as suas reuniões.",
     "programs_new_flash_single": "Reunião criada como rascunho.",
     "programs_view_meta_title": "Programa - Unitae",
     "programs_view_spiritual_program": "Programa espiritual",

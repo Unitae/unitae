@@ -2416,8 +2416,7 @@
     "programs_new_mode_series": "Several weeks",
     "programs_new_mode_single": "A single date",
     "programs_new_meetings_title": "Meetings and schedules",
-    "programs_new_meetings_description": "Tick the meetings to create. Each comes with the schedules its kind suggests; a schedule a meeting does not need is deleted afterwards from that meeting.",
-    "programs_new_meetings_settings_hint": "For a kind to stop having a schedule, remove it from its schedules in Settings › Program templates.",
+    "programs_new_meetings_description": "Tick the meetings to create. Each comes with the schedules its kind suggests; a schedule a meeting does not need can be deleted afterwards from that meeting.",
     "programs_new_every": "Every {weekday} · {hours}",
     "programs_new_usually": "Usually on {weekday} · {hours}",
     "programs_new_parts": [
@@ -2447,7 +2446,7 @@
         }
     ],
     "programs_new_created_until": "Prepared up to {date}",
-    "programs_new_none_to_come": "No program to come",
+    "programs_new_none_to_come": "No prepared meeting to come",
     "programs_new_no_meetings_title": "No regular meeting yet",
     "programs_new_no_meetings_body": "Meetings are created from the congregation’s templates: their day, hours, parts and services.",
     "programs_new_no_meetings_link": "Create a template in the settings",
@@ -2471,18 +2470,18 @@
         }
     ],
     "programs_new_follows_last": "Right after the last prepared meeting, on {date}.",
-    "programs_new_template_title": "Template",
+    "programs_new_template_title": "Kind",
     "programs_new_template_description": "A regular meeting can also be created on its own, on another day than usual.",
     "programs_new_freeform_name": "Other event",
     "programs_new_freeform_description": "A name and hours; parts are added afterwards",
     "programs_new_date_title": "Date",
-    "programs_new_date_description_template": "The hours come from the template; they can be changed in the program afterwards.",
+    "programs_new_date_description_template": "The hours come from the kind; they can be changed on the meeting afterwards.",
     "programs_new_date_description_freeform": "Its name in the list and on the board, its day and its hours.",
     "programs_new_name_label": "Name",
     "programs_new_day_label": "Date",
     "programs_new_start_label": "Start",
     "programs_new_end_label": "End",
-    "programs_new_template_hours": "{hours}, as in the template",
+    "programs_new_template_hours": "{hours}, as for the kind",
     "programs_new_moved_hint": "On {weekday} instead of {usual}: this week’s meeting moves.",
     "programs_new_preview_title": "What will be created",
     "programs_new_count": [
@@ -2539,7 +2538,7 @@
     ],
     "programs_new_row_ahead": "already created",
     "programs_new_schedules_title": "Schedules",
-    "programs_new_no_schedule": "No suggested schedule: the meeting is created without one, then its page opens with “Add a schedule”.",
+    "programs_new_no_schedule": "No suggested schedule: the meeting is created without one; “Add a schedule” is then on its page.",
     "programs_new_count_none": "Nothing to create",
     "programs_new_existing": [
         {
@@ -2570,16 +2569,18 @@
     "programs_new_all_new": "All new",
     "programs_new_skip_hint": "Untick a date to skip it: circuit assembly week, convention…",
     "programs_new_row_create": "Create {name} on {date}",
-    "programs_new_row_exists": "Already created",
+    "programs_new_row_fill": "Complete {name} on {date}",
+    "programs_new_row_exists": "Prepared",
     "programs_new_row_skipped": "Skipped",
-    "programs_new_nothing_left": "These weeks already have their programs.",
+    "programs_new_row_skipped_ahead": "Skipped: the meeting created ahead is removed",
+    "programs_new_nothing_left": "These weeks already have their meetings.",
     "programs_new_go_further": "Go to the end of {month}",
     "programs_new_tick_meeting": "Tick a meeting to see its dates.",
-    "programs_new_pick_template": "Pick a template.",
-    "programs_new_from_template": "Its parts and services come from the template.",
+    "programs_new_pick_template": "Pick a kind.",
+    "programs_new_from_template": "Its schedules come from its kind.",
     "programs_new_freeform_empty": "No part or service for now.",
     "programs_new_then_edit": "Then the meeting opens so you can complete it.",
-    "programs_new_draft_note": "Created as drafts: only those who prepare programs see them until they are published.",
+    "programs_new_draft_note": "Created as drafts: only those who prepare programs see them until they are published. Each schedule is then published on its own.",
     "programs_new_draft_note_short": "As drafts",
     "programs_new_submit": [
         {
@@ -2614,13 +2615,13 @@
     "programs_new_error_to_before_from": "After the first day.",
     "programs_new_error_too_long": "A year at most.",
     "programs_new_error_no_meeting": "Tick at least one meeting.",
-    "programs_new_error_template": "Pick a template.",
+    "programs_new_error_template": "Pick a kind.",
     "programs_new_error_name": "Give it a name.",
     "programs_new_error_time": "A time, such as 19:00.",
     "programs_new_error_end_before_start": "After the start.",
-    "programs_new_error_exists": "This template already has a program that day.",
-    "programs_new_see_existing": "See that program",
-    "programs_new_error_unavailable": "This template can no longer be used here: reload the page.",
+    "programs_new_error_exists": "This kind already has a meeting that day.",
+    "programs_new_see_existing": "See this meeting",
+    "programs_new_error_unavailable": "This kind can no longer be used here: reload the page.",
     "programs_new_flash": [
         {
             "declarations": [
@@ -2634,7 +2635,7 @@
             }
         }
     ],
-    "programs_new_flash_none": "Nothing to create: these dates already have their programs.",
+    "programs_new_flash_none": "Nothing to create: these dates already have their meetings.",
     "programs_new_flash_single": "Meeting created, as a draft.",
     "programs_view_meta_title": "Program - Unitae",
     "programs_view_spiritual_program": "Spiritual program",

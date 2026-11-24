@@ -89,7 +89,8 @@ export async function getProgrammeCreationData(
       endTime: row.endTime,
       parts: row._count.parts,
       services: row._count.serviceParts,
-      // What giveProgramme creates: a schedule of each kind with items, none empty.
+      // What giveProgramme creates — one schedule of each kind with items, none empty — as long as the sync keeps one
+      // schedule template per kind holding all the kind's items (syncTemplateScheduleTemplates).
       schedules: row.scheduleTemplates.flatMap(({ scheduleTemplate: { name, kind, _count } }) => {
         const items = kind === ScheduleKind.Programme ? _count.parts : _count.serviceParts
         return items > 0 ? [{ name, kind, items }] : []

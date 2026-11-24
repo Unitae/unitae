@@ -131,6 +131,8 @@ describe('getProgrammeCreationData', () => {
         scheduleTemplates: [
           ...midweek.scheduleTemplates,
           { scheduleTemplate: { name: 'Nettoyage', kind: 'duty', _count: { parts: 0, serviceParts: 0 } } },
+          // Counted on its own kind: a duty template holding parts but no service brings nothing.
+          { scheduleTemplate: { name: 'Croisé', kind: 'duty', _count: { parts: 3, serviceParts: 0 } } },
         ],
       },
     ] as never)
@@ -166,6 +168,17 @@ describe('getProgrammeCreationData', () => {
 
     expect(result.existing).toEqual([])
     expect(result.ahead).toEqual([{ templateId: 270, day: '2026-11-19', eventId: 4017 }])
+    // Meetings to come of those templates with no item at all.
+    const aheadCall = vi
+      .mocked(db.event.findMany)
+      .mock.calls.map(call => call[0] as { where: Record<string, unknown> })
+      .find(args => 'none' in ((args.where.items ?? {}) as object))
+    expect(aheadCall?.where).toMatchObject({
+      congregationId: 7,
+      templateId: { in: [270] },
+      startDate: { gte: expect.any(Date) },
+      items: { none: {} },
+    })
   })
 
   it('asks nothing more when there is no template', async () => {

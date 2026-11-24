@@ -1,7 +1,11 @@
 import { FormSection, SegmentedControl } from '@unitae/ui'
 import { Form, Link } from 'react-router'
 
-import type { CreationTemplate, ExistingProgramme } from '~/features/events/model/programme-creation'
+import {
+  type CreationTemplate,
+  type ExistingProgramme,
+  seriesHasWork,
+} from '~/features/events/model/programme-creation'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { FormSaveBar } from '~/shared/ui/FormSaveBar'
@@ -47,7 +51,7 @@ export function ProgrammeCreationForm({
   const errors = result?.result.error ?? {}
   const series = state.mode === 'series'
   const mode = series ? 'series' : state.choice === 'freeform' ? 'freeform' : 'single'
-  const ready = series ? state.count.create + state.count.fill > 0 : state.choice != null
+  const ready = series ? seriesHasWork(state.count) : state.choice != null
 
   return (
     <Form method="post" className="flex flex-col gap-4 pb-24">

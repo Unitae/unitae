@@ -40,7 +40,6 @@ export function CreationSeriesSections({ state, errors, today, canManage }: Sect
             />
           ))}
           <FieldError messages={errors.templateIds} />
-          {canManage && <p className="text-faint text-sm">{m.programs_new_meetings_settings_hint()}</p>}
         </div>
       </FormSection>
 

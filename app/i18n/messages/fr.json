@@ -2422,7 +2422,6 @@
     "programs_new_mode_single": "Une seule date",
     "programs_new_meetings_title": "Réunions et plannings",
     "programs_new_meetings_description": "Cochez les réunions à créer. Chacune arrive avec les plannings que son type suggère ; un planning qui ne sert pas pour une réunion se supprime ensuite depuis celle-ci.",
-    "programs_new_meetings_settings_hint": "Pour qu’un type n’ait plus un planning, retirez-le de ses plannings dans Réglages › Modèles de programme.",
     "programs_new_every": "Chaque {weekday} · {hours}",
     "programs_new_usually": "Habituellement le {weekday} · {hours}",
     "programs_new_parts": [
@@ -2452,7 +2451,7 @@
         }
     ],
     "programs_new_created_until": "Préparées jusqu’au {date}",
-    "programs_new_none_to_come": "Aucun programme à venir",
+    "programs_new_none_to_come": "Aucune réunion préparée à venir",
     "programs_new_no_meetings_title": "Aucune réunion régulière pour l’instant",
     "programs_new_no_meetings_body": "Les réunions se créent à partir des modèles de l’assemblée : leur jour, leurs horaires, leurs parties et leurs services.",
     "programs_new_no_meetings_link": "Créer un modèle dans les réglages",
@@ -2476,18 +2475,18 @@
         }
     ],
     "programs_new_follows_last": "À la suite de la dernière réunion préparée, le {date}.",
-    "programs_new_template_title": "Modèle",
+    "programs_new_template_title": "Type",
     "programs_new_template_description": "Une réunion régulière peut aussi se créer seule, un autre jour que le sien.",
     "programs_new_freeform_name": "Autre évènement",
     "programs_new_freeform_description": "Un nom et des horaires ; les parties s’ajoutent ensuite",
     "programs_new_date_title": "Date",
-    "programs_new_date_description_template": "Les horaires viennent du modèle ; ils se changent ensuite dans le programme.",
+    "programs_new_date_description_template": "Les horaires viennent du type ; ils se changent ensuite sur la réunion.",
     "programs_new_date_description_freeform": "Son nom dans la liste et au tableau d’affichage, son jour et ses horaires.",
     "programs_new_name_label": "Nom",
     "programs_new_day_label": "Date",
     "programs_new_start_label": "Début",
     "programs_new_end_label": "Fin",
-    "programs_new_template_hours": "{hours}, comme le modèle",
+    "programs_new_template_hours": "{hours}, comme le type",
     "programs_new_moved_hint": "Un {weekday} au lieu du {usual} : la réunion de cette semaine est déplacée.",
     "programs_new_preview_title": "Ce qui sera créé",
     "programs_new_count": [
@@ -2544,7 +2543,7 @@
     ],
     "programs_new_row_ahead": "déjà créée",
     "programs_new_schedules_title": "Plannings",
-    "programs_new_no_schedule": "Aucun planning suggéré : la réunion se crée sans, puis sa page s’ouvre avec « Ajouter un planning ».",
+    "programs_new_no_schedule": "Aucun planning suggéré : la réunion se crée sans ; « Ajouter un planning » est ensuite sur sa page.",
     "programs_new_count_none": "Rien à créer",
     "programs_new_existing": [
         {
@@ -2572,19 +2571,21 @@
             }
         }
     ],
-    "programs_new_all_new": "Tous nouveaux",
+    "programs_new_all_new": "Toutes nouvelles",
     "programs_new_skip_hint": "Décochez une date pour la passer : semaine d’assemblée de circonscription, congrès…",
     "programs_new_row_create": "Créer {name} du {date}",
-    "programs_new_row_exists": "Déjà créé",
-    "programs_new_row_skipped": "Passé",
-    "programs_new_nothing_left": "Ces semaines ont déjà leurs programmes.",
+    "programs_new_row_fill": "Compléter {name} du {date}",
+    "programs_new_row_exists": "Préparée",
+    "programs_new_row_skipped": "Passée",
+    "programs_new_row_skipped_ahead": "Passée : la réunion créée d’avance est retirée",
+    "programs_new_nothing_left": "Ces semaines ont déjà leurs réunions.",
     "programs_new_go_further": "Aller jusqu’à fin {month}",
     "programs_new_tick_meeting": "Cochez une réunion pour voir ses dates.",
-    "programs_new_pick_template": "Choisissez un modèle.",
-    "programs_new_from_template": "Ses parties et ses services viennent du modèle.",
+    "programs_new_pick_template": "Choisissez un type.",
+    "programs_new_from_template": "Ses plannings viennent de son type.",
     "programs_new_freeform_empty": "Sans partie ni service pour l’instant.",
     "programs_new_then_edit": "Ensuite, la réunion s’ouvre pour la compléter.",
-    "programs_new_draft_note": "Créés en brouillon : seuls ceux qui préparent les programmes les voient, jusqu’à la publication.",
+    "programs_new_draft_note": "Créées en brouillon : seuls ceux qui préparent les programmes les voient, jusqu’à la publication. Chaque planning se publie ensuite seul.",
     "programs_new_draft_note_short": "En brouillon",
     "programs_new_submit": [
         {
@@ -2619,13 +2620,13 @@
     "programs_new_error_to_before_from": "Après le premier jour.",
     "programs_new_error_too_long": "Une année au plus.",
     "programs_new_error_no_meeting": "Cochez au moins une réunion.",
-    "programs_new_error_template": "Choisissez un modèle.",
+    "programs_new_error_template": "Choisissez un type.",
     "programs_new_error_name": "Donnez-lui un nom.",
     "programs_new_error_time": "Une heure, comme 19:00.",
     "programs_new_error_end_before_start": "Après le début.",
-    "programs_new_error_exists": "Ce modèle a déjà un programme ce jour-là.",
-    "programs_new_see_existing": "Voir ce programme",
-    "programs_new_error_unavailable": "Ce modèle ne peut plus servir ici : rechargez la page.",
+    "programs_new_error_exists": "Ce type a déjà une réunion ce jour-là.",
+    "programs_new_see_existing": "Voir cette réunion",
+    "programs_new_error_unavailable": "Ce type ne peut plus servir ici : rechargez la page.",
     "programs_new_flash": [
         {
             "declarations": [
@@ -2639,7 +2640,7 @@
             }
         }
     ],
-    "programs_new_flash_none": "Rien à créer : ces dates ont déjà leurs programmes.",
+    "programs_new_flash_none": "Rien à créer : ces dates ont déjà leurs réunions.",
     "programs_new_flash_single": "Réunion créée, en brouillon.",
     "programs_view_meta_title": "Programme - Unitae",
     "programs_view_spiritual_program": "Programme spirituel",

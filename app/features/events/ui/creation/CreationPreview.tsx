@@ -132,10 +132,19 @@ function PreviewRow({ row, passed, onToggle }: { row: PlannedProgramme; passed: 
           id={id}
           checked={!passed}
           onCheckedChange={onToggle}
-          aria-label={m.programs_new_row_create({ name: row.template.name, date })}
+          aria-label={
+            row.aheadId != null
+              ? m.programs_new_row_fill({ name: row.template.name, date })
+              : m.programs_new_row_create({ name: row.template.name, date })
+          }
         />
         {content}
-        {passed && <span className="shrink-0 text-faint text-xs">{m.programs_new_row_skipped()}</span>}
+        {/* Passing a day removes the meeting created ahead on it (createProgrammeSeries): said where it happens. */}
+        {passed && (
+          <span className="shrink-0 text-faint text-xs">
+            {row.aheadId != null ? m.programs_new_row_skipped_ahead() : m.programs_new_row_skipped()}
+          </span>
+        )}
       </label>
     </li>
   )
@@ -172,7 +181,11 @@ export function SinglePreview({ state }: { state: ProgrammeCreationState }) {
             </span>
           </div>
           <div className="flex flex-col gap-1.5 px-4 py-3 text-muted-foreground text-sm">
-            <p>{freeform ? m.programs_new_freeform_empty() : m.programs_new_from_template()}</p>
+            {freeform ? (
+              <p>{m.programs_new_freeform_empty()}</p>
+            ) : (
+              template != null && template.schedules.length > 0 && <p>{m.programs_new_from_template()}</p>
+            )}
             <p>{m.programs_new_then_edit()}</p>
           </div>
         </>
