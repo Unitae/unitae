@@ -19,8 +19,8 @@ export function fillsEverySchedule(can: (permission: Permission) => boolean): bo
 /**
  * Whether the caller may fill an event's schedule of one kind: its items and who holds them (plan §10, D3, D7, D47).
  * « Attribuer » and « Gérer » reach every schedule; otherwise the responsible of the schedule's template, through the
- * role it names. Every writer makes one schedule of a kind today; should an event hold several, the caller must answer
- * for each, since the routes name a kind and not a schedule. An event without a schedule of that kind yet takes the
+ * role it names. An event holds one schedule of each kind today; should it hold several, the caller must answer for
+ * each, since the editor's intents name a kind and not a schedule. An event without a schedule of that kind yet takes the
  * template its first schedule would get (the writer's: its kind's first suggested one), since filling it starts it. A
  * schedule without a template, and an event without a kind, have no responsible.
  */
@@ -204,7 +204,7 @@ export async function canDeleteEvent(
 }
 
 /**
- * Whether the caller may publish or unpublish a whole event, until schedules publish one by one (D49): « Publier »,
+ * Whether the caller may publish or unpublish an event holding no schedule, as a whole (D46, D49): « Publier »,
  * or the responsible of every schedule it holds — of every schedule template its kind suggests while it holds none.
  * An event with no kind is the managers' alone.
  */

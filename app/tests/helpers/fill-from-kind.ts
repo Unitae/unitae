@@ -19,6 +19,7 @@ export async function fillFromKind(
     select: { scheduleTemplateId: true },
     orderBy: [{ order: 'asc' }, { id: 'asc' }],
   })
+  if (links.length === 0) throw new Error(`Kind ${kindId} suggests no schedule template`)
   for (const { scheduleTemplateId } of links) {
     const outcome = await addSchedule(db, eventId, { scheduleTemplateId }, congregationId, actorId)
     if (outcome == null || !('schedule' in outcome)) {

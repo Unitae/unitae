@@ -75,8 +75,8 @@ interface EventViewProps {
 }
 
 /**
- * An event's programme for assigning people and adjusting a part for this week (subject, duration). Changing the
- * schedule itself happens on the edit page.
+ * An event's programme for assigning people and adjusting a part for this week (subject, duration). Changing a
+ * schedule's structure happens on its « Modifier le planning » page, the meeting's own fields on « Modifier la réunion ».
  */
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: the page wires two panels, a docked or sheet editor and their guards
 export function EventView({

@@ -73,6 +73,8 @@ export const DELEGATES: Record<string, { file: string; enforces: RegExp }> = {
     file: 'app/features/events/server/schedule-changes.server.ts',
     enforces: ENFORCES_PERMISSION,
   },
+  // « Modifier le planning » posts to the event editor's action (D38): it asks canChangeEvent, then each intent's fill.
+  editAction: { file: 'app/features/events/routes/programs/events/edit.tsx', enforces: /canChangeEvent\(/ },
   // Changing a meeting's kind (D40): the rights of both kinds, and of each schedule removed or added.
   changeEventKind: {
     file: 'app/features/events/server/event-kind-change.server.ts',
@@ -111,8 +113,6 @@ export const DELEGATES: Record<string, { file: string; enforces: RegExp }> = {
 
 // Route actions that are intentionally open to any signed-in user, or to anonymous visitors.
 export const ALLOWLIST: Record<string, string> = {
-  'app/features/events/routes/programs/events/schedule-edit.tsx':
-    "the event editor's own action (edit.tsx), re-exported: canChangeEvent, then canFillSchedule for each intent",
   'app/features/authentication/routes/login.tsx': 'anonymous sign-in',
   'app/features/authentication/routes/logout.tsx': "ends the caller's own session",
   'app/features/authentication/routes/password-forgot.tsx': 'anonymous reset request',
