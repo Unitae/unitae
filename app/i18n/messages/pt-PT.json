@@ -1875,6 +1875,127 @@
     ],
     "programs_selection_toolbar": "Ações para a seleção",
     "programs_selection_clear": "Limpar a seleção",
+    "programs_bulk_preview_title_all": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Publicar {count} planeamento?",
+                "countPlural=*": "Publicar {count} planeamentos?"
+            }
+        }
+    ],
+    "programs_bulk_preview_title_some": [
+        {
+            "declarations": [
+                "input count",
+                "input total",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Publicar {count} planeamento das {total} reuniões selecionadas?",
+                "countPlural=*": "Publicar {count} planeamentos das {total} reuniões selecionadas?"
+            }
+        }
+    ],
+    "programs_bulk_preview_nothing": "Nada a publicar na seleção",
+    "programs_bulk_preview_body": "As pessoas designadas nos planeamentos publicados serão avisadas. Cada planeamento sai inteiro, ou não sai.",
+    "programs_bulk_preview_publish": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "será publicado",
+                "countPlural=*": "serão publicados"
+            }
+        }
+    ],
+    "programs_bulk_preview_not_yours": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "fica em rascunho: não é seu",
+                "countPlural=*": "ficam em rascunho: não são seus"
+            }
+        }
+    ],
+    "programs_bulk_preview_not_yours_hint": "Só o responsável de um planeamento o publica, ou alguém que pode publicar todos os programas.",
+    "programs_bulk_preview_conflicts": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "fica em rascunho: uma pessoa está ausente",
+                "countPlural=*": "ficam em rascunho: há pessoas ausentes"
+            }
+        }
+    ],
+    "programs_bulk_preview_empty": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "fica em rascunho: está vazio",
+                "countPlural=*": "ficam em rascunho: estão vazios"
+            }
+        }
+    ],
+    "programs_bulk_preview_awaiting": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "fica em rascunho: programa por criar",
+                "countPlural=*": "ficam em rascunho: programa por criar"
+            }
+        }
+    ],
+    "programs_bulk_preview_unfilled": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} lugar por preencher",
+                "countPlural=*": "{count} lugares por preencher"
+            }
+        }
+    ],
+    "programs_bulk_preview_submit": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Publicar {count} planeamento",
+                "countPlural=*": "Publicar {count} planeamentos"
+            }
+        }
+    ],
     "programs_bulk_release_all": "Publicar",
     "programs_bulk_release_some_one": "Publicar o rascunho",
     "programs_bulk_release_some_other": [

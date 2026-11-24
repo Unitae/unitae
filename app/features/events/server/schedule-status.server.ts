@@ -1,18 +1,18 @@
-import { programmeAwaits } from '~/features/events/model/empty-meetings'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import { ScheduleKind, ScheduleStatus } from '~/features/events/model/schedule.type'
 import { TEMPLATE_PROGRAMME_COUNT } from '~/features/events/server/give-programme.server'
 import { MIXED_ITEM_ORDER } from '~/features/events/server/item-projection.server'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
-import { ConflictError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
-import { assertCanRelease, EVENT_STATUS_ERRORS } from './event-status.policy'
+import { EVENT_STATUS_ERRORS, type PublishRefusal, scheduleRefusal } from './event-status.policy'
 import { ASSIGNMENT_SELECT } from './event-status.server'
 import { cancelPendingAssignmentNotices } from './notify-assignment.server'
 import { computeNotifyTargets, type NotifyTarget } from './release-notifications.server'
+
+export type { PublishRefusal }
 
 // Each schedule is published on its own (plan §10, D8, D51): its own conflicts block it, its own assignees are told,
 // its own pending notices go when it is withdrawn. `Event.status` stays written until PR 6: released while any of its
@@ -33,9 +33,6 @@ export type PublishScheduleResult =
   // Absence conflicts to resolve, a programme still to give, or nothing in it: callers switch on `reason`; `error` is
   // the event's wording, for a caller that has nothing better.
   | { schedule: ScheduleRef; error: string; reason: PublishRefusal }
-
-/** Why a schedule the caller may publish stays a draft: absence conflicts, a programme still to give, or nothing in it. */
-export type PublishRefusal = 'conflicts' | 'awaiting' | 'empty'
 
 /** `changed`: this call withdrew it; false when it was a draft already, and nothing was written. */
 export type UnpublishScheduleResult = { schedule: ScheduleRef; changed: boolean }
@@ -134,26 +131,20 @@ export async function publishSchedule(
   const ref: ScheduleRef = { id: schedule.id, eventId: schedule.eventId, kind: schedule.kind as ScheduleKind }
   if (schedule.status === ScheduleStatus.Published) return { schedule: ref, changed: false, notifyTargets: [] }
 
-  const isProgramme = ref.kind === ScheduleKind.Programme
-  // Programme items have a second slot (the reader); duties have none, as releaseEvent reads them.
-  const parts = isProgramme ? schedule.items : []
-  const services = isProgramme ? [] : schedule.items.map(({ assistantId: _assistant, ...service }) => service)
   const fromTemplate = schedule.scheduleTemplateId != null
-  if (programmeAwaits({ kind: ref.kind, items: schedule.items.length, fromTemplate }, schedule.event.template)) {
+  const refusal = scheduleRefusal({ kind: ref.kind, items: schedule.items, fromTemplate }, schedule.event.template)
+  if (refusal === 'awaiting') {
     return { schedule: ref, error: EVENT_STATUS_ERRORS.releaseAwaitingProgramme, reason: 'awaiting' }
   }
   // No schedule is mandatory on a meeting: one with nothing in it stays a draft, never published empty.
-  if (schedule.items.length === 0) {
+  if (refusal === 'empty') {
     logger.info('publishing refused: empty schedule', { scheduleId, kind: ref.kind, congregationId, actorId })
     return { schedule: ref, error: EVENT_STATUS_ERRORS.publishEmpty, reason: 'empty' }
   }
-  try {
-    assertCanRelease({ eventParts: parts, eventServiceParts: services })
-  } catch (error) {
-    if (!(error instanceof ConflictError)) throw error
+  if (refusal === 'conflicts') {
     const conflicting = schedule.items.filter(item => item.hasConflict).length
     logger.warn('publishing blocked by conflicts', { scheduleId, kind: ref.kind, congregationId, actorId, conflicting })
-    return { schedule: ref, error: error.message, reason: 'conflicts' }
+    return { schedule: ref, error: EVENT_STATUS_ERRORS.releaseBlockedByConflicts, reason: 'conflicts' }
   }
 
   await db.schedule.update({
@@ -177,6 +168,10 @@ export async function publishSchedule(
     actorId,
     itemCount: schedule.items.length,
   })
+  // Programme items have a second slot (the reader); duties have none, as releaseEvent reads them.
+  const isProgramme = ref.kind === ScheduleKind.Programme
+  const parts = isProgramme ? schedule.items : []
+  const services = isProgramme ? [] : schedule.items.map(({ assistantId: _assistant, ...service }) => service)
   return { schedule: ref, changed: true, notifyTargets: computeNotifyTargets(parts, services) }
 }
 

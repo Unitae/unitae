@@ -129,8 +129,11 @@ export function shouldRevalidate({
   currentUrl,
   nextUrl,
   formMethod,
+  formAction,
   defaultShouldRevalidate,
 }: ShouldRevalidateFunctionArgs) {
+  // Asking bulk « Publier » what it will do writes nothing: the list stays as it is.
+  if (formAction === '/programs/bulk-release-preview') return false
   if (formMethod != null || currentUrl.pathname !== nextUrl.pathname) return defaultShouldRevalidate
   const periodOf = (url: URL) => PERIOD_PARAMS.map(name => url.searchParams.get(name)).join('|')
   return periodOf(currentUrl) !== periodOf(nextUrl)

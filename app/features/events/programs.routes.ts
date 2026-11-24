@@ -6,6 +6,7 @@ export const programsRoutes = [
     route('new', 'features/events/routes/programs/new.tsx'),
     route('bulk-delete', 'features/events/routes/programs/bulk-delete.tsx'),
     route('bulk-release', 'features/events/routes/programs/bulk-release.tsx'),
+    route('bulk-release-preview', 'features/events/routes/programs/bulk-release-preview.tsx'),
     route('bulk-unrelease', 'features/events/routes/programs/bulk-unrelease.tsx'),
     route('days-off', 'features/events/routes/programs/days-off.tsx'),
     ...prefix('events/:eventId', [
