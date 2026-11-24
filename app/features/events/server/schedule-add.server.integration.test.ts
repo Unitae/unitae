@@ -247,7 +247,7 @@ describe('addSchedule, beside what the event holds', () => {
     })
   })
 
-  it('publishes an empty programme added by hand beside filled duties: no template’s parts to wait for', async () => {
+  it('refuses to publish an empty programme added by hand: it stays a draft', async () => {
     await withMeeting(async ({ db, congregationId, actorId, meetingId, programme }) => {
       await db.schedule.delete({ where: { id: programme.id } })
       const added = await addSchedule(
@@ -258,7 +258,7 @@ describe('addSchedule, beside what the event holds', () => {
         actorId,
       )
       if (added == null || !('schedule' in added)) throw new Error('not added')
-      expect(await publishSchedule(db, added.schedule.id, congregationId, actorId)).toMatchObject({ changed: true })
+      expect(await publishSchedule(db, added.schedule.id, congregationId, actorId)).toMatchObject({ reason: 'empty' })
     })
   })
 

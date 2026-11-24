@@ -30,9 +30,12 @@ export interface ScheduleRef {
 export type PublishScheduleResult =
   /** `changed`: this call published it; false when it already was, and no one is told again. */
   | { schedule: ScheduleRef; changed: boolean; notifyTargets: NotifyTarget[] }
-  // Absence conflicts to resolve, or a programme still to give: callers switch on `reason`; `error` is the event's
-  // wording, for a caller that has nothing better.
-  | { schedule: ScheduleRef; error: string; reason: 'conflicts' | 'awaiting' }
+  // Absence conflicts to resolve, a programme still to give, or nothing in it: callers switch on `reason`; `error` is
+  // the event's wording, for a caller that has nothing better.
+  | { schedule: ScheduleRef; error: string; reason: PublishRefusal }
+
+/** Why a schedule the caller may publish stays a draft: absence conflicts, a programme still to give, or nothing in it. */
+export type PublishRefusal = 'conflicts' | 'awaiting' | 'empty'
 
 /** `changed`: this call withdrew it; false when it was a draft already, and nothing was written. */
 export type UnpublishScheduleResult = { schedule: ScheduleRef; changed: boolean }
@@ -105,8 +108,9 @@ export async function lockScheduleEvent(db: TransactionClient, scheduleId: numbe
 /**
  * Publishes one schedule (tx-only, like releaseEvent). The caller fires the notices after commit from the targets
  * returned, with the event it already holds (fireReleaseNotifications). Refused while its own items hold a conflict,
- * and for a programme left without parts while its template has parts to give; duties publish as they are. Publishing
- * it again writes nothing and tells no one; the event's row is locked first, so two calls at once tell them once.
+ * for a programme left without parts while its template has parts to give, and for any schedule with nothing in it:
+ * none is mandatory, so none is published empty. Publishing it again writes nothing and tells no one; the event's row
+ * is locked first, so two calls at once tell them once.
  */
 export async function publishSchedule(
   db: TransactionClient,
@@ -137,6 +141,11 @@ export async function publishSchedule(
   const fromTemplate = schedule.scheduleTemplateId != null
   if (programmeAwaits({ kind: ref.kind, items: schedule.items.length, fromTemplate }, schedule.event.template)) {
     return { schedule: ref, error: EVENT_STATUS_ERRORS.releaseAwaitingProgramme, reason: 'awaiting' }
+  }
+  // No schedule is mandatory on a meeting: one with nothing in it stays a draft, never published empty.
+  if (schedule.items.length === 0) {
+    logger.info('publishing refused: empty schedule', { scheduleId, kind: ref.kind, congregationId, actorId })
+    return { schedule: ref, error: EVENT_STATUS_ERRORS.publishEmpty, reason: 'empty' }
   }
   try {
     assertCanRelease({ eventParts: parts, eventServiceParts: services })

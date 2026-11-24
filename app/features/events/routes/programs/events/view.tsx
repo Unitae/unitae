@@ -136,12 +136,13 @@ export function loader({ params, context }: Route.LoaderArgs) {
         responsible: roleId == null || responsible == null ? null : responsibleForPage(roleId, responsible, viewer),
         mayPublish,
         mayChange: changeable.has(schedule.id),
-        // Never offered what publishing would refuse: a programme still to give (programmeAwaits, as publishSchedule).
-        // A meeting still awaiting its programme offers « Créer le programme », never publishing (as before schedules).
+        // Never offered what publishing would refuse: an empty schedule, a programme still to give (programmeAwaits, as
+        // publishSchedule). A meeting still awaiting its programme offers « Créer le programme », never publishing.
         publishable:
           !awaitsInFact &&
           mayPublish &&
           schedule.status === ScheduleStatus.Draft &&
+          items > 0 &&
           !programmeAwaits(
             { kind: schedule.kind, items, fromTemplate: schedule.scheduleTemplate != null },
             event.template,

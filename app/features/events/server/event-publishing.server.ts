@@ -10,6 +10,7 @@ import type { NotifyTarget } from './release-notifications.server'
 import { canPublishEvent } from './schedule-rights.server'
 import {
   canPublishSchedule,
+  type PublishRefusal,
   type PublishScheduleResult,
   publishSchedule,
   type ScheduleRef,
@@ -38,8 +39,8 @@ export type PublishEventResult =
       /** Something was published by this call: a schedule, or the bare event. */
       changed: boolean
       published: ScheduleRef[]
-      /** Schedules the person may publish that their own conflicts, or a programme still to give, hold back. */
-      blocked: { schedule: ScheduleRef | null; reason: 'conflicts' | 'awaiting'; error: string }[]
+      /** Schedules the person may publish that their own conflicts, a programme still to give, or emptiness hold back. */
+      blocked: { schedule: ScheduleRef | null; reason: PublishRefusal; error: string }[]
       /** Draft schedules that are someone else's to publish. */
       skipped: number
       /** Fired after commit (fireReleaseNotifications). */
@@ -258,10 +259,11 @@ export async function publishActionsFor(
       return [
         event.id,
         {
-          // A programme still to give is refused by publishSchedule: never offered.
+          // An empty schedule, or a programme still to give, is refused by publishSchedule: never offered.
           canRelease: theirs.some(
             schedule =>
               schedule.status === ScheduleStatus.Draft &&
+              schedule._count.items > 0 &&
               !programmeAwaits(
                 {
                   kind: schedule.kind,
