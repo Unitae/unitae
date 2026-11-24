@@ -2,9 +2,11 @@ import { parseWithZod } from '@conform-to/zod/v4'
 import { SidePanel } from '@unitae/ui'
 import { data, redirect, useFetcher } from 'react-router'
 import { listScheduleTemplatesForSettings, updateScheduleTemplate } from '~/features/events/index.server'
+import { scheduleTemplateView } from '~/features/settings/model/schedule-template-view'
 import { scheduleTemplateSchema } from '~/features/settings/schemas/schedule-template.schema'
+import { holdersOfRoles } from '~/features/settings/server/role-holders.queries'
 import { ScheduleTemplateForm } from '~/features/settings/ui/ScheduleTemplateForm'
-import { type ScheduleTemplateRow, ScheduleTemplateTable } from '~/features/settings/ui/ScheduleTemplateTable'
+import { ScheduleTemplateTable } from '~/features/settings/ui/ScheduleTemplateTable'
 import { SettingsHeader } from '~/features/settings/ui/SettingsHeader'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -24,72 +26,46 @@ export const meta: Route.MetaFunction = () => [{ title: m.settings_schedule_temp
 
 const FORM_ID = 'schedule-template-form'
 
-// A template left unnamed reads as its kind's label, as on the meeting's page.
-const kindLabel = (kind: string) =>
-  kind === 'programme' ? m.programs_view_spiritual_program() : m.programs_view_services()
-const kindTag = (kind: string) =>
-  kind === 'programme' ? m.programs_schedule_kind_programme() : m.programs_schedule_kind_duty()
-const content = (kind: string, items: number) =>
-  kind === 'programme' ? m.programs_new_parts({ count: items }) : m.programs_new_services({ count: items })
-
 /** Réglages › « Modèles de planning » (6a-1b, plan §11): a schedule template's name and responsible. */
 export function loader({ context }: Route.LoaderArgs) {
   if (!context.get(permissionsContext).has(Permission.CanManageProgramTemplates)) throw redirect('/settings')
   return withScopeFromContext(context, async (db, congregationId) => {
-    const [templates, roles] = await Promise.all([
+    const [templates, delegatable] = await Promise.all([
       listScheduleTemplatesForSettings(db, congregationId),
       listDelegatableRoles(db, congregationId),
     ])
-    const roleLabel = new Map(roles.map(role => [role.id, getRoleDisplayName(role)]))
-    return {
-      roles: roles.map(role => ({ id: role.id, label: getRoleDisplayName(role) })),
-      templates: templates.map(template => ({
-        id: template.id,
-        title: template.name ?? kindLabel(template.kind),
-        // An unnamed template reads as its kind: the kinds suggesting it tell two of them apart.
-        detail: [
-          kindTag(template.kind),
-          content(template.kind, template.items),
-          ...(template.name == null ? template.kinds.map(kind => kind.name) : []),
-        ].join(' · '),
-        responsible:
-          template.responsibleRole == null
-            ? null
-            : (roleLabel.get(template.responsibleRole.id) ?? getRoleDisplayName(template.responsibleRole)),
-        responsibleRoleId: template.responsibleRole?.id ?? null,
-        name: template.name ?? '',
-        placeholder: template.key == null ? '' : kindLabel(template.kind),
-        kinds: template.kinds.map(kind => kind.name),
-        schedules: template.schedules,
-      })),
-    }
+    const roles = delegatable.map(role => ({ id: role.id, label: getRoleDisplayName(role) }))
+    const roleIds = templates.flatMap(template => (template.responsibleRole ? [template.responsibleRole.id] : []))
+    const holders = await holdersOfRoles(db, roleIds, congregationId)
+    return { roles, templates: templates.map(template => scheduleTemplateView(template, roles, holders)) }
   })
 }
 
-const refusal = (message: string, status = 400) => data({ ok: false as const, errors: [message] }, { status })
+/** A refusal names the template it answers, so another template's panel never shows it. */
+const refusal = (templateId: number | null, errors: string[], status = 400) =>
+  data({ ok: false as const, templateId, errors }, { status })
 
 export async function action({ request, context }: Route.ActionArgs) {
   if (!context.get(permissionsContext).has(Permission.CanManageProgramTemplates)) throw redirect('/settings')
   const currentUser = context.get(currentAccountContext)
-  const submission = parseWithZod(await request.formData(), { schema: scheduleTemplateSchema })
-  if (submission.status !== 'success') return refusal(m.settings_schedule_templates_error_vanished())
+  const formData = await request.formData()
+  const submission = parseWithZod(formData, { schema: scheduleTemplateSchema })
+  if (submission.status !== 'success') {
+    const errors = Object.values(submission.reply().error ?? {}).flatMap(messages => messages ?? [])
+    return refusal(Number(formData.get('scheduleTemplateId')) || null, errors)
+  }
   const { scheduleTemplateId, name, responsibleRoleId } = submission.value
 
   return withScopeFromContext(context, async (db, congregationId) => {
-    const result = await updateScheduleTemplate(
-      db,
-      scheduleTemplateId,
-      { name, responsibleRoleId },
-      congregationId,
-      currentUser.id,
-    )
-    if (result == null) return refusal(m.settings_schedule_templates_error_vanished(), 409)
+    const change = { name, ...(responsibleRoleId !== undefined && { responsibleRoleId }) }
+    const result = await updateScheduleTemplate(db, scheduleTemplateId, change, congregationId, currentUser.id)
+    if (result == null) return refusal(scheduleTemplateId, [m.settings_schedule_templates_error_vanished()], 409)
     if (!result.ok) {
-      return refusal(
+      const message =
         result.reason === 'name'
           ? m.settings_schedule_templates_error_name()
-          : m.settings_schedule_templates_error_role(),
-      )
+          : m.settings_schedule_templates_error_role()
+      return refusal(scheduleTemplateId, [message])
     }
     return okWithToast(request, m.settings_schedule_templates_saved())
   })
@@ -101,15 +77,9 @@ export default function ScheduleTemplatesPage({ loaderData }: Route.ComponentPro
   const panel = useSideEditor<'template'>(target => templates.some(template => template.id === target.id))
   const template = panel.target?.id != null ? templates.find(each => each.id === panel.target?.id) : undefined
   useCloseOnSave(fetcher, panel.close)
-  const errors = fetcher.state === 'idle' && fetcher.data && !fetcher.data.ok ? fetcher.data.errors : undefined
+  const refused = fetcher.state === 'idle' && fetcher.data && !fetcher.data.ok ? fetcher.data : undefined
+  const errors = refused != null && refused.templateId === template?.id ? refused.errors : undefined
 
-  const rows: ScheduleTemplateRow[] = templates.map(({ id, title, detail, responsible, kinds }) => ({
-    id,
-    title,
-    detail,
-    responsible,
-    kinds: kinds.length,
-  }))
   const description =
     template == null
       ? undefined
@@ -151,7 +121,7 @@ export default function ScheduleTemplatesPage({ loaderData }: Route.ComponentPro
           {/* The `list` container: beside the docked panel the table drops to its docked columns. */}
           <div className="@container/list min-w-0 flex-[3_1_480px]">
             <ScheduleTemplateTable
-              rows={rows}
+              rows={templates}
               selectedId={template?.id ?? null}
               onSelect={(row, trigger) => panel.request({ kind: 'template', id: row.id, trigger })}
             />

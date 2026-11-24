@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import * as m from '~/i18n/paraglide/messages'
 
 /** Posted for « Aucun : ceux qui gèrent les programmes ». A role left out of the post is left as it is. */
 export const NO_RESPONSIBLE = 'none'
@@ -12,7 +13,7 @@ export const scheduleTemplateSchema = z.object({
   scheduleTemplateId: z.coerce.number().int().positive(),
   name: z
     .string()
-    .max(80)
+    .max(80, { error: () => m.settings_schedule_templates_error_name_long() })
     .optional()
     .transform(value => value?.trim() || null),
   responsibleRoleId: z

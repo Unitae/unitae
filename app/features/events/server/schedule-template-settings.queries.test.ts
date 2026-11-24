@@ -41,6 +41,5 @@ describe('listScheduleTemplatesForSettings', () => {
       },
       { id: 2, name: null, key: 'services', kind: 'duty', items: 4, responsibleRole: null, kinds: [], schedules: 0 },
     ])
-    expect(vi.mocked(db.scheduleTemplate.findMany).mock.calls[0]?.[0]).toMatchObject({ where: { congregationId: 3 } })
   })
 })

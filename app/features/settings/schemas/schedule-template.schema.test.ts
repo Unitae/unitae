@@ -40,6 +40,12 @@ describe('scheduleTemplateSchema', () => {
 
   it('refuses a name over 80 characters, and ids that are not positive whole numbers', () => {
     expect(parse({ scheduleTemplateId: '7', name: 'x'.repeat(81) })).toBeNull()
+    const form = new FormData()
+    form.set('scheduleTemplateId', '7')
+    form.set('name', 'x'.repeat(81))
+    expect(parseWithZod(form, { schema: scheduleTemplateSchema }).reply().error?.name).toEqual([
+      'Le nom : 80 caractères au plus.',
+    ])
     expect(parse({ scheduleTemplateId: '7', name: 'x'.repeat(80) })).not.toBeNull()
     for (const id of ['x', '0', '-3', '1.5']) {
       expect(parse({ scheduleTemplateId: id })).toBeNull()

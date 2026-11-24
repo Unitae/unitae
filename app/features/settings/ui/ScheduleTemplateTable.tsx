@@ -1,16 +1,10 @@
+import type { ScheduleTemplateView } from '~/features/settings/model/schedule-template-view'
 import * as m from '~/i18n/paraglide/messages'
 import { openRowOnClick } from '~/shared/ui/row-click'
 import { cn } from '~/shared/utils/utils'
 
-/** A schedule template as its row says it: its title, its kind and content, who answers for it, how many kinds. */
-export interface ScheduleTemplateRow {
-  id: number
-  title: string
-  /** « Spirituel · 15 parties », « Services · 4 services ». */
-  detail: string
-  responsible: string | null
-  kinds: number
-}
+/** A schedule template as its row says it: its title, its kind and content, who answers for it, which kinds. */
+export type ScheduleTemplateRow = Pick<ScheduleTemplateView, 'id' | 'title' | 'detail' | 'responsible' | 'suggestedBy'>
 
 const headClass = 'h-10 whitespace-nowrap border-border border-b px-3.5 text-left font-medium text-faint text-sm'
 const cellClass = 'h-12 border-border border-b px-3.5 group-last:border-b-0'
@@ -56,6 +50,10 @@ export function ScheduleTemplateTable({
                 >
                   <span className="font-medium">{row.title}</span>
                   <span className="text-faint text-xs tabular-nums">{row.detail}</span>
+                  {/* On a phone the responsible column is gone: its row says it on a line of its own. */}
+                  <span className="text-muted-foreground text-xs md:hidden">
+                    {row.responsible ?? m.settings_schedule_templates_responsible_none()}
+                  </span>
                 </button>
               </td>
               <td
@@ -68,11 +66,7 @@ export function ScheduleTemplateTable({
               >
                 {row.responsible ?? m.settings_schedule_templates_responsible_none()}
               </td>
-              <td className={cn(cellClass, 'text-right text-faint tabular-nums')}>
-                {row.kinds === 0
-                  ? m.settings_schedule_templates_kinds_none()
-                  : m.settings_schedule_templates_kinds({ count: row.kinds })}
-              </td>
+              <td className={cn(cellClass, 'text-right text-muted-foreground')}>{row.suggestedBy}</td>
             </tr>
           ))}
         </tbody>

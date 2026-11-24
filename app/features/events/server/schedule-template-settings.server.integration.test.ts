@@ -103,6 +103,13 @@ describe('listScheduleTemplatesForSettings', () => {
       expect(midweekProgramme?.items).toBeGreaterThan(0)
       // Every seeded template is suggested by one kind (D25).
       expect(templates.every(template => template.kinds.length === 1)).toBe(true)
+      // The programmes first, then the duties, each in the order they were made.
+      const kinds = templates.map(template => template.kind)
+      expect(kinds).toEqual([...kinds].sort((a, b) => (a === b ? 0 : a === 'programme' ? -1 : 1)))
+      const ids = (kind: string) => templates.filter(template => template.kind === kind).map(template => template.id)
+      expect(ids('programme')).toEqual([...ids('programme')].sort((a, b) => a - b))
+      expect(ids('duty')).toEqual([...ids('duty')].sort((a, b) => a - b))
+      expect(new Set(kinds)).toEqual(new Set(['programme', 'duty']))
     })
   })
 })
