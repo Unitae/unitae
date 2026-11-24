@@ -74,13 +74,30 @@ export async function handleScheduleTemplateItem(
     const submission = parseWithZod(formData, {
       schema: intent === 'rename-section' ? renameSectionSchema : renameHallSchema,
     })
-    if (submission.status !== 'success') return { kind: 'refused', response: data(submission.reply(), { status: 400 }) }
+    if (submission.status !== 'success') {
+      logger.warn('handleScheduleTemplateItem: an invalid rename', { scheduleTemplateId, intent, ...actor })
+      return { kind: 'refused', response: data(submission.reply(), { status: 400 }) }
+    }
     const value = submission.value
-    const renamed =
+    const target = { templateId: items.kindId, scheduleTemplateId }
+    const isSection = value.intent === 'rename-section'
+    const outcome =
       value.intent === 'rename-section'
-        ? await renameTemplateSection(db, items.kindId, value.from, value.to, congregationId, actorId)
-        : await renameTemplateHall(db, items.kindId, value.section, value.from, value.to, congregationId, actorId)
-    if (renamed === 0) return refused([m.settings_schedule_templates_error_vanished()], 409)
+        ? await renameTemplateSection(db, target, value.from, value.to, congregationId, actorId)
+        : await renameTemplateHall(db, target, value.section, value.from, value.to, congregationId, actorId)
+    if (outcome !== 'renamed') {
+      logger.warn('handleScheduleTemplateItem: a rename refused', { scheduleTemplateId, intent, outcome, ...actor })
+      if (outcome === 'unchanged') return refused([m.settings_schedule_templates_name_unchanged()])
+      if (outcome === 'taken') {
+        return refused([
+          isSection ? m.settings_schedule_templates_section_taken() : m.settings_schedule_templates_hall_taken(),
+        ])
+      }
+      return refused(
+        [isSection ? m.settings_schedule_templates_section_gone() : m.settings_schedule_templates_hall_gone()],
+        409,
+      )
+    }
     return {
       kind: 'saved',
       message:
@@ -97,13 +114,9 @@ export async function handleScheduleTemplateItem(
     if (submission.status === 'success') {
       const { partOrder, partSection, partTrack } = submission.value
       if (partTrack !== '') {
-        await splitSectionIntoHalls(
-          db,
-          items.kindId,
-          partSection,
-          m.settings_schedule_templates_main_hall(),
-          congregationId,
-        )
+        const target = { templateId: items.kindId, scheduleTemplateId }
+        const mainHall = m.settings_schedule_templates_main_hall()
+        await splitSectionIntoHalls(db, target, partSection, mainHall, congregationId, actorId)
       }
       await makeRoomAtTemplateOrder(db, items.kindId, partOrder, congregationId)
     }

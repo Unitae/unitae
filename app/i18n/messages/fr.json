@@ -7837,5 +7837,11 @@
     "demo_expired_message": "Un lien de démo s’ouvre une fois, dans la minute, et une démo est supprimée après une heure sans activité.",
     "demo_expired_new": "Ouvrir une nouvelle démo",
     "demo_refused": "Pas disponible dans la démo.",
-    "settings_schedule_templates_item_gone": "Cet élément a été supprimé entre-temps ; vos modifications n’ont pas été enregistrées."
+    "settings_schedule_templates_item_gone": "Cet élément a été supprimé entre-temps ; vos modifications n’ont pas été enregistrées.",
+    "settings_schedule_templates_name_unchanged": "Le nom n’a pas changé.",
+    "settings_schedule_templates_section_taken": "Une autre section porte déjà ce nom : choisissez-en un autre.",
+    "settings_schedule_templates_hall_taken": "Une autre salle de cette section porte déjà ce nom : choisissez-en un autre.",
+    "settings_schedule_templates_section_gone": "Cette section n’existe plus : la liste vient d’être rechargée.",
+    "settings_schedule_templates_hall_gone": "Cette salle n’existe plus : la liste vient d’être rechargée.",
+    "settings_schedule_templates_nth_hall": "Salle {number}"
 }

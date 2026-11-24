@@ -78,58 +78,114 @@ async function inTemplate(fn: (fixture: Fixture) => Promise<void>) {
   }
 }
 
+// The schedule template the page edits: renames and splits are recorded on it, as the page's other saves.
+const SCHEDULE_TEMPLATE_ID = 9_000_001
+
 describe('renameTemplateSection', () => {
-  it('renames a section on every part in it, never another template’s, and audits it', async () => {
+  it('renames a section on every part in it, never another template’s, and audits it on the schedule template', async () => {
     await inTemplate(async ({ db, congregationId, actorId, templateId, otherId, parts }) => {
       expect(
-        await renameTemplateSection(db, templateId, 'Joyaux', '  Joyaux de la Parole  ', congregationId, actorId),
-      ).toBe(2)
+        await renameTemplateSection(
+          db,
+          { templateId, scheduleTemplateId: SCHEDULE_TEMPLATE_ID },
+          'Joyaux',
+          '  Joyaux de la Parole  ',
+          congregationId,
+          actorId,
+        ),
+      ).toBe('renamed')
 
       expect((await parts()).filter(each => each.section === 'Joyaux de la Parole').map(each => each.name)).toEqual([
         'Discours',
         'Lecture',
       ])
       expect((await db.templatePart.findFirstOrThrow({ where: { templateId: otherId } })).section).toBe('Joyaux')
-      const audited = await db.auditLog.findFirst({ where: { congregationId, entityId: templateId } })
+      const audited = await db.auditLog.findFirst({ where: { congregationId, entityId: SCHEDULE_TEMPLATE_ID } })
+      expect([audited?.action, audited?.entityType]).toEqual(['schedule_template.updated', 'ScheduleTemplate'])
       expect(JSON.parse(audited?.metadata ?? '{}')).toEqual({ section: { from: 'Joyaux', to: 'Joyaux de la Parole' } })
     })
   })
 
-  it('renames nothing to an empty name, nor a section that is not there', async () => {
-    await inTemplate(async ({ db, congregationId, actorId, templateId }) => {
-      expect(await renameTemplateSection(db, templateId, 'Joyaux', '   ', congregationId, actorId)).toBe(0)
-      expect(await renameTemplateSection(db, templateId, 'Absente', 'X', congregationId, actorId)).toBe(0)
+  it('says why it renames nothing: the same name, a name another section carries, a section not there', async () => {
+    await inTemplate(async ({ db, congregationId, actorId, templateId, parts }) => {
+      const ids = { templateId, scheduleTemplateId: SCHEDULE_TEMPLATE_ID }
+      const before = await parts()
+      expect(await renameTemplateSection(db, ids, 'Joyaux', ' Joyaux ', congregationId, actorId)).toBe('unchanged')
+      expect(await renameTemplateSection(db, ids, 'Joyaux', 'Ministère', congregationId, actorId)).toBe('taken')
+      expect(await renameTemplateSection(db, ids, 'Absente', 'X', congregationId, actorId)).toBe('gone')
+      expect(await parts()).toEqual(before)
     })
   })
 })
 
 describe('renameTemplateHall', () => {
-  it('renames a hall within its section only', async () => {
+  it('renames a hall within its section only, audited on the schedule template', async () => {
     await inTemplate(async ({ db, congregationId, actorId, templateId, parts }) => {
       expect(
-        await renameTemplateHall(db, templateId, 'Ministère', 'Salle B', 'Deuxième salle', congregationId, actorId),
-      ).toBe(1)
+        await renameTemplateHall(
+          db,
+          { templateId, scheduleTemplateId: SCHEDULE_TEMPLATE_ID },
+          'Ministère',
+          'Salle B',
+          'Deuxième salle',
+          congregationId,
+          actorId,
+        ),
+      ).toBe('renamed')
       expect((await parts()).find(each => each.name === 'Conversation B')?.track).toBe('Deuxième salle')
+      const audited = await db.auditLog.findFirst({ where: { congregationId, entityId: SCHEDULE_TEMPLATE_ID } })
+      expect(JSON.parse(audited?.metadata ?? '{}')).toEqual({
+        hall: { section: 'Ministère', from: 'Salle B', to: 'Deuxième salle' },
+      })
+    })
+  })
+
+  it('refuses the name of another hall of its section, which would merge them', async () => {
+    await inTemplate(async ({ db, congregationId, actorId, templateId }) => {
+      const ids = { templateId, scheduleTemplateId: SCHEDULE_TEMPLATE_ID }
+      expect(
+        await renameTemplateHall(db, ids, 'Ministère', 'Salle B', 'Salle principale', congregationId, actorId),
+      ).toBe('taken')
+      expect(await renameTemplateHall(db, ids, 'Ministère', 'Salle Z', 'Autre', congregationId, actorId)).toBe('gone')
     })
   })
 })
 
 describe('splitSectionIntoHalls', () => {
-  it('puts a section’s parts outside any hall in its main hall, first', async () => {
-    await inTemplate(async ({ db, congregationId, templateId, parts }) => {
-      expect(await splitSectionIntoHalls(db, templateId, 'Joyaux', 'Salle principale', congregationId)).toBe(2)
+  it('puts a section’s parts outside any hall in its main hall, first, and audits it', async () => {
+    await inTemplate(async ({ db, congregationId, actorId, templateId, parts }) => {
+      const ids = { templateId, scheduleTemplateId: SCHEDULE_TEMPLATE_ID }
+      expect(await splitSectionIntoHalls(db, ids, 'Joyaux', 'Salle principale', congregationId, actorId)).toBe(2)
       expect(
         (await parts()).filter(each => each.section === 'Joyaux').map(each => [each.track, each.trackOrder]),
       ).toEqual([
         ['Salle principale', 1],
         ['Salle principale', 1],
       ])
+      const audited = await db.auditLog.findFirst({ where: { congregationId, entityId: SCHEDULE_TEMPLATE_ID } })
+      expect(JSON.parse(audited?.metadata ?? '{}')).toEqual({
+        hall: { section: 'Joyaux', split: 'Salle principale', parts: 2 },
+      })
     })
   })
 
-  it('leaves a section already in halls as it is', async () => {
-    await inTemplate(async ({ db, congregationId, templateId }) => {
-      expect(await splitSectionIntoHalls(db, templateId, 'Ministère', 'Salle principale', congregationId)).toBe(0)
+  it('leaves a section already in halls as it is, its parts outside them too', async () => {
+    await inTemplate(async ({ db, congregationId, actorId, templateId, parts }) => {
+      const ids = { templateId, scheduleTemplateId: SCHEDULE_TEMPLATE_ID }
+      await db.templatePart.create({
+        data: { name: 'Commune', section: 'Ministère', track: '', order: 14, templateId, congregationId },
+      })
+      expect(await splitSectionIntoHalls(db, ids, 'Ministère', 'Salle principale', congregationId, actorId)).toBe(0)
+      expect((await parts()).find(each => each.name === 'Commune')?.track).toBe('')
+    })
+  })
+
+  it('never splits the parts outside any section', async () => {
+    await inTemplate(async ({ db, congregationId, actorId, templateId, parts }) => {
+      const ids = { templateId, scheduleTemplateId: SCHEDULE_TEMPLATE_ID }
+      expect(await splitSectionIntoHalls(db, ids, '', 'Salle principale', congregationId, actorId)).toBe(0)
+      expect((await parts()).find(each => each.name === 'Cantique')?.track).toBe('')
+      expect(await db.auditLog.count({ where: { congregationId, entityId: SCHEDULE_TEMPLATE_ID } })).toBe(0)
     })
   })
 })

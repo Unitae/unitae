@@ -20,18 +20,30 @@ vi.mock('./template-item-action.server', async importOriginal => ({
 }))
 
 vi.mock('~/features/events/index.server', () => ({
-  renameTemplateSection: vi.fn(async (_db: unknown, kindId: number, from: string, to: string) => {
-    calls.push(['rename-section', kindId, from, to])
-    return from === 'Absente' ? 0 : 2
-  }),
-  renameTemplateHall: vi.fn(async (_db: unknown, kindId: number, section: string, from: string, to: string) => {
-    calls.push(['rename-hall', kindId, section, from, to])
-    return 1
-  }),
-  splitSectionIntoHalls: vi.fn(async (_db: unknown, kindId: number, section: string, main: string) => {
-    calls.push(['split', kindId, section, main])
-    return 2
-  }),
+  renameTemplateSection: vi.fn(
+    async (_db: unknown, target: { templateId: number; scheduleTemplateId: number }, from: string, to: string) => {
+      calls.push(['rename-section', target.templateId, target.scheduleTemplateId, from, to])
+      return from === 'Absente' ? 'gone' : to === 'Ministère' ? 'taken' : 'renamed'
+    },
+  ),
+  renameTemplateHall: vi.fn(
+    async (
+      _db: unknown,
+      target: { templateId: number; scheduleTemplateId: number },
+      section: string,
+      from: string,
+      to: string,
+    ) => {
+      calls.push(['rename-hall', target.templateId, target.scheduleTemplateId, section, from, to])
+      return 'renamed'
+    },
+  ),
+  splitSectionIntoHalls: vi.fn(
+    async (_db: unknown, target: { templateId: number; scheduleTemplateId: number }, section: string, main: string) => {
+      calls.push(['split', target.templateId, section, main])
+      return 2
+    },
+  ),
   makeRoomAtTemplateOrder: vi.fn(async (_db: unknown, kindId: number, order: number) => {
     calls.push(['room', kindId, order])
   }),
@@ -95,8 +107,8 @@ describe('handleScheduleTemplateItem', () => {
     )
     expect(section).toMatchObject({ kind: 'saved', message: 'Section renommée.' })
     expect(calls).toEqual([
-      ['rename-section', 270, 'Joyaux', 'Joyaux de la Parole'],
-      ['rename-hall', 270, 'Ministère', 'Salle B', 'Deuxième salle'],
+      ['rename-section', 270, 3, 'Joyaux', 'Joyaux de la Parole'],
+      ['rename-hall', 270, 3, 'Ministère', 'Salle B', 'Deuxième salle'],
     ])
   })
 
@@ -115,7 +127,17 @@ describe('handleScheduleTemplateItem', () => {
       form('rename-section', { from: 'Absente', to: 'B' }),
       ACTOR,
     )
-    expect([onDuties?.kind, gone?.kind]).toEqual(['refused', 'refused'])
+    const taken = await handleScheduleTemplateItem(
+      {} as never,
+      3,
+      form('rename-section', { from: 'Joyaux', to: 'Ministère' }),
+      ACTOR,
+    )
+    expect([onDuties?.kind, gone?.kind, taken?.kind]).toEqual(['refused', 'refused', 'refused'])
+    const status = (result: typeof gone) =>
+      result?.kind === 'refused' ? (result.response as { init: ResponseInit | null }).init?.status : null
+    expect([status(gone), status(taken)]).toEqual([409, 400])
+    expect(JSON.stringify(taken)).toContain('Une autre section porte déjà ce nom')
   })
 
   it('makes room for a new part where it was added, a new hall turning its section into halls first', async () => {

@@ -7837,5 +7837,11 @@
     "demo_expired_message": "Uma ligação de demonstração abre uma só vez, no prazo de um minuto, e uma demonstração é apagada após uma hora sem atividade.",
     "demo_expired_new": "Abrir uma nova demonstração",
     "demo_refused": "Não disponível na demonstração.",
-    "settings_schedule_templates_item_gone": "Este elemento foi eliminado entretanto; as suas alterações não foram guardadas."
+    "settings_schedule_templates_item_gone": "Este elemento foi eliminado entretanto; as suas alterações não foram guardadas.",
+    "settings_schedule_templates_name_unchanged": "O nome não mudou.",
+    "settings_schedule_templates_section_taken": "Outra secção já tem este nome: escolha outro.",
+    "settings_schedule_templates_hall_taken": "Outra sala desta secção já tem este nome: escolha outro.",
+    "settings_schedule_templates_section_gone": "Esta secção já não existe: a lista acabou de ser recarregada.",
+    "settings_schedule_templates_hall_gone": "Esta sala já não existe: a lista acabou de ser recarregada.",
+    "settings_schedule_templates_nth_hall": "Sala {number}"
 }
