@@ -71,6 +71,7 @@
     "audit_log_action_congregation_settings_updated": "Congregation settings changed",
     "audit_log_action_event_created": "Program created",
     "audit_log_action_event_released": "Program published",
+    "audit_log_action_event_kind_changed": "Meeting kind changed",
     "audit_log_action_event_unreleased": "Program unpublished",
     "audit_log_action_schedule_published": "Schedule published",
     "audit_log_action_schedule_unpublished": "Schedule unpublished",

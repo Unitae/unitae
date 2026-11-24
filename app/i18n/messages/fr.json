@@ -71,6 +71,7 @@
     "audit_log_action_congregation_settings_updated": "Réglages de l’assemblée modifiés",
     "audit_log_action_event_created": "Programme créé",
     "audit_log_action_event_released": "Programme publié",
+    "audit_log_action_event_kind_changed": "Type de réunion changé",
     "audit_log_action_event_unreleased": "Programme retiré",
     "audit_log_action_schedule_published": "Planning publié",
     "audit_log_action_schedule_unpublished": "Planning retiré",
