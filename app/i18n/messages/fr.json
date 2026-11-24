@@ -74,6 +74,8 @@
     "audit_log_action_event_unreleased": "Programme retiré",
     "audit_log_action_schedule_published": "Planning publié",
     "audit_log_action_schedule_unpublished": "Planning retiré",
+    "audit_log_action_schedule_renamed": "Planning renommé",
+    "audit_log_action_schedule_deleted": "Planning supprimé",
     "audit_log_action_event_deleted": "Programme supprimé",
     "audit_log_entity_absence": "Absence",
     "audit_log_entity_event": "Programme",
@@ -2062,6 +2064,30 @@
             "match": {
                 "countPlural=one": "{count} planning reste publié : vous n’en êtes pas responsable.",
                 "countPlural=*": "{count} plannings restent publiés : vous n’en êtes pas responsable."
+            }
+        }
+    ],
+    "programs_schedule_name_invalid": "Donnez-lui un nom.",
+    "programs_schedule_rename": "Renommer pour cette réunion",
+    "programs_schedule_delete": "Supprimer le planning",
+    "programs_schedule_rename_title": "Renommer le planning",
+    "programs_schedule_rename_body": "Le nouveau nom ne vaut que pour cette réunion : le modèle garde le sien.",
+    "programs_schedule_name": "Nom",
+    "programs_schedule_delete_title": "Supprimer le planning « {name} » ?",
+    "programs_schedule_delete_body": "La réunion reste, avec ses autres plannings et son assistance. Seuls ce planning et ses attributions disparaissent.",
+    "programs_schedule_renamed": "Planning renommé.",
+    "programs_schedule_deleted": "Planning supprimé.",
+    "programs_schedule_actions": "Plus d’actions sur {name}",
+    "programs_schedule_delete_warning": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Ce planning est publié : son attribution est annulée, et la personne attribuée en est avertie si elle a un compte.",
+                "countPlural=*": "Ce planning est publié : ses {count} attributions sont annulées, et chaque personne attribuée en est avertie si elle a un compte."
             }
         }
     ],

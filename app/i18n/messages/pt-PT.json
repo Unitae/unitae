@@ -74,6 +74,8 @@
     "audit_log_action_event_unreleased": "Programa retirado",
     "audit_log_action_schedule_published": "Planeamento publicado",
     "audit_log_action_schedule_unpublished": "Planeamento retirado",
+    "audit_log_action_schedule_renamed": "Planeamento renomeado",
+    "audit_log_action_schedule_deleted": "Planeamento eliminado",
     "audit_log_action_event_deleted": "Programa eliminado",
     "audit_log_entity_absence": "Ausência",
     "audit_log_entity_event": "Programa",
@@ -2057,6 +2059,30 @@
             "match": {
                 "countPlural=one": "{count} planeamento fica publicado: não é responsável por ele.",
                 "countPlural=*": "{count} planeamentos ficam publicados: não é responsável por eles."
+            }
+        }
+    ],
+    "programs_schedule_name_invalid": "Dê-lhe um nome.",
+    "programs_schedule_rename": "Renomear nesta reunião",
+    "programs_schedule_delete": "Eliminar o planeamento",
+    "programs_schedule_rename_title": "Renomear o planeamento",
+    "programs_schedule_rename_body": "O novo nome vale apenas para esta reunião: o modelo mantém o seu.",
+    "programs_schedule_name": "Nome",
+    "programs_schedule_delete_title": "Eliminar o planeamento «{name}»?",
+    "programs_schedule_delete_body": "A reunião mantém-se, com os outros planeamentos e a assistência. Só este planeamento e as suas designações desaparecem.",
+    "programs_schedule_renamed": "Planeamento renomeado.",
+    "programs_schedule_deleted": "Planeamento eliminado.",
+    "programs_schedule_actions": "Mais ações em {name}",
+    "programs_schedule_delete_warning": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Este planeamento está publicado: a sua designação é cancelada, e a pessoa designada é avisada se tiver uma conta.",
+                "countPlural=*": "Este planeamento está publicado: as suas {count} designações são canceladas, e cada pessoa designada é avisada se tiver uma conta."
             }
         }
     ],

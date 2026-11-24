@@ -10,7 +10,11 @@ import * as m from '~/i18n/paraglide/messages'
 const { state } = vi.hoisted(() => ({
   state: {
     /** What each fake rule answers. */
-    answers: { change: false, delete: false, publish: false },
+    answers: { change: false, delete: false, publish: false, schedule: false },
+    /** The notices each route fired after commit: which kind, for which event. */
+    notices: [] as string[],
+    /** What renaming a schedule answers once allowed. */
+    renamed: true,
     /** What « Tout publier » returns beyond the defaults, for the messages it leads to. */
     publishOutcome: {} as Record<string, unknown>,
     /** What « Tout retirer » returns beyond the defaults. */
@@ -96,7 +100,30 @@ vi.mock('~/features/events/server/delete-events.server', () => ({
   },
 }))
 
-vi.mock('~/features/events/server/event-status.server', () => ({ fireReleaseNotifications: () => Promise.resolve() }))
+vi.mock('~/features/events/server/event-status.server', () => ({
+  fireReleaseNotifications: () => Promise.resolve(),
+  fireCancellationNotifications: (event: { id: number }, targets: unknown[]) => {
+    state.notices.push(`cancelled:${event.id}:${targets.length}`)
+    return Promise.resolve()
+  },
+}))
+
+// Renaming and deleting one schedule ask canChangeSchedule, faked through `answers.schedule`.
+vi.mock('~/features/events/server/schedule-changes.server', () => ({
+  renameEventSchedule: (_db: unknown, _can: unknown, _user: number, _event: number, _id: number, name: string) => {
+    if (!state.answers.schedule) return Promise.resolve({ refused: true })
+    state.done.push(`schedule-rename:${name}`)
+    return Promise.resolve({ result: { schedule: { id: 7 }, changed: state.renamed } })
+  },
+  deleteEventSchedule: () => {
+    if (!state.answers.schedule) return Promise.resolve({ refused: true })
+    state.done.push('schedule-delete')
+    return Promise.resolve({
+      event: publishedEvent,
+      result: { schedule: { id: 7 }, notifyTargets: [{ memberId: 5 }, { memberId: 6 }] },
+    })
+  },
+}))
 
 // The bulk routes publish or withdraw each event as « Tout publier » / « Tout retirer »; refused when the bulk rule
 // does not keep 'publish' for this test.
@@ -137,6 +164,8 @@ const bulkRelease = await import('./bulk-release')
 const bulkUnrelease = await import('./bulk-unrelease')
 const schedulePublish = await import('./events/schedule-publish')
 const scheduleUnpublish = await import('./events/schedule-unpublish')
+const scheduleRename = await import('./events/schedule-rename')
+const scheduleDelete = await import('./events/schedule-delete')
 
 type Action = (args: never) => Promise<unknown>
 
@@ -153,8 +182,20 @@ function post(action: Action, url: string, body?: unknown) {
   } as never)
 }
 
+function postForm(action: Action, url: string, fields: Record<string, string>) {
+  const body = new FormData()
+  for (const [key, value] of Object.entries(fields)) body.set(key, value)
+  return action({
+    request: new Request(`https://unitae.example.test${url}`, { method: 'POST', body }),
+    params: { eventId: '40', scheduleId: '7' },
+    context: routeContext([]),
+  } as never)
+}
+
 beforeEach(() => {
-  state.answers = { change: false, delete: false, publish: false }
+  state.answers = { change: false, delete: false, publish: false, schedule: false }
+  state.notices = []
+  state.renamed = true
   state.bulk = []
   state.publishOutcome = {}
   state.unpublishOutcome = {}
@@ -170,7 +211,7 @@ describe('deleting an event asks canDeleteEvent alone', () => {
   })
 
   it('refuses whoever it refuses, even allowed to change and publish the event', async () => {
-    state.answers = { change: true, delete: false, publish: true }
+    state.answers = { change: true, delete: false, publish: true, schedule: false }
     const response = await respond(() => post(deleteRoute.action as Action, '/programs/events/40/delete'))
     expect(response.headers.get('Location')).toBe('/programs')
     expect(state.done).toEqual([])
@@ -193,7 +234,7 @@ describe.each([
   })
 
   it('refuses whoever may publish none of them, even allowed to change and delete the event', async () => {
-    state.answers = { change: true, delete: true, publish: false }
+    state.answers = { change: true, delete: true, publish: false, schedule: false }
     const response = await respond(() => post(action, url))
     expect(response.headers.get('Location')).toBe('/programs')
     expect(state.done).toEqual([])
@@ -249,8 +290,61 @@ describe.each([
   })
 
   it('refuses whoever may not, even allowed to change and delete the event', async () => {
-    state.answers = { change: true, delete: true, publish: false }
+    state.answers = { change: true, delete: true, publish: false, schedule: false }
     const response = await respond(() => post(action, '/programs/events/40/schedules/7/publish'))
+    expect(response.headers.get('Location')).toBe('/programs')
+    expect(state.done).toEqual([])
+  })
+})
+
+describe('deleting one schedule', () => {
+  it('tells its assignees « Attribution annulée » once it is gone, for whoever may change it', async () => {
+    state.answers.schedule = true
+    await post(scheduleDelete.action as Action, '/programs/events/40/schedules/7/delete')
+    expect(state.done).toEqual(['schedule-delete'])
+    expect(state.notices).toEqual(['cancelled:40:2'])
+    expect(state.flashed).toEqual([`success:${m.programs_schedule_deleted()}`])
+  })
+
+  it('refuses whoever may not, even allowed to change, delete and publish the event, and tells nobody', async () => {
+    state.answers = { change: true, delete: true, publish: true, schedule: false }
+    const response = await respond(() =>
+      post(scheduleDelete.action as Action, '/programs/events/40/schedules/7/delete'),
+    )
+    expect(response.headers.get('Location')).toBe('/programs')
+    expect(state.done).toEqual([])
+    expect(state.notices).toEqual([])
+  })
+})
+
+describe('renaming one schedule', () => {
+  const rename = (name: string) =>
+    postForm(scheduleRename.action as Action, '/programs/events/40/schedules/7/rename', { name })
+
+  it('renames for whoever may change it, the name trimmed, and says so', async () => {
+    state.answers.schedule = true
+    await rename('  Accueil  ')
+    expect(state.done).toEqual(['schedule-rename:Accueil'])
+    expect(state.flashed).toEqual([`success:${m.programs_schedule_renamed()}`])
+  })
+
+  it('says nothing when the name was already its own', async () => {
+    state.answers.schedule = true
+    state.renamed = false
+    await rename('Accueil')
+    expect(state.flashed).toEqual([])
+  })
+
+  it('answers a name of spaces with its error, asking nothing', async () => {
+    state.answers.schedule = true
+    const response = (await rename('   ')) as { data: unknown; init: { status: number } }
+    expect(response.init.status).toBe(400)
+    expect(response.data).toEqual({ ok: false, error: m.programs_schedule_name_invalid() })
+    expect(state.done).toEqual([])
+  })
+
+  it('refuses whoever may not', async () => {
+    const response = await respond(() => rename('Accueil'))
     expect(response.headers.get('Location')).toBe('/programs')
     expect(state.done).toEqual([])
   })

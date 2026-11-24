@@ -1,6 +1,7 @@
 import { Status, Tag } from '@unitae/ui'
 import { FileText, Loader2, Send } from 'lucide-react'
 import { useFetcher } from 'react-router'
+import { schedulePublishAction } from '~/features/events/model/programme-access'
 import { ScheduleKind, ScheduleStatus } from '~/features/events/model/schedule.type'
 import type { PageResponsible } from '~/features/events/model/schedule-responsible'
 import * as m from '~/i18n/paraglide/messages'
@@ -20,6 +21,8 @@ export interface EventScheduleView {
   mayPublish: boolean
   /** A draft they may publish that publishing would not refuse (a programme still to give is): « Publier » shows. */
   publishable: boolean
+  /** Rename it for this meeting or delete it: « Gérer », or the responsible of its template. */
+  mayChange: boolean
 }
 
 /** Its own name, or the catalogue's for one left unnamed (« Programme », « Services »). */
@@ -58,7 +61,7 @@ export function ScheduleResponsibleLine({ schedule }: { schedule: EventScheduleV
       <span>{m.programs_schedule_in_charge()}</span>
       <span className="font-medium text-foreground">{getRoleDisplayName(responsible.role)}</span>
       {responsible.holders.map(holder => (
-        <span key={`${holder.seat}-${holder.lastname}-${holder.firstname}`} className="inline-flex items-center gap-1">
+        <span key={holder.key} className="inline-flex items-center gap-1">
           <span aria-hidden="true">·</span>
           <span className="text-foreground">{formatPersonName(holder)}</span>
           {holder.seat === 'leader' && <span>{m.org_seat_leader_personal().toLowerCase()}</span>}
@@ -97,7 +100,7 @@ export function ScheduleStatusControl({
         {published ? m.programs_view_released() : m.programs_event_draft_badge()}
         {fill && ` · ${fill}`}
       </Status>
-      {(published ? schedule.mayPublish : schedule.publishable) && (
+      {schedulePublishAction(schedule) != null && (
         <Button
           size="sm"
           // 44 px to the touch on a phone.

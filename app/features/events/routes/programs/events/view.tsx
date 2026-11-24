@@ -10,6 +10,7 @@ import { buildShareTextsForEvent } from '~/features/events/server/build-share-me
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
 import { publishActionsFor, publishableScheduleIds } from '~/features/events/server/event-publishing.server'
 import { listExternalSpeakerOptions } from '~/features/events/server/external-speakers.queries'
+import { changeableScheduleIds } from '~/features/events/server/schedule-changes.server'
 import { listScheduleResponsibles } from '~/features/events/server/schedule-responsibles.queries'
 import {
   canChangeEvent,
@@ -87,9 +88,16 @@ export function loader({ params, context }: Route.LoaderArgs) {
     }
 
     // Each schedule the reader sees, as its section shows it: its responsible (D37) and whether they may publish it.
-    const [mine, viewerRoleIds] = await Promise.all([
+    const [mine, viewerRoleIds, changeable] = await Promise.all([
       publishableScheduleIds(db, can, currentUser.id, [event.id], congregationId),
       resolveEffectiveRoleIds(db, currentUser.id, congregationId),
+      changeableScheduleIds(
+        db,
+        can,
+        currentUser.id,
+        shown.schedules.map(schedule => schedule.id),
+        congregationId,
+      ),
     ])
     const viewer = { accountId: currentUser.id, memberId: currentUser.memberId, roleIds: viewerRoleIds }
     const roleOf = (schedule: (typeof shown.schedules)[number]) => schedule.scheduleTemplate?.responsibleRoleId ?? null
@@ -102,6 +110,13 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const awaitingProgramme = isAwaitingProgramme({
       parts: shown.eventParts.length,
       services: shown.eventServiceParts.length,
+      template: programmeTemplate(event.template),
+    })
+    // Publishing goes by the meeting itself, not by what this reader sees of it: a duties responsible who cannot see the
+    // draft programme still publishes their duties beside it.
+    const awaitsInFact = isAwaitingProgramme({
+      parts: event.eventParts.length,
+      services: event.eventServiceParts.length,
       template: programmeTemplate(event.template),
     })
     const schedules = shown.schedules.map(schedule => {
@@ -117,10 +132,11 @@ export function loader({ params, context }: Route.LoaderArgs) {
         name: schedule.name,
         responsible: roleId == null || responsible == null ? null : responsibleForPage(roleId, responsible, viewer),
         mayPublish,
+        mayChange: changeable.has(schedule.id),
         // Never offered what publishing would refuse: a programme still to give (programmeAwaits, as publishSchedule).
         // A meeting still awaiting its programme offers « Créer le programme », never publishing (as before schedules).
         publishable:
-          !awaitingProgramme &&
+          !awaitsInFact &&
           mayPublish &&
           schedule.status === ScheduleStatus.Draft &&
           !programmeAwaits({ kind: schedule.kind, items }, event.template),

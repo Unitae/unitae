@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dayInSameWeek, isAwaitingProgramme, planMeetingMoves } from './empty-meetings'
+import { dayInSameWeek, isAwaitingProgramme, planMeetingMoves, programmeAwaits } from './empty-meetings'
 
 describe('dayInSameWeek', () => {
   // Weeks run Monday to Sunday: a weekend meeting moved from Saturday to Sunday stays in its week.
@@ -122,5 +122,21 @@ describe('planMeetingMoves', () => {
       move: [],
       remove: [],
     })
+  })
+})
+
+describe('programmeAwaits', () => {
+  const midweek = { key: 'midweek-meeting', _count: { parts: 12, serviceParts: 4 } }
+  it('says a programme without parts awaits its own while its template has parts to give', () => {
+    expect(programmeAwaits({ kind: 'programme', items: 0 }, midweek)).toBe(true)
+    expect(programmeAwaits({ kind: 'programme', items: 3 }, midweek)).toBe(false)
+  })
+
+  it('never says so of duties, nor of a programme whose template gives duties alone or nothing', () => {
+    expect(programmeAwaits({ kind: 'duty', items: 0 }, midweek)).toBe(false)
+    expect(programmeAwaits({ kind: 'programme', items: 0 }, { key: 'x', _count: { parts: 0, serviceParts: 4 } })).toBe(
+      false,
+    )
+    expect(programmeAwaits({ kind: 'programme', items: 0 }, null)).toBe(false)
   })
 })

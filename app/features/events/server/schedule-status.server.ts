@@ -95,7 +95,7 @@ export async function settleEventStatus(db: TransactionClient, eventIds: number[
 }
 
 /** The schedule's event row, locked for the rest of the transaction, as eventScheduleId does. */
-async function lockScheduleEvent(db: TransactionClient, scheduleId: number, congregationId: number) {
+export async function lockScheduleEvent(db: TransactionClient, scheduleId: number, congregationId: number) {
   const found = await db.schedule.findFirst({ where: { id: scheduleId, congregationId }, select: { eventId: true } })
   if (found == null) return false
   await db.$queryRaw`SELECT "id" FROM "Event" WHERE "id" = ${found.eventId} AND "congregationId" = ${congregationId} FOR UPDATE`

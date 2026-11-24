@@ -29,6 +29,8 @@ const state = vi.hoisted(() => ({
   mine: [2] as number[],
   parts: [{ id: 1, name: 'Discours' }] as { id: number; name: string }[],
   services: [{ id: 2, name: 'Sono' }] as { id: number; name: string }[],
+  /** The schedules the reader may rename or delete. */
+  changeable: [] as number[],
 }))
 
 vi.mock('~/features/events/server/event-part-assignments.server', () => ({
@@ -93,6 +95,10 @@ vi.mock('~/shared/auth/permissions.server', async importOriginal => ({
   ...(await importOriginal<typeof import('~/shared/auth/permissions.server')>()),
   resolveEffectiveRoleIds: () => Promise.resolve([9]),
 }))
+// Who may rename or delete which is changeableScheduleIds' integration test: faked here.
+vi.mock('~/features/events/server/schedule-changes.server', () => ({
+  changeableScheduleIds: () => Promise.resolve(new Set<number>(state.changeable)),
+}))
 // Who answers for each schedule is listScheduleResponsibles' integration test.
 vi.mock('~/features/events/server/schedule-responsibles.queries', () => ({
   listScheduleResponsibles: (_db: unknown, roleIds: number[]) =>
@@ -137,6 +143,7 @@ beforeEach(() => {
   state.mine = [2]
   state.parts = [{ id: 1, name: 'Discours' }]
   state.services = [{ id: 2, name: 'Sono' }]
+  state.changeable = []
 })
 
 describe('the event page’s publishing', () => {
@@ -164,10 +171,21 @@ describe('each schedule’s section', () => {
         responsible: { role: { key: 'services', name: 'Services' }, holders: [], youHoldIt: true },
         mayPublish: true,
         publishable: false,
+        mayChange: false,
       },
     ])
     // Its one schedule of theirs is published: nothing left for them to publish.
     expect(data.publishAll).toEqual({ count: 0, everyone: false })
+  })
+})
+
+describe('the section’s « … »', () => {
+  it('shows on the schedules the reader may change only', async () => {
+    state.changeable = [2]
+    const data = (await loader({ params: { eventId: '40' }, context: readerContext() } as never)) as {
+      event: { schedules: { id: number; mayChange: boolean }[] }
+    }
+    expect(data.event.schedules.map(schedule => [schedule.id, schedule.mayChange])).toEqual([[2, true]])
   })
 })
 
@@ -219,6 +237,31 @@ describe('what the page offers to publish, case by case', () => {
     ])
     expect(data.event.schedules[0]?.responsible).toBeNull()
     expect(data.publishAll).toEqual({ count: 0, everyone: false })
+  })
+})
+
+describe('a duties responsible’s publishing', () => {
+  it('publishes their own draft duties, the draft programme hidden from them', async () => {
+    state.statuses = { programme: 'draft', duty: 'draft' }
+    state.rights.service = true
+    state.mine = [2]
+    const data = (await loader({ params: { eventId: '40' }, context: readerContext() } as never)) as {
+      event: { schedules: { id: number; publishable: boolean }[] }
+      publishAll: { count: number; everyone: boolean }
+    }
+    expect(data.event.schedules.map(schedule => [schedule.id, schedule.publishable])).toEqual([[2, true]])
+    expect(data.publishAll).toEqual({ count: 1, everyone: false })
+  })
+
+  it('publishes their empty duties beside a programme with parts they cannot see: the meeting awaits nothing', async () => {
+    state.statuses = { programme: 'draft', duty: 'draft' }
+    state.rights.service = true
+    state.mine = [2]
+    state.services = []
+    const data = (await loader({ params: { eventId: '40' }, context: readerContext() } as never)) as {
+      event: { schedules: { id: number; publishable: boolean }[] }
+    }
+    expect(data.event.schedules.map(schedule => [schedule.id, schedule.publishable])).toEqual([[2, true]])
   })
 })
 

@@ -74,6 +74,8 @@
     "audit_log_action_event_unreleased": "Program unpublished",
     "audit_log_action_schedule_published": "Schedule published",
     "audit_log_action_schedule_unpublished": "Schedule unpublished",
+    "audit_log_action_schedule_renamed": "Schedule renamed",
+    "audit_log_action_schedule_deleted": "Schedule deleted",
     "audit_log_action_event_deleted": "Program deleted",
     "audit_log_entity_absence": "Absence",
     "audit_log_entity_event": "Program",
@@ -2057,6 +2059,30 @@
             "match": {
                 "countPlural=one": "{count} schedule stays published: you are not responsible for it.",
                 "countPlural=*": "{count} schedules stay published: you are not responsible for them."
+            }
+        }
+    ],
+    "programs_schedule_name_invalid": "Give it a name.",
+    "programs_schedule_rename": "Rename for this meeting",
+    "programs_schedule_delete": "Delete the schedule",
+    "programs_schedule_rename_title": "Rename the schedule",
+    "programs_schedule_rename_body": "The new name holds for this meeting only: the template keeps its own.",
+    "programs_schedule_name": "Name",
+    "programs_schedule_delete_title": "Delete the “{name}” schedule?",
+    "programs_schedule_delete_body": "The meeting stays, with its other schedules and its attendance. Only this schedule and its assignments go.",
+    "programs_schedule_renamed": "Schedule renamed.",
+    "programs_schedule_deleted": "Schedule deleted.",
+    "programs_schedule_actions": "More actions on {name}",
+    "programs_schedule_delete_warning": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "This schedule is published: its assignment is cancelled, and the assigned person is told if they have an account.",
+                "countPlural=*": "This schedule is published: its {count} assignments are cancelled, and each assigned person is told if they have an account."
             }
         }
     ],

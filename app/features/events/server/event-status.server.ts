@@ -9,7 +9,7 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 import { withScope } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { assertCanRelease, EVENT_STATUS_ERRORS } from './event-status.policy'
-import { PROGRAMME_ASSIGNMENT_TYPE } from './notifications.server'
+import { type AssignmentChangeType, PROGRAMME_ASSIGNMENT_TYPE } from './notifications.server'
 import { buildAssignmentContext, cancelPendingAssignmentNotices, notifyAssignment } from './notify-assignment.server'
 import { computeNotifyTargets, type NotifyTarget } from './release-notifications.server'
 
@@ -139,16 +139,41 @@ export async function releaseEvent(
   return { event: updated, notifyTargets }
 }
 
-// Fires the release-time "you are assigned" notification for every target.
-// Runs OUTSIDE any release tx and opens a fresh withScope per target so a
-// single failure is isolated — neither pollutes another notify's tx nor
-// affects the release itself, which has already committed by this point.
-export async function fireReleaseNotifications(
-  event: { id: number; name: string; startDate: Date; templateId: number | null },
+type NoticeEvent = { id: number; name: string; startDate: Date; templateId: number | null }
+
+/** « vous êtes assigné » to every target of a publication, after its transaction committed (fireAssignmentNotices). */
+export function fireReleaseNotifications(
+  event: NoticeEvent,
   targets: NotifyTarget[],
   congregationId: number,
   actorId: number,
   ctx: ReleaseNotificationContext,
+): Promise<void> {
+  return fireAssignmentNotices(event, targets, congregationId, actorId, ctx, PROGRAMME_ASSIGNMENT_TYPE.assigned)
+}
+
+/** « Attribution annulée » to every target of a published schedule deleted, after it committed (D41). */
+export function fireCancellationNotifications(
+  event: NoticeEvent,
+  targets: NotifyTarget[],
+  congregationId: number,
+  actorId: number,
+  ctx: ReleaseNotificationContext,
+): Promise<void> {
+  return fireAssignmentNotices(event, targets, congregationId, actorId, ctx, PROGRAMME_ASSIGNMENT_TYPE.unassigned)
+}
+
+// Fires one assignment notice of this type for every target. Runs OUTSIDE the
+// writing tx and opens a fresh withScope per target so a single failure is
+// isolated — neither pollutes another notify's tx nor affects the write
+// itself, which has already committed by this point.
+async function fireAssignmentNotices(
+  event: NoticeEvent,
+  targets: NotifyTarget[],
+  congregationId: number,
+  actorId: number,
+  ctx: ReleaseNotificationContext,
+  type: AssignmentChangeType,
 ): Promise<void> {
   if (targets.length === 0) return
 
@@ -179,11 +204,12 @@ export async function fireReleaseNotifications(
             entityId: target.entityId,
             assignmentName: target.assignmentName,
           },
-          { type: PROGRAMME_ASSIGNMENT_TYPE.assigned, memberId: target.memberId, role: target.role },
+          { type, memberId: target.memberId, role: target.role },
         ),
       )
     } catch (err) {
-      logger.error('release notification enqueue failed', {
+      logger.error('assignment notification enqueue failed', {
+        type,
         eventId: event.id,
         congregationId,
         memberId: target.memberId,
