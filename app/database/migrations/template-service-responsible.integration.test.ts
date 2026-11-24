@@ -85,8 +85,8 @@ describe('20260901120000_template_service_responsible', () => {
     expect(captured, 'a second role slipped into the same scope').toBeDefined()
   })
 
-  // An unrecognised scope matches no `scopesCovering` set, so it would delegate
-  // to nobody while looking assigned on the settings page. It fails at the write.
+  // An unrecognised scope is neither of the two the sync reads, so it would delegate
+  // to nobody while looking assigned. It fails at the write.
   it('rejects a scope outside the catalogue', async () => {
     const captured = await withFixture('respchk', async (tx: never, f) => {
       const db = tx as unknown as PrismaClient

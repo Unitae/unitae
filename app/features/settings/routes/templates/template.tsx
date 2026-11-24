@@ -3,7 +3,7 @@ import { Copy, MoreHorizontal, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { redirect, useFetcher } from 'react-router'
 import { isSystemTemplate } from '~/features/events'
-import { countMeetingsToMove, isTemplateResponsible } from '~/features/events/index.server'
+import { countMeetingsToMove } from '~/features/events/index.server'
 import { getTemplatePage } from '~/features/settings/server/template-page.queries'
 import { ConfirmDialog } from '~/features/settings/ui/ConfirmDialog'
 import { SettingsHeader } from '~/features/settings/ui/SettingsHeader'
@@ -41,20 +41,17 @@ export const meta: Route.MetaFunction = ({ loaderData }) => [
   },
 ]
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(currentAccountContext)
   const templateId = requireParamId(params.templateId, '/settings/templates')
   const isManager = permissions.has(Permission.CanManageProgramTemplates)
+  // The templates' managers' alone since 6a-1c: a template's responsible fills its schedules on the meetings.
+  if (!isManager) throw redirect('/settings/templates')
 
   return withScopeFromContext(context, async (db, congregationId) => {
     const page = await getTemplatePage(db, templateId, congregationId)
     if (!page) throw redirect('/settings/templates')
-    const responsible = (await isTemplateResponsible(db, templateId, currentUser.id, congregationId)) != null
-    // A template's responsible and the managers change it; whoever reads the programmes may look at it.
-    if (!isManager && !responsible && !permissions.has(Permission.CanViewPrograms))
-      throw redirect('/settings/templates')
-    const editable = isManager || responsible
+    const editable = isManager
     const builtIn = isSystemTemplate(page.template.key)
     // Empty meetings ahead still on the template's old day or hours, for whoever may bring them along.
     const meetingsToMove =
@@ -76,9 +73,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const isManager = permissions.has(Permission.CanManageProgramTemplates)
   const formData = await request.formData()
 
-  const result = await withScopeFromContext(context, async (db, congregationId) => {
-    const responsible = await isTemplateResponsible(db, templateId, currentUser.id, congregationId)
-    if (!isManager && !responsible) throw redirect('/settings/templates')
+  if (!isManager) throw redirect('/settings/templates')
+  const result = await withScopeFromContext(context, (db, congregationId) => {
     const { timezone: timeZone } = context.get(congregationContext)
     return handleTemplateAction(db, templateId, formData, { id: currentUser.id, congregationId, isManager, timeZone })
   })

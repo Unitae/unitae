@@ -113,9 +113,9 @@ The flow is:
 
 So to give someone access to a feature, you don't grant the permission directly — you put them in a role that already has it (or create a new role that does).
 
-## Programme template responsible
+## Schedule template responsible
 
-Independently of roles, each programme template can have a **template responsible** assigned. That person can edit, delete, release, and un-release the events that come from that template, and assign publishers to them — without needing the broader Program Manager permission. Useful for delegating one programme (e.g. midweek meeting) without handing over the rest.
+Besides permissions, each schedule template can name a **responsible role**. Whoever holds it (its leader and deputies) fills and publishes the schedules made from that template, and may change, publish whole or delete a meeting whose every schedule is theirs — without the broader Program Manager permission. Useful for delegating one programme (e.g. the midweek meeting) without handing over the rest. Changing the templates themselves, in Settings, needs _Can create and configure meeting templates_.
 
 ## Default access
 

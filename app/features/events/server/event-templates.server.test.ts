@@ -19,8 +19,7 @@ vi.mock('~/shared/infra/db.server', () => ({
     event: { count: vi.fn() },
     templatePart: { create: vi.fn(), update: vi.fn(), delete: vi.fn() },
     templateServicePart: { aggregate: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
-    templateResponsible: { upsert: vi.fn(), deleteMany: vi.fn(), findFirst: vi.fn() },
-    eventKindScheduleTemplate: { findFirst: vi.fn() },
+    templateResponsible: { upsert: vi.fn(), deleteMany: vi.fn() },
     role: { findMany: vi.fn() },
     templatePartAllowedRole: { createMany: vi.fn() },
     templateServicePartAllowedRole: { createMany: vi.fn() },
@@ -42,14 +41,8 @@ vi.mock('~/shared/domain/audit.server', () => ({
   },
 }))
 
-const {
-  getTemplates,
-  getTemplateById,
-  updateTemplate,
-  setTemplateResponsible,
-  removeTemplateResponsible,
-  isTemplateResponsible,
-} = await import('./event-templates.server')
+const { getTemplates, getTemplateById, updateTemplate, setTemplateResponsible, removeTemplateResponsible } =
+  await import('./event-templates.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 const allowedRoles = await import('~/features/events/server/allowed-roles.server')
 const auditModule = await import('~/shared/domain/audit.server')
@@ -287,52 +280,5 @@ describe('removeTemplateResponsible', () => {
     expect(db.templateResponsible.deleteMany).toHaveBeenCalledWith({
       where: { templateId: 1, scope: 'service', congregationId: 1 },
     })
-  })
-})
-
-describe('isTemplateResponsible', () => {
-  it("returns the record when the user holds the template's responsible role", async () => {
-    const record = { id: 1, templateId: 1, roleId: 5 }
-    vi.mocked(db.role.findMany).mockResolvedValue([{ id: 5 }] as never)
-    vi.mocked(db.templateResponsible.findFirst).mockResolvedValue(record as never)
-
-    const result = await isTemplateResponsible(db, 1, 5, 1)
-    expect(result).toEqual(record)
-  })
-
-  // The one branch a mocked test proves outright: it must short-circuit before querying,
-  // because `roleId: { in: [] }` would otherwise match nothing by accident rather than by
-  // intent. Whether the `in:` filter is actually correct is pinned in the integration suite —
-  // here the mock returns whatever it is told regardless of the `where`.
-  it('returns null without querying when the user holds no roles at all', async () => {
-    vi.mocked(db.role.findMany).mockResolvedValue([] as never)
-    vi.mocked(db.templateResponsible.findFirst).mockResolvedValue({ id: 9 } as never)
-
-    const result = await isTemplateResponsible(db, 1, 99, 1)
-    expect(result).toBeNull()
-  })
-
-  it('asks only for the whole-event delegation by default', async () => {
-    vi.mocked(db.role.findMany).mockResolvedValue([{ id: 5 }] as never)
-    vi.mocked(db.templateResponsible.findFirst).mockResolvedValue(null as never)
-
-    await isTemplateResponsible(db, 1, 5, 1)
-
-    const where = vi.mocked(db.templateResponsible.findFirst).mock.calls[0][0]?.where as {
-      scope: { in: string[] }
-    }
-    expect(where.scope.in).toEqual(['programme'])
-  })
-
-  it('accepts either delegation when asked about the service parts', async () => {
-    vi.mocked(db.role.findMany).mockResolvedValue([{ id: 5 }] as never)
-    vi.mocked(db.templateResponsible.findFirst).mockResolvedValue(null as never)
-
-    await isTemplateResponsible(db, 1, 5, 1, ResponsibilityScope.Service)
-
-    const where = vi.mocked(db.templateResponsible.findFirst).mock.calls[0][0]?.where as {
-      scope: { in: string[] }
-    }
-    expect(where.scope.in).toEqual(expect.arrayContaining(['programme', 'service']))
   })
 })

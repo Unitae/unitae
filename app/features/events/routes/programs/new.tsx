@@ -38,6 +38,8 @@ export const meta: Route.MetaFunction = () => [{ title: m.programs_new_meta_titl
  */
 export function loader({ context, request }: Route.LoaderArgs) {
   const canManage = context.get(permissionsContext).has(Permission.CanManagePrograms)
+  // The way to the templates when there is no regular meeting: their page is the templates' managers'.
+  const mayEditTemplates = context.get(permissionsContext).has(Permission.CanManageProgramTemplates)
   const { id: accountId } = context.get(currentAccountContext)
   const { timezone } = context.get(congregationContext)
   const today = dayOf(new Date(), timezone)
@@ -53,7 +55,15 @@ export function loader({ context, request }: Route.LoaderArgs) {
       today,
       templateIds,
     })
-    return { templates, existing, ahead, today, canManage, week: isCalendarDay(week) ? mondayOf(week) : null }
+    return {
+      templates,
+      existing,
+      ahead,
+      today,
+      canManage,
+      mayEditTemplates,
+      week: isCalendarDay(week) ? mondayOf(week) : null,
+    }
   })
 }
 

@@ -1,15 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-// Dragging a part or a service on a template page posts its new order. The action checks what the page's handles
-// promise — the template right, or being the template's responsible — and never touches a system template. Reorders
+// Dragging a part or a service on a template page posts its new order. The action checks the template right (a
+// template's responsible no longer writes here since 6a-1c) and never touches a system template. Reorders
 // land in an in-memory list, so the tests assert on whether one was written.
 
 const { state } = vi.hoisted(() => ({
   state: {
-    responsible: false,
     templateKey: 'midweek-meeting',
     written: [] as { kind: 'parts' | 'services'; templateId: number; orderedIds: number[] }[],
-    asked: [] as number[],
   },
 }))
 
@@ -20,11 +18,6 @@ vi.mock('~/shared/auth/route-context.server', async importOriginal => ({
 }))
 
 vi.mock('~/features/events/index.server', () => ({
-  // The write routes ask with the default programme scope: a duties-only responsible never writes the parts or services.
-  isTemplateResponsible: (...args: unknown[]) => {
-    state.asked.push(args.length)
-    return Promise.resolve(state.responsible ? { id: 1 } : null)
-  },
   reorderTemplateParts: (_db: unknown, _cong: number, templateId: number, orderedIds: number[]) => {
     state.written.push({ kind: 'parts', templateId, orderedIds })
     return Promise.resolve(true)
@@ -55,10 +48,8 @@ function post(action: Action, permissions: Granted[], body: unknown) {
 }
 
 beforeEach(() => {
-  state.responsible = false
   state.templateKey = 'midweek-meeting'
   state.written = []
-  state.asked = []
 })
 
 describe.each([
@@ -72,17 +63,10 @@ describe.each([
     expect(state.written).toEqual([{ kind, templateId: 3, orderedIds: [2, 1] }])
   })
 
-  it('writes the order for the template’s responsible, without the right', async () => {
-    state.responsible = true
-
-    expect(await post(action, [], { orderedIds: [2, 1] })).toEqual({ ok: true })
-    expect(state.written).toHaveLength(1)
-    // Asked with the default programme scope (no fifth argument): a duties-only responsible does not write here.
-    expect(state.asked).toEqual([4])
-  })
-
-  it('refuses a caller with neither', async () => {
-    const response = await respond(() => post(action, [], { orderedIds: [2, 1] }))
+  it('refuses a caller without the right, programme readers and managers included', async () => {
+    const response = await respond(() =>
+      post(action, [Permission.CanViewPrograms, Permission.CanManagePrograms], { orderedIds: [2, 1] }),
+    )
 
     expect(response.headers.get('Location')).toBe('/settings/templates')
     expect(state.written).toEqual([])
