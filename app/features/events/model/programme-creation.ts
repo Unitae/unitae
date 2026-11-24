@@ -108,8 +108,14 @@ export function plannedSeries(
     .flatMap(template =>
       daysOnWeekday(template.weekDay, from, to).map(day => {
         const key = programmeKey(template.id, day)
-        const existingId = known.get(key) ?? null
-        return { key, template, day, existingId, aheadId: existingId == null ? (waiting.get(key) ?? null) : null }
+        const prepared = known.get(key) ?? null
+        const waitingId = prepared == null ? (waiting.get(key) ?? null) : null
+        // As createProgrammeSeries: a kind that brings nothing has nothing to fill its meeting with, which stays as it
+        // is, counted with the existing ones.
+        if (waitingId != null && template.schedules.length === 0) {
+          return { key, template, day, existingId: waitingId, aheadId: null }
+        }
+        return { key, template, day, existingId: prepared, aheadId: waitingId }
       }),
     )
     .sort((a, b) => compare(a.day, b.day) || compare(a.template.startTime, b.template.startTime))
@@ -128,6 +134,11 @@ export function countSeries(planned: PlannedProgramme[], skipped: ReadonlySet<st
     }
   }
   return count
+}
+
+/** Whether a series has anything to do: a meeting to create or one created ahead to fill. */
+export function seriesHasWork(count: SeriesCount): boolean {
+  return count.create + count.fill > 0
 }
 
 /** Rows grouped under the Monday of their week, Monday to Sunday like the programmes list. */

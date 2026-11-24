@@ -6,6 +6,7 @@ import {
   monthEnd,
   plannedSeries,
   seriesEnds,
+  seriesHasWork,
   seriesStart,
 } from './programme-creation'
 
@@ -120,6 +121,39 @@ describe('countSeries', () => {
       skipped: 1,
       schedules: 3,
     })
+  })
+})
+
+describe('countSeries, meetings created ahead', () => {
+  const ahead = [{ templateId: 270, day: '2027-01-07', eventId: 4017 }]
+
+  it('leaves a meeting created ahead as it is when its kind brings nothing: the series has nothing to fill', () => {
+    const empty: CreationTemplate = { ...MIDWEEK, schedules: [] }
+    const planned = plannedSeries([empty], '2027-01-04', '2027-01-10', [], ahead)
+
+    expect(planned[0]).toMatchObject({ aheadId: null, existingId: 4017 })
+    expect(countSeries(planned, new Set())).toEqual({ create: 0, fill: 0, existing: 1, skipped: 0, schedules: 0 })
+  })
+
+  it('counts a passed day that has a meeting created ahead as passed, with no schedule', () => {
+    const planned = plannedSeries([MIDWEEK], '2027-01-04', '2027-01-10', [], ahead)
+
+    expect(countSeries(planned, new Set(['270:2027-01-07']))).toEqual({
+      create: 0,
+      fill: 0,
+      existing: 0,
+      skipped: 1,
+      schedules: 0,
+    })
+  })
+})
+
+describe('seriesHasWork', () => {
+  it('lets the button through for meetings to fill alone, never for nothing to do', () => {
+    const none = { create: 0, fill: 0, existing: 2, skipped: 1, schedules: 0 }
+    expect(seriesHasWork({ ...none, fill: 7, schedules: 14 })).toBe(true)
+    expect(seriesHasWork({ ...none, create: 1, schedules: 2 })).toBe(true)
+    expect(seriesHasWork(none)).toBe(false)
   })
 })
 
