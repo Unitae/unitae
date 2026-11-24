@@ -49,7 +49,8 @@ vi.mock('~/features/events/server/event-part-assignments.server', () => ({
           status: state.statuses.programme,
           name: null,
           key: 'programme',
-          scheduleTemplate: null,
+          // Made from the kind's template, with no responsible: the managers'.
+          scheduleTemplate: { responsibleRoleId: null },
         },
         {
           id: 2,
@@ -103,7 +104,7 @@ vi.mock('~/features/events/server/schedule-changes.server', () => ({
 vi.mock('~/features/events/server/schedule-add.server', () => ({
   scheduleAddOptions: () =>
     Promise.resolve({
-      suggested: [{ id: 5, name: 'Nettoyage', key: null, kind: 'duty', usedBy: [] }],
+      suggested: [{ id: 5, name: 'Nettoyage', kind: 'duty', usedBy: [] }],
       others: [],
       emptyKinds: [],
     }),

@@ -21,19 +21,23 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const currentUser = context.get(currentAccountContext)
   const eventId = requireParamId(params.eventId, '/programs')
   const parsed = scheduleAddSchema.safeParse(Object.fromEntries(await request.formData()))
-  if (!parsed.success) return data({ ok: false as const, error: 'invalid' as const }, { status: 400 })
+  if (!parsed.success) return data({ ok: false as const, error: m.programs_schedule_name_invalid() }, { status: 400 })
 
-  return withScopeFromContext(context, async db => {
+  const outcome = await withScopeFromContext(context, db => {
     const can = (p: Permission) => permissions.has(p)
-    const { congregationId } = currentUser
-    const outcome = await addEventSchedule(db, can, currentUser.id, eventId, parsed.data, congregationId)
-    if (outcome == null || ('refused' in outcome && outcome.refused === 'right')) throw redirect('/programs')
-    if ('refused' in outcome) {
-      session.flash('error', m.programs_schedule_add_kind_held())
-      return data({ ok: false as const }, { headers: { 'Set-Cookie': await commitSession(session) } })
-    }
-    session.flash('success', m.programs_schedule_added())
-    logger.info(`Schedule added. User: ${currentUser.id}. Event: ${eventId}. Schedule: ${outcome.schedule.id}.`)
-    return data({ ok: true as const }, { headers: { 'Set-Cookie': await commitSession(session) } })
+    return addEventSchedule(db, can, currentUser.id, eventId, parsed.data, currentUser.congregationId)
   })
+  // The event, or the template chosen, has gone since the page loaded: back to the page, which says what is left.
+  if (outcome == null) throw redirect(`/programs/events/${eventId}`)
+  if ('refused' in outcome) throw redirect('/programs')
+  if ('reason' in outcome) {
+    session.flash(
+      'error',
+      outcome.reason === 'kind-held' ? m.programs_schedule_add_kind_held() : m.programs_schedule_add_awaiting(),
+    )
+    return data({ ok: false as const }, { headers: { 'Set-Cookie': await commitSession(session) } })
+  }
+  session.flash('success', m.programs_schedule_added())
+  logger.info(`Schedule added. User: ${currentUser.id}. Event: ${eventId}. Schedule: ${outcome.schedule.id}.`)
+  return data({ ok: true as const }, { headers: { 'Set-Cookie': await commitSession(session) } })
 }

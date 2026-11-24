@@ -141,7 +141,10 @@ export function loader({ params, context }: Route.LoaderArgs) {
           !awaitsInFact &&
           mayPublish &&
           schedule.status === ScheduleStatus.Draft &&
-          !programmeAwaits({ kind: schedule.kind, items }, event.template),
+          !programmeAwaits(
+            { kind: schedule.kind, items, fromTemplate: schedule.scheduleTemplate != null },
+            event.template,
+          ),
       }
     })
     const myDrafts = schedules.filter(schedule => schedule.publishable).length

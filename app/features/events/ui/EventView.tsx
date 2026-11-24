@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useFetcher } from 'react-router'
 import type { ExternalSpeakerOption } from '~/features/events/model/external-speaker.type'
 import { parseAssignKey } from '~/features/events/model/reassign'
+import type { ScheduleAddOptions } from '~/features/events/model/schedule.type'
 import { ScheduleKind, ScheduleStatus } from '~/features/events/model/schedule.type'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
@@ -18,7 +19,6 @@ import { EventHeader } from './EventHeader'
 import { EventItemEditor } from './EventItemEditor'
 import { type AssignedService, EventServiceAssignmentsPanel } from './EventServiceAssignmentsPanel'
 import { ScheduleActions } from './ScheduleActions'
-import type { ScheduleAddOptions } from './ScheduleAddMenu'
 import {
   type EventScheduleView,
   ScheduleResponsibleLine,

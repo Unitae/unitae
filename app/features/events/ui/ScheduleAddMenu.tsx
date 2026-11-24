@@ -2,7 +2,7 @@ import { Callout, SegmentedControl } from '@unitae/ui'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useFetcher } from 'react-router'
-import { ScheduleKind } from '~/features/events/model/schedule.type'
+import { type ScheduleAddOption, type ScheduleAddOptions, ScheduleKind } from '~/features/events/model/schedule.type'
 import { SCHEDULE_NAME_MAX } from '~/features/events/schemas/schedule-name.schema'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
@@ -20,24 +20,10 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 
-interface AddOption {
-  id: number
-  name: string | null
-  key: string | null
-  kind: string
-  usedBy: string[]
-}
-
-export interface ScheduleAddOptions {
-  suggested: AddOption[]
-  others: AddOption[]
-  emptyKinds: string[]
-}
-
 const kindLabel = (kind: string) =>
   kind === ScheduleKind.Programme ? m.programs_schedule_kind_programme() : m.programs_schedule_kind_duty()
 // A template left unnamed reads as the catalogue's label.
-const optionName = (option: AddOption) =>
+const optionName = (option: ScheduleAddOption) =>
   option.name ??
   (option.kind === ScheduleKind.Programme ? m.programs_view_spiritual_program() : m.programs_view_services())
 
@@ -57,9 +43,9 @@ export function ScheduleAddMenu({
   const fetcher = useFetcher<{ ok: boolean }>()
   const [empty, setEmpty] = useState(false)
   const action = `/programs/events/${eventId}/schedules/add`
-  const add = (option: AddOption) =>
+  const add = (option: ScheduleAddOption) =>
     fetcher.submit({ scheduleTemplateId: String(option.id) }, { method: 'POST', action })
-  const item = (option: AddOption) => (
+  const item = (option: ScheduleAddOption) => (
     <DropdownMenuItem key={option.id} onSelect={() => add(option)} className="flex-col items-start gap-0">
       <span className="font-medium">{optionName(option)}</span>
       <span className="text-muted-foreground text-xs">{[kindLabel(option.kind), ...option.usedBy].join(' · ')}</span>
@@ -117,12 +103,19 @@ function EmptyScheduleDialog({
   open: boolean
   onClose: () => void
   action: string
-  kinds: string[]
+  kinds: ScheduleKind[]
 }) {
-  const fetcher = useFetcher<{ ok: boolean }>()
-  const [kind, setKind] = useState(
-    kinds.includes(ScheduleKind.Duty) ? ScheduleKind.Duty : (kinds[0] ?? ScheduleKind.Duty),
-  )
+  const fetcher = useFetcher<{ ok: boolean; error?: string }>()
+  const preferred = () => (kinds.includes(ScheduleKind.Duty) ? ScheduleKind.Duty : (kinds[0] ?? ScheduleKind.Duty))
+  const [kind, setKind] = useState<ScheduleKind>(preferred)
+  const [wasOpen, setWasOpen] = useState(open)
+  // Each opening starts from the kinds the meeting still lacks: one added since leaves the other.
+  if (open !== wasOpen) {
+    setWasOpen(open)
+    if (open) setKind(preferred())
+  }
+  const posted = kinds.includes(kind) ? kind : preferred()
+  const error = fetcher.state === 'idle' && fetcher.data?.ok === false ? fetcher.data.error : undefined
   useCloseOnSave(fetcher, onClose)
   return (
     <Dialog open={open} onOpenChange={next => !next && onClose()}>
@@ -141,13 +134,18 @@ function EmptyScheduleDialog({
               <span className="font-medium text-sm">{m.programs_schedule_add_kind()}</span>
               <SegmentedControl
                 aria-label={m.programs_schedule_add_kind()}
-                value={kind}
-                onValueChange={value => setKind(value as typeof kind)}
+                value={posted}
+                onValueChange={setKind}
                 options={kinds.map(value => ({ value, label: kindLabel(value) }))}
               />
             </div>
           )}
-          <input type="hidden" name="kind" value={kind} />
+          <input type="hidden" name="kind" value={posted} />
+          {error && (
+            <Callout tone="danger" role="alert">
+              {error}
+            </Callout>
+          )}
           <Callout tone="info">{m.programs_schedule_add_no_one()}</Callout>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={onClose}>

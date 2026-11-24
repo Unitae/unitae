@@ -2,11 +2,12 @@ import { Status } from '@unitae/ui'
 import { CalendarDays, FileText, ListPlus, Loader2, MoreHorizontal, Pencil, Send, Trash2 } from 'lucide-react'
 import { Link, useFetcher } from 'react-router'
 import { EventStatus } from '~/features/events/model/event-status.type'
+import type { ScheduleAddOptions } from '~/features/events/model/schedule.type'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
 import { PageHeader } from '~/shared/ui/PageHeader'
-import { ScheduleAddMenu, type ScheduleAddOptions } from './ScheduleAddMenu'
+import { ScheduleAddMenu } from './ScheduleAddMenu'
 
 interface EventHeaderProps {
   event: { id: number; name: string; status: string }

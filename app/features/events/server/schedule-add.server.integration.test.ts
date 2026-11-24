@@ -4,10 +4,10 @@ import { PrismaClient } from '~/database/generated/client'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { Permission } from '~/shared/types/permission'
 
-// Adding a schedule to an event (D39, design round A): from a schedule template, with its parts or duties, or empty;
-// only of a kind the event lacks, while it holds one schedule of each (PR 6/7 lifts it); a draft beside another, the
-// event's status on an event holding none (D52). Who may: « Gérer », or the responsible of that template; an empty one
-// is the managers'. Against the database, in a congregation of its own, rolled back.
+// Adding a schedule to an event (D39): from a schedule template, with its parts or duties, or empty; only of a kind
+// the event lacks, while it holds one schedule of each; a draft beside another, the event's status on an event holding
+// none (D52); never empty while the meeting awaits its programme. Who may: « Gérer », or the responsible of that
+// template; an empty one is the managers'. Against the database, in a congregation of its own, rolled back.
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -18,6 +18,7 @@ const testDb = new PrismaClient({ adapter })
 
 const { seedDefaultTemplates, syncTemplateScheduleTemplates } = await import('~/features/events/index.server')
 const { createProgrammeOnDay } = await import('./programme-creation.server')
+const { publishSchedule } = await import('./schedule-status.server')
 const { addEventSchedule, addSchedule, canAddSchedule, scheduleAddOptions } = await import('./schedule-add.server')
 
 class Rollback extends Error {}
@@ -43,7 +44,7 @@ async function withMeeting(fn: (fixture: Fixture) => Promise<void>) {
   try {
     await testDb.$transaction(
       async tx => {
-        const stamp = `pub-event-${process.pid}-${globalThis.performance.now().toString().replace('.', '')}`
+        const stamp = `sched-add-${process.pid}-${globalThis.performance.now().toString().replace('.', '')}`
         const congregationId = (await tx.congregation.create({ data: { name: stamp, slug: stamp, active: true } })).id
         await tx.$executeRawUnsafe(`SET LOCAL app.congregation_id = '${String(congregationId)}'`)
         const db = tx as unknown as TransactionClient
@@ -119,7 +120,7 @@ const templateOf = async (db: TransactionClient, scheduleId: number) =>
     .scheduleTemplateId as number
 
 describe('addSchedule', () => {
-  it('adds a schedule from its template, with its duties and who may take them, as a draft beside the programme', async () => {
+  it('adds a schedule from its template, with its duties, as a draft beside the programme', async () => {
     await withMeeting(async ({ db, congregationId, actorId, meetingId, duties }) => {
       const dutiesTemplate = await templateOf(db, duties.id)
       const dutyCount = duties.itemIds.length
@@ -158,9 +159,9 @@ describe('addSchedule', () => {
       const programmeTemplate = await templateOf(db, programme.id)
       expect(
         await addSchedule(db, meetingId, { scheduleTemplateId: programmeTemplate }, congregationId, actorId),
-      ).toEqual({ refused: 'kind-held' })
+      ).toEqual({ reason: 'kind-held' })
       expect(await addSchedule(db, meetingId, { name: 'Autre', kind: 'duty' }, congregationId, actorId)).toEqual({
-        refused: 'kind-held',
+        reason: 'kind-held',
       })
     })
   })
@@ -175,7 +176,7 @@ describe('addSchedule', () => {
     })
   })
 
-  it('finds nothing for an event or a template of another congregation', async () => {
+  it('finds nothing for an event of another congregation, nor for a template that is not there', async () => {
     await withMeeting(async ({ db, congregationId, actorId, meetingId, duties }) => {
       const dutiesTemplate = await templateOf(db, duties.id)
       await db.schedule.delete({ where: { id: duties.id } })
@@ -187,8 +188,59 @@ describe('addSchedule', () => {
   })
 })
 
+describe('addSchedule, beside what the event holds', () => {
+  it('adds a draft beside a published schedule, the event staying published (D52)', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, meetingId, programme, duties }) => {
+      const dutiesTemplate = await templateOf(db, duties.id)
+      await db.schedule.delete({ where: { id: duties.id } })
+      await publishSchedule(db, programme.id, congregationId, actorId)
+      await addSchedule(db, meetingId, { scheduleTemplateId: dutiesTemplate }, congregationId, actorId)
+      const added = await db.schedule.findFirstOrThrow({ where: { eventId: meetingId, kind: 'duty' } })
+      expect(added.status).toBe('draft')
+      expect((await db.event.findFirstOrThrow({ where: { id: meetingId } })).status).toBe('released')
+    })
+  })
+
+  it('writes a programme template’s parts, in their order', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, meetingId, programme }) => {
+      const programmeTemplate = await templateOf(db, programme.id)
+      const parts = await db.templatePart.findMany({
+        where: { scheduleTemplateId: programmeTemplate },
+        orderBy: { order: 'asc' },
+        select: { name: true },
+      })
+      await db.schedule.delete({ where: { id: programme.id } })
+      await addSchedule(db, meetingId, { scheduleTemplateId: programmeTemplate }, congregationId, actorId)
+      const added = await db.schedule.findFirstOrThrow({
+        where: { eventId: meetingId, kind: 'programme' },
+        select: { items: { select: { name: true }, orderBy: { order: 'asc' } } },
+      })
+      expect(added.items.map(item => item.name)).toEqual(parts.map(part => part.name))
+    })
+  })
+
+  it('makes a meeting created ahead its author’s: no template change moves or deletes it from then on', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, meetingId, duties }) => {
+      const dutiesTemplate = await templateOf(db, duties.id)
+      await db.event.update({ where: { id: meetingId }, data: { origin: 'job' } })
+      await db.schedule.delete({ where: { id: duties.id } })
+      await addSchedule(db, meetingId, { scheduleTemplateId: dutiesTemplate }, congregationId, actorId)
+      expect((await db.event.findFirstOrThrow({ where: { id: meetingId } })).origin).toBe('manual')
+    })
+  })
+
+  it('refuses an empty schedule while the meeting awaits its programme, which « Créer le programme » would fill', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, meetingId }) => {
+      await db.schedule.deleteMany({ where: { eventId: meetingId } })
+      expect(await addSchedule(db, meetingId, { name: 'Repas', kind: 'duty' }, congregationId, actorId)).toEqual({
+        reason: 'awaiting-programme',
+      })
+    })
+  })
+})
+
 describe('canAddSchedule: « Gérer », or the responsible of that template (D39); an empty one is the managers’', () => {
-  it('lets each responsible add their own template only, and « Gérer » anything', async () => {
+  it('lets each responsible add their own template only, and « Gérer » any', async () => {
     await withMeeting(async ({ db, congregationId, actorId, programmeLead, dutyLead, programme, duties }) => {
       const dutiesTemplate = await templateOf(db, duties.id)
       const programmeTemplate = await templateOf(db, programme.id)
@@ -200,6 +252,9 @@ describe('canAddSchedule: « Gérer », or the responsible of that template (D39
       ).toBe(false)
       expect(await canAddSchedule(db, nothing, programmeLead, { name: 'X', kind: 'duty' }, congregationId)).toBe(false)
       expect(await canAddSchedule(db, manages, actorId, { name: 'X', kind: 'duty' }, congregationId)).toBe(true)
+      expect(
+        await canAddSchedule(db, manages, actorId, { scheduleTemplateId: programmeTemplate }, congregationId),
+      ).toBe(true)
       expect(
         await canAddSchedule(db, manages, actorId, { scheduleTemplateId: dutiesTemplate }, congregationId + 1),
       ).toBe(false)
@@ -259,7 +314,7 @@ describe('addEventSchedule, as the route asks', () => {
       await db.schedule.delete({ where: { id: duties.id } })
       const source = { scheduleTemplateId: dutiesTemplate }
       expect(await addEventSchedule(db, nothing, programmeLead, meetingId, source, congregationId)).toEqual({
-        refused: 'right',
+        refused: true,
       })
       expect(await addEventSchedule(db, nothing, dutyLead, meetingId, source, congregationId + 1)).toBeNull()
       expect(await addEventSchedule(db, nothing, dutyLead, meetingId, source, congregationId)).toMatchObject({

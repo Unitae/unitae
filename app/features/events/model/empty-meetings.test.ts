@@ -128,15 +128,20 @@ describe('planMeetingMoves', () => {
 describe('programmeAwaits', () => {
   const midweek = { key: 'midweek-meeting', _count: { parts: 12, serviceParts: 4 } }
   it('says a programme without parts awaits its own while its template has parts to give', () => {
-    expect(programmeAwaits({ kind: 'programme', items: 0 }, midweek)).toBe(true)
-    expect(programmeAwaits({ kind: 'programme', items: 3 }, midweek)).toBe(false)
+    expect(programmeAwaits({ kind: 'programme', items: 0, fromTemplate: true }, midweek)).toBe(true)
+    expect(programmeAwaits({ kind: 'programme', items: 3, fromTemplate: true }, midweek)).toBe(false)
   })
 
   it('never says so of duties, nor of a programme whose template gives duties alone or nothing', () => {
-    expect(programmeAwaits({ kind: 'duty', items: 0 }, midweek)).toBe(false)
-    expect(programmeAwaits({ kind: 'programme', items: 0 }, { key: 'x', _count: { parts: 0, serviceParts: 4 } })).toBe(
-      false,
-    )
-    expect(programmeAwaits({ kind: 'programme', items: 0 }, null)).toBe(false)
+    expect(programmeAwaits({ kind: 'duty', items: 0, fromTemplate: true }, midweek)).toBe(false)
+    expect(
+      programmeAwaits(
+        { kind: 'programme', items: 0, fromTemplate: true },
+        { key: 'x', _count: { parts: 0, serviceParts: 4 } },
+      ),
+    ).toBe(false)
+    expect(programmeAwaits({ kind: 'programme', items: 0, fromTemplate: true }, null)).toBe(false)
+    // Added empty by hand: nothing of the template's to wait for.
+    expect(programmeAwaits({ kind: 'programme', items: 0, fromTemplate: false }, midweek)).toBe(false)
   })
 })

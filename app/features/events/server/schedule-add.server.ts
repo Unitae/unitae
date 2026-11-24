@@ -1,19 +1,37 @@
 import type { Prisma } from '~/database/generated/client'
-import { SCHEDULE_ORDER, ScheduleKind, ScheduleStatus, scheduleStatusFor } from '~/features/events/model/schedule.type'
+import { isAwaitingProgramme, programmeTemplate } from '~/features/events/model/empty-meetings'
+import { EventOrigin } from '~/features/events/model/event-origin.type'
+import {
+  SCHEDULE_KINDS,
+  SCHEDULE_ORDER,
+  type ScheduleAddOption,
+  type ScheduleAddOptions,
+  ScheduleKind,
+  ScheduleStatus,
+  scheduleStatusFor,
+} from '~/features/events/model/schedule.type'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { createLogger } from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { writeTemplateItems } from './give-programme.server'
 import { type ScheduleRef, settleEventStatus } from './schedule-status.server'
 
-// Adding one schedule to an event (D39): from a schedule template, with its parts or duties and who
-// may take them, or empty, with a name of its own. An event holds one schedule of each kind until PR 6/7: only a kind
-// it lacks can be added. A schedule beside another starts as a draft; the first of an event published as it is takes
-// its status (D52).
+// Adding one schedule to an event (D39): from a schedule template, with its parts or duties and who may take them, or
+// empty, with a name of its own. An event holds one schedule of each kind until a second duty schedule is allowed:
+// only a kind it lacks can be added. A schedule beside another starts as a draft; the first of an event published as
+// it is takes its status (D52).
+
+const logger = createLogger('schedule-add')
 
 /** What a schedule is made from: a template of the congregation, or nothing but a name and a kind. */
-export type ScheduleSource = { scheduleTemplateId: number } | { name: string; kind: ScheduleKind }
+export type ScheduleSource =
+  | { scheduleTemplateId: number; name?: never; kind?: never }
+  | { scheduleTemplateId?: never; name: string; kind: ScheduleKind }
+
+const fromTemplate = (source: ScheduleSource): source is { scheduleTemplateId: number } =>
+  source.scheduleTemplateId != null
 
 /**
  * Whether the caller may add a schedule from this source (D39): « Gérer » adds any; the responsible of a schedule
@@ -27,7 +45,7 @@ export async function canAddSchedule(
   source: ScheduleSource,
   congregationId: number,
 ): Promise<boolean> {
-  if (!('scheduleTemplateId' in source)) return can(Permission.CanManagePrograms)
+  if (!fromTemplate(source)) return can(Permission.CanManagePrograms)
   const template = await db.scheduleTemplate.findFirst({
     where: { id: source.scheduleTemplateId, congregationId },
     select: { responsibleRoleId: true },
@@ -35,7 +53,10 @@ export async function canAddSchedule(
   if (template == null) return false
   if (can(Permission.CanManagePrograms)) return true
   const role = template.responsibleRoleId
-  return role != null && (await resolveEffectiveRoleIds(db, userId, congregationId)).includes(role)
+  const may = role != null && (await resolveEffectiveRoleIds(db, userId, congregationId)).includes(role)
+  if (!may)
+    logger.warn('schedule add refused', { scheduleTemplateId: source.scheduleTemplateId, userId, congregationId })
+  return may
 }
 
 const TEMPLATE_ITEMS = {
@@ -43,9 +64,14 @@ const TEMPLATE_ITEMS = {
   serviceParts: { orderBy: [{ order: 'asc' }, { id: 'asc' }], include: { allowedRoles: true } },
 } satisfies Prisma.ScheduleTemplateInclude
 
+/** Why a schedule could not be added, though the caller may: the kind is held, or the meeting awaits its programme. */
+export type ScheduleAddRefusal = 'kind-held' | 'awaiting-programme'
+
 /**
- * Adds a schedule to an event. Refused when the event already holds one of its kind (`kind-held`); null when the
- * event or the template is not the congregation's. The event's row is locked, as publishing does.
+ * Adds a schedule to an event. Null when the event or the template is not the congregation's. Refused when the event
+ * already holds one of its kind, or, for an empty one, while the meeting awaits its programme: « Créer le programme »
+ * would fill it with the template's items. A meeting the job created ahead becomes its author's, as editing it does.
+ * The event's row is locked, as publishing does.
  */
 export async function addSchedule(
   db: TransactionClient,
@@ -53,35 +79,52 @@ export async function addSchedule(
   source: ScheduleSource,
   congregationId: number,
   actorId: number,
-): Promise<{ schedule: ScheduleRef } | { refused: 'kind-held' } | null> {
-  const event = await db.event.findFirst({ where: { id: eventId, congregationId }, select: { id: true } })
-  if (event == null) return null
-  const template =
-    'scheduleTemplateId' in source
-      ? await db.scheduleTemplate.findFirst({
-          where: { id: source.scheduleTemplateId, congregationId },
-          include: TEMPLATE_ITEMS,
-        })
-      : null
-  if ('scheduleTemplateId' in source && template == null) return null
-  const kind = (template?.kind ?? ('kind' in source ? source.kind : ScheduleKind.Duty)) as ScheduleKind
+): Promise<{ schedule: ScheduleRef } | { reason: ScheduleAddRefusal } | null> {
+  const template = fromTemplate(source)
+    ? await db.scheduleTemplate.findFirst({
+        where: { id: source.scheduleTemplateId, congregationId },
+        include: TEMPLATE_ITEMS,
+      })
+    : null
+  if (fromTemplate(source) && template == null) return null
+  const kind = template != null ? (template.kind as ScheduleKind) : (source.kind as ScheduleKind)
 
   await db.$queryRaw`SELECT "id" FROM "Event" WHERE "id" = ${eventId} AND "congregationId" = ${congregationId} FOR UPDATE`
-  const held = await db.event.findFirstOrThrow({
+  const event = await db.event.findFirst({
     where: { id: eventId, congregationId },
-    select: { status: true, schedules: { select: { kind: true } } },
+    select: {
+      status: true,
+      origin: true,
+      schedules: { select: { kind: true } },
+      _count: { select: { items: true } },
+      template: { select: { key: true, _count: { select: { parts: true, serviceParts: true } } } },
+    },
   })
-  if (held.schedules.some(schedule => schedule.kind === kind)) return { refused: 'kind-held' }
+  if (event == null) return null
+  if (event.schedules.some(schedule => schedule.kind === kind)) {
+    logger.info('schedule add refused: kind held', { eventId, kind, congregationId, actorId })
+    return { reason: 'kind-held' }
+  }
+  const awaits = isAwaitingProgramme({
+    parts: event._count.items,
+    services: 0,
+    template: programmeTemplate(event.template),
+  })
+  if (template == null && awaits) {
+    logger.info('schedule add refused: awaiting programme', { eventId, congregationId, actorId })
+    return { reason: 'awaiting-programme' }
+  }
 
+  const name = template != null ? template.name : (source.name ?? null)
   const created = await db.schedule.create({
     data: {
       eventId,
       kind,
       order: SCHEDULE_ORDER[kind],
       // D52: beside another, a draft; the first of an event published as it is, its status.
-      status: held.schedules.length === 0 ? scheduleStatusFor(held.status) : ScheduleStatus.Draft,
+      status: event.schedules.length === 0 ? scheduleStatusFor(event.status) : ScheduleStatus.Draft,
       scheduleTemplateId: template?.id ?? null,
-      name: template ? template.name : 'name' in source ? source.name : null,
+      name,
       key: template?.key ?? null,
       congregationId,
     },
@@ -100,6 +143,12 @@ export async function addSchedule(
       congregationId,
     )
   }
+  if (event.origin === EventOrigin.Job) {
+    await db.event.updateMany({
+      where: { id: eventId, congregationId, origin: EventOrigin.Job },
+      data: { origin: EventOrigin.Manual, createdById: actorId },
+    })
+  }
   await settleEventStatus(db, [eventId], congregationId)
   await auditInTransaction(db, {
     action: AuditAction.ScheduleAdded,
@@ -107,25 +156,16 @@ export async function addSchedule(
     actorId,
     entityType: 'Schedule',
     entityId: created.id,
-    metadata: { eventId, kind, scheduleTemplateId: template?.id ?? null },
+    metadata: { eventId, kind, name, scheduleTemplateId: template?.id ?? null },
   })
   return { schedule: { id: created.id, eventId, kind } }
 }
 
-/** A schedule template « Ajouter un planning » offers. */
-export interface ScheduleAddOption {
-  id: number
-  name: string | null
-  key: string | null
-  kind: ScheduleKind
-  /** The event kinds it belongs to: what tells two unnamed templates apart. */
-  usedBy: string[]
-}
-
 /**
- * What « Ajouter un planning » offers the caller on an event (D39): the schedule templates of a kind
- * the event lacks that they may add — those its kind suggests first, in its order, then the others by name — and the
- * kinds of an empty schedule, for « Gérer » only. Nothing of a kind the event holds, while it holds one of each.
+ * What « Ajouter un planning » offers the caller on an event (D39): the schedule templates of a kind the event lacks
+ * that they may add — those its kind suggests first, in its order, then the others by name, unnamed ones last — and
+ * the kinds of an empty schedule, for « Gérer » only and never while the meeting awaits its programme. Nothing of a
+ * kind the event holds.
  */
 export async function scheduleAddOptions(
   db: TransactionClient,
@@ -133,16 +173,19 @@ export async function scheduleAddOptions(
   userId: number,
   eventId: number,
   congregationId: number,
-): Promise<{ suggested: ScheduleAddOption[]; others: ScheduleAddOption[]; emptyKinds: ScheduleKind[] }> {
-  const none = { suggested: [], others: [], emptyKinds: [] }
+): Promise<ScheduleAddOptions> {
+  const none: ScheduleAddOptions = { suggested: [], others: [], emptyKinds: [] }
   const event = await db.event.findFirst({
     where: { id: eventId, congregationId },
-    select: { templateId: true, schedules: { select: { kind: true } } },
+    select: {
+      templateId: true,
+      schedules: { select: { kind: true } },
+      _count: { select: { items: true } },
+      template: { select: { key: true, _count: { select: { parts: true, serviceParts: true } } } },
+    },
   })
   if (event == null) return none
-  const missing = [ScheduleKind.Programme, ScheduleKind.Duty].filter(
-    kind => !event.schedules.some(schedule => schedule.kind === kind),
-  )
+  const missing = SCHEDULE_KINDS.filter(kind => !event.schedules.some(schedule => schedule.kind === kind))
   if (missing.length === 0) return none
   const manages = can(Permission.CanManagePrograms)
   const roleIds = manages ? [] : await resolveEffectiveRoleIds(db, userId, congregationId)
@@ -150,22 +193,20 @@ export async function scheduleAddOptions(
   const templates = await db.scheduleTemplate.findMany({
     where: {
       congregationId,
-      kind: { in: missing },
+      kind: { in: [...missing] },
       ...(manages ? {} : { responsibleRoleId: { in: roleIds } }),
     },
     select: {
       id: true,
       name: true,
-      key: true,
       kind: true,
       eventKinds: { select: { eventKindId: true, order: true, eventKind: { select: { name: true } } } },
     },
-    orderBy: [{ name: 'asc' }, { id: 'asc' }],
+    orderBy: [{ name: { sort: 'asc', nulls: 'last' } }, { id: 'asc' }],
   })
-  const option = ({ id, name, key, kind, eventKinds }: (typeof templates)[number]): ScheduleAddOption => ({
+  const option = ({ id, name, kind, eventKinds }: (typeof templates)[number]): ScheduleAddOption => ({
     id,
     name,
-    key,
     kind: kind as ScheduleKind,
     usedBy: eventKinds.map(link => link.eventKind.name),
   })
@@ -174,14 +215,22 @@ export async function scheduleAddOptions(
   const suggested = templates
     .filter(template => linkOf(template) != null)
     .sort((a, b) => (linkOf(a)?.order ?? 0) - (linkOf(b)?.order ?? 0))
+  const awaits = isAwaitingProgramme({
+    parts: event._count.items,
+    services: 0,
+    template: programmeTemplate(event.template),
+  })
   return {
     suggested: suggested.map(option),
     others: templates.filter(template => linkOf(template) == null).map(option),
-    emptyKinds: manages ? missing : [],
+    emptyKinds: manages && !awaits ? [...missing] : [],
   }
 }
 
-/** Adds a schedule to an event for whoever may (canAddSchedule): what the route asks. */
+/**
+ * Adds a schedule to an event for whoever may (canAddSchedule): what the route asks. Null when the event or the
+ * template is not there; `{ refused: true }` for whoever may not.
+ */
 export async function addEventSchedule(
   db: TransactionClient,
   can: (permission: Permission) => boolean,
@@ -189,9 +238,13 @@ export async function addEventSchedule(
   eventId: number,
   source: ScheduleSource,
   congregationId: number,
-): Promise<{ schedule: ScheduleRef } | { refused: 'kind-held' | 'right' } | null> {
+): Promise<{ schedule: ScheduleRef } | { reason: ScheduleAddRefusal } | { refused: true } | null> {
   const event = await db.event.findFirst({ where: { id: eventId, congregationId }, select: { id: true } })
   if (event == null) return null
-  if (!(await canAddSchedule(db, can, userId, source, congregationId))) return { refused: 'right' }
+  if (fromTemplate(source)) {
+    const exists = await db.scheduleTemplate.count({ where: { id: source.scheduleTemplateId, congregationId } })
+    if (exists === 0) return null
+  }
+  if (!(await canAddSchedule(db, can, userId, source, congregationId))) return { refused: true }
   return addSchedule(db, eventId, source, congregationId, userId)
 }
