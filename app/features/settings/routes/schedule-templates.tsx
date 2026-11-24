@@ -2,6 +2,7 @@ import { parseWithZod } from '@conform-to/zod/v4'
 import { useState } from 'react'
 import { data, redirect, type ShouldRevalidateFunctionArgs, useFetcher } from 'react-router'
 import { listScheduleTemplatesForSettings, updateScheduleTemplate } from '~/features/events/index.server'
+import { onlyHelpPanelChanged } from '~/features/help'
 import { scheduleTemplateView } from '~/features/settings/model/schedule-template-view'
 import { scheduleTemplateSchema } from '~/features/settings/schemas/schedule-template.schema'
 import { holdersOfRoles } from '~/features/settings/server/role-holders.queries'
@@ -47,14 +48,11 @@ export function loader({ request, context }: Route.LoaderArgs) {
 }
 
 /** Entering or leaving an item changes only `?item=`: the template's data stays as it is. */
-export function shouldRevalidate({
-  currentUrl,
-  nextUrl,
-  formMethod,
-  defaultShouldRevalidate,
-}: ShouldRevalidateFunctionArgs) {
-  const same = (name: string) => currentUrl.searchParams.get(name) === nextUrl.searchParams.get(name)
-  if (formMethod == null && currentUrl.pathname === nextUrl.pathname && same('template') && same('help')) return false
+export function shouldRevalidate(args: ShouldRevalidateFunctionArgs) {
+  if (onlyHelpPanelChanged(args)) return false
+  const { currentUrl, nextUrl, formMethod, defaultShouldRevalidate } = args
+  const sameTemplate = currentUrl.searchParams.get('template') === nextUrl.searchParams.get('template')
+  if (formMethod == null && currentUrl.pathname === nextUrl.pathname && sameTemplate) return false
   return defaultShouldRevalidate
 }
 
@@ -69,6 +67,9 @@ export async function action({ request, context }: Route.ActionArgs) {
   if (SCHEDULE_TEMPLATE_ITEM_INTENTS.includes(String(formData.get('intent')))) {
     // An item's form posts to the address it is open at: `?template=` names its template.
     const scheduleTemplateId = Number(new URL(request.url).searchParams.get('template'))
+    if (!Number.isInteger(scheduleTemplateId) || scheduleTemplateId <= 0) {
+      return refusal(null, [m.settings_schedule_templates_error_vanished()], 409)
+    }
     return withScopeFromContext(context, async (db, congregationId) => {
       const actor = { id: currentUser.id, congregationId }
       const result = await handleScheduleTemplateItem(db, scheduleTemplateId, formData, actor)
@@ -113,7 +114,12 @@ export default function ScheduleTemplatesPage({ loaderData }: Route.ComponentPro
     dirty,
   })
   const template = templates.find(each => each.id === page.templateId)
-  // The name and responsible's refusal; an item's form reads its own fetcher's.
+  // An item of the other sort (a part asked of a duties template) is not this template's.
+  const item =
+    page.item != null && template != null && page.item.kind === (template.kind === 'duty' ? 'service' : 'part')
+      ? page.item
+      : null
+  // The name and responsible's refusal; an item's shows in the panel, from its own fetcher.
   const data =
     fetcher.state === 'idle' ? (fetcher.data as { ok?: boolean; templateId?: number; errors?: string[] }) : null
   const refused = data != null && data.ok === false ? data : undefined
@@ -139,11 +145,11 @@ export default function ScheduleTemplatesPage({ loaderData }: Route.ComponentPro
           </div>
           {docked && template && (
             <ScheduleTemplatePanel
-              key={template.id}
+              key={`${template.id}-${page.resetKey}`}
               template={template}
               roles={roles}
               items={items}
-              item={page.item}
+              item={item}
               docked
               errors={errors}
               fetcher={fetcher as never}
@@ -159,11 +165,11 @@ export default function ScheduleTemplatesPage({ loaderData }: Route.ComponentPro
 
       {!docked && template && (
         <ScheduleTemplatePanel
-          key={template.id}
+          key={`${template.id}-${page.resetKey}`}
           template={template}
           roles={roles}
           items={items}
-          item={page.item}
+          item={item}
           docked={false}
           errors={errors}
           fetcher={fetcher as never}

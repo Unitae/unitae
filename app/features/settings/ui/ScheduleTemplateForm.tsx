@@ -12,8 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 const NONE = NO_RESPONSIBLE
 
 /**
- * Its name and responsible (design round A, « TourA-Reglages-Modeles »), and the kinds suggesting it. Its parts or
- * services are still edited from the kind until 6a-1c.
+ * Its name and responsible (design round A, « TourA-Reglages-Modeles »), and the kinds using it. Its parts or services
+ * are listed under it, in its panel.
  */
 export function ScheduleTemplateForm({
   template,
