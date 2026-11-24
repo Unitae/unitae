@@ -2,6 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
+import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 import { Permission } from '~/shared/types/permission'
 import { settleFixtureSchedules } from '~/tests/helpers/settle-fixture-schedules'
 
@@ -245,6 +246,8 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
+  // Let those fire-and-forget audits land first: one still in flight would write after the delete below.
+  await flushPendingAuditWrites()
   for (const congId of [primaryCongId, otherCongId]) {
     if (!congId) continue
     await withScope(congId, async tx => {
