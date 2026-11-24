@@ -12,7 +12,8 @@ const TUESDAY = 2
 const SINGLE_RE = /^Une seule date$/
 const SUBMIT_SINGLE_RE = /^Créer le programme$/
 const MIDWEEK_RE = /^Réunion de semaine/
-const EDIT_URL_RE = /\/programs\/events\/(\d+)\/edit/
+// Created, a programme opens on the meeting's page.
+const EVENT_URL_RE = /\/programs\/events\/(\d+)(?:[?#]|$)/
 const PUBLISHER_FORM_SUBMIT_RE = /enregistrer|sauvegarder|créer|ajouter/i
 const DOCUMENT_TITLE = 'Programme des réunions (E2E)'
 const FIRSTNAME_RE = /prénom/i
@@ -61,12 +62,12 @@ async function openMeeting(page: Page, typed: string): Promise<string> {
   await retype(page.locator('#creation-day'), typed)
   await page.getByRole('button', { name: SUBMIT_SINGLE_RE }).click()
   const existing = page.getByRole('link', { name: 'Voir ce programme' })
-  await Promise.race([page.waitForURL(EDIT_URL_RE), existing.waitFor()])
-  if (!EDIT_URL_RE.test(page.url())) {
-    await page.goto(`${await existing.getAttribute('href')}/edit`)
-    await page.waitForURL(EDIT_URL_RE)
+  await Promise.race([page.waitForURL(EVENT_URL_RE), existing.waitFor()])
+  if (!EVENT_URL_RE.test(page.url())) {
+    await page.goto(`${await existing.getAttribute('href')}`)
+    await page.waitForURL(EVENT_URL_RE)
   }
-  const id = EDIT_URL_RE.exec(page.url())?.[1]
+  const id = EVENT_URL_RE.exec(page.url())?.[1]
   if (!id) throw new Error(`no programme id in ${page.url()}`)
   return id
 }
