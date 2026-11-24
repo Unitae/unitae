@@ -26,7 +26,7 @@ L’absence apparaît dans la liste, à sa date. Elle est marquée **En cours** 
 
 ## Affectations pendant une absence
 
-Si une affectation tombe pendant ces jours, la ligne le signale : le nombre d’affectations, puis, pour chacune, la date et la personne à prévenir. Prévenez cette personne : c’est elle qui décide de la suite.
+Si une attribution tombe pendant ces jours, la ligne le signale : le nombre d’attributions, puis, pour chacune, la date et la personne à prévenir. Prévenez cette personne : c’est elle qui décide de la suite.
 
 ## Supprimer une absence
 
