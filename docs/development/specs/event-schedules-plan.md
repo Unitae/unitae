@@ -523,11 +523,12 @@ publishing gate (`canManageAnyProgram`, through `responsibleKindIds`) becomes «
 (`publishableScheduleIds` over the selection); once an event can hold a second duty schedule, `maySeeSchedule` and the
 event page's hidden set (by kind today) take a right per schedule, as canFillSchedule and conflictAction do.
 
-**Creation** (D12): the form pre-selects the kind's suggested schedules, each untickable; a
-responsible sees their own ticked and the others as drafts created with it. `programs/new.tsx`,
-`ui/creation/use-programme-creation.ts`, `CreationSingleSections.tsx`, `schemas/program-new.schema.ts`,
-`programme-creation.server.ts` (`createProgrammeSeries` / `createProgrammeOnDay` take schedule
-template ids).
+**Creation** (D12, revised 2026-11-24): every event created arrives with all the schedules its kind
+suggests; the form lists them read only under each kind, without their responsible, and a responsible's
+creation makes them all too. The service already did this (`giveProgramme`, one schedule per kind with
+items; meetings created ahead are filled, prepared ones left alone), so only the page changed: unitae#630
+(`programme-creation.queries.ts` gives each kind its schedules and the meetings to fill;
+`ui/creation/*`).
 
 **Board reader.** `parseProgrammeDynamicConfig` learns the PR 6 shape now (PR 6 writes it), with
 its test on both shapes.
