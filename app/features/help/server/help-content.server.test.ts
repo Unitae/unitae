@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { GROUP_LEADER, HELP_LOCALES } from '~/features/help/model/help.type'
+import { GROUP_LEADER, HELP_LOCALES, SCHEDULE_RESPONSIBLE } from '~/features/help/model/help.type'
 import type { HelpCaptureManifest } from '~/features/help/model/help-captures'
 import { HelpArticleFormatError } from '~/features/help/model/parse-help-article'
 import { assembleHelpArticles, loadHelpArticles } from '~/features/help/server/help-content.server'
@@ -45,6 +45,7 @@ const SHIPPED_SLUGS = [
   'prospection',
   'publisher-arrivals-departures',
   'reset-two-step',
+  'schedules',
   'split-territory',
   'territories-settings',
   'territory-attributions',
@@ -326,8 +327,8 @@ describe('loadHelpArticles: the articles as shipped', () => {
     }
   })
 
-  it('gives every article a permission that exists, leading a group, or none', () => {
-    const names = new Set<string>([...Object.keys(Permission), GROUP_LEADER])
+  it('gives every article a permission that exists, leading a group, answering for a schedule, or none', () => {
+    const names = new Set<string>([...Object.keys(Permission), GROUP_LEADER, SCHEDULE_RESPONSIBLE])
 
     for (const article of ARTICLES) {
       for (const permission of article.permission ?? []) expect(names.has(permission)).toBe(true)
