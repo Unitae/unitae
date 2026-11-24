@@ -82,6 +82,12 @@ export function KindChangeDialog({
     setAdded((next?.suggested ?? []).filter(suggestion => !heldKinds.has(suggestion.kind)).map(s => s.id))
   }
   const toggle = (list: number[], id: number, on: boolean) => (on ? [...list, id] : list.filter(other => other !== id))
+  // Unticking a schedule ticks the new kind's suggestion of its kind, which takes its place (the user's choice).
+  const keep = (schedule: KindChangeSchedule, on: boolean) => {
+    setRemoved(toggle(removed, schedule.id, !on))
+    const replacing = (kind?.suggested ?? []).filter(suggestion => suggestion.kind === schedule.kind)
+    if (!on) setAdded([...new Set([...added, ...replacing.map(suggestion => suggestion.id)])])
+  }
 
   return (
     <Dialog open={open} onOpenChange={next => !next && onClose()}>
@@ -122,7 +128,7 @@ export function KindChangeDialog({
                   value={schedule.id}
                   checked={isKept(schedule.id)}
                   disabled={!schedule.removable}
-                  onChange={on => setRemoved(toggle(removed, schedule.id, !on))}
+                  onChange={on => keep(schedule, on)}
                   title={schedule.title}
                   detail={[
                     kindLabel(schedule.kind),
