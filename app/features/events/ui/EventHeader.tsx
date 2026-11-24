@@ -6,6 +6,7 @@ import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { ScheduleAddMenu, type ScheduleAddOptions } from './ScheduleAddMenu'
 
 interface EventHeaderProps {
   event: { id: number; name: string; status: string }
@@ -14,6 +15,8 @@ interface EventHeaderProps {
   awaitingProgramme: boolean
   /** « Tout publier » on an event holding schedules (D43); null for one without, which publishes as a whole. */
   publishAll: { count: number; everyone: boolean } | null
+  /** « Ajouter un planning » (D39): what the reader may add, and the event's kind its suggestions come from. */
+  addSchedule: { options: ScheduleAddOptions; eventKindName: string | null }
   canRelease: boolean
   canUnrelease: boolean
   canEdit: boolean
@@ -28,6 +31,7 @@ export function EventHeader({
   subtitle,
   awaitingProgramme,
   publishAll,
+  addSchedule,
   canRelease,
   canUnrelease,
   canEdit,
@@ -35,6 +39,8 @@ export function EventHeader({
   canDelete,
   onDelete,
 }: EventHeaderProps) {
+  const { options } = addSchedule
+  const mayAdd = options.suggested.length + options.others.length + options.emptyKinds.length > 0
   return (
     <PageHeader
       icon={CalendarDays}
@@ -52,8 +58,11 @@ export function EventHeader({
       breadcrumbs={[{ label: m.sidebar_programs(), to: '/programs' }, { label: event.name }]}
       actions={
         // Only when something shows: with schedules the header publishes their drafts, each section withdrawing its own.
-        (canEdit || (publishAll != null ? publishAll.count > 0 : canRelease || canUnrelease)) && (
+        (canEdit || mayAdd || (publishAll != null ? publishAll.count > 0 : canRelease || canUnrelease)) && (
           <>
+            {mayAdd && (
+              <ScheduleAddMenu eventId={event.id} eventKindName={addSchedule.eventKindName} options={options} />
+            )}
             <EventPublishAction
               eventId={event.id}
               awaitingProgramme={awaitingProgramme}

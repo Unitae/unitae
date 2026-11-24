@@ -223,6 +223,9 @@ describe('scheduleAddOptions, what « Ajouter un planning » offers', () => {
       )
       expect(options.others.every(template => template.kind === 'duty' && template.id !== dutiesTemplate)).toBe(true)
       expect(options.emptyKinds).toEqual(['duty'])
+      // Unnamed, the kinds they belong to tell them apart.
+      expect(options.suggested[0]?.usedBy).toEqual([expect.any(String)])
+      expect(options.others.find(template => template.id === other.id)?.usedBy).toEqual([])
     })
   })
 

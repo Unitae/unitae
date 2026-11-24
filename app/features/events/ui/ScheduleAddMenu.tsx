@@ -1,6 +1,6 @@
 import { Callout, SegmentedControl } from '@unitae/ui'
 import { Plus } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useFetcher } from 'react-router'
 import { ScheduleKind } from '~/features/events/model/schedule.type'
 import { SCHEDULE_NAME_MAX } from '~/features/events/schemas/schedule-name.schema'
@@ -15,6 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '~/shared/ui/dropdown-menu'
+import { useCloseOnSave } from '~/shared/ui/hooks/use-close-on-save'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
@@ -24,6 +25,7 @@ interface AddOption {
   name: string | null
   key: string | null
   kind: string
+  usedBy: string[]
 }
 
 export interface ScheduleAddOptions {
@@ -36,10 +38,11 @@ const kindLabel = (kind: string) =>
   kind === ScheduleKind.Programme ? m.programs_schedule_kind_programme() : m.programs_schedule_kind_duty()
 // A template left unnamed reads as the catalogue's label.
 const optionName = (option: AddOption) =>
-  option.name ?? (option.kind === ScheduleKind.Programme ? m.programs_view_spiritual_program() : m.programs_view_services())
+  option.name ??
+  (option.kind === ScheduleKind.Programme ? m.programs_view_spiritual_program() : m.programs_view_services())
 
 /**
- * « Ajouter un planning » (D39, design round A): the schedule templates of a kind the meeting lacks that the reader
+ * « Ajouter un planning » (D39): the schedule templates of a kind the meeting lacks that the reader
  * may add, those its kind suggests first, then the others; « Planning vide… » for « Gérer ».
  */
 export function ScheduleAddMenu({
@@ -59,7 +62,7 @@ export function ScheduleAddMenu({
   const item = (option: AddOption) => (
     <DropdownMenuItem key={option.id} onSelect={() => add(option)} className="flex-col items-start gap-0">
       <span className="font-medium">{optionName(option)}</span>
-      <span className="text-muted-foreground text-xs">{kindLabel(option.kind)}</span>
+      <span className="text-muted-foreground text-xs">{[kindLabel(option.kind), ...option.usedBy].join(' · ')}</span>
     </DropdownMenuItem>
   )
   return (
@@ -75,7 +78,9 @@ export function ScheduleAddMenu({
           {options.suggested.length > 0 && (
             <>
               <DropdownMenuLabel>
-                {eventKindName ? m.programs_schedule_add_suggested({ kind: eventKindName }) : m.programs_schedule_add_others()}
+                {eventKindName
+                  ? m.programs_schedule_add_suggested({ kind: eventKindName })
+                  : m.programs_schedule_add_others()}
               </DropdownMenuLabel>
               {options.suggested.map(item)}
             </>
@@ -98,12 +103,7 @@ export function ScheduleAddMenu({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
-      <EmptyScheduleDialog
-        open={empty}
-        onClose={() => setEmpty(false)}
-        action={action}
-        kinds={options.emptyKinds}
-      />
+      <EmptyScheduleDialog open={empty} onClose={() => setEmpty(false)} action={action} kinds={options.emptyKinds} />
     </>
   )
 }
@@ -120,10 +120,10 @@ function EmptyScheduleDialog({
   kinds: string[]
 }) {
   const fetcher = useFetcher<{ ok: boolean }>()
-  const [kind, setKind] = useState(kinds.includes(ScheduleKind.Duty) ? ScheduleKind.Duty : (kinds[0] ?? ScheduleKind.Duty))
-  useEffect(() => {
-    if (fetcher.state === 'idle' && fetcher.data?.ok) onClose()
-  }, [fetcher.state, fetcher.data, onClose])
+  const [kind, setKind] = useState(
+    kinds.includes(ScheduleKind.Duty) ? ScheduleKind.Duty : (kinds[0] ?? ScheduleKind.Duty),
+  )
+  useCloseOnSave(fetcher, onClose)
   return (
     <Dialog open={open} onOpenChange={next => !next && onClose()}>
       <DialogContent>

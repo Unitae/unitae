@@ -18,6 +18,7 @@ import { EventHeader } from './EventHeader'
 import { EventItemEditor } from './EventItemEditor'
 import { type AssignedService, EventServiceAssignmentsPanel } from './EventServiceAssignmentsPanel'
 import { ScheduleActions } from './ScheduleActions'
+import type { ScheduleAddOptions } from './ScheduleAddMenu'
 import {
   type EventScheduleView,
   ScheduleResponsibleLine,
@@ -64,6 +65,8 @@ interface EventViewProps {
   timezone: string
   /** « Tout publier » (D43): how many drafts the reader may publish, and whether that is every schedule (« Publier »). */
   publishAll: { count: number; everyone: boolean }
+  /** « Ajouter un planning » (D39): what the reader may add of a kind the event lacks. */
+  addSchedule: { options: ScheduleAddOptions; eventKindName: string | null }
 }
 
 /**
@@ -90,6 +93,7 @@ export function EventView({
   shareTexts,
   timezone,
   publishAll,
+  addSchedule,
 }: EventViewProps) {
   const partFetcher = useFetcher()
   const serviceFetcher = useFetcher()
@@ -200,6 +204,7 @@ export function EventView({
         awaitingProgramme={awaitingProgramme}
         // With schedules, each section carries its status and its « Publier »; the header publishes them all (D43).
         publishAll={bySchedule ? publishAll : null}
+        addSchedule={addSchedule}
         canRelease={canRelease}
         canUnrelease={canUnrelease}
         canEdit={canEdit}

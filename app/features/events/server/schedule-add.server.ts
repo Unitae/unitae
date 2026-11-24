@@ -7,7 +7,7 @@ import { Permission } from '~/shared/types/permission'
 import { writeTemplateItems } from './give-programme.server'
 import { type ScheduleRef, settleEventStatus } from './schedule-status.server'
 
-// Adding one schedule to an event (D39, design round A): from a schedule template, with its parts or duties and who
+// Adding one schedule to an event (D39): from a schedule template, with its parts or duties and who
 // may take them, or empty, with a name of its own. An event holds one schedule of each kind until PR 6/7: only a kind
 // it lacks can be added. A schedule beside another starts as a draft; the first of an event published as it is takes
 // its status (D52).
@@ -118,10 +118,12 @@ export interface ScheduleAddOption {
   name: string | null
   key: string | null
   kind: ScheduleKind
+  /** The event kinds it belongs to: what tells two unnamed templates apart. */
+  usedBy: string[]
 }
 
 /**
- * What « Ajouter un planning » offers the caller on an event (D39, design round A): the schedule templates of a kind
+ * What « Ajouter un planning » offers the caller on an event (D39): the schedule templates of a kind
  * the event lacks that they may add — those its kind suggests first, in its order, then the others by name — and the
  * kinds of an empty schedule, for « Gérer » only. Nothing of a kind the event holds, while it holds one of each.
  */
@@ -156,22 +158,25 @@ export async function scheduleAddOptions(
       name: true,
       key: true,
       kind: true,
-      eventKinds: { where: { eventKindId: event.templateId ?? -1 }, select: { order: true } },
+      eventKinds: { select: { eventKindId: true, order: true, eventKind: { select: { name: true } } } },
     },
     orderBy: [{ name: 'asc' }, { id: 'asc' }],
   })
-  const option = ({ id, name, key, kind }: (typeof templates)[number]) => ({
+  const option = ({ id, name, key, kind, eventKinds }: (typeof templates)[number]): ScheduleAddOption => ({
     id,
     name,
     key,
     kind: kind as ScheduleKind,
+    usedBy: eventKinds.map(link => link.eventKind.name),
   })
+  const linkOf = (template: (typeof templates)[number]) =>
+    template.eventKinds.find(link => link.eventKindId === event.templateId)
   const suggested = templates
-    .filter(template => template.eventKinds.length > 0)
-    .sort((a, b) => (a.eventKinds[0]?.order ?? 0) - (b.eventKinds[0]?.order ?? 0))
+    .filter(template => linkOf(template) != null)
+    .sort((a, b) => (linkOf(a)?.order ?? 0) - (linkOf(b)?.order ?? 0))
   return {
     suggested: suggested.map(option),
-    others: templates.filter(template => template.eventKinds.length === 0).map(option),
+    others: templates.filter(template => linkOf(template) == null).map(option),
     emptyKinds: manages ? missing : [],
   }
 }
