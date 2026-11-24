@@ -16,7 +16,7 @@ O responsável de um planeamento é a função que o seu modelo indica: o seu ti
 
 ## Criar reuniões
 
-Em **Reuniões › Programas**, **Novo** abre **Criar reuniões**. Cada reunião criada vem com os planeamentos que o seu tipo sugere: a página mostra-os sob cada tipo, com o que contêm. As reuniões já criadas antecipadamente, ainda vazias, recebem os seus em vez de serem criadas outra vez; as que já estão preparadas não mudam.
+Em **Reuniões › Programas**, **Novo** abre **Criar reuniões**. Cada reunião criada vem com os planeamentos que o seu tipo utiliza: a página mostra-os sob cada tipo, com o que contêm. As reuniões já criadas antecipadamente, ainda vazias, recebem os seus em vez de serem criadas outra vez; as que já estão preparadas não mudam.
 
 Uma data desmarcada é ignorada; se uma reunião tinha sido criada antecipadamente nesse dia, é retirada. Um planeamento de que uma reunião não precisa pode ser eliminado depois nessa reunião. Uma reunião tem um planeamento de cada tipo: outro modelo (uma videoconferência, uma limpeza…) substitui um do mesmo tipo depois de este ser eliminado, com **Adicionar um planeamento**.
 
@@ -45,7 +45,7 @@ Para retomar um planeamento, clique em **Voltar ao rascunho** no seu bloco: sai 
 ## Adicionar um planeamento
 
 1. Clique em **Adicionar um planeamento**, no topo da página.
-2. Escolha um modelo: os que o tipo da reunião sugere aparecem primeiro. O planeamento chega com as suas partes ou serviços, em rascunho. Um modelo que a reunião já tem, ou cujo tipo ela já tem, fica a cinzento, com o motivo.
+2. Escolha um modelo: os que o tipo da reunião utiliza aparecem primeiro. O planeamento chega com as suas partes ou serviços, em rascunho. Um modelo que a reunião já tem, ou cujo tipo ela já tem, fica a cinzento, com o motivo.
 
 Com o direito de gerir os programas, **Planeamento vazio…** cria um planeamento só para esta reunião: dê-lhe um nome e o tipo, espiritual ou serviços. Para o reutilizar, crie antes um modelo nas **Definições**.
 
@@ -70,7 +70,7 @@ Uma reunião muda de natureza, o Memorial em vez da reunião de semana por exemp
 
 1. Escolha o novo tipo: a reunião passa a ter o seu nome.
 2. Em **Manter na reunião**, cada planeamento fica marcado. Desmarque o que deve sair: leva as suas designações, e as pessoas avisadas recebem «Designação cancelada» se estava publicado. Um planeamento de que não é responsável fica marcado.
-3. Marque os planeamentos que o novo tipo sugere. Uma sugestão do mesmo tipo que um planeamento mantido só fica disponível depois de o desmarcar, e desmarcar o anterior marca-a.
+3. Marque os planeamentos que o novo tipo utiliza. Um planeamento do mesmo tipo que um planeamento mantido só fica disponível depois de o desmarcar, e desmarcar o anterior marca-o.
 4. Clique em **Alterar o tipo**.
 
 Os planeamentos mantidos ficam com o seu responsável. Os números de assistência já introduzidos seguem o novo tipo no cartão S-88, ou deixam de contar se este não os tiver.

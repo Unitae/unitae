@@ -2211,13 +2211,13 @@
     "programs_kind_change_choose": "Choisir un type",
     "programs_kind_change_keep": "Garder sur la réunion",
     "programs_kind_change_warning": "Ces plannings viennent de l’ancien type. Un planning retiré emporte ses attributions, et les personnes d’un planning publié reçoivent « Attribution annulée ».",
-    "programs_kind_change_add": "Ajouter les plannings suggérés par le nouveau type",
+    "programs_kind_change_add": "Ajouter les plannings qu’utilise le nouveau type",
     "programs_kind_change_unavailable_programme": "Indisponible tant que la réunion garde son planning spirituel",
     "programs_kind_change_unavailable_duty": "Indisponible tant que la réunion garde ses services",
-    "programs_kind_change_none": "Ce type ne suggère aucun planning.",
+    "programs_kind_change_none": "Ce type n’utilise aucun planning.",
     "programs_kind_change_done": "Type de la réunion changé.",
     "programs_kind_change_kind_held": "Une réunion n’a qu’un planning de chaque sorte : décochez l’ancien avant d’ajouter le nouveau.",
-    "programs_kind_change_not_suggested": "Ce type ne suggère plus l’un de ces plannings : rouvrez la boîte de dialogue.",
+    "programs_kind_change_not_suggested": "Ce type n’utilise plus l’un de ces plannings : rouvrez la boîte de dialogue.",
     "programs_kind_change_assignments": [
         {
             "declarations": [
@@ -2272,7 +2272,7 @@
     "programs_schedule_add_kind_duty_hint": "Des tâches confiées à des personnes",
     "programs_schedule_add_kind_unavailable": "Indisponible : cette réunion en a un",
     "programs_schedule_add": "Ajouter un planning",
-    "programs_schedule_add_suggested": "Suggérés par « {kind} »",
+    "programs_schedule_add_suggested": "Utilisés par « {kind} »",
     "programs_schedule_add_others": "Autres modèles",
     "programs_schedule_add_empty": "Planning vide…",
     "programs_schedule_add_empty_hint": "Un nom et sa sorte : spirituel ou services",
@@ -2419,7 +2419,7 @@
     "programs_new_mode_series": "Plusieurs semaines",
     "programs_new_mode_single": "Une seule date",
     "programs_new_meetings_title": "Réunions et plannings",
-    "programs_new_meetings_description": "Cochez les réunions à créer. Chacune arrive avec les plannings que son type suggère ; un planning qui ne sert pas pour une réunion se supprime ensuite depuis celle-ci.",
+    "programs_new_meetings_description": "Cochez les réunions à créer. Chacune arrive avec les plannings qu’utilise son type ; un planning qui ne sert pas pour une réunion se supprime ensuite depuis celle-ci.",
     "programs_new_every": "Chaque {weekday} · {hours}",
     "programs_new_usually": "Habituellement le {weekday} · {hours}",
     "programs_new_parts": [
@@ -2541,7 +2541,7 @@
     ],
     "programs_new_row_ahead": "déjà créée",
     "programs_new_schedules_title": "Plannings",
-    "programs_new_no_schedule": "Aucun planning suggéré : la réunion se crée sans ; « Ajouter un planning » est ensuite sur sa page.",
+    "programs_new_no_schedule": "Ce type n’utilise aucun planning : la réunion se crée sans ; « Ajouter un planning » est ensuite sur sa page.",
     "programs_new_count_none": "Rien à créer",
     "programs_new_existing": [
         {
@@ -2724,7 +2724,7 @@
     "programs_edit_part_name_label": "Nom",
     "programs_edit_part_preset_label": "Type de partie",
     "programs_edit_part_preset_none": "Aucun type",
-    "programs_edit_part_preset_hint": "Détermine le message envoyé à la personne assignée.",
+    "programs_edit_part_preset_hint": "Détermine le message envoyé à la personne assignée et les réglages de cette partie.",
     "programs_edit_part_section_label": "Section",
     "programs_edit_part_track_label": "Groupe / Salle",
     "programs_edit_part_track_order_label": "Ordre de la salle",
@@ -4436,7 +4436,7 @@
     "publishers_enrolment_error_end_before_start": "Le dernier mois doit être le premier ou venir après.",
     "settings_presets_meta_title": "Types de parties - Réglages - Unitae",
     "settings_schedule_templates_meta_title": "Modèles de planning - Unitae",
-    "settings_schedule_templates_subtitle": "Ce que contient un planning, et qui en répond. Un modèle sert à tous les types qui le suggèrent.",
+    "settings_schedule_templates_subtitle": "Cette page sert à créer des modèles de réunion, afin de ne pas refaire le planning à la main à chaque fois ; toute modification ici se retrouve dans les futurs programmes.",
     "settings_schedule_templates_name": "Nom",
     "settings_schedule_templates_name_hint": "Les plannings déjà créés gardent leur nom.",
     "settings_schedule_templates_responsible": "Responsable",
@@ -4445,7 +4445,7 @@
     "settings_schedule_templates_responsible_hint": "Le titulaire et les adjoints de ce rôle remplissent et publient les plannings faits de ce modèle, sur toutes les réunions. Qui tient le rôle se change dans l’organigramme.",
     "settings_schedule_templates_holders": "Aujourd’hui : {names}.",
     "settings_schedule_templates_holders_none": "Personne n’a ce rôle aujourd’hui.",
-    "settings_schedule_templates_suggested_by": "Suggéré par",
+    "settings_schedule_templates_suggested_by": "Utilisé dans",
     "settings_schedule_templates_suggested_none": "Aucun type : il s’ajoute depuis la réunion, avec « Ajouter un planning ».",
     "settings_schedule_templates_items_note": "Ses parties et ses services se modifient encore depuis le type, dans Modèles de programme.",
     "settings_schedule_templates_used": [

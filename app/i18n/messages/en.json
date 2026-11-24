@@ -2206,13 +2206,13 @@
     "programs_kind_change_choose": "Choose a kind",
     "programs_kind_change_keep": "Keep on the meeting",
     "programs_kind_change_warning": "These schedules come from the old kind. A schedule removed takes its assignments with it, and the people on a published one are told “Assignment cancelled”.",
-    "programs_kind_change_add": "Add the schedules the new kind suggests",
+    "programs_kind_change_add": "Add the schedules the new kind uses",
     "programs_kind_change_unavailable_programme": "Unavailable while the meeting keeps its spiritual schedule",
     "programs_kind_change_unavailable_duty": "Unavailable while the meeting keeps its services",
-    "programs_kind_change_none": "This kind suggests no schedule.",
+    "programs_kind_change_none": "This kind uses no schedule.",
     "programs_kind_change_done": "Meeting kind changed.",
     "programs_kind_change_kind_held": "A meeting has one schedule of each kind: untick the old one before adding the new one.",
-    "programs_kind_change_not_suggested": "This kind no longer suggests one of these schedules: open the dialog again.",
+    "programs_kind_change_not_suggested": "This kind no longer uses one of these schedules: open the dialog again.",
     "programs_kind_change_assignments": [
         {
             "declarations": [
@@ -2267,7 +2267,7 @@
     "programs_schedule_add_kind_duty_hint": "Tasks given to people",
     "programs_schedule_add_kind_unavailable": "Unavailable: this meeting has one",
     "programs_schedule_add": "Add a schedule",
-    "programs_schedule_add_suggested": "Suggested by “{kind}”",
+    "programs_schedule_add_suggested": "Used by “{kind}”",
     "programs_schedule_add_others": "Other templates",
     "programs_schedule_add_empty": "Empty schedule…",
     "programs_schedule_add_empty_hint": "A name and its kind: spiritual or services",
@@ -2414,7 +2414,7 @@
     "programs_new_mode_series": "Several weeks",
     "programs_new_mode_single": "A single date",
     "programs_new_meetings_title": "Meetings and schedules",
-    "programs_new_meetings_description": "Tick the meetings to create. Each comes with the schedules its kind suggests; a schedule a meeting does not need can be deleted afterwards from that meeting.",
+    "programs_new_meetings_description": "Tick the meetings to create. Each comes with the schedules its kind uses; a schedule a meeting does not need can be deleted afterwards from that meeting.",
     "programs_new_every": "Every {weekday} · {hours}",
     "programs_new_usually": "Usually on {weekday} · {hours}",
     "programs_new_parts": [
@@ -2536,7 +2536,7 @@
     ],
     "programs_new_row_ahead": "already created",
     "programs_new_schedules_title": "Schedules",
-    "programs_new_no_schedule": "No suggested schedule: the meeting is created without one; “Add a schedule” is then on its page.",
+    "programs_new_no_schedule": "This kind uses no schedule: the meeting is created without one; “Add a schedule” is then on its page.",
     "programs_new_count_none": "Nothing to create",
     "programs_new_existing": [
         {
@@ -2716,7 +2716,7 @@
     "programs_edit_part_name_label": "Name",
     "programs_edit_part_preset_label": "Part type",
     "programs_edit_part_preset_none": "No type",
-    "programs_edit_part_preset_hint": "Determines the message sent to the assigned person.",
+    "programs_edit_part_preset_hint": "Determines the message sent to the assigned person and this part’s settings.",
     "programs_edit_part_section_label": "Section",
     "programs_edit_part_track_label": "Track / Room",
     "programs_edit_part_track_order_label": "Track order",
@@ -4436,7 +4436,7 @@
     "external_speakers_empty_description": "When a congregation sends you its list of speakers, add it here: you can then invite them from the programmes.",
     "settings_presets_meta_title": "Part types - Settings - Unitae",
     "settings_schedule_templates_meta_title": "Schedule templates - Unitae",
-    "settings_schedule_templates_subtitle": "What a schedule holds, and who answers for it. A template serves every kind that suggests it.",
+    "settings_schedule_templates_subtitle": "This page is for creating meeting templates, so you don’t redo the schedule by hand every time; any change here carries into future programs.",
     "settings_schedule_templates_name": "Name",
     "settings_schedule_templates_name_hint": "Schedules already created keep their name.",
     "settings_schedule_templates_responsible": "Person in charge",
@@ -4445,7 +4445,7 @@
     "settings_schedule_templates_responsible_hint": "The holder and deputies of this role fill and publish the schedules made from this template, on every meeting. Who holds the role is changed in the organigram.",
     "settings_schedule_templates_holders": "Today: {names}.",
     "settings_schedule_templates_holders_none": "Nobody holds this role today.",
-    "settings_schedule_templates_suggested_by": "Suggested by",
+    "settings_schedule_templates_suggested_by": "Used in",
     "settings_schedule_templates_suggested_none": "No kind: it is added from the meeting, with “Add a schedule”.",
     "settings_schedule_templates_items_note": "Its parts and services are still edited from the kind, in Program templates.",
     "settings_schedule_templates_used": [
