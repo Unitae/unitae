@@ -311,7 +311,14 @@ describe('old item tables mirrored into the new ones', () => {
         () => true,
         actorId,
         second,
-        { kindId: weekend, keep: [], add: weekendTemplates.map(link => link.scheduleTemplateId) },
+        {
+          kindId: weekend,
+          keep: [],
+          remove: (await db.schedule.findMany({ where: { eventId: second }, select: { id: true } })).map(
+            ({ id }) => id,
+          ),
+          add: weekendTemplates.map(link => link.scheduleTemplateId),
+        },
         congregationId,
       )
       const copy = await duplicateTemplate(db, weekend, congregationId, actorId)

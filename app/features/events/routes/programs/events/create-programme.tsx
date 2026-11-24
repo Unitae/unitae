@@ -20,7 +20,7 @@ export function loader(_args: Route.LoaderArgs) {
   throw redirect('/programs')
 }
 
-/** « Créer le programme » on a meeting waiting for one, with the right to edit it — as applying a template asks. */
+/** « Créer le programme » on a meeting waiting for one, for whoever may change events of its kind (D28). */
 export async function action({ request, params, context }: Route.ActionArgs) {
   const session = await getSession(request.headers.get('Cookie'))
   const permissions = context.get(permissionsContext)

@@ -52,28 +52,6 @@ export async function canFillSchedule(
 }
 
 /**
- * Whether the caller may apply a template to an event (plan §10, D31): applying appends its parts and duties and moves
- * the event's schedules onto its schedule templates, so whoever applies it fills each schedule it brings. « Attribuer »
- * and « Gérer », or the responsible of every schedule template the template suggests; one that brings none asks nothing.
- */
-export async function canFillTemplateSchedules(
-  db: TransactionClient,
-  can: (permission: Permission) => boolean,
-  userId: number,
-  templateId: number,
-  congregationId: number,
-): Promise<boolean> {
-  if (fillsEverySchedule(can)) return true
-  const brought = await db.scheduleTemplate.findMany({
-    where: { congregationId, eventKinds: { some: { eventKindId: templateId } } },
-    select: { responsibleRoleId: true },
-  })
-  if (brought.length === 0) return true
-  const roleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
-  return brought.every(template => template.responsibleRoleId != null && roleIds.includes(template.responsibleRoleId))
-}
-
-/**
  * The kinds (event templates) suggesting a schedule template the caller is responsible for (D28, D49): the kinds whose
  * events they create and change, and the kinds they may move an event to. Sorted.
  */
@@ -112,7 +90,7 @@ export async function canChangeEventsOfKind(
 
 /**
  * Whether the caller may change an event and open its editor: changing events of its kind. Moving it to another kind
- * also asks the target (canChangeEventsOfKind, and canFillTemplateSchedules for what it brings).
+ * also asks the target (canChangeEventsOfKind), and « Changer le type » the rights of each schedule removed or added.
  */
 export async function canChangeEvent(
   db: TransactionClient,
