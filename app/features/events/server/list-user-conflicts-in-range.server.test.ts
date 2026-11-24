@@ -55,23 +55,21 @@ describe('listUserConflictsInRange', () => {
     expect(where.schedule).toEqual({ status: 'published' })
   })
 
-  it('resolves the responsible name via accountDisplayName when a template responsible exists', async () => {
+  it('names the responsible of the item’s own schedule template, through accountDisplayName', async () => {
     vi.mocked(db.eventPart.findMany).mockResolvedValue([
       {
         name: 'Discours public',
         event: {
           startDate: new Date(2026, 6, 5),
-          template: {
-            responsibles: [
-              {
-                role: {
-                  key: 'responsable-vcm',
-                  name: 'Responsable VCM',
-                  members: [{ user: { firstname: 'Jean', lastname: 'Dupont', member: null } }],
-                  memberAssignments: [],
-                },
-              },
-            ],
+        },
+        schedule: {
+          scheduleTemplate: {
+            responsibleRole: {
+              key: 'responsable-vcm',
+              name: 'Responsable VCM',
+              members: [{ user: { firstname: 'Jean', lastname: 'Dupont', member: null } }],
+              memberAssignments: [],
+            },
           },
         },
       },
@@ -93,25 +91,23 @@ describe('listUserConflictsInRange', () => {
         name: 'Micros',
         event: {
           startDate: new Date(2026, 6, 5),
-          template: {
-            responsibles: [
-              {
-                role: {
-                  key: 'responsable-vcm',
-                  name: 'Responsable VCM',
-                  members: [
-                    {
-                      user: {
-                        firstname: 'account-first',
-                        lastname: 'account-last',
-                        member: { firstname: 'Pierre', lastname: 'Martin' },
-                      },
-                    },
-                  ],
-                  memberAssignments: [],
+        },
+        schedule: {
+          scheduleTemplate: {
+            responsibleRole: {
+              key: 'responsable-vcm',
+              name: 'Responsable VCM',
+              members: [
+                {
+                  user: {
+                    firstname: 'account-first',
+                    lastname: 'account-last',
+                    member: { firstname: 'Pierre', lastname: 'Martin' },
+                  },
                 },
-              },
-            ],
+              ],
+              memberAssignments: [],
+            },
           },
         },
       },
@@ -122,14 +118,14 @@ describe('listUserConflictsInRange', () => {
     expect(result[0].responsibleName).toBe('Pierre Martin')
   })
 
-  it('returns responsibleName as null for untemplated events', async () => {
+  it('returns responsibleName as null for a schedule without a template', async () => {
     vi.mocked(db.eventPart.findMany).mockResolvedValue([
       {
         name: 'Custom part',
         event: {
           startDate: new Date(2026, 6, 5),
-          template: null,
         },
+        schedule: { scheduleTemplate: null },
       },
     ] as never)
 
@@ -138,17 +134,16 @@ describe('listUserConflictsInRange', () => {
     expect(result[0].responsibleName).toBeNull()
   })
 
-  // When a templated event has no responsible assigned yet, the UI still
-  // shows the generic fallback wording — the query surfaces null the same
-  // way as for untemplated events.
-  it('returns responsibleName as null when the template has no responsible assigned', async () => {
+  // When the schedule's template has no responsible yet, the UI still shows the generic fallback wording — the query
+  // surfaces null the same way as for a schedule without a template.
+  it('returns responsibleName as null when the schedule template has no responsible', async () => {
     vi.mocked(db.eventPart.findMany).mockResolvedValue([
       {
         name: 'Prière',
         event: {
           startDate: new Date(2026, 6, 5),
-          template: { responsibles: [] },
         },
+        schedule: { scheduleTemplate: { responsibleRole: null } },
       },
     ] as never)
 
@@ -166,20 +161,18 @@ describe('listUserConflictsInRange', () => {
         name: 'Discours public',
         event: {
           startDate: new Date(2026, 6, 5),
-          template: {
-            responsibles: [
-              {
-                role: {
-                  key: 'responsable-vcm',
-                  name: 'Responsable VCM',
-                  members: [
-                    { user: { firstname: 'Zoé', lastname: 'Petit', member: null } },
-                    { user: { firstname: 'Alain', lastname: 'Roux', member: null } },
-                  ],
-                  memberAssignments: [],
-                },
-              },
-            ],
+        },
+        schedule: {
+          scheduleTemplate: {
+            responsibleRole: {
+              key: 'responsable-vcm',
+              name: 'Responsable VCM',
+              members: [
+                { user: { firstname: 'Zoé', lastname: 'Petit', member: null } },
+                { user: { firstname: 'Alain', lastname: 'Roux', member: null } },
+              ],
+              memberAssignments: [],
+            },
           },
         },
       },
@@ -197,20 +190,18 @@ describe('listUserConflictsInRange', () => {
         name: 'Discours public',
         event: {
           startDate: new Date(2026, 6, 5),
-          template: {
-            responsibles: [
-              {
-                role: {
-                  key: 'elder',
-                  name: null,
-                  members: [{ user: { firstname: 'Paul', lastname: 'MARTIN', member: null } }],
-                  memberAssignments: [
-                    { member: { firstname: 'Jean', lastname: 'DURAND' } },
-                    { member: { firstname: 'Paul', lastname: 'MARTIN' } },
-                  ],
-                },
-              },
-            ],
+        },
+        schedule: {
+          scheduleTemplate: {
+            responsibleRole: {
+              key: 'elder',
+              name: null,
+              members: [{ user: { firstname: 'Paul', lastname: 'MARTIN', member: null } }],
+              memberAssignments: [
+                { member: { firstname: 'Jean', lastname: 'DURAND' } },
+                { member: { firstname: 'Paul', lastname: 'MARTIN' } },
+              ],
+            },
           },
         },
       },
@@ -228,12 +219,10 @@ describe('listUserConflictsInRange', () => {
     vi.mocked(db.eventPart.findMany).mockResolvedValue([
       {
         name: 'Discours public',
-        event: {
-          startDate: new Date(2026, 6, 5),
-          template: {
-            responsibles: [
-              { role: { key: 'responsable-vcm', name: 'Responsable VCM', members: [], memberAssignments: [] } },
-            ],
+        event: { startDate: new Date(2026, 6, 5) },
+        schedule: {
+          scheduleTemplate: {
+            responsibleRole: { key: 'responsable-vcm', name: 'Responsable VCM', members: [], memberAssignments: [] },
           },
         },
       },
@@ -244,21 +233,69 @@ describe('listUserConflictsInRange', () => {
     expect(result[0].responsibleName).toBe('Responsable VCM')
   })
 
+  it('gives each line of one meeting its own schedule’s responsible, never the meeting’s others', async () => {
+    const day = new Date(2026, 6, 5)
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([
+      {
+        name: 'Discours',
+        event: { startDate: day },
+        schedule: {
+          scheduleTemplate: {
+            responsibleRole: {
+              key: 'prog',
+              name: 'prog',
+              members: [{ user: { firstname: 'Julien', lastname: 'Girard', member: null } }],
+              memberAssignments: [],
+            },
+          },
+        },
+      },
+    ] as never)
+    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([
+      {
+        name: 'Sono',
+        event: { startDate: day },
+        schedule: {
+          scheduleTemplate: {
+            responsibleRole: {
+              key: 'duty',
+              name: 'duty',
+              members: [{ user: { firstname: 'Philippe', lastname: 'Martin', member: null } }],
+              memberAssignments: [],
+            },
+          },
+        },
+      },
+      { name: 'Accueil', event: { startDate: day }, schedule: { scheduleTemplate: null } },
+    ] as never)
+
+    const result = await listUserConflictsInRange(db, 5000, new Date(2026, 6, 1), new Date(2026, 6, 10))
+
+    expect(result.map(row => [row.assignmentName, row.responsibleName])).toEqual([
+      ['Discours', 'Julien Girard'],
+      ['Sono', 'Philippe Martin'],
+      ['Accueil', null],
+    ])
+  })
+
   it('merges part + service conflicts and sorts by eventDate ascending', async () => {
     vi.mocked(db.eventPart.findMany).mockResolvedValue([
       {
         name: 'Later part',
-        event: { startDate: new Date(2026, 6, 10), template: null },
+        event: { startDate: new Date(2026, 6, 10) },
+        schedule: { scheduleTemplate: null },
       },
       {
         name: 'Earlier part',
-        event: { startDate: new Date(2026, 6, 2), template: null },
+        event: { startDate: new Date(2026, 6, 2) },
+        schedule: { scheduleTemplate: null },
       },
     ] as never)
     vi.mocked(db.eventServicePart.findMany).mockResolvedValue([
       {
         name: 'Middle service',
-        event: { startDate: new Date(2026, 6, 5), template: null },
+        event: { startDate: new Date(2026, 6, 5) },
+        schedule: { scheduleTemplate: null },
       },
     ] as never)
 
