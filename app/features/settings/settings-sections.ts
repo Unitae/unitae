@@ -9,11 +9,9 @@ export type { SettingsEntryKey }
 
 export type SettingsGroupKey = 'congregation' | 'access' | 'data' | 'account'
 
-/** What decides the parts a viewer sees: their rights, and whether a role they hold runs a programme template. */
+/** What decides the parts a viewer sees: their rights (a template's responsible holds none here since 6a-1c). */
 export interface SettingsAccess {
   permissions: ReadonlySet<Permission>
-  /** Template responsibility is held through a role, not a right: it opens the templates alone. */
-  templateResponsible: boolean
 }
 
 export interface SettingsEntry {
@@ -52,7 +50,7 @@ const CATALOG: CatalogEntry[] = [
     key: 'templates',
     group: 'congregation',
     href: '/settings/templates',
-    opens: (can, access) => can(Permission.CanManageProgramTemplates) || access.templateResponsible,
+    opens: can => can(Permission.CanManageProgramTemplates),
   },
   {
     key: 'schedule-templates',

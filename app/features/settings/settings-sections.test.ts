@@ -10,8 +10,8 @@ import {
 
 const BILLING = 'https://www.unitae.app/billing?token=abc'
 
-function access(permissions: Permission[], templateResponsible = false): SettingsAccess {
-  return { permissions: new Set(permissions), templateResponsible }
+function access(permissions: Permission[]): SettingsAccess {
+  return { permissions: new Set(permissions) }
 }
 
 const ADMIN = access(Object.values(Permission))
@@ -62,8 +62,12 @@ describe('settingsGroups', () => {
     expect(keysOf(access([Permission.CanExportCongregationData]))).toEqual([['data', ['data']]])
   })
 
-  it('lets a template responsible in, to the programme templates only', () => {
-    expect(keysOf(access([Permission.CanViewPrograms], true))).toEqual([['congregation', ['templates']]])
+  // Since 6a-1c a template's responsible needs the managers' right too: reading the programmes opens nothing here.
+  it('opens the templates with the managers’ right only', () => {
+    expect(keysOf(access([Permission.CanViewPrograms]))).toEqual([])
+    expect(keysOf(access([Permission.CanManageProgramTemplates]))).toEqual([
+      ['congregation', ['templates', 'schedule-templates', 'part-types']],
+    ])
   })
 
   it('needs the administrator for an import, as the import page does', () => {
@@ -78,7 +82,6 @@ describe('mayOpenSettings', () => {
 
   it('opens Réglages to anyone with one part', () => {
     expect(mayOpenSettings(access([Permission.CanConfigurePermissions]))).toBe(true)
-    expect(mayOpenSettings(access([], true))).toBe(true)
   })
 })
 

@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
 import { isSystemTemplate } from '~/features/events'
-import { isTemplateResponsible, reorderTemplateParts } from '~/features/events/index.server'
+import { reorderTemplateParts } from '~/features/events/index.server'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
@@ -25,10 +25,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
-    const responsible = await isTemplateResponsible(db, templateId, currentUser.id, congregationId)
-    if (!permissions.has(Permission.CanManageProgramTemplates) && !responsible) {
-      throw redirect('/settings/templates')
-    }
+    if (!permissions.has(Permission.CanManageProgramTemplates)) throw redirect('/settings/templates')
 
     // Mirror the template page's guard — system templates have no parts today, but
     // if that ever changes we don't want a stale endpoint to be the loose

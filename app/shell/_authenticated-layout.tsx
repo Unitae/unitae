@@ -9,7 +9,6 @@ import { HelpAccessProvider, HelpPanel } from '~/features/help'
 import { helpReaderFor, visibleHelpSlugsFor } from '~/features/help/index.server'
 import { helpLocaleFor } from '~/features/help/model/help-links'
 import { settingsLinksFor } from '~/features/settings'
-import { loadSettingsAccess } from '~/features/settings/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { requireAuth } from '~/shared/auth/middleware.server'
@@ -116,10 +115,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const session = await getSession(request.headers.get('Cookie'))
 
   const can = (role: Permission) => permissions.has(role)
-  const settingsAccess = await withScopeFromContext(context, (db, congregationId) =>
-    loadSettingsAccess(db, permissions, currentUser.id, congregationId),
-  )
-  const settingsLinks = settingsLinksFor(settingsAccess)
+  const settingsLinks = settingsLinksFor({ permissions })
   const messages = { success: session.get('success'), error: session.get('error') }
   // Reading the sidebar cookie here keeps a collapsed sidebar collapsed
   // across full page loads.

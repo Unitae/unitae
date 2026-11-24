@@ -1,8 +1,8 @@
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { redirect, useFetcher } from 'react-router'
-import { isSystemTemplate, ResponsibilityScope } from '~/features/events'
-import { getResponsibleTemplateIds, getTemplates } from '~/features/events/index.server'
+import { isSystemTemplate } from '~/features/events'
+import { getTemplates } from '~/features/events/index.server'
 import { setProgrammeShowsAttendance } from '~/features/settings/server/programme-attendance-setting.server'
 import { NewTemplateDialog } from '~/features/settings/ui/NewTemplateDialog'
 import { SettingsHeader } from '~/features/settings/ui/SettingsHeader'
@@ -21,30 +21,25 @@ export const meta: Route.MetaFunction = () => [{ title: m.settings_templates_met
 
 export async function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(currentAccountContext)
+  const _currentUser = context.get(currentAccountContext)
   const isManager = permissions.has(Permission.CanManageProgramTemplates)
 
   return withScopeFromContext(context, async (db, congregationId) => {
-    // A template's responsible sees the templates their roles run; the managers see them all.
-    const own = isManager
-      ? null
-      : new Set(await getResponsibleTemplateIds(db, currentUser.id, congregationId, ResponsibilityScope.Service))
-    if (own != null && own.size === 0) throw redirect('/settings')
+    // The templates' managers' alone since 6a-1c: a template's responsible fills its schedules on the meetings.
+    if (!isManager) throw redirect('/settings')
 
-    const rows: TemplateRow[] = (await getTemplates(db, congregationId))
-      .filter(template => own == null || own.has(template.id))
-      .map(template => ({
-        id: template.id,
-        key: template.key,
-        name: template.name,
-        color: template.color,
-        weekDay: template.weekDay,
-        startTime: template.startTime,
-        endTime: template.endTime,
-        parts: template._count.parts,
-        services: template._count.serviceParts,
-        responsibles: template.responsibles.map(responsible => responsible.role),
-      }))
+    const rows: TemplateRow[] = (await getTemplates(db, congregationId)).map(template => ({
+      id: template.id,
+      key: template.key,
+      name: template.name,
+      color: template.color,
+      weekDay: template.weekDay,
+      startTime: template.startTime,
+      endTime: template.endTime,
+      parts: template._count.parts,
+      services: template._count.serviceParts,
+      responsibles: template.responsibles.map(responsible => responsible.role),
+    }))
     return {
       templates: rows.filter(row => !isSystemTemplate(row.key)),
       builtIn: isManager ? rows.filter(row => isSystemTemplate(row.key)) : [],
@@ -95,7 +90,7 @@ export default function TemplateListPage({ loaderData }: Route.ComponentProps) {
       />
       <div className="flex flex-col gap-6">
         {templates.length === 0 ? (
-          <p className="rounded-lg border bg-card px-4.5 py-6 text-center text-muted-foreground text-sm">
+          <p className="bg-card text-muted-foreground rounded-lg border px-4.5 py-6 text-center text-sm">
             {m.settings_templates_empty()}
           </p>
         ) : (
@@ -103,7 +98,7 @@ export default function TemplateListPage({ loaderData }: Route.ComponentProps) {
         )}
         <BuiltInTemplates rows={builtIn} />
         {showsAttendance != null && (
-          <div className="overflow-hidden rounded-lg border bg-card">
+          <div className="bg-card overflow-hidden rounded-lg border">
             <SettingRow
               title={m.settings_programme_attendance()}
               description={m.settings_programme_attendance_description()}

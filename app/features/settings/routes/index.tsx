@@ -1,10 +1,9 @@
 import { ArrowUpRight, ChevronRight } from 'lucide-react'
 import { Link, redirect, useRouteLoaderData } from 'react-router'
-import { loadSettingsAccess } from '~/features/settings/server/settings-access.server'
 import { firstSettingsHref } from '~/features/settings/settings-sections'
 import { SETTINGS_GROUP_LABEL } from '~/features/settings/ui/SettingsRail'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext } from '~/shared/auth/route-context.server'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SETTINGS_ENTRY_DISPLAY } from '~/shared/ui/settings-entries'
 import type { loader as layoutLoader } from './_layout'
@@ -12,13 +11,8 @@ import type { Route } from './+types/index'
 
 const WIDE = '(min-width: 48rem)'
 
-export async function loader({ context }: Route.LoaderArgs) {
-  const permissions = context.get(permissionsContext)
-  const account = context.get(currentAccountContext)
-  const access = await withScopeFromContext(context, (db, congregationId) =>
-    loadSettingsAccess(db, permissions, account.id, congregationId),
-  )
-  return { first: firstSettingsHref(access) }
+export function loader({ context }: Route.LoaderArgs) {
+  return { first: firstSettingsHref({ permissions: context.get(permissionsContext) }) }
 }
 
 // A wide screen has the column beside every part, so Réglages opens straight on the first part the viewer may open;
@@ -43,22 +37,22 @@ export default function SettingsIndex() {
       <div className="flex flex-col gap-4">
         {groups.map(group => (
           <section key={group.key} className="flex flex-col gap-1.5">
-            <h2 className="px-0.5 font-medium text-faint text-xs">{SETTINGS_GROUP_LABEL[group.key]()}</h2>
-            <div className="overflow-hidden rounded-lg border bg-card">
+            <h2 className="text-faint px-0.5 text-xs font-medium">{SETTINGS_GROUP_LABEL[group.key]()}</h2>
+            <div className="bg-card overflow-hidden rounded-lg border">
               {group.entries.map(entry => {
                 const { icon: Icon, label } = SETTINGS_ENTRY_DISPLAY[entry.key]
                 return entry.external ? (
                   <a key={entry.key} href={entry.href} target="_blank" rel="noreferrer" className={ROW}>
                     <Icon aria-hidden="true" />
                     <span className="flex-1">{label()}</span>
-                    <ArrowUpRight aria-hidden="true" className="size-4 text-faint" />
+                    <ArrowUpRight aria-hidden="true" className="text-faint size-4" />
                     <span className="sr-only">({m.settings_external_hint()})</span>
                   </a>
                 ) : (
                   <Link key={entry.key} to={entry.href} className={ROW}>
                     <Icon aria-hidden="true" />
                     <span className="flex-1">{label()}</span>
-                    <ChevronRight aria-hidden="true" className="size-4 text-faint" />
+                    <ChevronRight aria-hidden="true" className="text-faint size-4" />
                   </Link>
                 )
               })}
