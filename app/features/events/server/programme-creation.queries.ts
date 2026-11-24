@@ -1,3 +1,4 @@
+import { EventOrigin } from '~/features/events/model/event-origin.type'
 import { SYSTEM_TEMPLATE_KEYS } from '~/features/events/model/event-template.type'
 import type { CreationTemplate, ExistingProgramme } from '~/features/events/model/programme-creation'
 import { ScheduleKind } from '~/features/events/model/schedule.type'
@@ -68,7 +69,7 @@ export async function getProgrammeCreationData(
     }),
     db.event.findMany({
       where: { ...toCome, items: { none: {} } },
-      select: { id: true, templateId: true, startDate: true },
+      select: { id: true, templateId: true, startDate: true, origin: true, attendance: { select: { id: true } } },
     }),
   ])
   const lastDays = new Map(
@@ -104,7 +105,12 @@ export async function getProgrammeCreationData(
         ? []
         : [{ templateId: event.templateId, day: dayOf(event.startDate, timezone), eventId: event.id }],
     )
-  return { templates, existing: onDays(upcoming), ahead: onDays(waiting) }
+  // A passed day removes only the job's empty meeting (EMPTY_MEETING): the row says so only for that one.
+  const ahead = onDays(waiting).map((event, index) => ({
+    ...event,
+    removable: waiting[index]?.origin === EventOrigin.Job && waiting[index]?.attendance == null,
+  }))
+  return { templates, existing: onDays(upcoming), ahead }
 }
 
 /** Monday first, as the weeks of the programmes list; templates without a day of their own last. */

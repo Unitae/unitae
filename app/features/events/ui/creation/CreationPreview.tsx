@@ -139,10 +139,10 @@ function PreviewRow({ row, passed, onToggle }: { row: PlannedProgramme; passed: 
           }
         />
         {content}
-        {/* Passing a day removes the meeting created ahead on it (createProgrammeSeries): said where it happens. */}
+        {/* Passing a day removes the job's meeting created ahead on it (createProgrammeSeries): said where it happens. */}
         {passed && (
           <span className="shrink-0 text-faint text-xs">
-            {row.aheadId != null ? m.programs_new_row_skipped_ahead() : m.programs_new_row_skipped()}
+            {row.aheadRemovable ? m.programs_new_row_skipped_ahead() : m.programs_new_row_skipped()}
           </span>
         )}
       </label>

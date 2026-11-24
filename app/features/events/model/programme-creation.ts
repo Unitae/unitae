@@ -33,6 +33,8 @@ export interface ExistingProgramme {
   templateId: number
   day: string
   eventId: number
+  /** For a meeting created ahead: the job's own, empty and without counts (EMPTY_MEETING), which a passed day removes. */
+  removable?: boolean
 }
 
 /** One programme a series would hold. */
@@ -44,6 +46,8 @@ export interface PlannedProgramme {
   existingId: number | null
   /** A meeting created ahead that day without a programme: the series fills it rather than creating another. */
   aheadId: number | null
+  /** That meeting is the job's, which passing the day removes; one made by hand or emptied stays. */
+  aheadRemovable: boolean
 }
 
 export interface SeriesCount {
@@ -100,7 +104,7 @@ export function plannedSeries(
   ahead: ExistingProgramme[] = [],
 ): PlannedProgramme[] {
   const byKey = (events: ExistingProgramme[]) =>
-    new Map(events.map(event => [programmeKey(event.templateId, event.day), event.eventId]))
+    new Map(events.map(event => [programmeKey(event.templateId, event.day), event]))
   const known = byKey(existing)
   const waiting = byKey(ahead)
   return templates
@@ -108,14 +112,20 @@ export function plannedSeries(
     .flatMap(template =>
       daysOnWeekday(template.weekDay, from, to).map(day => {
         const key = programmeKey(template.id, day)
-        const prepared = known.get(key) ?? null
-        const waitingId = prepared == null ? (waiting.get(key) ?? null) : null
+        const prepared = known.get(key)?.eventId ?? null
+        const waitingEvent = prepared == null ? waiting.get(key) : undefined
+        const none = { key, template, day, aheadRemovable: false }
         // As createProgrammeSeries: a kind that brings nothing has nothing to fill its meeting with, which stays as it
         // is, counted with the existing ones.
-        if (waitingId != null && template.schedules.length === 0) {
-          return { key, template, day, existingId: waitingId, aheadId: null }
+        if (waitingEvent != null && template.schedules.length === 0) {
+          return { ...none, existingId: waitingEvent.eventId, aheadId: null }
         }
-        return { key, template, day, existingId: prepared, aheadId: waitingId }
+        return {
+          ...none,
+          existingId: prepared,
+          aheadId: waitingEvent?.eventId ?? null,
+          aheadRemovable: waitingEvent?.removable === true,
+        }
       }),
     )
     .sort((a, b) => compare(a.day, b.day) || compare(a.template.startTime, b.template.startTime))

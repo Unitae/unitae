@@ -135,6 +135,20 @@ describe('countSeries, meetings created ahead', () => {
     expect(countSeries(planned, new Set())).toEqual({ create: 0, fill: 0, existing: 1, skipped: 0, schedules: 0 })
   })
 
+  it('knows which meeting created ahead a passed day removes: the job’s, not one made by hand', () => {
+    const planned = plannedSeries(
+      [MIDWEEK, ONE_SCHEDULE],
+      '2027-01-04',
+      '2027-01-10',
+      [],
+      [
+        { templateId: 270, day: '2027-01-07', eventId: 4017, removable: true },
+        { templateId: 273, day: '2027-01-10', eventId: 4018, removable: false },
+      ],
+    )
+    expect(planned.map(row => row.aheadRemovable)).toEqual([true, false])
+  })
+
   it('counts a passed day that has a meeting created ahead as passed, with no schedule', () => {
     const planned = plannedSeries([MIDWEEK], '2027-01-04', '2027-01-10', [], ahead)
 

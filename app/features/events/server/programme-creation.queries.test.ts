@@ -155,7 +155,22 @@ describe('getProgrammeCreationData', () => {
     vi.mocked(db.event.findMany).mockImplementation(((args: { where: { items?: unknown } }) =>
       Promise.resolve(
         'none' in ((args.where.items ?? {}) as object)
-          ? [{ id: 4017, templateId: 270, startDate: new Date('2026-11-19T23:00:00Z') }]
+          ? [
+              {
+                id: 4017,
+                templateId: 270,
+                startDate: new Date('2026-11-19T23:00:00Z'),
+                origin: 'job',
+                attendance: null,
+              },
+              {
+                id: 4018,
+                templateId: 270,
+                startDate: new Date('2026-11-26T23:00:00Z'),
+                origin: 'manual',
+                attendance: null,
+              },
+            ]
           : [],
       )) as never)
 
@@ -167,7 +182,11 @@ describe('getProgrammeCreationData', () => {
     })
 
     expect(result.existing).toEqual([])
-    expect(result.ahead).toEqual([{ templateId: 270, day: '2026-11-19', eventId: 4017 }])
+    // Only the job's own, a passed day removes; one made by hand stays.
+    expect(result.ahead).toEqual([
+      { templateId: 270, day: '2026-11-19', eventId: 4017, removable: true },
+      { templateId: 270, day: '2026-11-26', eventId: 4018, removable: false },
+    ])
     // Meetings to come of those templates with no item at all.
     const aheadCall = vi
       .mocked(db.event.findMany)
