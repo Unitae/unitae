@@ -62,11 +62,14 @@ describe('bulkReleaseEvents', () => {
     // Its duties published, its programme held back by a conflict; another's programme still to give.
     state.publish.set(8, published(8, { blocked: [{ reason: 'conflicts', error: 'x' }] }))
     state.publish.set(9, published(9, { blocked: [{ reason: 'awaiting', error: 'y' }] }))
+    // Its programme published, its duties empty; another holding nothing but an empty schedule, never a conflict.
+    state.publish.set(10, published(10, { blocked: [{ reason: 'empty', error: 'z' }] }))
+    state.publish.set(11, published(11, { changed: false, published: [], blocked: [{ reason: 'empty', error: 'z' }] }))
 
-    const result = await bulkReleaseEvents([1, 2, 3, 4, 5, 6, 7, 8, 9], can, 9, 1, nctx)
+    const result = await bulkReleaseEvents([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], can, 9, 1, nctx)
 
     expect(result).toEqual({
-      released: [1, 2, 8, 9],
+      released: [1, 2, 8, 9, 10],
       blocked: [{ id: 4, error: 'x' }],
       awaiting: [5, 9],
       refused: [3],
@@ -74,6 +77,7 @@ describe('bulkReleaseEvents', () => {
       failed: [{ id: 7, error: 'boom' }],
       heldSchedules: 1,
       conflictedSchedules: 1,
+      emptySchedules: 2,
     })
   })
 
