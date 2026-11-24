@@ -5,6 +5,7 @@ import { useFetcher } from 'react-router'
 import { toast } from 'sonner'
 
 import type { BulkPublishPreview } from '~/features/events/model/bulk-publish-preview.type'
+import { bulkPublishSummary } from '~/features/events/model/bulk-publish-summary'
 import type { ProgrammeRowData } from '~/features/events/model/programme-list.type'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
@@ -53,7 +54,7 @@ export function ProgrammeBulkActions({ selected, onClear, timeZone }: ProgrammeB
   // « Publier » asks first what it will do (design round A): the preview's answer opens the dialog, Annuler drops it.
   const previewFetcher = useFetcher<PreviewResult>()
   const [previewed, setPreviewed] = useState<BulkPublishPreview | null>(null)
-  const [previewIds, setPreviewIds] = useState<number[]>([])
+  const [previewSelected, setPreviewSelected] = useState(0)
   const [confirmDelete, setConfirmDelete] = useState(false)
   // biome-ignore lint/correctness/useExhaustiveDependencies: reacts to the preview settling only
   useEffect(() => {
@@ -87,8 +88,9 @@ export function ProgrammeBulkActions({ selected, onClear, timeZone }: ProgrammeB
             size="sm"
             disabled={busy}
             onClick={() => {
-              setPreviewIds(toRelease.map(row => row.id))
-              submit(previewFetcher, toRelease, '/programs/bulk-release-preview')
+              // The whole selection: the dialog also says why a meeting with nothing to publish stays as it is.
+              setPreviewSelected(selected.length)
+              submit(previewFetcher, selected, '/programs/bulk-release-preview')
             }}
           >
             {statusFetcher.state !== 'idle' || previewFetcher.state !== 'idle' ? (
@@ -134,13 +136,15 @@ export function ProgrammeBulkActions({ selected, onClear, timeZone }: ProgrammeB
 
       <BulkPublishDialog
         preview={previewed}
+        selected={previewSelected}
         timeZone={timeZone}
         busy={busy}
         onCancel={() => setPreviewed(null)}
         onConfirm={() => {
-          // The ids the preview was asked about, so what publishes is what the dialog listed.
+          if (previewed == null) return
+          // Only the meetings the dialog listed something to publish for: what publishes is what it announced.
           statusFetcher.submit(
-            { ids: previewIds },
+            { ids: bulkPublishSummary(previewed).eventIds },
             { method: 'POST', action: '/programs/bulk-release', encType: 'application/json' },
           )
           setPreviewed(null)

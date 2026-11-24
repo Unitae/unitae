@@ -1897,8 +1897,8 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "Publish {count} schedule of the {total} selected?",
-                "countPlural=*": "Publish {count} schedules of the {total} selected?"
+                "countPlural=one": "Publish {count} schedule from the {total} selected meetings?",
+                "countPlural=*": "Publish {count} schedules from the {total} selected meetings?"
             }
         }
     ],

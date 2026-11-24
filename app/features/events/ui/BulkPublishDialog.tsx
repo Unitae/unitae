@@ -1,6 +1,7 @@
 import { Send } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { BulkPublishPreview } from '~/features/events/model/bulk-publish-preview.type'
+import { bulkPublishSummary } from '~/features/events/model/bulk-publish-summary'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { getRoleDisplayName } from '~/shared/types/role'
@@ -31,12 +32,15 @@ interface Line {
  */
 export function BulkPublishDialog({
   preview,
+  selected,
   timeZone,
   busy,
   onCancel,
   onConfirm,
 }: {
   preview: BulkPublishPreview | null
+  /** The meetings selected: the title counts what publishes against them, not against the schedules. */
+  selected: number
   timeZone: string
   busy: boolean
   onCancel: () => void
@@ -73,8 +77,7 @@ export function BulkPublishDialog({
   }))
   const empty: Line[] = preview.empty.map(scheduleLine)
   const awaiting: Line[] = [...preview.awaiting.map(scheduleLine), ...preview.events.awaiting.map(eventLine)]
-  const count = publish.length
-  const total = count + notYours.length + conflicts.length + empty.length + awaiting.length
+  const { publish: count, held } = bulkPublishSummary(preview)
   const day = (date: Date | string) => formatEventDate(date, timeZone, getLocale(), { day: 'numeric', month: 'short' })
 
   return (
@@ -84,9 +87,9 @@ export function BulkPublishDialog({
           <AlertDialogTitle>
             {count === 0
               ? m.programs_bulk_preview_nothing()
-              : count === total
+              : held === 0
                 ? m.programs_bulk_preview_title_all({ count })
-                : m.programs_bulk_preview_title_some({ count, total })}
+                : m.programs_bulk_preview_title_some({ count, total: selected })}
           </AlertDialogTitle>
           <AlertDialogDescription>{m.programs_bulk_preview_body()}</AlertDialogDescription>
         </AlertDialogHeader>

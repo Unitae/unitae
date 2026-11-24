@@ -1897,8 +1897,8 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "Publicar {count} planeamento dos {total} selecionados?",
-                "countPlural=*": "Publicar {count} planeamentos dos {total} selecionados?"
+                "countPlural=one": "Publicar {count} planeamento das {total} reuniões selecionadas?",
+                "countPlural=*": "Publicar {count} planeamentos das {total} reuniões selecionadas?"
             }
         }
     ],
