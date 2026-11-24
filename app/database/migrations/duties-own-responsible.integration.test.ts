@@ -3,6 +3,8 @@ import { join } from 'node:path'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+import { syncTemplateScheduleTemplates } from '~/features/events/index.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 
 // Runs against DB_URL rather than DB_RUNTIME_URL: a migration executes as the schema owner. The shipped SQL is read
 // and run inside a transaction that is rolled back, so a later edit of the file is what gets tested.
@@ -29,16 +31,28 @@ class Rollback extends Error {}
 interface Snapshot {
   programmeOnly: (number | null)[]
   /** The services rows of the kind naming a programme responsible only, after the migration. */
-  writtenOnce: { roleId: number; scope: string }[]
+  writtenOnce: { roleId: number; scope: string; congregationId: number }[]
+  congregationId: number
+  /** The duties of the written-once kind after the kind's next save re-derives them. */
+  afterSave: number | null
+  /** A kind with both rows: its programme template, and its duties holding the programme's role before. */
+  weekendProgramme: number | null
+  /** The services rows of a kind with parts only (a programme responsible, no duties template). */
+  partsOnlyRows: number
   /** A kind with services but no responsible at all. */
   nobody: (number | null)[]
   nobodyRows: number
+  /** A duties template holding a role while its kind names no responsible at all. */
+  stray: number | null
+  /** A duties template two kinds suggest: the first kind's services responsible. */
+  shared: number | null
   withService: (number | null)[]
   unlinked: number | null
   programmeTemplate: number | null
   rerun: number
   programmeRole: number
   serviceRole: number
+  other: number
 }
 
 let snapshot: Promise<Snapshot> | undefined
@@ -92,15 +106,29 @@ function migrated(): Promise<Snapshot> {
           ])
           const visit = await kind('visit', [])
           const visitDuties = await template(visit, 'duty', null)
+          const other = await role('o')
+          const assembly = await kind('assembly', [])
+          const strayDuties = await template(assembly, 'duty', other)
+          // Made in this order, the first kind (the lower id) names the services responsible `other`.
+          const first = await kind('first', [[other, 'service']])
+          const second = await kind('second', [[serviceRole, 'service']])
+          const sharedDuties = await template(first, 'duty', serviceRole)
+          await tx.eventKindScheduleTemplate.create({
+            data: { eventKindId: second, scheduleTemplateId: sharedDuties, order: 1, congregationId },
+          })
           const midweekProgramme = await template(midweek, 'programme', programmeRole)
           const midweekDuties = await template(midweek, 'duty', programmeRole)
-          const weekendDuties = await template(weekend, 'duty', serviceRole)
+          // Stale: the duties hold the programme's role although the kind names a services one.
+          const weekendDuties = await template(weekend, 'duty', programmeRole)
+          const weekendProgramme = await template(weekend, 'programme', programmeRole)
+          const talks = await kind('talks', [[programmeRole, 'programme']])
+          await template(talks, 'programme', programmeRole)
           const unlinked = await template(null, 'duty', programmeRole)
 
           for (const statement of statements) await tx.$executeRawUnsafe(statement)
           const roleOf = async (id: number) =>
             (await tx.scheduleTemplate.findFirstOrThrow({ where: { id } })).responsibleRoleId
-          const first = {
+          const once = {
             midweek: await roleOf(midweekDuties),
             weekend: await roleOf(weekendDuties),
             visit: await roleOf(visitDuties),
@@ -109,14 +137,24 @@ function migrated(): Promise<Snapshot> {
           for (const statement of statements) rerun += await tx.$executeRawUnsafe(statement)
 
           captured = {
-            programmeOnly: [first.midweek, await roleOf(midweekDuties)],
+            programmeOnly: [once.midweek, await roleOf(midweekDuties)],
             writtenOnce: await tx.templateResponsible.findMany({
               where: { templateId: midweek, scope: 'service' },
-              select: { roleId: true, scope: true },
+              select: { roleId: true, scope: true, congregationId: true },
             }),
-            nobody: [first.visit, await roleOf(visitDuties)],
+            congregationId,
+            afterSave: await (async () => {
+              await syncTemplateScheduleTemplates(tx as unknown as TransactionClient, midweek, congregationId)
+              return roleOf(midweekDuties)
+            })(),
+            weekendProgramme: await roleOf(weekendProgramme),
+            partsOnlyRows: await tx.templateResponsible.count({ where: { templateId: talks, scope: 'service' } }),
+            nobody: [once.visit, await roleOf(visitDuties)],
             nobodyRows: await tx.templateResponsible.count({ where: { templateId: visit } }),
-            withService: [first.weekend, await roleOf(weekendDuties)],
+            stray: await roleOf(strayDuties),
+            shared: await roleOf(sharedDuties),
+            other,
+            withService: [once.weekend, await roleOf(weekendDuties)],
             unlinked: await roleOf(unlinked),
             programmeTemplate: await roleOf(midweekProgramme),
             rerun,
@@ -138,9 +176,11 @@ function migrated(): Promise<Snapshot> {
 
 describe('20261128090000_duties_own_responsible', () => {
   it('writes the role a duties template inherits from the programme once, as the kind’s services responsible', async () => {
-    const { programmeOnly, writtenOnce, programmeRole } = await migrated()
+    const { programmeOnly, writtenOnce, programmeRole, congregationId, afterSave } = await migrated()
     expect(programmeOnly).toEqual([programmeRole, programmeRole])
-    expect(writtenOnce).toEqual([{ roleId: programmeRole, scope: 'service' }])
+    expect(writtenOnce).toEqual([{ roleId: programmeRole, scope: 'service', congregationId }])
+    // The reason for it: the kind's next save, which derives the duties from the services row only, keeps the role.
+    expect(afterSave).toBe(programmeRole)
   })
 
   it('names no one for a kind that names no responsible', async () => {
@@ -149,7 +189,16 @@ describe('20261128090000_duties_own_responsible', () => {
     expect(nobodyRows).toBe(0)
   })
 
-  it('keeps the services responsible a kind names', async () => {
+  it('writes no services responsible for a kind without duties', async () => {
+    expect((await migrated()).partsOnlyRows).toBe(0)
+  })
+
+  it('leaves a programme template on its own role, whatever the kind’s services responsible', async () => {
+    const { weekendProgramme, programmeRole } = await migrated()
+    expect(weekendProgramme).toBe(programmeRole)
+  })
+
+  it('gives the duties the services responsible a kind names, over a stale one', async () => {
     const { withService, serviceRole } = await migrated()
     expect(withService).toEqual([serviceRole, serviceRole])
   })
@@ -158,6 +207,15 @@ describe('20261128090000_duties_own_responsible', () => {
     const { programmeTemplate, unlinked, programmeRole } = await migrated()
     expect(programmeTemplate).toBe(programmeRole)
     expect(unlinked).toBe(programmeRole)
+  })
+
+  it('clears a role a duties template holds while its kind names no responsible at all', async () => {
+    expect((await migrated()).stray).toBeNull()
+  })
+
+  it('gives a duties template two kinds suggest the first kind’s services responsible', async () => {
+    const { shared, other } = await migrated()
+    expect(shared).toBe(other)
   })
 
   it('changes nothing when run again', async () => {

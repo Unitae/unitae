@@ -166,9 +166,25 @@ describe('Fill a schedule (items, assignees): « Attribuer », « Gérer », or 
         expect(await canFillSchedule(db, nothing, lead, event, 'part', congregationId)).toBe(false)
         expect(await canFillSchedule(db, nothing, lead, event, 'service', congregationId)).toBe(false)
       }
-      // A template naming a programme responsible alone gives them its duties too.
+      // The weekend's lead is named on both scopes: both schedules are theirs.
       expect(await canFillSchedule(db, nothing, weekendLead, event, 'part', congregationId)).toBe(true)
       expect(await canFillSchedule(db, nothing, weekendLead, event, 'service', congregationId)).toBe(true)
+    })
+  })
+
+  // Decided 2026-11-24: the duties answer to their own responsible only; without one they are the managers'.
+  it('leaves the duties of a kind naming a programme responsible alone to the managers', async () => {
+    await inCongregation(async fixture => {
+      const { db, congregationId, weekendLead, weekendId } = fixture
+      await db.templateResponsible.deleteMany({ where: { templateId: weekendId, scope: 'service' } })
+      await syncTemplateScheduleTemplates(db, weekendId, congregationId)
+      const event = await weekendMeeting(fixture)
+
+      expect(await canFillSchedule(db, nothing, weekendLead, event, 'part', congregationId)).toBe(true)
+      expect(await canFillSchedule(db, nothing, weekendLead, event, 'service', congregationId)).toBe(false)
+      // The whole meeting asks for every schedule's responsible.
+      expect(await canDeleteEvent(db, nothing, weekendLead, event, congregationId)).toBe(false)
+      expect(await canPublishEvent(db, nothing, weekendLead, event, congregationId)).toBe(false)
     })
   })
 

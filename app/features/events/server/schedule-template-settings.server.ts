@@ -62,13 +62,11 @@ export async function updateScheduleTemplate(
     })
   }
   if (roleChanges) await saveResponsible(db, template, roleId, congregationId)
-  // What the derivation stored, which may differ from what was asked (a duties template takes the programme's).
+  // What the derivation stored, which may differ from what was asked (two kinds suggesting one template: the last wins).
   const stored = roleChanges
     ? (await db.scheduleTemplate.findFirstOrThrow({ where: { id: scheduleTemplateId, congregationId } }))
         .responsibleRoleId
     : template.responsibleRoleId
-  // A role asked for that the derivation did not keep changed nothing a reader sees: no « updated » line for it.
-  if (!nameChanges && stored === template.responsibleRoleId) return { ok: true }
   await auditInTransaction(db, {
     action: AuditAction.ScheduleTemplateUpdated,
     congregationId,
