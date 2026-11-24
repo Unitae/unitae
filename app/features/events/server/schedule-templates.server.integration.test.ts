@@ -157,7 +157,7 @@ describe('syncTemplateScheduleTemplates', () => {
     })
   })
 
-  it('creates nothing twice, and follows what changed since: a new item, a rename, a responsible', async () => {
+  it('creates nothing twice, and follows what changed since: a new item, a responsible — never a rename', async () => {
     await inCongregation(async ({ db, congregationId, template, part, service, role, responsible, read }) => {
       const weekend = await template('Réunion de week-end')
       await part(weekend)
@@ -179,7 +179,8 @@ describe('syncTemplateScheduleTemplates', () => {
 
       const after = await read(weekend)
       expect(after.scheduleTemplates).toMatchObject([
-        { id: before[0].id, kind: 'programme', name: 'Réunion publique', responsibleRoleId: second },
+        // Its name belongs to Réglages › « Modèles de planning » since 6a: the kind's rename leaves it.
+        { id: before[0].id, kind: 'programme', name: 'Réunion de week-end', responsibleRoleId: second },
         { kind: 'duty', responsibleRoleId: second },
       ])
       expect(after.parts).toEqual([before[0].id, before[0].id])

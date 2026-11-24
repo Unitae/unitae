@@ -49,6 +49,7 @@ export const AuditAction = {
   TemplateDuplicated: 'event_template.duplicated',
   TemplateResponsiblesChanged: 'event_template.responsibles.changed',
   ServicePartAllowedRolesChanged: 'service_role.allowed_roles.changed',
+  ScheduleTemplateUpdated: 'schedule_template.updated',
   PartPresetCreated: 'part_preset.created',
   PartPresetUpdated: 'part_preset.updated',
   PartPresetDeleted: 'part_preset.deleted',

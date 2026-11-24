@@ -265,7 +265,7 @@ describe('templates written with their schedule templates', () => {
     })
   })
 
-  it("renames a template's programme schedule template with it", async () => {
+  it("leaves its programme schedule template's name when a template is renamed (Réglages owns it, 6a)", async () => {
     await inCongregation(async ({ db, congregationId, actorId, template, scheduleTemplates }) => {
       const midweek = await template('Réunion de semaine', { parts: 1 })
       await setTemplateResponsible(
@@ -277,7 +277,7 @@ describe('templates written with their schedule templates', () => {
 
       await updateTemplate(db, midweek, { name: 'Vie et ministère' }, congregationId, actorId)
 
-      expect(await scheduleTemplates(midweek)).toMatchObject([{ kind: 'programme', name: 'Vie et ministère' }])
+      expect(await scheduleTemplates(midweek)).toMatchObject([{ kind: 'programme', name: 'Réunion de semaine' }])
     })
   })
 
