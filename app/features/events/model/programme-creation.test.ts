@@ -18,6 +18,10 @@ const MIDWEEK: CreationTemplate = {
   endTime: '20:45',
   parts: 15,
   services: 4,
+  schedules: [
+    { name: null, kind: 'programme', items: 15 },
+    { name: 'Services', kind: 'duty', items: 4 },
+  ],
   lastDay: '2026-12-31',
 }
 const WEEKEND: CreationTemplate = {
@@ -29,6 +33,8 @@ const WEEKEND: CreationTemplate = {
   lastDay: '2026-12-27',
 }
 const MEMORIAL: CreationTemplate = { ...MIDWEEK, id: 272, name: 'Mémorial', weekDay: null, lastDay: null }
+// A kind whose duties bring nothing: one schedule only.
+const ONE_SCHEDULE: CreationTemplate = { ...WEEKEND, id: 273, schedules: [{ name: null, kind: 'programme', items: 5 }] }
 
 describe('seriesStart', () => {
   it('picks up the day after the earliest last programme of the templates', () => {
@@ -88,8 +94,31 @@ describe('countSeries', () => {
 
     expect(countSeries(planned, new Set(['271:2027-01-10', '270:2026-12-31']))).toEqual({
       create: 2,
+      fill: 0,
       existing: 1,
       skipped: 1,
+      schedules: 4,
+    })
+  })
+
+  it('fills a meeting created ahead rather than creating one, and counts the schedules each brings', () => {
+    // 270 on Thursdays 31 Dec and 7 Jan; 273 on Sundays 3 and 10 Jan. The 7 Jan meeting exists, empty.
+    const planned = plannedSeries(
+      [MIDWEEK, ONE_SCHEDULE],
+      '2026-12-28',
+      '2027-01-10',
+      [{ templateId: 270, day: '2026-12-31', eventId: 4016 }],
+      [{ templateId: 270, day: '2027-01-07', eventId: 4017 }],
+    )
+    expect(planned.find(row => row.day === '2027-01-07')?.aheadId).toBe(4017)
+
+    // 3 Jan passed: nothing counted for it, not even its schedule.
+    expect(countSeries(planned, new Set(['273:2027-01-03']))).toEqual({
+      create: 1,
+      fill: 1,
+      existing: 1,
+      skipped: 1,
+      schedules: 3,
     })
   })
 })

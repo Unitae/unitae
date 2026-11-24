@@ -21,6 +21,10 @@ function template(id: number, name: string, weekDay: number | null) {
     startTime: '19:00',
     endTime: '20:45',
     _count: { parts: 15, serviceParts: 4 },
+    scheduleTemplates: [
+      { scheduleTemplate: { name: null, kind: 'programme', _count: { parts: 15, serviceParts: 0 } } },
+      { scheduleTemplate: { name: 'Services', kind: 'duty', _count: { parts: 0, serviceParts: 4 } } },
+    ],
   }
 }
 
@@ -61,6 +65,10 @@ describe('getProgrammeCreationData', () => {
       endTime: '20:45',
       parts: 15,
       services: 4,
+      schedules: [
+        { name: null, kind: 'programme', items: 15 },
+        { name: 'Services', kind: 'duty', items: 4 },
+      ],
       lastDay: null,
     })
   })
@@ -115,6 +123,51 @@ describe('getProgrammeCreationData', () => {
     expect(vi.mocked(db.event.findMany).mock.calls[0]?.[0]).toMatchObject({ where: hasProgramme })
   })
 
+  it('gives each template the schedules its meetings arrive with, in its order, none that brings nothing', async () => {
+    const midweek = template(270, 'Réunion de semaine', 4)
+    vi.mocked(db.eventTemplate.findMany).mockResolvedValue([
+      {
+        ...midweek,
+        scheduleTemplates: [
+          ...midweek.scheduleTemplates,
+          { scheduleTemplate: { name: 'Nettoyage', kind: 'duty', _count: { parts: 0, serviceParts: 0 } } },
+        ],
+      },
+    ] as never)
+
+    const { templates } = await getProgrammeCreationData(db, {
+      congregationId: 7,
+      timezone: MARTINIQUE,
+      today: '2026-11-16',
+      templateIds: null,
+    })
+
+    expect(templates[0]?.schedules).toEqual([
+      { name: null, kind: 'programme', items: 15 },
+      { name: 'Services', kind: 'duty', items: 4 },
+    ])
+  })
+
+  it('lists the meetings created ahead, still empty, apart: the series fills them', async () => {
+    vi.mocked(db.eventTemplate.findMany).mockResolvedValue([template(270, 'Réunion de semaine', 4)] as never)
+    vi.mocked(db.event.findMany).mockImplementation(((args: { where: { items?: unknown } }) =>
+      Promise.resolve(
+        'none' in ((args.where.items ?? {}) as object)
+          ? [{ id: 4017, templateId: 270, startDate: new Date('2026-11-19T23:00:00Z') }]
+          : [],
+      )) as never)
+
+    const result = await getProgrammeCreationData(db, {
+      congregationId: 7,
+      timezone: MARTINIQUE,
+      today: '2026-11-16',
+      templateIds: null,
+    })
+
+    expect(result.existing).toEqual([])
+    expect(result.ahead).toEqual([{ templateId: 270, day: '2026-11-19', eventId: 4017 }])
+  })
+
   it('asks nothing more when there is no template', async () => {
     vi.mocked(db.eventTemplate.findMany).mockResolvedValue([] as never)
 
@@ -125,7 +178,7 @@ describe('getProgrammeCreationData', () => {
       templateIds: [],
     })
 
-    expect(result).toEqual({ templates: [], existing: [] })
+    expect(result).toEqual({ templates: [], existing: [], ahead: [] })
     expect(db.event.findMany).not.toHaveBeenCalled()
   })
 })

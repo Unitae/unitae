@@ -1,6 +1,13 @@
 import { addDays, mondayOf } from '~/shared/utils/calendar-day'
 import { daysOnWeekday, programmeKey } from './programme-dates'
 
+/** A schedule a meeting of the template arrives with: its name (null reads as its kind), its kind, its items. */
+export interface CreationSchedule {
+  name: string | null
+  kind: string
+  items: number
+}
+
 /** A template programmes can be created from, as the creation page shows it. */
 export interface CreationTemplate {
   id: number
@@ -12,11 +19,16 @@ export interface CreationTemplate {
   endTime: string
   parts: number
   services: number
+  /**
+   * The schedules every new meeting of it arrives with: the ones its kind suggests that bring items (none is created
+   * empty), in its order. No checkbox: creating a meeting creates them all (the user's choice).
+   */
+  schedules: CreationSchedule[]
   /** The day of its latest programme, in the congregation's zone. */
   lastDay: string | null
 }
 
-/** A programme a template already has on a day to come. */
+/** A meeting a template already has on a day to come: with its programme, or (for `ahead`) created ahead, empty. */
 export interface ExistingProgramme {
   templateId: number
   day: string
@@ -30,12 +42,19 @@ export interface PlannedProgramme {
   day: string
   /** The programme the template already has that day, left as it is. */
   existingId: number | null
+  /** A meeting created ahead that day without a programme: the series fills it rather than creating another. */
+  aheadId: number | null
 }
 
 export interface SeriesCount {
+  /** New meetings. */
   create: number
+  /** Meetings created ahead, empty, that receive their schedules. */
+  fill: number
   existing: number
   skipped: number
+  /** The schedules the new and the filled meetings arrive with. */
+  schedules: number
 }
 
 /** How far a series can reach in one click: the end of the 1st, 2nd, 3rd and 6th month after its start's. */
@@ -78,16 +97,19 @@ export function plannedSeries(
   from: string,
   to: string,
   existing: ExistingProgramme[],
+  ahead: ExistingProgramme[] = [],
 ): PlannedProgramme[] {
-  const known = new Map(
-    existing.map(programme => [programmeKey(programme.templateId, programme.day), programme.eventId]),
-  )
+  const byKey = (events: ExistingProgramme[]) =>
+    new Map(events.map(event => [programmeKey(event.templateId, event.day), event.eventId]))
+  const known = byKey(existing)
+  const waiting = byKey(ahead)
   return templates
     .filter(isRecurring)
     .flatMap(template =>
       daysOnWeekday(template.weekDay, from, to).map(day => {
         const key = programmeKey(template.id, day)
-        return { key, template, day, existingId: known.get(key) ?? null }
+        const existingId = known.get(key) ?? null
+        return { key, template, day, existingId, aheadId: existingId == null ? (waiting.get(key) ?? null) : null }
       }),
     )
     .sort((a, b) => compare(a.day, b.day) || compare(a.template.startTime, b.template.startTime))
@@ -95,11 +117,15 @@ export function plannedSeries(
 
 /** What a series will create once the passed days are left out. */
 export function countSeries(planned: PlannedProgramme[], skipped: ReadonlySet<string>): SeriesCount {
-  const count: SeriesCount = { create: 0, existing: 0, skipped: 0 }
+  const count: SeriesCount = { create: 0, fill: 0, existing: 0, skipped: 0, schedules: 0 }
   for (const row of planned) {
     if (row.existingId != null) count.existing++
     else if (skipped.has(row.key)) count.skipped++
-    else count.create++
+    else {
+      if (row.aheadId != null) count.fill++
+      else count.create++
+      count.schedules += row.template.schedules.length
+    }
   }
   return count
 }
