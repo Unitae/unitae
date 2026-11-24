@@ -2029,6 +2029,19 @@
     ],
     "programs_bulk_not_permitted": "Vous n’avez pas l’autorisation de publier les programmes sélectionnés.",
     "programs_bulk_delete_not_permitted": "Vous n’avez pas l’autorisation de supprimer les programmes sélectionnés.",
+    "programs_schedules_empty": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} planning vide reste en brouillon.",
+                "countPlural=*": "{count} plannings vides restent en brouillon."
+            }
+        }
+    ],
     "programs_schedules_conflicted": [
         {
             "declarations": [
@@ -7173,6 +7186,7 @@
     "event_part_error_day_off_publisher": "Ce proclamateur a une absence durant cette date.",
     "event_part_error_day_off_reader": "Le deuxième orateur a une absence durant cette date.",
     "event_status_error_release_blocked": "Impossible de publier : cet évènement a des conflits d’absence à résoudre.",
+    "event_status_error_publish_empty": "Impossible de publier : ce planning est vide.",
     "event_status_error_release_awaiting": "Impossible de publier : cette réunion n’a pas encore de programme.",
     "role_tree_error_cycle": "Un service ne peut pas être rattaché à lui-même ni à l’un des services qui en dépendent.",
     "role_tree_error_too_deep": "L’organigramme ne peut pas dépasser {max} niveaux.",

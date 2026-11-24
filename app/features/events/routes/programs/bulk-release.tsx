@@ -49,10 +49,10 @@ export async function action({ request, context }: Route.ActionArgs) {
   // Phase 2: per-event scoped release. Each event opens its own withScope
   // inside bulkReleaseEvents so a slow/failing event only rolls back itself,
   // and partial progress is preserved on batch failure.
-  const { released, blocked, awaiting, refused, notFound, failed, heldSchedules, conflictedSchedules } =
+  const { released, blocked, awaiting, refused, notFound, failed, heldSchedules, conflictedSchedules, emptySchedules } =
     await bulkReleaseEvents(ids, can, currentUser.id, congregationId, { locale: cong.locale, timezone: cong.timezone })
   logger.info(
-    `Bulk released ${released.length} events; ${blocked.length} blocked; ${awaiting.length} awaiting a programme; ${refused.length} refused; ${notFound.length} not found; ${failed.length} failed; ${heldSchedules} schedules left to others.`,
+    `Bulk released ${released.length} events; ${blocked.length} blocked; ${awaiting.length} awaiting a programme; ${refused.length} refused; ${notFound.length} not found; ${failed.length} failed; ${heldSchedules} schedules left to others; ${emptySchedules} empty.`,
   )
 
   // None of the selection was the person's: say so, otherwise the click looks like it worked.
@@ -73,6 +73,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     refused.length > 0 && m.programs_bulk_skipped({ count: refused.length }),
     heldSchedules > 0 && m.programs_schedules_skipped({ count: heldSchedules }),
     conflictedSchedules > 0 && m.programs_schedules_conflicted({ count: conflictedSchedules }),
+    emptySchedules > 0 && m.programs_schedules_empty({ count: emptySchedules }),
   ])
   if (errorMessage) session.flash('error', errorMessage)
   return data(

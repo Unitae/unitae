@@ -275,7 +275,7 @@ describe('a duties responsible’s publishing', () => {
     expect(data.publishAll).toEqual({ count: 1, everyone: false })
   })
 
-  it('publishes their empty duties beside a programme with parts they cannot see: the meeting awaits nothing', async () => {
+  it('never offers their empty duties, whatever the programme they cannot see: none is published empty', async () => {
     state.statuses = { programme: 'draft', duty: 'draft' }
     state.rights.service = true
     state.mine = [2]
@@ -283,7 +283,7 @@ describe('a duties responsible’s publishing', () => {
     const data = (await loader({ params: { eventId: '40' }, context: readerContext() } as never)) as {
       event: { schedules: { id: number; publishable: boolean }[] }
     }
-    expect(data.event.schedules.map(schedule => [schedule.id, schedule.publishable])).toEqual([[2, true]])
+    expect(data.event.schedules.map(schedule => [schedule.id, schedule.publishable])).toEqual([[2, false]])
   })
 })
 
