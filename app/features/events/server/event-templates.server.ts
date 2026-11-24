@@ -99,8 +99,7 @@ export async function updateTemplate(
         : {}),
     },
   })
-  // Its programme schedule template carries its name.
-  if (changed.name != null) await syncTemplateScheduleTemplates(db, templateId, congregationId)
+  // Its schedule templates keep their own names: Réglages › « Modèles de planning » names them (user, 2026-11-24).
   audit({
     action: AuditAction.TemplateUpdated,
     congregationId,
