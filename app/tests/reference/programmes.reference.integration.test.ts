@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { getDynamicDocumentData } from '~/features/display-board/server/dynamic-documents.server'
-import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
 import {
   countsAnyMeeting,
   listAttendanceServiceYears,
@@ -13,7 +12,6 @@ import {
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
 import {
   canManageAnyProgram,
-  getResponsibleTemplateIds,
   listApplicableTemplates,
   mayReadSlotFacts,
 } from '~/features/events/server/events-auth.server'
@@ -151,14 +149,6 @@ describe('programmes', () => {
         // These come back in no defined order: sorted by label.
         const labelled = (eventIds: number[]) => eventIds.map(label).sort()
         return {
-          responsibleFor: {
-            programme: (await getResponsibleTemplateIds(db, accountId, congregationId))
-              .map(id => labelOf(fixture, 'template', id))
-              .sort(),
-            service: (await getResponsibleTemplateIds(db, accountId, congregationId, ResponsibilityScope.Service))
-              .map(id => labelOf(fixture, 'template', id))
-              .sort(),
-          },
           templates,
           applicableTemplates: (await listApplicableTemplates(db, can, accountId, congregationId))
             .map(template => labelOf(fixture, 'template', template.id))

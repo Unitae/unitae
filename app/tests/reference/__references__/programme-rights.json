@@ -1,13 +1,5 @@
 {
   "paul, an elder: midweek programme responsible": {
-    "responsibleFor": {
-      "programme": [
-        "midweek"
-      ],
-      "service": [
-        "midweek"
-      ]
-    },
     "templates": {
       "midweek": {
         "manageAsProgramme": true,
@@ -44,12 +36,6 @@
     "readsFactsOfAWeekendService": false
   },
   "luc, a servant: weekend services responsible": {
-    "responsibleFor": {
-      "programme": [],
-      "service": [
-        "weekend"
-      ]
-    },
     "templates": {
       "midweek": {
         "manageAsProgramme": false,
@@ -77,10 +63,6 @@
     "readsFactsOfAWeekendService": true
   },
   "pierre, neither": {
-    "responsibleFor": {
-      "programme": [],
-      "service": []
-    },
     "templates": {
       "midweek": {
         "manageAsProgramme": false,
@@ -106,10 +88,6 @@
     "readsFactsOfAWeekendService": false
   },
   "pierre, holding every permission": {
-    "responsibleFor": {
-      "programme": [],
-      "service": []
-    },
     "templates": {
       "midweek": {
         "manageAsProgramme": true,

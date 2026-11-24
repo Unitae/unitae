@@ -1,61 +1,16 @@
 import { SYSTEM_TEMPLATE_KEYS } from '~/features/events/model/event-template.type'
 import {
-  ResponsibilityScope,
-  scheduleKindsCovering,
-  scopesCovering,
-} from '~/features/events/model/responsibility-scope.type'
-import {
   type ItemKind,
   itemIdFromRequest,
   PART_ITEMS,
   SERVICE_ITEMS,
 } from '~/features/events/server/item-projection.server'
 import { canFillSchedule, responsibleKindIds } from '~/features/events/server/schedule-rights.server'
-import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 
 const logger = createLogger('events-auth')
-
-/**
- * The templates (kinds) the caller is responsible for, via the roles they hold: through a TemplateResponsible row, or
- * through a schedule template the kind suggests naming one of those roles (6a-1a).
- *
- * The empty guard is deliberate: `roleId: { in: [] }` matches nothing today, but relying on
- * that would make "user holds no roles" correct by accident rather than by intent.
- *
- * Read only by Réglages, whose template responsibles it shows and gates until PR 6 rewrites them per schedule
- * template. Every right, and every other screen (the absences' « who to contact » included, since 6a-0), goes by the
- * schedules' responsibles (schedule-rights.server.ts).
- * Scoped to the programme by default; pass `ResponsibilityScope.Service` only for a question about the service parts.
- */
-export async function getResponsibleTemplateIds(
-  db: TransactionClient,
-  userId: number,
-  congregationId: number,
-  scope: ResponsibilityScope = ResponsibilityScope.Programme,
-): Promise<number[]> {
-  const roleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
-  if (roleIds.length === 0) return []
-
-  // Through a schedule template the kind suggests (which Réglages › « Modèles de planning » will edit, 6a-1b), or a
-  // TemplateResponsible row still written by the kind's page until 6a-2: either opens the kind while both exist.
-  const [rows, links] = await Promise.all([
-    db.templateResponsible.findMany({
-      where: { roleId: { in: roleIds }, congregationId, scope: { in: scopesCovering(scope) } },
-      select: { templateId: true },
-    }),
-    db.eventKindScheduleTemplate.findMany({
-      where: {
-        congregationId,
-        scheduleTemplate: { responsibleRoleId: { in: roleIds }, kind: { in: scheduleKindsCovering(scope) } },
-      },
-      select: { eventKindId: true },
-    }),
-  ])
-  return [...new Set([...rows.map(r => r.templateId), ...links.map(link => link.eventKindId)])]
-}
 
 /**
  * The kinds the caller may move an event to: all of them for a programme manager, otherwise the kinds suggesting a

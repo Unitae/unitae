@@ -47,7 +47,6 @@ const allowOnly = (allowed: Permission) => (p: Permission) => p === allowed
 
 const {
   assignmentBelongsToEvent,
-  getResponsibleTemplateIds,
   canManageAnyProgram,
   listApplicableTemplates,
   mayReadSlotFacts,
@@ -267,27 +266,6 @@ afterAll(async () => {
   }
   await testDb.congregation.deleteMany({ where: { id: { in: [primaryCongId, otherCongId] } } })
   await testDb.$disconnect()
-})
-
-describe('getResponsibleTemplateIds (integration)', () => {
-  it('returns the templateIds the user is responsible for inside scope', async () => {
-    const result = await withScope(primaryCongId, tx => getResponsibleTemplateIds(tx, responsibleId, primaryCongId))
-    expect(result).toEqual([templateOwnedId])
-  })
-
-  // Pat holds `unrelatedRoleId`, so this is a real refusal on the role check rather than the
-  // trivial "holds no roles at all" short-circuit, which the unit test already covers.
-  it("returns an empty array for a user whose roles are not any template's responsible", async () => {
-    const result = await withScope(primaryCongId, tx => getResponsibleTemplateIds(tx, plainId, primaryCongId))
-    expect(result).toEqual([])
-  })
-
-  it('does not leak responsibilities from another congregation when scoped', async () => {
-    const result = await withScope(primaryCongId, tx =>
-      getResponsibleTemplateIds(tx, otherCongResponsibleId, primaryCongId),
-    )
-    expect(result).toEqual([])
-  })
 })
 
 describe('canChangeEvent (integration)', () => {
@@ -545,9 +523,6 @@ describe('deputies of the responsible role (integration)', () => {
           canChangeEventsOfKind(tx, allowNone, person.id, template.id, primaryCongId),
         ),
       ).toBe(true)
-      expect(await withScope(primaryCongId, tx => getResponsibleTemplateIds(tx, person.id, primaryCongId))).toContain(
-        template.id,
-      )
     }
 
     await withScope(primaryCongId, async tx => {
@@ -565,19 +540,7 @@ describe('deputies of the responsible role (integration)', () => {
 })
 
 describe('responsibility scope (integration)', () => {
-  // The scopes no longer decide any right (schedule-rights.server.integration.test.ts does, D28, D31): they feed the
-  // Réglages alone, through getResponsibleTemplateIds, until PR 6.
-  it('keeps the service responsible off the programme-scoped list the screens read', async () => {
-    const programmeScoped = await withScope(primaryCongId, tx =>
-      getResponsibleTemplateIds(tx, serviceResponsibleId, primaryCongId),
-    )
-    const serviceScoped = await withScope(primaryCongId, tx =>
-      getResponsibleTemplateIds(tx, serviceResponsibleId, primaryCongId, ResponsibilityScope.Service),
-    )
-    expect(programmeScoped).toEqual([])
-    expect(serviceScoped).toEqual([templateOwnedId])
-  })
-
+  // The scopes decide no right (schedule-rights.server.integration.test.ts does): the sync reads them, until 6a-2.
   it('still allows only one role per scope on a template', async () => {
     await expect(
       withScope(primaryCongId, tx =>
@@ -778,122 +741,5 @@ describe('mayReadSlotFacts (integration)', () => {
       }),
     )
     expect(result).toBe(true)
-  })
-})
-
-describe('responsibility through the schedule templates (integration, 6a-1a)', () => {
-  // Réglages edits each schedule template's responsible (6a); someone named only there answers for the kinds suggesting
-  // it, as a TemplateResponsible row did: a programme responsible covers the whole meeting, a duties' one the services.
-  it('opens a kind to whoever holds a role its schedule templates name, with no TemplateResponsible row', async () => {
-    const { isTemplateResponsible } = await import('./event-templates.server')
-    class Rollback extends Error {}
-    await testDb
-      .$transaction(async tx => {
-        await tx.$executeRawUnsafe(`SET LOCAL app.congregation_id = '${String(primaryCongId)}'`)
-        const db = tx as never
-        const role = (kind: string) =>
-          tx.role.create({ data: { key: `st-${kind}-${ts}`, name: kind, congregationId: primaryCongId } })
-        const holder = async (name: string, roleId: number) => {
-          const account = await tx.userAccount.create({
-            data: { email: `st-${name}-${ts}@test.com`, password: 'x', congregationId: primaryCongId },
-          })
-          await tx.userRoleAssignment.create({ data: { userId: account.id, roleId, congregationId: primaryCongId } })
-          return account.id
-        }
-        const kind = await tx.eventTemplate.create({
-          data: { name: `Kind ${ts}`, key: `kind-${ts}`, congregationId: primaryCongId },
-        })
-        const [programmeRole, dutyRole] = [await role('programme'), await role('duty')]
-        for (const [kindName, roleId, order] of [
-          ['programme', programmeRole.id, 0],
-          ['duty', dutyRole.id, 1],
-        ] as const) {
-          await tx.scheduleTemplate.create({
-            data: {
-              name: kindName,
-              kind: kindName,
-              responsibleRoleId: roleId,
-              congregationId: primaryCongId,
-              eventKinds: { create: { eventKindId: kind.id, order, congregationId: primaryCongId } },
-            },
-          })
-        }
-        const programmeLead = await holder('programme', programmeRole.id)
-        const dutyLead = await holder('duty', dutyRole.id)
-
-        expect(await getResponsibleTemplateIds(db, programmeLead, primaryCongId)).toEqual([kind.id])
-        expect(await getResponsibleTemplateIds(db, programmeLead, primaryCongId, ResponsibilityScope.Service)).toEqual([
-          kind.id,
-        ])
-        expect(await getResponsibleTemplateIds(db, dutyLead, primaryCongId)).toEqual([])
-        expect(await getResponsibleTemplateIds(db, dutyLead, primaryCongId, ResponsibilityScope.Service)).toEqual([
-          kind.id,
-        ])
-        expect(
-          await isTemplateResponsible(db, kind.id, dutyLead, primaryCongId, ResponsibilityScope.Service),
-        ).not.toBeNull()
-        expect(await isTemplateResponsible(db, kind.id, dutyLead, primaryCongId)).toBeNull()
-        expect(await isTemplateResponsible(db, kind.id, programmeLead, primaryCongId)).not.toBeNull()
-        // Only the kind asked about: another kind's editor stays closed to both.
-        expect(await isTemplateResponsible(db, templateOtherId, programmeLead, primaryCongId)).toBeNull()
-        expect(
-          await isTemplateResponsible(db, templateOtherId, dutyLead, primaryCongId, ResponsibilityScope.Service),
-        ).toBeNull()
-        throw new Rollback()
-      })
-      .catch(error => {
-        if (!(error instanceof Rollback)) throw error
-      })
-  })
-})
-
-describe('isTemplateResponsible, the TemplateResponsible source (integration)', () => {
-  it('answers for the template asked about and a role the caller holds, nothing else', async () => {
-    const { isTemplateResponsible } = await import('./event-templates.server')
-    await withScope(primaryCongId, async tx => {
-      const db = tx as never
-      expect(await isTemplateResponsible(db, templateOwnedId, responsibleId, primaryCongId)).not.toBeNull()
-      expect(await isTemplateResponsible(db, templateOtherId, responsibleId, primaryCongId)).toBeNull()
-      expect(await isTemplateResponsible(db, templateOwnedId, plainId, primaryCongId)).toBeNull()
-    })
-  })
-
-  it('closes both sources when its schedule templates’ responsibles are cleared in Réglages', async () => {
-    const { isTemplateResponsible } = await import('./event-templates.server')
-    const { updateScheduleTemplate } = await import('./schedule-template-settings.server')
-    class Rollback extends Error {}
-    await testDb
-      .$transaction(async tx => {
-        await tx.$executeRawUnsafe(`SET LOCAL app.congregation_id = '${String(primaryCongId)}'`)
-        const db = tx as never
-        const templateOf = async (kind: 'programme' | 'duty') =>
-          (
-            await tx.scheduleTemplate.findFirstOrThrow({
-              where: { kind, eventKinds: { some: { eventKindId: templateOwnedId } } },
-            })
-          ).id
-        const set = async (programmeRoleId: number | null, dutyRoleId: number | null) => {
-          const programme = await templateOf('programme')
-          const duties = await templateOf('duty')
-          await updateScheduleTemplate(db, programme, { responsibleRoleId: programmeRoleId }, primaryCongId, managerId)
-          await updateScheduleTemplate(db, duties, { responsibleRoleId: dutyRoleId }, primaryCongId, managerId)
-        }
-        await set(responsibleRoleId, serviceRoleId)
-        expect(await isTemplateResponsible(db, templateOwnedId, responsibleId, primaryCongId)).not.toBeNull()
-        expect(
-          await getResponsibleTemplateIds(db, serviceResponsibleId, primaryCongId, ResponsibilityScope.Service),
-        ).toContain(templateOwnedId)
-
-        await set(null, null)
-        // The rows go, and the sync clears the schedule templates' role: neither source opens the kind.
-        expect(await isTemplateResponsible(db, templateOwnedId, responsibleId, primaryCongId)).toBeNull()
-        expect(
-          await getResponsibleTemplateIds(db, serviceResponsibleId, primaryCongId, ResponsibilityScope.Service),
-        ).not.toContain(templateOwnedId)
-        throw new Rollback()
-      })
-      .catch(error => {
-        if (!(error instanceof Rollback)) throw error
-      })
   })
 })

@@ -10,12 +10,11 @@ export { countMeetingsToMove, EMPTY_MEETING } from './server/empty-meetings.quer
 export {
   getTemplateById,
   getTemplates,
-  isTemplateResponsible,
   removeTemplateResponsible,
   setTemplateResponsible,
   updateTemplate,
 } from './server/event-templates.server'
-export { getResponsibleTemplateIds, templateItemBelongsToTemplate } from './server/events-auth.server'
+export { templateItemBelongsToTemplate } from './server/events-auth.server'
 export {
   asEventPart,
   asEventServicePart,

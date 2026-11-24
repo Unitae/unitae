@@ -43,7 +43,6 @@ export {
   findResponsible,
   RESPONSIBILITY_SCOPES,
   ResponsibilityScope,
-  scopesCovering,
 } from './model/responsibility-scope.type'
 export { isScheduleKind, ScheduleKind, ScheduleStatus, UNNAMED_SCHEDULE_KEY } from './model/schedule.type'
 export { sectionColor, sectionIcon } from './model/section-style'
