@@ -44,7 +44,8 @@ interface EventAssignmentsPanelProps {
   /** What the empty table says instead of « Aucune partie au programme ». */
   emptyHint?: string
   /** The schedule's own heading on the event page: its title, its controls, and a first line (its responsible). */
-  heading?: { title: ReactNode; actions?: ReactNode; intro?: ReactNode }
+  /** `description`: a line under the title, in the header (the schedule's responsible). */
+  heading?: { title: ReactNode; actions?: ReactNode; description?: ReactNode; intro?: ReactNode }
 }
 
 /**
@@ -69,6 +70,7 @@ export function EventAssignmentsPanel({
     <Panel
       title={heading?.title ?? m.programs_view_spiritual_program()}
       actions={heading?.actions}
+      description={heading?.description}
       footer={
         parts.length > 0 && (
           <>
@@ -78,7 +80,7 @@ export function EventAssignmentsPanel({
         )
       }
     >
-      {heading?.intro && <div className="border-border border-b">{heading.intro}</div>}
+      {heading?.intro && <div className="border-border border-b empty:hidden">{heading.intro}</div>}
       {parts.length === 0 ? (
         <p className="px-4.5 py-6 text-muted-foreground text-sm">{emptyHint ?? m.dashboard_meeting_no_parts()}</p>
       ) : (

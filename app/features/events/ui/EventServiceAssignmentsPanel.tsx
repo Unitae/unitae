@@ -23,7 +23,8 @@ interface EventServiceAssignmentsPanelProps {
   onAssign: (service: AssignedService, trigger: HTMLElement) => void
   onUnassign: (target: UnassignTarget) => void
   /** The schedule's own heading on the event page: its title, its controls, and a first line (its responsible). */
-  heading?: { title: ReactNode; actions?: ReactNode; intro?: ReactNode }
+  /** `description`: a line under the title, in the header (the schedule's responsible). */
+  heading?: { title: ReactNode; actions?: ReactNode; description?: ReactNode; intro?: ReactNode }
 }
 
 /** Who does each service (sound, attendants…) at this event. */
@@ -37,8 +38,12 @@ export function EventServiceAssignmentsPanel({
   heading,
 }: EventServiceAssignmentsPanelProps) {
   return (
-    <Panel title={heading?.title ?? m.programs_view_services()} actions={heading?.actions}>
-      {heading?.intro && <div className="border-border border-b">{heading.intro}</div>}
+    <Panel
+      title={heading?.title ?? m.programs_view_services()}
+      actions={heading?.actions}
+      description={heading?.description}
+    >
+      {heading?.intro && <div className="border-border border-b empty:hidden">{heading.intro}</div>}
       {services.length === 0 ? (
         <p className="px-4.5 py-6 text-muted-foreground text-sm">{m.programs_edit_no_services()}</p>
       ) : (
