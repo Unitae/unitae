@@ -1,13 +1,14 @@
 import { expect, test } from '@playwright/test'
 import { E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD, login } from './helpers/auth'
-import { assign, createPublisher, farTuesday, openMeeting, programmeDocument } from './helpers/programmes'
+import { assign, createPublisher, farTuesday, openMeeting, programmeDocument, withdrawAll } from './helpers/programmes'
 
-// Each schedule of a meeting publishes on its own (D8): the duties first, the board shows them alone and nothing of
-// the draft programme (D45); the programme then, and the board shows both. A run's own publisher and meeting.
+// Each schedule of a meeting publishes on its own (D8): the services first, the board shows them alone and nothing of
+// the draft spiritual schedule (D46: members see published schedules only); then the spiritual one, and the board
+// shows both. A run's own publisher and meeting, anything a stopped run left published withdrawn first.
 
 const DOCUMENT_TITLE = 'Programme des plannings (E2E)'
-const DUTIES = /Devoirs$/
-const PROGRAMME = /Programme$/
+const DUTIES = /Services$/
+const PROGRAMME = /Spirituel$/
 
 test.describe('Schedules', () => {
   test.beforeEach(async ({ page }) => {
@@ -23,6 +24,7 @@ test.describe('Schedules', () => {
     // Days the assignments spec never draws from (it takes 400 to 1,100 days ahead).
     const eventId = await openMeeting(page, farTuesday(1200))
     await page.goto(`/programs/events/${eventId}`)
+    await withdrawAll(page)
     await assign(page, 'Lecture de la Bible', 'Orateur', person)
     await assign(page, 'Estrade', 'Proclamateur', person)
 
@@ -36,8 +38,9 @@ test.describe('Schedules', () => {
     await page.goto(viewer)
     const main = page.getByRole('main')
     await expect(page.getByRole('heading', { level: 1, name: DOCUMENT_TITLE })).toBeVisible()
-    // The duties alone: the person once, on the stage, and nothing of the draft programme.
+    // The services alone: the person once, on the stage, and nothing of the draft spiritual schedule.
     await expect(main.getByText(lastname)).toHaveCount(1)
+    await expect(main.getByText('Estrade')).toBeVisible()
     await expect(main.getByText('Lecture de la Bible')).toHaveCount(0)
 
     await page.goto(`/programs/events/${eventId}`)
@@ -51,9 +54,6 @@ test.describe('Schedules', () => {
 
     // Back to drafts, so a rerun on the same meeting starts from nothing published.
     await page.goto(`/programs/events/${eventId}`)
-    await page.getByRole('button', { name: 'Repasser en brouillon' }).first().click()
-    await expect(page.getByRole('button', { name: 'Repasser en brouillon' })).toHaveCount(1)
-    await page.getByRole('button', { name: 'Repasser en brouillon' }).click()
-    await expect(page.getByRole('button', { name: 'Repasser en brouillon' })).toHaveCount(0)
+    await withdrawAll(page)
   })
 })

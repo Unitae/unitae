@@ -1,18 +1,13 @@
 import { expect, test } from '@playwright/test'
 import { E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD, login } from './helpers/auth'
-import {
-  assign,
-  createPublisher,
-  DOCUMENT_TITLE,
-  farTuesday,
-  openMeeting,
-  programmeDocument,
-} from './helpers/programmes'
+import { assign, createPublisher, farTuesday, openMeeting, programmeDocument } from './helpers/programmes'
 
 // The whole path of an assignment, as whoever prepares the programmes walks it: a part and a service given to a
 // publisher, the programme published, the board's programme showing them, then unpublished and gone from the board.
 // Each run creates its own publisher and picks a meeting far ahead, so reruns rarely share one — and reuse it when they
 // do. The board document is this spec's own, found by its title: another document's settings never decide the result.
+
+const DOCUMENT_TITLE = 'Programme des réunions (E2E)'
 
 // A schedule's section status once published: « Publié · 1 partie sur 15 attribuée ».
 const PUBLISHED_STATUS = /^Publié ·/
@@ -39,7 +34,7 @@ test.describe('Assignments', () => {
     await expect(page.getByText(PUBLISHED_STATUS)).toHaveCount(2)
 
     // The board opened on this meeting, as a notice's link opens it.
-    const viewer = `${await programmeDocument(page)}?eventId=${eventId}`
+    const viewer = `${await programmeDocument(page, DOCUMENT_TITLE)}?eventId=${eventId}`
     await page.goto(viewer)
     const main = page.getByRole('main')
     await expect(page.getByRole('heading', { level: 1, name: DOCUMENT_TITLE })).toBeVisible()

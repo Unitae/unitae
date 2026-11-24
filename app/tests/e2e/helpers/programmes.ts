@@ -11,7 +11,6 @@ const SUBMIT_SINGLE_RE = /^Créer le programme$/
 const MIDWEEK_RE = /^Réunion de semaine/
 const EDIT_URL_RE = /\/programs\/events\/(\d+)\/edit/
 const PUBLISHER_FORM_SUBMIT_RE = /enregistrer|sauvegarder|créer|ajouter/i
-export const DOCUMENT_TITLE = 'Programme des réunions (E2E)'
 const FIRSTNAME_RE = /prénom/i
 const BOARD_DOCUMENTS_URL_RE = /\/board\/documents$/
 const LASTNAME_RE = /^nom$/i
@@ -88,7 +87,7 @@ export async function assign(page: Page, row: string, picker: 'Orateur' | 'Procl
  * A spec's programme document — all meetings, parts and services — found by its title or created, with a section if
  * the board has none. Each spec its own title: specs running side by side never race to create one.
  */
-export async function programmeDocument(page: Page, title = DOCUMENT_TITLE): Promise<string> {
+export async function programmeDocument(page: Page, title: string): Promise<string> {
   await page.goto('/board')
   const card = page.getByRole('link', { name: new RegExp(title.replace(/[()]/g, '\\$&')) })
   if ((await card.count()) === 0) {
@@ -111,4 +110,13 @@ export async function programmeDocument(page: Page, title = DOCUMENT_TITLE): Pro
   const href = await card.first().getAttribute('href')
   if (!href) throw new Error('the programme document has no link on the board')
   return href
+}
+
+/** Withdraws every schedule of the meeting open on the page: a run that stopped half way leaves none published. */
+export async function withdrawAll(page: Page) {
+  const withdraw = page.getByRole('button', { name: 'Repasser en brouillon' })
+  for (let left = await withdraw.count(); left > 0; left--) {
+    await withdraw.first().click()
+    await expect(withdraw).toHaveCount(left - 1)
+  }
 }
