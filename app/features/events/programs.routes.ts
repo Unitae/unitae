@@ -14,6 +14,7 @@ export const programsRoutes = [
       route('release', 'features/events/routes/programs/events/release.tsx'),
       route('create-programme', 'features/events/routes/programs/events/create-programme.tsx'),
       route('unrelease', 'features/events/routes/programs/events/unrelease.tsx'),
+      route('schedules/add', 'features/events/routes/programs/events/schedule-add.tsx'),
       ...prefix('schedules/:scheduleId', [
         route('publish', 'features/events/routes/programs/events/schedule-publish.tsx'),
         route('unpublish', 'features/events/routes/programs/events/schedule-unpublish.tsx'),

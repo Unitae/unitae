@@ -234,6 +234,7 @@ export async function publishActionsFor(
             eventId: true,
             kind: true,
             status: true,
+            scheduleTemplateId: true,
             _count: { select: { items: true } },
             event: { select: { template: { select: { key: true, ...TEMPLATE_PROGRAMME_COUNT } } } },
           },
@@ -261,7 +262,14 @@ export async function publishActionsFor(
           canRelease: theirs.some(
             schedule =>
               schedule.status === ScheduleStatus.Draft &&
-              !programmeAwaits({ kind: schedule.kind, items: schedule._count.items }, schedule.event.template),
+              !programmeAwaits(
+                {
+                  kind: schedule.kind,
+                  items: schedule._count.items,
+                  fromTemplate: schedule.scheduleTemplateId != null,
+                },
+                schedule.event.template,
+              ),
           ),
           canUnrelease: theirs.some(schedule => schedule.status === ScheduleStatus.Published),
         },

@@ -50,3 +50,19 @@ export function itemStatusFor(scheduleStatus: string | null | undefined): EventS
 export function scheduleStatusFor(eventStatus: string): ScheduleStatus {
   return eventStatus === EventStatus.Released ? ScheduleStatus.Published : ScheduleStatus.Draft
 }
+
+/** A schedule template « Ajouter un planning » offers (D39). */
+export interface ScheduleAddOption {
+  id: number
+  name: string | null
+  kind: ScheduleKind
+  /** The event kinds it belongs to: what tells two unnamed templates apart. */
+  usedBy: string[]
+}
+
+/** What « Ajouter un planning » offers a reader: templates the event kind suggests, the others, empty kinds. */
+export interface ScheduleAddOptions {
+  suggested: ScheduleAddOption[]
+  others: ScheduleAddOption[]
+  emptyKinds: ScheduleKind[]
+}

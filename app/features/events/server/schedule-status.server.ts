@@ -122,6 +122,7 @@ export async function publishSchedule(
       eventId: true,
       kind: true,
       status: true,
+      scheduleTemplateId: true,
       items: { select: ASSIGNMENT_SELECT, orderBy: MIXED_ITEM_ORDER },
       event: { select: { template: { select: { key: true, ...TEMPLATE_PROGRAMME_COUNT } } } },
     },
@@ -133,7 +134,8 @@ export async function publishSchedule(
   // Programme items have a second slot (the reader); duties have none, as releaseEvent reads them.
   const parts = isProgramme ? schedule.items : []
   const services = isProgramme ? [] : schedule.items.map(({ assistantId: _assistant, ...service }) => service)
-  if (programmeAwaits({ kind: ref.kind, items: schedule.items.length }, schedule.event.template)) {
+  const fromTemplate = schedule.scheduleTemplateId != null
+  if (programmeAwaits({ kind: ref.kind, items: schedule.items.length, fromTemplate }, schedule.event.template)) {
     return { schedule: ref, error: EVENT_STATUS_ERRORS.releaseAwaitingProgramme, reason: 'awaiting' }
   }
   try {

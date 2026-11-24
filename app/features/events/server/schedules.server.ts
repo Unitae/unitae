@@ -13,9 +13,10 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 
 // An event's schedules, written beside its items' `eventId` and its own `status` until the readers move over. The rule
 // is the add_schedules migration's, for one event: keep the two in step. While it lasts, an event has one programme at
-// most (a unique index, D9) and, because every writer goes through eventScheduleId, one duty schedule at most. Its
-// schedules follow its template; a schedule's status starts from D52 and is then its own, the event's settling from
-// them (settleEventStatus, D51).
+// most (a unique index, D9) and one duty schedule at most: every writer goes through eventScheduleId, and adding one
+// (addSchedule) only adds a kind the event lacks. Its schedules follow its template: applying a template rewrites the
+// template, name and key of each by kind (alignEventSchedules), one added by hand included, for now; a schedule's
+// status starts from D52 and is then its own, the event's settling from them (settleEventStatus, D51).
 //
 // Locks: a template's row before an event's, the order of every path that creates or moves events of a template.
 

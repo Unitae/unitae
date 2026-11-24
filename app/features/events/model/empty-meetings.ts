@@ -87,10 +87,11 @@ export function planMeetingMoves(input: {
  * parts to give. Only the template's parts count, its duties filling the other schedule; duties never wait.
  */
 export function programmeAwaits(
-  schedule: { kind: string; items: number },
+  /** `fromTemplate`: an empty schedule added by hand has no template's parts to wait for. */
+  schedule: { kind: string; items: number; fromTemplate: boolean },
   template: { key: string | null; _count: { parts: number; serviceParts: number } } | null,
 ): boolean {
-  if (schedule.kind !== ScheduleKind.Programme) return false
+  if (schedule.kind !== ScheduleKind.Programme || !schedule.fromTemplate) return false
   const given = programmeTemplate(template)
   return isAwaitingProgramme({ parts: schedule.items, services: 0, template: given && { ...given, services: 0 } })
 }

@@ -72,16 +72,56 @@ export async function giveProgramme(
     ...(template.serviceParts.length > 0 ? [ScheduleKind.Duty] : []),
   ]
   const { programme: programmeId, duty: dutiesId } = await eventSchedulesOf(db, eventId, kinds, congregationId)
+  await writeTemplateItems(
+    db,
+    { eventId: event.id, programmeId, dutiesId, parts: template.parts, services: template.serviceParts },
+    congregationId,
+  )
+
+  // Awaited, in the same transaction: the record of who created it stands or falls with the programme.
+  await auditInTransaction(db, {
+    action: AuditAction.EventCreated,
+    congregationId,
+    actorId: ctx.actorId,
+    entityType: 'Event',
+    entityId: event.id,
+    // `reused`: the meeting existed, created ahead; this gave it its programme.
+    metadata: reused ? { templateId: template.id, day, reused: true } : { templateId: template.id, day },
+  })
+  return { id: event.id, templateId: template.id, day }
+}
+
+/**
+ * Writes a template's parts into the event's programme schedule and its duties into its duty schedule, each with who
+ * may take it: for giving a programme, and for adding one schedule from its template (addSchedule).
+ */
+export async function writeTemplateItems(
+  db: TransactionClient,
+  {
+    eventId,
+    programmeId,
+    dutiesId,
+    parts,
+    services,
+  }: {
+    eventId: number
+    programmeId: number | null
+    dutiesId: number | null
+    parts: TemplateWithRelations['parts']
+    services: TemplateWithRelations['serviceParts']
+  },
+  congregationId: number,
+) {
   // Each item points at the template item its template part or service is mirrored into (plan T12).
   const templates = await templateItemsOf(
     db,
-    { partIds: template.parts.map(part => part.id), serviceIds: template.serviceParts.map(service => service.id) },
+    { partIds: parts.map(part => part.id), serviceIds: services.map(service => service.id) },
     congregationId,
   )
-  for (const part of template.parts) {
+  for (const part of parts) {
     const assignment = await db.item.create({
       data: {
-        eventId: event.id,
+        eventId: eventId,
         scheduleId: programmeId,
         templateItemId: templates.parts.get(part.id) ?? null,
         name: part.name,
@@ -112,10 +152,10 @@ export async function giveProgramme(
     }
   }
 
-  for (const service of template.serviceParts) {
+  for (const service of services) {
     const assignment = await db.item.create({
       data: {
-        eventId: event.id,
+        eventId: eventId,
         scheduleId: dutiesId,
         templateItemId: templates.services.get(service.id) ?? null,
         name: service.name,
@@ -135,16 +175,4 @@ export async function giveProgramme(
       })
     }
   }
-
-  // Awaited, in the same transaction: the record of who created it stands or falls with the programme.
-  await auditInTransaction(db, {
-    action: AuditAction.EventCreated,
-    congregationId,
-    actorId: ctx.actorId,
-    entityType: 'Event',
-    entityId: event.id,
-    // `reused`: the meeting existed, created ahead; this gave it its programme.
-    metadata: reused ? { templateId: template.id, day, reused: true } : { templateId: template.id, day },
-  })
-  return { id: event.id, templateId: template.id, day }
 }

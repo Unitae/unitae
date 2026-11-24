@@ -10,6 +10,7 @@ import { buildShareTextsForEvent } from '~/features/events/server/build-share-me
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
 import { publishActionsFor, publishableScheduleIds } from '~/features/events/server/event-publishing.server'
 import { listExternalSpeakerOptions } from '~/features/events/server/external-speakers.queries'
+import { scheduleAddOptions } from '~/features/events/server/schedule-add.server'
 import { changeableScheduleIds } from '~/features/events/server/schedule-changes.server'
 import { listScheduleResponsibles } from '~/features/events/server/schedule-responsibles.queries'
 import {
@@ -88,7 +89,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     }
 
     // Each schedule the reader sees, as its section shows it: its responsible (D37) and whether they may publish it.
-    const [mine, viewerRoleIds, changeable] = await Promise.all([
+    const [mine, viewerRoleIds, changeable, addOptions] = await Promise.all([
       publishableScheduleIds(db, can, currentUser.id, [event.id], congregationId),
       resolveEffectiveRoleIds(db, currentUser.id, congregationId),
       changeableScheduleIds(
@@ -98,6 +99,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
         shown.schedules.map(schedule => schedule.id),
         congregationId,
       ),
+      scheduleAddOptions(db, can, currentUser.id, event.id, congregationId),
     ])
     const viewer = { accountId: currentUser.id, memberId: currentUser.memberId, roleIds: viewerRoleIds }
     const roleOf = (schedule: (typeof shown.schedules)[number]) => schedule.scheduleTemplate?.responsibleRoleId ?? null
@@ -139,7 +141,10 @@ export function loader({ params, context }: Route.LoaderArgs) {
           !awaitsInFact &&
           mayPublish &&
           schedule.status === ScheduleStatus.Draft &&
-          !programmeAwaits({ kind: schedule.kind, items }, event.template),
+          !programmeAwaits(
+            { kind: schedule.kind, items, fromTemplate: schedule.scheduleTemplate != null },
+            event.template,
+          ),
       }
     })
     const myDrafts = schedules.filter(schedule => schedule.publishable).length
@@ -178,6 +183,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
       event: { ...shown, schedules },
       // « Tout publier » (D43): the drafts the reader may publish, all of them for « Publier ».
       publishAll: { count: myDrafts, everyone: can(Permission.CanPublishPrograms) },
+      // « Ajouter un planning » (D39): what the reader may add of a kind the event lacks.
+      addSchedule: { options: addOptions, eventKindName: event.template?.name ?? null },
       // Created ahead and still empty: the page offers « Créer le programme » instead of publishing it.
       awaitingProgramme,
       hasAttendance,

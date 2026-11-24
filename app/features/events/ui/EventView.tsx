@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useFetcher } from 'react-router'
 import type { ExternalSpeakerOption } from '~/features/events/model/external-speaker.type'
 import { parseAssignKey } from '~/features/events/model/reassign'
+import type { ScheduleAddOptions } from '~/features/events/model/schedule.type'
 import { ScheduleKind, ScheduleStatus } from '~/features/events/model/schedule.type'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
@@ -64,6 +65,8 @@ interface EventViewProps {
   timezone: string
   /** « Tout publier » (D43): how many drafts the reader may publish, and whether that is every schedule (« Publier »). */
   publishAll: { count: number; everyone: boolean }
+  /** « Ajouter un planning » (D39): what the reader may add of a kind the event lacks. */
+  addSchedule: { options: ScheduleAddOptions; eventKindName: string | null }
 }
 
 /**
@@ -90,6 +93,7 @@ export function EventView({
   shareTexts,
   timezone,
   publishAll,
+  addSchedule,
 }: EventViewProps) {
   const partFetcher = useFetcher()
   const serviceFetcher = useFetcher()
@@ -200,6 +204,7 @@ export function EventView({
         awaitingProgramme={awaitingProgramme}
         // With schedules, each section carries its status and its « Publier »; the header publishes them all (D43).
         publishAll={bySchedule ? publishAll : null}
+        addSchedule={addSchedule}
         canRelease={canRelease}
         canUnrelease={canUnrelease}
         canEdit={canEdit}

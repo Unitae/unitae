@@ -49,7 +49,8 @@ vi.mock('~/features/events/server/event-part-assignments.server', () => ({
           status: state.statuses.programme,
           name: null,
           key: 'programme',
-          scheduleTemplate: null,
+          // Made from the kind's template, with no responsible: the managers'.
+          scheduleTemplate: { responsibleRoleId: null },
         },
         {
           id: 2,
@@ -98,6 +99,15 @@ vi.mock('~/shared/auth/permissions.server', async importOriginal => ({
 // Who may rename or delete which is changeableScheduleIds' integration test: faked here.
 vi.mock('~/features/events/server/schedule-changes.server', () => ({
   changeableScheduleIds: () => Promise.resolve(new Set<number>(state.changeable)),
+}))
+// What « Ajouter un planning » offers is scheduleAddOptions' integration test: handed on as it comes.
+vi.mock('~/features/events/server/schedule-add.server', () => ({
+  scheduleAddOptions: () =>
+    Promise.resolve({
+      suggested: [{ id: 5, name: 'Nettoyage', kind: 'duty', usedBy: [] }],
+      others: [],
+      emptyKinds: [],
+    }),
 }))
 // Who answers for each schedule is listScheduleResponsibles' integration test.
 vi.mock('~/features/events/server/schedule-responsibles.queries', () => ({
@@ -176,6 +186,16 @@ describe('each schedule’s section', () => {
     ])
     // Its one schedule of theirs is published: nothing left for them to publish.
     expect(data.publishAll).toEqual({ count: 0, everyone: false })
+  })
+})
+
+describe('« Ajouter un planning »', () => {
+  it('hands on what the reader may add, with the event’s kind its suggestions come from', async () => {
+    const data = (await loader({ params: { eventId: '40' }, context: readerContext() } as never)) as {
+      addSchedule: { options: { suggested: { id: number }[] }; eventKindName: string | null }
+    }
+    expect(data.addSchedule.options.suggested.map(option => option.id)).toEqual([5])
+    expect(data.addSchedule).toHaveProperty('eventKindName')
   })
 })
 

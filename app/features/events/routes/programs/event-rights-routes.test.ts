@@ -15,6 +15,8 @@ const { state } = vi.hoisted(() => ({
     notices: [] as string[],
     /** What renaming a schedule answers once allowed. */
     renamed: true,
+    /** What adding a schedule answers once allowed: added, or a refusal of the domain. */
+    addReason: null as null | 'kind-held' | 'awaiting-programme',
     /** What « Tout publier » returns beyond the defaults, for the messages it leads to. */
     publishOutcome: {} as Record<string, unknown>,
     /** What « Tout retirer » returns beyond the defaults. */
@@ -108,6 +110,16 @@ vi.mock('~/features/events/server/event-status.server', () => ({
   },
 }))
 
+// Adding a schedule asks canAddSchedule, faked through `answers.schedule`; the event and the source are recorded.
+vi.mock('~/features/events/server/schedule-add.server', () => ({
+  addEventSchedule: (_db: unknown, _can: unknown, _user: number, eventId: number, source: Record<string, unknown>) => {
+    if (!state.answers.schedule) return Promise.resolve({ refused: true })
+    if (state.addReason) return Promise.resolve({ reason: state.addReason })
+    state.done.push(`schedule-add:${eventId}:${JSON.stringify(source)}`)
+    return Promise.resolve({ schedule: { id: 9, eventId, kind: 'duty' } })
+  },
+}))
+
 // Renaming and deleting one schedule ask canChangeSchedule, faked through `answers.schedule`.
 vi.mock('~/features/events/server/schedule-changes.server', () => ({
   renameEventSchedule: (_db: unknown, _can: unknown, _user: number, _event: number, _id: number, name: string) => {
@@ -166,6 +178,7 @@ const schedulePublish = await import('./events/schedule-publish')
 const scheduleUnpublish = await import('./events/schedule-unpublish')
 const scheduleRename = await import('./events/schedule-rename')
 const scheduleDelete = await import('./events/schedule-delete')
+const scheduleAdd = await import('./events/schedule-add')
 
 type Action = (args: never) => Promise<unknown>
 
@@ -196,6 +209,7 @@ beforeEach(() => {
   state.answers = { change: false, delete: false, publish: false, schedule: false }
   state.notices = []
   state.renamed = true
+  state.addReason = null
   state.bulk = []
   state.publishOutcome = {}
   state.unpublishOutcome = {}
@@ -345,6 +359,48 @@ describe('renaming one schedule', () => {
 
   it('refuses whoever may not', async () => {
     const response = await respond(() => rename('Accueil'))
+    expect(response.headers.get('Location')).toBe('/programs')
+    expect(state.done).toEqual([])
+  })
+})
+
+describe('adding a schedule', () => {
+  const add = (fields: Record<string, string>) =>
+    postForm(scheduleAdd.action as Action, '/programs/events/40/schedules/add', fields)
+
+  it('adds for whoever may, from a template or empty, on the event of the address', async () => {
+    state.answers.schedule = true
+    await add({ scheduleTemplateId: '12' })
+    await add({ name: ' Repas ', kind: 'duty' })
+    expect(state.done).toEqual([
+      'schedule-add:40:{"scheduleTemplateId":12}',
+      'schedule-add:40:{"name":"Repas","kind":"duty"}',
+    ])
+    expect(state.flashed).toEqual([`success:${m.programs_schedule_added()}`, `success:${m.programs_schedule_added()}`])
+  })
+
+  it('says why the domain refused, staying on the page', async () => {
+    state.answers.schedule = true
+    state.addReason = 'awaiting-programme'
+    await add({ name: 'Repas', kind: 'duty' })
+    state.addReason = 'kind-held'
+    await add({ scheduleTemplateId: '12' })
+    expect(state.flashed).toEqual([
+      `error:${m.programs_schedule_add_awaiting()}`,
+      `error:${m.programs_schedule_add_kind_held()}`,
+    ])
+  })
+
+  it('answers a blank name with its error, asking nothing', async () => {
+    state.answers.schedule = true
+    const response = (await add({ name: '  ', kind: 'duty' })) as { data: unknown; init: { status: number } }
+    expect(response.init.status).toBe(400)
+    expect(response.data).toEqual({ ok: false, error: m.programs_schedule_name_invalid() })
+    expect(state.done).toEqual([])
+  })
+
+  it('refuses whoever may not', async () => {
+    const response = await respond(() => add({ scheduleTemplateId: '12' }))
     expect(response.headers.get('Location')).toBe('/programs')
     expect(state.done).toEqual([])
   })

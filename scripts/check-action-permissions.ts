@@ -73,6 +73,8 @@ export const DELEGATES: Record<string, { file: string; enforces: RegExp }> = {
     file: 'app/features/events/server/schedule-changes.server.ts',
     enforces: ENFORCES_PERMISSION,
   },
+  // Adding a schedule (D39): « Gérer » named in its file.
+  addEventSchedule: { file: 'app/features/events/server/schedule-add.server.ts', enforces: ENFORCES_PERMISSION },
   filterEventsByRight: { file: 'app/features/events/server/schedule-rights.server.ts', enforces: ENFORCES_PERMISSION },
   // Pure policy: the route feeds it booleans derived from permissions and group membership.
   canManageEmergencyInfo: { file: 'app/features/publishers/model/emergency-access.ts', enforces: /hasManager/ },
