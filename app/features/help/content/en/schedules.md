@@ -28,7 +28,7 @@ At the top of the page, **Publish all** publishes at once every draft schedule y
 A schedule cannot be published:
 
 - while someone assigned is away that day: assign someone else, or remove them. The meeting’s other schedules are not held back;
-- while it is empty: no schedule is required, so one with no part stays a draft.
+- while it is empty: no schedule is required, so one with no part or service stays a draft.
 
 A meeting created ahead with no program offers **Create the program** instead of publishing it.
 
@@ -41,7 +41,7 @@ To take a schedule back, click **Move back to draft** in its block: it leaves th
 
 With the right to manage the programs, **Empty schedule…** makes a schedule for this meeting only: give it a name and its kind, spiritual or services. To use it again, create a template in **Settings** instead.
 
-A meeting has one schedule of each kind: a spiritual one and services.
+A meeting has one schedule of each kind: a spiritual schedule and a services schedule.
 
 ## Rename or delete a schedule
 

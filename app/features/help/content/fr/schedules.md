@@ -28,7 +28,7 @@ En haut de la page, **Tout publier** publie d’un coup tous les plannings en br
 Un planning ne se publie pas :
 
 - tant qu’une personne attribuée est absente ce jour-là : attribuez quelqu’un d’autre, ou retirez-la. Les autres plannings de la réunion ne sont pas retenus pour autant ;
-- tant qu’il est vide : aucun planning n’est obligatoire, un planning sans partie reste en brouillon.
+- tant qu’il est vide : aucun planning n’est obligatoire, un planning sans partie ni service reste en brouillon.
 
 Une réunion créée à l’avance sans programme propose **Créer le programme** plutôt que de la publier.
 
@@ -41,7 +41,7 @@ Pour reprendre un planning, cliquez sur **Repasser en brouillon** dans son bloc 
 
 Avec le droit de gérer les programmes, **Planning vide…** crée un planning qui n’existe que pour cette réunion : donnez-lui un nom et sa sorte, spirituel ou services. Pour le réutiliser, créez plutôt un modèle dans **Réglages**.
 
-Une réunion n’a qu’un planning de chaque sorte : un spirituel et des services.
+Une réunion n’a qu’un planning de chaque sorte : un planning spirituel et un planning de services.
 
 ## Renommer ou supprimer un planning
 

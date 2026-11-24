@@ -28,7 +28,7 @@ No topo da página, **Publicar tudo** publica de uma vez todos os planeamentos e
 Um planeamento não é publicado:
 
 - enquanto alguém designado estiver ausente nesse dia: designe outra pessoa, ou retire-a. Os outros planeamentos da reunião não ficam retidos;
-- enquanto estiver vazio: nenhum planeamento é obrigatório, por isso um sem partes fica em rascunho.
+- enquanto estiver vazio: nenhum planeamento é obrigatório, por isso um sem partes nem serviços fica em rascunho.
 
 Uma reunião criada com antecedência sem programa propõe **Criar o programa** em vez de a publicar.
 
@@ -41,7 +41,7 @@ Para retomar um planeamento, clique em **Voltar ao rascunho** no seu bloco: sai 
 
 Com o direito de gerir os programas, **Planeamento vazio…** cria um planeamento só para esta reunião: dê-lhe um nome e o tipo, espiritual ou serviços. Para o reutilizar, crie antes um modelo nas **Definições**.
 
-Uma reunião tem um planeamento de cada tipo: um espiritual e serviços.
+Uma reunião tem um planeamento de cada tipo: um planeamento espiritual e um planeamento de serviços.
 
 ## Renomear ou eliminar um planeamento
 
