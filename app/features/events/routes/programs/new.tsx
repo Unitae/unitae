@@ -134,5 +134,6 @@ async function create(
           })
         ).id
   session.flash('success', m.programs_new_flash_single())
-  return `/programs/events/${id}/edit`
+  // The meeting's page: its schedules, their « Modifier le planning » and the assignments (D38).
+  return `/programs/events/${id}`
 }
