@@ -301,6 +301,21 @@ describe('changeEventKind: what the dialog sends', () => {
     })
   })
 
+  it('refuses a schedule sent both kept and removed, the other one never listed', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, meetingId, weekendId, programme, duties }) => {
+      const result = await changeEventKind(
+        db,
+        manages,
+        actorId,
+        meetingId,
+        { kindId: weekendId, keep: [programme.id], remove: [programme.id], add: [] },
+        congregationId,
+      )
+      expect(result).toEqual({ reason: 'stale' })
+      expect(await db.schedule.count({ where: { id: { in: [programme.id, duties.id] } } })).toBe(2)
+    })
+  })
+
   it('refuses a suggestion with nothing of its kind, which it never offers, rather than fail half way', async () => {
     await withMeeting(async ({ db, congregationId, actorId, meetingId, weekendId, programme, duties }) => {
       const weekend = await suggestedBy(db, weekendId)
