@@ -2077,6 +2077,33 @@
             }
         }
     ],
+    "programs_kind_change": "Change the kind",
+    "programs_kind_change_title": "Change this meeting’s kind?",
+    "programs_kind_change_body": "The meeting takes the new kind’s name. The schedules kept stay with their person in charge.",
+    "programs_kind_change_new": "New kind",
+    "programs_kind_change_choose": "Choose a kind",
+    "programs_kind_change_keep": "Keep on the meeting",
+    "programs_kind_change_warning": "These schedules come from the old kind. A schedule removed takes its assignments with it, and the people on a published one are told “Assignment cancelled”.",
+    "programs_kind_change_add": "Add the schedules the new kind suggests",
+    "programs_kind_change_unavailable_programme": "Unavailable while the meeting keeps its program",
+    "programs_kind_change_unavailable_duty": "Unavailable while the meeting keeps its duties",
+    "programs_kind_change_none": "This kind suggests no schedule.",
+    "programs_kind_change_done": "Meeting kind changed.",
+    "programs_kind_change_kind_held": "A meeting has one schedule of each kind: untick the old one before adding the new one.",
+    "programs_kind_change_not_suggested": "This kind no longer suggests one of these schedules: open the dialog again.",
+    "programs_kind_change_assignments": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} assignment",
+                "countPlural=*": "{count} assignments"
+            }
+        }
+    ],
     "programs_schedule_add": "Add a schedule",
     "programs_schedule_add_suggested": "Suggested by “{kind}”",
     "programs_schedule_add_others": "Other templates",
@@ -2449,8 +2476,6 @@
     "programs_edit_start_time_label": "Start",
     "programs_edit_end_time_label": "End",
     "programs_edit_apply_template_hint": "Applying a template will add all its parts and service roles to the program.",
-    "programs_edit_select_template": "Select a template",
-    "programs_edit_apply_button": "Apply",
     "programs_edit_spiritual_program": "Spiritual program",
     "programs_edit_part_name_label": "Name",
     "programs_edit_part_preset_label": "Part type",
@@ -2467,8 +2492,6 @@
     "programs_edit_part_deleted": "Part deleted.",
     "programs_edit_service_added": "Service added.",
     "programs_edit_service_deleted": "Service deleted.",
-    "programs_edit_template_applied": "Template “{name}” applied.",
-    "programs_edit_template_not_allowed": "You may not apply this template.",
     "programs_edit_not_in_event": "This item does not belong to this event.",
     "programs_edit_view_event": "View event",
     "programs_edit_crumb": "Edit",

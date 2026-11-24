@@ -3,14 +3,12 @@ import { partAllowedRolesToWrite } from '~/features/events/model/allowed-roles-w
 import {
   addPartSchema,
   addServiceSchema,
-  applyTemplateSchema,
   deletePartSchema,
   deleteServiceSchema,
   updateEventSchema,
   updatePartSchema,
   updateServiceSchema,
 } from '~/features/events/schemas/program-edit.schema'
-import { applyTemplateToEvent } from '~/features/events/server/apply-template.server'
 import {
   addPartAssignment,
   addServicePartAssignment,
@@ -36,12 +34,11 @@ type EditIntent =
   | 'add-service'
   | 'update-service'
   | 'delete-service'
-  | 'apply-template'
 
 /**
  * The schedule each intent fills, whose right the route checks on top of the event's (plan §10, D31). Complete over
- * the intents, so a new one does not compile until someone decides it. Applying a template fills the schedules of the
- * template it applies, which `mayApplyTemplate` checks; changing the event itself fills none.
+ * the intents, so a new one does not compile until someone decides it; changing the event itself fills none. Moving
+ * the event to another kind is « Changer le type » on the event page (D40), never an intent of the editor.
  */
 const FILL_INTENT_KINDS: Readonly<Record<EditIntent, readonly ItemKind[]>> = {
   'update-event': [],
@@ -51,7 +48,6 @@ const FILL_INTENT_KINDS: Readonly<Record<EditIntent, readonly ItemKind[]>> = {
   'add-service': ['service'],
   'update-service': ['service'],
   'delete-service': ['service'],
-  'apply-template': [],
 }
 
 const isEditIntent = (intent: string): intent is EditIntent => Object.hasOwn(FILL_INTENT_KINDS, intent)
@@ -64,11 +60,6 @@ export function kindsFilledBy(intent: FormDataEntryValue | null): readonly ItemK
 
 /** The decisions that depend on who is asking, made by the route. */
 export interface IntentChecks {
-  /**
-   * Whether the caller may apply this template: edit events of it (applying moves the event onto it) and fill every
-   * schedule it brings (it appends its parts and duties and moves the event's schedules onto its own).
-   */
-  mayApplyTemplate: (templateId: number) => Promise<boolean>
   /**
    * The item a form names (its id, or the old row's from a form of the previous image), when it belongs to the event
    * the caller was authorised on; null otherwise. The writers find it by its id alone, so an id from another event of
@@ -100,7 +91,6 @@ export function handleEditIntent(
     'add-service': () => handleAddService(formData, db, eventId, congregationId, userId),
     'update-service': () => handleUpdateService(formData, db, congregationId, userId, checks),
     'delete-service': () => handleDeleteService(formData, db, congregationId, checks),
-    'apply-template': () => handleApplyTemplate(formData, db, eventId, congregationId, userId, checks),
   }
   const name = String(intent)
   return isEditIntent(name) ? handlers[name]() : Promise.resolve(null)
@@ -314,23 +304,4 @@ async function handleDeleteService(
 
   await deleteServicePartAssignment(db, serviceAssignmentId, congregationId)
   return { message: m.programs_edit_service_deleted() }
-}
-
-async function handleApplyTemplate(
-  formData: FormData,
-  db: TransactionClient,
-  eventId: number,
-  congregationId: number,
-  userId: number,
-  checks: IntentChecks,
-): Promise<IntentResult> {
-  const submission = parseWithZod(formData, { schema: applyTemplateSchema })
-  if (submission.status !== 'success') return submission
-  if (!(await checks.mayApplyTemplate(submission.value.templateId))) {
-    return { reply: () => submission.reply({ formErrors: [m.programs_edit_template_not_allowed()] }) }
-  }
-
-  const template = await applyTemplateToEvent(db, eventId, submission.value.templateId, congregationId, userId)
-  if (!template) return { message: null }
-  return { message: m.programs_edit_template_applied({ name: template.name }) }
 }

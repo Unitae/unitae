@@ -21,7 +21,6 @@ import { groupProgrammeParts, summarizeDurations } from '~/features/events/model
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { Button } from '~/shared/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { cn } from '~/shared/utils/utils'
 import { durationLabel, ProgrammeSectionHead, ProgrammeTrackHead, ROW_REVEAL } from './ProgrammeRows'
 
@@ -56,11 +55,6 @@ interface EventProgrammePanelProps {
   parts: PartAssignment[]
   /** Part kinds by id, to name a part's kind after its name. */
   presetNames: Map<number, string>
-  templates: { id: number; name: string }[]
-  selectedTemplateId: string
-  onTemplateChange: (id: string) => void
-  onApplyTemplate: () => void
-  isApplyingTemplate: boolean
   /** The part open in the editor, highlighted. */
   selectedId: number | null
   /** Parts cannot move while the open part has unsaved changes: a move would reset its order field. */
@@ -79,11 +73,6 @@ interface EventProgrammePanelProps {
 export function EventProgrammePanel({
   parts,
   presetNames,
-  templates,
-  selectedTemplateId,
-  onTemplateChange,
-  onApplyTemplate,
-  isApplyingTemplate,
   selectedId,
   dragLocked,
   onAddPart,
@@ -108,35 +97,10 @@ export function EventProgrammePanel({
       title={m.programs_edit_spiritual_program()}
       actions={
         !readOnly && (
-          <>
-            {templates.length > 0 && (
-              <>
-                <Select value={selectedTemplateId} onValueChange={onTemplateChange}>
-                  <SelectTrigger className="w-[220px] max-w-full" aria-label={m.programs_edit_select_template()}>
-                    <SelectValue placeholder={m.programs_edit_select_template()} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {templates.map(template => (
-                      <SelectItem key={template.id} value={template.id.toString()}>
-                        {template.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  onClick={onApplyTemplate}
-                  disabled={!selectedTemplateId || isApplyingTemplate}
-                >
-                  {m.programs_edit_apply_button()}
-                </Button>
-              </>
-            )}
-            <Button onClick={event => onAddPart(event.currentTarget)}>
-              <Plus />
-              {m.programs_edit_add_part_button()}
-            </Button>
-          </>
+          <Button onClick={event => onAddPart(event.currentTarget)}>
+            <Plus />
+            {m.programs_edit_add_part_button()}
+          </Button>
         )
       }
       footer={
@@ -149,14 +113,14 @@ export function EventProgrammePanel({
       }
     >
       {parts.length === 0 ? (
-        <p className="px-4.5 py-6 text-muted-foreground text-sm">
+        <p className="text-muted-foreground px-4.5 py-6 text-sm">
           {emptyHint ?? m.programs_edit_apply_template_hint()}
         </p>
       ) : (
         <>
           <div
             aria-hidden="true"
-            className="flex h-8.5 items-center gap-3 border-border border-b px-4.5 font-medium text-faint text-sm"
+            className="border-border text-faint flex h-8.5 items-center gap-3 border-b px-4.5 text-sm font-medium"
           >
             <span className="w-4" />
             <span className="flex-1">{m.programs_view_part_col()}</span>
@@ -230,7 +194,7 @@ function PartRow({ part, kind, indented, selected, dragLocked, readOnly, onEdit,
       data-selected={selected || undefined}
       data-sortable=""
       className={cn(
-        'group/row relative flex min-h-10 items-center gap-3 border-border border-b bg-surface pr-4.5 pl-4.5 transition-colors last:border-b-0 hover:bg-hover',
+        'group/row border-border bg-surface hover:bg-hover relative flex min-h-10 items-center gap-3 border-b pr-4.5 pl-4.5 transition-colors last:border-b-0',
         indented && 'pl-11',
         selected && 'bg-selected hover:bg-selected',
         isDragging && 'z-10 opacity-60',
@@ -244,7 +208,7 @@ function PartRow({ part, kind, indented, selected, dragLocked, readOnly, onEdit,
           aria-label={m.programs_edit_move_item({ name: part.name })}
           title={dragLocked ? m.programs_edit_move_locked() : undefined}
           className={cn(
-            'flex-none touch-none rounded text-faint outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            'text-faint focus-visible:ring-ring flex-none touch-none rounded outline-none focus-visible:ring-2',
             dragLocked ? 'cursor-not-allowed' : 'cursor-grab',
             ROW_REVEAL,
           )}
@@ -258,7 +222,7 @@ function PartRow({ part, kind, indented, selected, dragLocked, readOnly, onEdit,
         {part.name}
         {showKind && <span className="text-faint"> · {kind}</span>}
       </span>
-      <span className="inline-flex w-[70px] flex-none items-center justify-end gap-1.5 text-muted-foreground text-sm tabular-nums max-sm:hidden">
+      <span className="text-muted-foreground inline-flex w-[70px] flex-none items-center justify-end gap-1.5 text-sm tabular-nums max-sm:hidden">
         {part.durationMin != null ? (
           m.programme_section_total_min({ minutes: String(part.durationMin) })
         ) : (
@@ -290,7 +254,7 @@ function PartRow({ part, kind, indented, selected, dragLocked, readOnly, onEdit,
         <Button
           variant="ghost"
           size="icon-sm"
-          className="size-7 text-muted-foreground hover:text-destructive"
+          className="text-muted-foreground hover:text-destructive size-7"
           aria-label={m.programs_edit_delete_item({ name: part.name })}
           onClick={onDelete}
         >
