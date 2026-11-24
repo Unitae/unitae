@@ -1,18 +1,20 @@
 import { Status } from '@unitae/ui'
-import { CalendarDays, FileText, ListPlus, Loader2, MoreHorizontal, Pencil, Send, Shapes, Trash2 } from 'lucide-react'
+import { FileText, ListPlus, Loader2, MoreHorizontal, Pencil, Send, Shapes, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useFetcher } from 'react-router'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import type { ScheduleAddOptions } from '~/features/events/model/schedule.type'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
+import { DateChip } from '~/shared/ui/DateChip'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { PublishUnfilledDialog } from './PublishUnfilledDialog'
 import { ScheduleAddMenu } from './ScheduleAddMenu'
 
 interface EventHeaderProps {
-  event: { id: number; name: string; status: string }
+  event: { id: number; name: string; status: string; startDate: Date | string }
+  timeZone: string
   subtitle: string
   /** A meeting created ahead with no programme yet: « Créer le programme » replaces publishing it. */
   awaitingProgramme: boolean
@@ -33,6 +35,7 @@ interface EventHeaderProps {
 /** The event's title and status, and what the reader may do with it as a whole; each schedule's section says its own. */
 export function EventHeader({
   event,
+  timeZone,
   subtitle,
   awaitingProgramme,
   publishAll,
@@ -49,7 +52,7 @@ export function EventHeader({
   const mayAdd = options.suggested.length + options.others.length + options.emptyKinds.length > 0
   return (
     <PageHeader
-      icon={CalendarDays}
+      leading={<DateChip date={event.startDate} timeZone={timeZone} />}
       title={event.name}
       subtitle={subtitle}
       meta={
@@ -62,13 +65,10 @@ export function EventHeader({
         </>
       }
       breadcrumbs={[{ label: m.sidebar_programs(), to: '/programs' }, { label: event.name }]}
-      actions={
-        // Only when something shows: with schedules the header publishes their drafts, each section withdrawing its own.
-        (canEdit || mayAdd || (publishAll != null ? publishAll.count > 0 : canRelease || canUnrelease)) && (
+      // The board's title row: publishing the drafts, then adding a schedule; the top bar keeps the meeting's own.
+      controls={
+        (mayAdd || (publishAll != null ? publishAll.count > 0 : canRelease || canUnrelease || canCreateProgramme)) && (
           <>
-            {mayAdd && (
-              <ScheduleAddMenu eventId={event.id} eventKindName={addSchedule.eventKindName} options={options} />
-            )}
             <EventPublishAction
               eventId={event.id}
               awaitingProgramme={awaitingProgramme}
@@ -77,9 +77,18 @@ export function EventHeader({
               canUnrelease={canUnrelease}
               canCreateProgramme={canCreateProgramme}
             />
+            {mayAdd && (
+              <ScheduleAddMenu eventId={event.id} eventKindName={addSchedule.eventKindName} options={options} />
+            )}
+          </>
+        )
+      }
+      actions={
+        canEdit && (
+          <>
             {canEdit && (
               <>
-                <Button variant="outline" asChild>
+                <Button variant="ghost" asChild>
                   <Link to={`/programs/events/${event.id}/edit`}>
                     <Pencil />
                     {m.programs_edit_event()}

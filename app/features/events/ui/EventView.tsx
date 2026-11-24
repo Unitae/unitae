@@ -23,6 +23,7 @@ import { EventItemEditor } from './EventItemEditor'
 import { type AssignedService, EventServiceAssignmentsPanel } from './EventServiceAssignmentsPanel'
 import { KindChangeDialog } from './KindChangeDialog'
 import { ScheduleActions } from './ScheduleActions'
+import { ScheduleConflictNotice } from './ScheduleConflictNotice'
 import {
   type EventScheduleView,
   ScheduleResponsibleLine,
@@ -203,11 +204,17 @@ export function EventView({
           )}
         </>
       ),
-      intro: <ScheduleResponsibleLine schedule={schedule} />,
+      intro: (
+        <>
+          <ScheduleConflictNotice schedule={schedule} items={itemsOf(schedule.kind)} />
+          <ScheduleResponsibleLine schedule={schedule} />
+        </>
+      ),
     }
   const bySchedule = event.schedules.length > 0
   const assignedParts = event.eventParts.filter(item => item.assigneeId ?? item.externalSpeakerId).length
   const filledServices = event.eventServiceParts.filter(item => item.assigneeId).length
+  const itemsOf = (kind: string) => (kind === ScheduleKind.Programme ? event.eventParts : event.eventServiceParts)
   // Slots nobody holds, by kind: publishing a schedule that has some asks first (the user's rule).
   const unfilled = unfilledSlots({ parts: event.eventParts, services: event.eventServiceParts })
   const unfilledOf = (kind: string) => (kind === ScheduleKind.Programme ? unfilled.programme : unfilled.duty)
@@ -229,8 +236,13 @@ export function EventView({
     <div data-sticky-content="">
       <UnsavedChangesDialog blocker={blocker} />
       <EventHeader
-        event={{ id: event.id, name: event.name, status: event.status }}
-        subtitle={`${date} · ${times}`}
+        event={{ id: event.id, name: event.name, status: event.status, startDate: event.startDate }}
+        timeZone={timezone}
+        subtitle={[
+          date,
+          times,
+          ...(bySchedule ? [m.programs_schedule_count({ count: event.schedules.length })] : []),
+        ].join(' · ')}
         awaitingProgramme={awaitingProgramme}
         // With schedules, each section carries its status and its « Publier »; the header publishes them all (D43).
         publishAll={bySchedule ? { ...publishAll, unfilled: draftsUnfilled } : null}
@@ -294,6 +306,8 @@ export function EventView({
               )}
             />
           )}
+          {/* The board's closing note: where published schedules go, and who is told. */}
+          {bySchedule && <p className="text-faint text-sm">{m.programs_schedules_footer()}</p>}
         </div>
 
         <EventItemEditor
