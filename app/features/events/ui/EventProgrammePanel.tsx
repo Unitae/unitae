@@ -113,14 +113,14 @@ export function EventProgrammePanel({
       }
     >
       {parts.length === 0 ? (
-        <p className="text-muted-foreground px-4.5 py-6 text-sm">
-          {emptyHint ?? m.programs_edit_apply_template_hint()}
+        <p className="px-4.5 py-6 text-muted-foreground text-sm">
+          {emptyHint ?? m.programs_edit_empty_programme_hint()}
         </p>
       ) : (
         <>
           <div
             aria-hidden="true"
-            className="border-border text-faint flex h-8.5 items-center gap-3 border-b px-4.5 text-sm font-medium"
+            className="flex h-8.5 items-center gap-3 border-border border-b px-4.5 font-medium text-faint text-sm"
           >
             <span className="w-4" />
             <span className="flex-1">{m.programs_view_part_col()}</span>
@@ -222,7 +222,7 @@ function PartRow({ part, kind, indented, selected, dragLocked, readOnly, onEdit,
         {part.name}
         {showKind && <span className="text-faint"> · {kind}</span>}
       </span>
-      <span className="text-muted-foreground inline-flex w-[70px] flex-none items-center justify-end gap-1.5 text-sm tabular-nums max-sm:hidden">
+      <span className="inline-flex w-[70px] flex-none items-center justify-end gap-1.5 text-muted-foreground text-sm tabular-nums max-sm:hidden">
         {part.durationMin != null ? (
           m.programme_section_total_min({ minutes: String(part.durationMin) })
         ) : (
@@ -254,7 +254,7 @@ function PartRow({ part, kind, indented, selected, dragLocked, readOnly, onEdit,
         <Button
           variant="ghost"
           size="icon-sm"
-          className="text-muted-foreground hover:text-destructive size-7"
+          className="size-7 text-muted-foreground hover:text-destructive"
           aria-label={m.programs_edit_delete_item({ name: part.name })}
           onClick={onDelete}
         >

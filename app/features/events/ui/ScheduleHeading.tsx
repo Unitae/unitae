@@ -26,7 +26,7 @@ export interface EventScheduleView {
 }
 
 /** Its own name, or the catalogue's for one left unnamed (« Programme », « Services »). */
-export function scheduleTitle(schedule: EventScheduleView): string {
+export function scheduleTitle(schedule: { name: string | null; kind: string }): string {
   if (schedule.name) return schedule.name
   return schedule.kind === ScheduleKind.Programme ? m.programs_view_spiritual_program() : m.programs_view_services()
 }

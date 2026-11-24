@@ -10,6 +10,7 @@ import { useCloseOnSave } from '~/shared/ui/hooks/use-close-on-save'
 import { Label } from '~/shared/ui/label'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
+import { scheduleTitle } from './ScheduleHeading'
 
 /** A schedule of the meeting as the dialog lists it. */
 export interface KindChangeSchedule {
@@ -18,6 +19,8 @@ export interface KindChangeSchedule {
   kind: string
   status: string
   assignments: number
+  /** Whether the reader may remove it (canChangeSchedule): one they may not stays kept. */
+  removable: boolean
 }
 
 const kindLabel = (kind: string) =>
@@ -28,10 +31,6 @@ const unavailable = (kind: string) =>
     : m.programs_kind_change_unavailable_duty()
 const statusLabel = (status: string) =>
   status === ScheduleStatus.Published ? m.programs_view_released() : m.programs_event_draft_badge()
-// A template left unnamed reads as the catalogue's label.
-const suggestionName = (suggestion: KindChangeOption['suggested'][number]) =>
-  suggestion.name ??
-  (suggestion.kind === ScheduleKind.Programme ? m.programs_view_spiritual_program() : m.programs_view_services())
 
 /**
  * « Changer le type » (D40): the new kind; the meeting's schedules, all kept by default, one
@@ -44,12 +43,15 @@ export function KindChangeDialog({
   eventId,
   schedules,
   kinds,
+  hasAttendance,
 }: {
   open: boolean
   onClose: () => void
   eventId: number
   schedules: KindChangeSchedule[]
   kinds: KindChangeOption[]
+  /** Its attendance counts follow the kind on the S-88: said before the change. */
+  hasAttendance: boolean
 }) {
   const fetcher = useFetcher<{ ok: boolean }>()
   useCloseOnSave(fetcher, onClose)
@@ -87,6 +89,7 @@ export function KindChangeDialog({
             <DialogTitle>{m.programs_kind_change_title()}</DialogTitle>
             <DialogDescription>{m.programs_kind_change_body()}</DialogDescription>
           </DialogHeader>
+          {hasAttendance && <Callout tone="info">{m.programs_kind_change_attendance()}</Callout>}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="kind-change-kind">{m.programs_kind_change_new()}</Label>
             <Select value={kindId} onValueChange={choose}>
@@ -112,14 +115,18 @@ export function KindChangeDialog({
                   key={schedule.id}
                   id={`keep-${schedule.id}`}
                   name="keep"
+                  // Every schedule listed is sent, kept or removed: one the dialog never showed is never removed.
+                  uncheckedName="remove"
                   value={schedule.id}
                   checked={kept.includes(schedule.id)}
+                  disabled={!schedule.removable}
                   onChange={on => setKept(toggle(kept, schedule.id, on))}
                   title={schedule.title}
                   detail={[
                     kindLabel(schedule.kind),
                     statusLabel(schedule.status),
                     m.programs_kind_change_assignments({ count: schedule.assignments }),
+                    ...(schedule.removable ? [] : [m.programs_kind_change_not_yours()]),
                   ].join(' · ')}
                 />
               ))}
@@ -142,7 +149,7 @@ export function KindChangeDialog({
                     checked={!held && added.includes(suggestion.id)}
                     disabled={held}
                     onChange={on => setAdded(toggle(added, suggestion.id, on))}
-                    title={suggestionName(suggestion)}
+                    title={scheduleTitle(suggestion)}
                     detail={
                       held
                         ? `${kindLabel(suggestion.kind)} · ${unavailable(suggestion.kind)}`
@@ -165,7 +172,7 @@ export function KindChangeDialog({
   )
 }
 
-/** A ticked box posts its value; a real label, 44 px tall on a phone. */
+/** A ticked box posts its value under `name`, an unticked one under `uncheckedName`; a real label, 44 px on a phone. */
 function CheckRow({
   id,
   name,
@@ -175,9 +182,12 @@ function CheckRow({
   onChange,
   title,
   detail,
+  uncheckedName,
 }: {
   id: string
   name: string
+  /** The field an unticked box posts its value under, if any. */
+  uncheckedName?: string
   value: number
   checked: boolean
   disabled?: boolean
@@ -189,6 +199,7 @@ function CheckRow({
     <div className="flex items-start gap-2.5 max-md:min-h-11">
       <Checkbox id={id} checked={checked} disabled={disabled} onCheckedChange={next => onChange(next === true)} />
       {checked && <input type="hidden" name={name} value={value} />}
+      {!checked && uncheckedName && <input type="hidden" name={uncheckedName} value={value} />}
       <Label htmlFor={id} className="flex flex-col items-start gap-0.5 font-normal">
         <span className="font-medium">{title}</span>
         <span className="text-muted-foreground text-xs">{detail}</span>
