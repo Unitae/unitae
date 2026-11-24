@@ -4,6 +4,8 @@ import { login } from './helpers/auth'
 const MANAGER_EMAIL = process.env.E2E_PROGRAM_MANAGER_EMAIL
 const MANAGER_PASSWORD = process.env.E2E_PROGRAM_MANAGER_PASSWORD
 const REORDER_EVENT_ID = process.env.E2E_REORDER_EVENT_ID
+// A meeting's section, named by its title and its kind's tag (« Spirituel »).
+const SPIRITUAL_SECTION = /Spirituel$/
 
 // A fetcher posting to a route with a page goes to its `.data` URL.
 const REORDER_PARTS_RE = /\/reorder-parts(\.data)?$/
@@ -75,7 +77,12 @@ test.describe('Programme parts drag-drop reorder (regression: #134)', () => {
 
   test('event edit POSTs to reorder-parts (no 404)', async ({ page }) => {
     test.skip(!REORDER_EVENT_ID, 'needs E2E_REORDER_EVENT_ID (event not seeded in CI yet)')
-    await page.goto(`/programs/events/${REORDER_EVENT_ID}/edit`)
+    // The schedule's own page (« Modifier le planning », D38), from its section of the meeting.
+    await page.goto(`/programs/events/${REORDER_EVENT_ID}`)
+    await page
+      .getByRole('region', { name: SPIRITUAL_SECTION })
+      .getByRole('link', { name: 'Modifier le planning' })
+      .click()
     await page.waitForLoadState('networkidle')
 
     const sortableRows = page.getByRole('region', { name: PROGRAMME_PANEL }).locator('[data-sortable]')

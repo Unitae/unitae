@@ -4,6 +4,8 @@ import { login } from './helpers/auth'
 const MANAGER_EMAIL = process.env.E2E_PROGRAM_MANAGER_EMAIL
 const MANAGER_PASSWORD = process.env.E2E_PROGRAM_MANAGER_PASSWORD
 const REORDER_EVENT_ID = process.env.E2E_REORDER_EVENT_ID
+// A meeting's section, named by its title and its kind's tag (« Services »).
+const SERVICES_SECTION = /Services$/
 
 // Depending on how React Router routes a fetcher's POST, it reaches the `.data` URL or the route itself: accept both.
 const REORDER_SERVICES_RE = /\/reorder-services(\.data)?$/
@@ -87,7 +89,12 @@ test.describe('Services drag-drop reorder', () => {
 
   test('an event’s services keep the order they are dragged into', async ({ page }) => {
     test.skip(!REORDER_EVENT_ID, 'needs E2E_REORDER_EVENT_ID (event not seeded in CI yet)')
-    await page.goto(`/programs/events/${REORDER_EVENT_ID}/edit`)
+    // The schedule's own page (« Modifier le planning », D38), from its section of the meeting.
+    await page.goto(`/programs/events/${REORDER_EVENT_ID}`)
+    await page
+      .getByRole('region', { name: SERVICES_SECTION })
+      .getByRole('link', { name: 'Modifier le planning' })
+      .click()
     await page.waitForLoadState('networkidle')
 
     const rowsBefore = await serviceRows(page).allTextContents()

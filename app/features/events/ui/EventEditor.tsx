@@ -140,8 +140,8 @@ export function EventEditor({
     editing?.kind === 'service'
       ? serviceEditorCopy('event', editing.id != null)
       : partEditorCopy('event', editing?.id != null)
-  // On « Modifier le planning », that schedule's panel alone.
-  const shows = (kind: ScheduleKind) => focus == null || focus.kind === kind
+  // That schedule's panel alone, on its « Modifier le planning » page; none on « Modifier la réunion ».
+  const shows = (kind: ScheduleKind) => focus?.kind === kind
   const date = formatEventDate(event.startDate, timezone, getLocale(), {
     weekday: 'long',
     day: 'numeric',
@@ -154,7 +154,7 @@ export function EventEditor({
       <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         icon={CalendarDays}
-        title={focus ? scheduleTitle(focus) : m.programs_edit_page_title()}
+        title={focus ? scheduleTitle(focus) : m.programs_edit_event()}
         subtitle={focus ? `${m.programs_schedule_edit()} · ${event.name} · ${date}` : `${event.name} · ${date}`}
         breadcrumbs={[
           { label: m.sidebar_programs(), to: canViewPrograms ? '/programs' : undefined },
@@ -175,6 +175,7 @@ export function EventEditor({
 
       <div className="flex flex-wrap items-start gap-6">
         <div className="flex min-w-0 flex-[3_1_560px] flex-col gap-6">
+          {/* « Modifier la réunion »: the meeting's own fields alone; each schedule has its page (D38, the user's choice). */}
           {focus == null && (
             <EventInfoPanel event={event} timezone={timezone} fetcher={infoFetcher} onDirtyChange={setInfoDirty} />
           )}

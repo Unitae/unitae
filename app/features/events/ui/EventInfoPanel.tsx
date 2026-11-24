@@ -1,4 +1,4 @@
-import { Panel } from '@unitae/ui'
+import { FormSection } from '@unitae/ui'
 import { useEffect, useState } from 'react'
 import type { useFetcher } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
@@ -21,7 +21,10 @@ interface EventInfoPanelProps {
   onDirtyChange: (dirty: boolean) => void
 }
 
-/** The event's name, date and times, saved from the save bar once something changed. */
+/**
+ * « Modifier la réunion »: the meeting's name, date and times, as Réglages lays a form out (a section per subject, the
+ * save bar with the number of changes once something changed). Its schedules have their own page each (D38).
+ */
 export function EventInfoPanel(props: EventInfoPanelProps) {
   const [version, setVersion] = useState(0)
   const { event } = props
@@ -41,39 +44,44 @@ function EventInfoForm({
   useEffect(() => onDirtyChange(changes > 0), [changes, onDirtyChange])
 
   return (
-    <Panel title={m.programs_edit_info_title()} padded>
-      <fetcher.Form id={FORM_ID} ref={ref} method="post" className="@container">
+    <>
+      <fetcher.Form id={FORM_ID} ref={ref} method="post" className="flex flex-col">
         <input type="hidden" name="intent" value="update-event" />
-        <div className="grid grid-cols-2 items-end gap-3 @md:grid-cols-3 @xl:grid-cols-[minmax(200px,2fr)_repeat(3,minmax(110px,1fr))]">
-          <div className="col-span-2 flex flex-col gap-1.5 @md:col-span-3 @xl:col-span-1">
+        <FormSection title={m.programs_edit_section_name_title()} description={m.programs_edit_section_name_body()}>
+          <div className="flex flex-col gap-1.5">
             <Label htmlFor="name">{m.common_name()}</Label>
             <Input id="name" name="name" defaultValue={event.name} required />
           </div>
-          <div className="col-span-2 flex min-w-0 flex-col gap-1.5 @md:col-span-1">
-            <Label htmlFor="date">{m.programs_edit_date_label()}</Label>
-            <DateInput id="date" name="date" defaultValue={formatDateForInput(event.startDate, timezone)} required />
+        </FormSection>
+        <FormSection title={m.programs_edit_section_when_title()} description={m.programs_edit_section_when_body()}>
+          {/* The date on its own row, the two times beside each other: the section's field column is narrow. */}
+          <div className="grid grid-cols-2 items-end gap-3">
+            <div className="col-span-2 flex min-w-0 flex-col gap-1.5">
+              <Label htmlFor="date">{m.programs_edit_date_label()}</Label>
+              <DateInput id="date" name="date" defaultValue={formatDateForInput(event.startDate, timezone)} required />
+            </div>
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <Label htmlFor="startTime">{m.programs_edit_start_time_label()}</Label>
+              <Input
+                id="startTime"
+                name="startTime"
+                type="time"
+                defaultValue={formatTimeForInput(event.startDate, timezone)}
+                required
+              />
+            </div>
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <Label htmlFor="endTime">{m.programs_edit_end_time_label()}</Label>
+              <Input
+                id="endTime"
+                name="endTime"
+                type="time"
+                defaultValue={formatTimeForInput(event.endDate, timezone)}
+                required
+              />
+            </div>
           </div>
-          <div className="flex min-w-0 flex-col gap-1.5">
-            <Label htmlFor="startTime">{m.programs_edit_start_time_label()}</Label>
-            <Input
-              id="startTime"
-              name="startTime"
-              type="time"
-              defaultValue={formatTimeForInput(event.startDate, timezone)}
-              required
-            />
-          </div>
-          <div className="flex min-w-0 flex-col gap-1.5">
-            <Label htmlFor="endTime">{m.programs_edit_end_time_label()}</Label>
-            <Input
-              id="endTime"
-              name="endTime"
-              type="time"
-              defaultValue={formatTimeForInput(event.endDate, timezone)}
-              required
-            />
-          </div>
-        </div>
+        </FormSection>
       </fetcher.Form>
       {changes > 0 && (
         <FormSaveBar changes={changes}>
@@ -85,6 +93,6 @@ function EventInfoForm({
           </SubmitButton>
         </FormSaveBar>
       )}
-    </Panel>
+    </>
   )
 }
