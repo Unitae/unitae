@@ -34,12 +34,15 @@ export function DiscardChangesDialog({
   onDiscard,
   description = m.common_unsaved_changes_description(),
   discardLabel = m.common_unsaved_changes_leave(),
+  returnFocus,
 }: {
   open: boolean
   onStay: () => void
   onDiscard: () => void
   description?: string
   discardLabel?: string
+  /** Where focus goes once it closes, when what opened it is gone (a menu item, a page button); the default otherwise. */
+  returnFocus?: () => HTMLElement | null
 }) {
   return (
     <AlertDialog
@@ -48,7 +51,14 @@ export function DiscardChangesDialog({
         if (!next) onStay()
       }}
     >
-      <AlertDialogContent>
+      <AlertDialogContent
+        onCloseAutoFocus={event => {
+          const target = returnFocus?.()
+          if (target == null) return
+          event.preventDefault()
+          target.focus()
+        }}
+      >
         <AlertDialogHeader>
           <AlertDialogTitle>{m.common_unsaved_changes_title()}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>

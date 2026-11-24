@@ -7836,5 +7836,6 @@
     "demo_expired_title": "Esta ligação de demonstração já não é válida",
     "demo_expired_message": "Uma ligação de demonstração abre uma só vez, no prazo de um minuto, e uma demonstração é apagada após uma hora sem atividade.",
     "demo_expired_new": "Abrir uma nova demonstração",
-    "demo_refused": "Não disponível na demonstração."
+    "demo_refused": "Não disponível na demonstração.",
+    "settings_schedule_templates_item_gone": "Este elemento foi eliminado entretanto; as suas alterações não foram guardadas."
 }

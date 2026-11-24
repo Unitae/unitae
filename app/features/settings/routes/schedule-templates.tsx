@@ -11,7 +11,7 @@ import {
   SCHEDULE_TEMPLATE_ITEM_INTENTS,
 } from '~/features/settings/server/schedule-template-item-action.server'
 import { getScheduleTemplateItems } from '~/features/settings/server/schedule-template-items.queries'
-import { ScheduleTemplatePanel } from '~/features/settings/ui/ScheduleTemplatePanel'
+import { openPanel, ScheduleTemplatePanel } from '~/features/settings/ui/ScheduleTemplatePanel'
 import { ScheduleTemplateTable } from '~/features/settings/ui/ScheduleTemplateTable'
 import { SettingsHeader } from '~/features/settings/ui/SettingsHeader'
 import { useScheduleTemplatePage } from '~/features/settings/ui/use-schedule-template-page'
@@ -50,7 +50,9 @@ export function loader({ request, context }: Route.LoaderArgs) {
 /** Entering or leaving an item changes only `?item=`: the template's data stays as it is. */
 export function shouldRevalidate(args: ShouldRevalidateFunctionArgs) {
   if (onlyHelpPanelChanged(args)) return false
-  const { currentUrl, nextUrl, formMethod, defaultShouldRevalidate } = args
+  const { currentUrl, nextUrl, formMethod, actionStatus, defaultShouldRevalidate } = args
+  // A refusal may come from data changed elsewhere (an item deleted in another tab): read it again.
+  if (formMethod != null && actionStatus != null && actionStatus >= 400) return true
   const sameTemplate = currentUrl.searchParams.get('template') === nextUrl.searchParams.get('template')
   if (formMethod == null && currentUrl.pathname === nextUrl.pathname && sameTemplate) return false
   return defaultShouldRevalidate
@@ -107,18 +109,19 @@ export default function ScheduleTemplatesPage({ loaderData }: Route.ComponentPro
   const [dirty, setDirty] = useState(false)
   const page = useScheduleTemplatePage({
     templateIds: templates.map(template => template.id),
-    itemExists: item =>
-      item.kind === 'part'
-        ? (items?.parts.some(part => part.id === item.id) ?? false)
-        : (items?.services.some(service => service.id === item.id) ?? false),
+    // An item of the other sort (a part asked of a duties template) is not this template's.
+    itemExists: (item, templateId) =>
+      item.kind !== (templates.find(each => each.id === templateId)?.kind === 'duty' ? 'service' : 'part')
+        ? false
+        : item.id == null
+          ? true
+          : item.kind === 'part'
+            ? (items?.parts.some(part => part.id === item.id) ?? false)
+            : (items?.services.some(service => service.id === item.id) ?? false),
     dirty,
   })
   const template = templates.find(each => each.id === page.templateId)
-  // An item of the other sort (a part asked of a duties template) is not this template's.
-  const item =
-    page.item != null && template != null && page.item.kind === (template.kind === 'duty' ? 'service' : 'part')
-      ? page.item
-      : null
+  const item = template == null ? null : page.item
   // The name and responsible's refusal; an item's shows in the panel, from its own fetcher.
   const data =
     fetcher.state === 'idle' ? (fetcher.data as { ok?: boolean; templateId?: number; errors?: string[] }) : null
@@ -185,6 +188,7 @@ export default function ScheduleTemplatesPage({ loaderData }: Route.ComponentPro
         {...page.discard}
         description={m.common_discard_changes_description()}
         discardLabel={m.common_discard_changes_confirm()}
+        returnFocus={openPanel}
       />
     </div>
   )

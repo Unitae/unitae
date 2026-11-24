@@ -7836,5 +7836,6 @@
     "demo_expired_title": "Ce lien de démo n’est plus valable",
     "demo_expired_message": "Un lien de démo s’ouvre une fois, dans la minute, et une démo est supprimée après une heure sans activité.",
     "demo_expired_new": "Ouvrir une nouvelle démo",
-    "demo_refused": "Pas disponible dans la démo."
+    "demo_refused": "Pas disponible dans la démo.",
+    "settings_schedule_templates_item_gone": "Cet élément a été supprimé entre-temps ; vos modifications n’ont pas été enregistrées."
 }
