@@ -7,7 +7,7 @@ const TIME_ZONE = 'Europe/Paris'
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const TUESDAY = 2
 const SINGLE_RE = /^Une seule date$/
-const SUBMIT_SINGLE_RE = /^Créer le programme$/
+const SUBMIT_SINGLE_RE = /^Créer la réunion$/
 const MIDWEEK_RE = /^Réunion de semaine/
 // Created, a programme opens on the meeting's page.
 const EVENT_URL_RE = /\/programs\/events\/(\d+)(?:[?#]|$)/
