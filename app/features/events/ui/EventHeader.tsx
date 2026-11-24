@@ -1,5 +1,5 @@
 import { Status } from '@unitae/ui'
-import { CalendarDays, FileText, ListPlus, Loader2, MoreHorizontal, Pencil, Send, Trash2 } from 'lucide-react'
+import { CalendarDays, FileText, ListPlus, Loader2, MoreHorizontal, Pencil, Send, Shapes, Trash2 } from 'lucide-react'
 import { Link, useFetcher } from 'react-router'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import type { ScheduleAddOptions } from '~/features/events/model/schedule.type'
@@ -24,6 +24,8 @@ interface EventHeaderProps {
   canCreateProgramme: boolean
   canDelete: boolean
   onDelete: () => void
+  /** « Changer le type » (D40), for whoever may move the meeting to another kind. */
+  onChangeKind?: () => void
 }
 
 /** The event's title and status, and what the reader may do with it as a whole; each schedule's section says its own. */
@@ -39,6 +41,7 @@ export function EventHeader({
   canCreateProgramme,
   canDelete,
   onDelete,
+  onChangeKind,
 }: EventHeaderProps) {
   const { options } = addSchedule
   const mayAdd = options.suggested.length + options.others.length + options.emptyKinds.length > 0
@@ -80,7 +83,7 @@ export function EventHeader({
                     {m.common_edit()}
                   </Link>
                 </Button>
-                {canDelete && (
+                {(canDelete || onChangeKind) && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" aria-label={m.common_more_actions()}>
@@ -88,10 +91,18 @@ export function EventHeader({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={onDelete}>
-                        <Trash2 />
-                        {m.common_delete()}
-                      </DropdownMenuItem>
+                      {onChangeKind && (
+                        <DropdownMenuItem onSelect={onChangeKind}>
+                          <Shapes />
+                          {m.programs_kind_change()}
+                        </DropdownMenuItem>
+                      )}
+                      {canDelete && (
+                        <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={onDelete}>
+                          <Trash2 />
+                          {m.common_delete()}
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}

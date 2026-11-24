@@ -100,6 +100,8 @@ vi.mock('~/shared/auth/permissions.server', async importOriginal => ({
 vi.mock('~/features/events/server/schedule-changes.server', () => ({
   changeableScheduleIds: () => Promise.resolve(new Set<number>(state.changeable)),
 }))
+// What « Changer le type » offers is kindChangeOptions' integration test: none here.
+vi.mock('~/features/events/server/event-kind-change.server', () => ({ kindChangeOptions: () => Promise.resolve([]) }))
 // What « Ajouter un planning » offers is scheduleAddOptions' integration test: handed on as it comes.
 vi.mock('~/features/events/server/schedule-add.server', () => ({
   scheduleAddOptions: () =>

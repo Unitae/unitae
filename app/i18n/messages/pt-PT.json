@@ -71,6 +71,7 @@
     "audit_log_action_congregation_settings_updated": "Definições da congregação alteradas",
     "audit_log_action_event_created": "Programa criado",
     "audit_log_action_event_released": "Programa publicado",
+    "audit_log_action_event_kind_changed": "Tipo de reunião alterado",
     "audit_log_action_event_unreleased": "Programa retirado",
     "audit_log_action_schedule_published": "Planeamento publicado",
     "audit_log_action_schedule_unpublished": "Planeamento retirado",
@@ -2076,6 +2077,37 @@
             }
         }
     ],
+    "programs_kind_change": "Alterar o tipo",
+    "programs_kind_change_stale": "Esta reunião mudou desde que a caixa de diálogo foi aberta: abra-a novamente.",
+    "programs_kind_change_refused": "Não pode alterar o tipo desta reunião desta forma.",
+    "programs_kind_change_not_yours": "Não lhe cabe retirá-lo",
+    "programs_kind_change_attendance": "Esta reunião tem números de assistência: seguem o novo tipo no cartão S-88, ou deixam de contar se este não os tiver.",
+    "programs_kind_change_title": "Alterar o tipo desta reunião?",
+    "programs_kind_change_body": "A reunião passa a ter o nome do novo tipo. Os planeamentos mantidos ficam com o seu responsável.",
+    "programs_kind_change_new": "Novo tipo",
+    "programs_kind_change_choose": "Escolher um tipo",
+    "programs_kind_change_keep": "Manter na reunião",
+    "programs_kind_change_warning": "Estes planeamentos vêm do tipo anterior. Um planeamento retirado leva as suas designações, e as pessoas de um planeamento publicado recebem «Designação cancelada».",
+    "programs_kind_change_add": "Adicionar os planeamentos sugeridos pelo novo tipo",
+    "programs_kind_change_unavailable_programme": "Indisponível enquanto a reunião mantiver o seu programa",
+    "programs_kind_change_unavailable_duty": "Indisponível enquanto a reunião mantiver as suas tarefas",
+    "programs_kind_change_none": "Este tipo não sugere nenhum planeamento.",
+    "programs_kind_change_done": "Tipo da reunião alterado.",
+    "programs_kind_change_kind_held": "Uma reunião tem um planeamento de cada tipo: desmarque o anterior antes de adicionar o novo.",
+    "programs_kind_change_not_suggested": "Este tipo já não sugere um destes planeamentos: abra novamente a caixa de diálogo.",
+    "programs_kind_change_assignments": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} designação",
+                "countPlural=*": "{count} designações"
+            }
+        }
+    ],
     "programs_schedule_add": "Adicionar um planeamento",
     "programs_schedule_add_suggested": "Sugeridos por «{kind}»",
     "programs_schedule_add_others": "Outros modelos",
@@ -2447,9 +2479,7 @@
     "programs_edit_date_label": "Data",
     "programs_edit_start_time_label": "Início",
     "programs_edit_end_time_label": "Fim",
-    "programs_edit_apply_template_hint": "Ao aplicar um modelo, todas as partes e funções de serviço desse modelo serão adicionadas ao programa.",
-    "programs_edit_select_template": "Selecionar um modelo",
-    "programs_edit_apply_button": "Aplicar",
+    "programs_edit_empty_programme_hint": "Adicione partes a este programa com «Adicionar uma parte».",
     "programs_edit_spiritual_program": "Programa espiritual",
     "programs_edit_part_name_label": "Nome",
     "programs_edit_part_preset_label": "Tipo de parte",
@@ -2466,8 +2496,6 @@
     "programs_edit_part_deleted": "Parte eliminada.",
     "programs_edit_service_added": "Serviço adicionado.",
     "programs_edit_service_deleted": "Serviço eliminado.",
-    "programs_edit_template_applied": "Modelo “{name}” aplicado.",
-    "programs_edit_template_not_allowed": "Não pode aplicar este modelo.",
     "programs_edit_not_in_event": "Este item não pertence a este evento.",
     "programs_edit_view_event": "Ver evento",
     "programs_edit_crumb": "Editar",

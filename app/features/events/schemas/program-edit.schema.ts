@@ -118,8 +118,3 @@ export const updateServiceSchema = z.object({
   serviceName: z.string().min(1),
   allowedRoleIds: roleIdsField.default([]),
 })
-
-export const applyTemplateSchema = z.object({
-  intent: z.literal('apply-template'),
-  templateId: z.coerce.number(),
-})

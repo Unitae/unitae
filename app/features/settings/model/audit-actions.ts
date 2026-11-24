@@ -121,6 +121,7 @@ export const AUDIT_ACTIONS: readonly { action: string; group: AuditGroup; label:
   { action: 'event.created', group: 'programmes', label: m.audit_log_action_event_created },
   { action: 'event.released', group: 'programmes', label: m.audit_log_action_event_released },
   { action: 'event.unreleased', group: 'programmes', label: m.audit_log_action_event_unreleased },
+  { action: 'event.kind_changed', group: 'programmes', label: m.audit_log_action_event_kind_changed },
   { action: 'schedule.published', group: 'programmes', label: m.audit_log_action_schedule_published },
   { action: 'schedule.unpublished', group: 'programmes', label: m.audit_log_action_schedule_unpublished },
   { action: 'schedule.added', group: 'programmes', label: m.audit_log_action_schedule_added },

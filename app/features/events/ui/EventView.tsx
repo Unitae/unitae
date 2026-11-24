@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useFetcher } from 'react-router'
 import type { ExternalSpeakerOption } from '~/features/events/model/external-speaker.type'
 import { parseAssignKey } from '~/features/events/model/reassign'
-import type { ScheduleAddOptions } from '~/features/events/model/schedule.type'
+import type { KindChangeOption, ScheduleAddOptions } from '~/features/events/model/schedule.type'
 import { ScheduleKind, ScheduleStatus } from '~/features/events/model/schedule.type'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
@@ -18,6 +18,7 @@ import { type AssignedPart, EventAssignmentsPanel, type UnassignTarget } from '.
 import { EventHeader } from './EventHeader'
 import { EventItemEditor } from './EventItemEditor'
 import { type AssignedService, EventServiceAssignmentsPanel } from './EventServiceAssignmentsPanel'
+import { KindChangeDialog } from './KindChangeDialog'
 import { ScheduleActions } from './ScheduleActions'
 import {
   type EventScheduleView,
@@ -67,6 +68,8 @@ interface EventViewProps {
   publishAll: { count: number; everyone: boolean }
   /** « Ajouter un planning » (D39): what the reader may add of a kind the event lacks. */
   addSchedule: { options: ScheduleAddOptions; eventKindName: string | null }
+  /** « Changer le type » (D40): the kinds the reader may move the meeting to. */
+  kindChange: KindChangeOption[]
 }
 
 /**
@@ -94,11 +97,13 @@ export function EventView({
   timezone,
   publishAll,
   addSchedule,
+  kindChange,
 }: EventViewProps) {
   const partFetcher = useFetcher()
   const serviceFetcher = useFetcher()
   const [unassignTarget, setUnassignTarget] = useState<UnassignTarget | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [changingKind, setChangingKind] = useState(false)
   const { blocker, setDirty } = useUnsavedChanges()
 
   const panel = useSideEditor<'part' | 'service'>(target =>
@@ -186,6 +191,10 @@ export function EventView({
   const bySchedule = event.schedules.length > 0
   const assignedParts = event.eventParts.filter(item => item.assigneeId ?? item.externalSpeakerId).length
   const filledServices = event.eventServiceParts.filter(item => item.assigneeId).length
+  // Each speaker and each reader: what a schedule deleted takes with it.
+  const programmeAssignments =
+    event.eventParts.filter(item => item.assigneeId != null).length +
+    event.eventParts.filter(item => item.assistantId != null).length
   const date = formatEventDate(event.startDate, timezone, getLocale(), {
     weekday: 'long',
     day: 'numeric',
@@ -212,6 +221,22 @@ export function EventView({
         // An empty meeting with counts has nothing left to delete: the meeting and its attendance stay.
         canDelete={canDelete && !(awaitingProgramme && hasAttendance)}
         onDelete={() => setDeleting(true)}
+        onChangeKind={kindChange.length > 0 ? () => setChangingKind(true) : undefined}
+      />
+      <KindChangeDialog
+        open={changingKind}
+        onClose={() => setChangingKind(false)}
+        eventId={event.id}
+        kinds={kindChange}
+        schedules={event.schedules.map(schedule => ({
+          id: schedule.id,
+          title: scheduleTitle(schedule),
+          kind: schedule.kind,
+          status: schedule.status,
+          assignments: schedule.kind === ScheduleKind.Programme ? programmeAssignments : filledServices,
+          removable: schedule.mayChange,
+        }))}
+        hasAttendance={hasAttendance}
       />
 
       <div className="flex flex-wrap items-start gap-6">
@@ -229,8 +254,7 @@ export function EventView({
               heading={headingOf(
                 programmeSchedule,
                 m.programs_view_parts_assigned({ count: assignedParts, total: event.eventParts.length }),
-                event.eventParts.filter(item => item.assigneeId != null).length +
-                  event.eventParts.filter(item => item.assistantId != null).length,
+                programmeAssignments,
               )}
             />
           )}

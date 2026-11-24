@@ -73,6 +73,11 @@ export const DELEGATES: Record<string, { file: string; enforces: RegExp }> = {
     file: 'app/features/events/server/schedule-changes.server.ts',
     enforces: ENFORCES_PERMISSION,
   },
+  // Changing a meeting's kind (D40): the rights of both kinds, and of each schedule removed or added.
+  changeEventKind: {
+    file: 'app/features/events/server/event-kind-change.server.ts',
+    enforces: /canChangeEventsOfKind\(/,
+  },
   // Adding a schedule (D39): « Gérer » named in its file.
   addEventSchedule: { file: 'app/features/events/server/schedule-add.server.ts', enforces: ENFORCES_PERMISSION },
   filterEventsByRight: { file: 'app/features/events/server/schedule-rights.server.ts', enforces: ENFORCES_PERMISSION },

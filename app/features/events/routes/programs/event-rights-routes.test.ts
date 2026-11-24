@@ -15,6 +15,8 @@ const { state } = vi.hoisted(() => ({
     notices: [] as string[],
     /** What renaming a schedule answers once allowed. */
     renamed: true,
+    /** What changing the kind answers once allowed: changed, or a refusal of the domain. */
+    kindReason: null as null | 'kind-held' | 'not-suggested' | 'stale',
     /** What adding a schedule answers once allowed: added, or a refusal of the domain. */
     addReason: null as null | 'kind-held' | 'awaiting-programme',
     /** What « Tout publier » returns beyond the defaults, for the messages it leads to. */
@@ -110,6 +112,16 @@ vi.mock('~/features/events/server/event-status.server', () => ({
   },
 }))
 
+// Changing the kind asks its rights in the service, faked through `answers.schedule`; what it was sent is recorded.
+vi.mock('~/features/events/server/event-kind-change.server', () => ({
+  changeEventKind: (_db: unknown, _can: unknown, _user: number, eventId: number, change: Record<string, unknown>) => {
+    if (!state.answers.schedule) return Promise.resolve({ refused: true })
+    if (state.kindReason) return Promise.resolve({ reason: state.kindReason })
+    state.done.push(`change-kind:${eventId}:${JSON.stringify(change)}`)
+    return Promise.resolve({ event: publishedEvent, notifyTargets: [{ memberId: 5 }] })
+  },
+}))
+
 // Adding a schedule asks canAddSchedule, faked through `answers.schedule`; the event and the source are recorded.
 vi.mock('~/features/events/server/schedule-add.server', () => ({
   addEventSchedule: (_db: unknown, _can: unknown, _user: number, eventId: number, source: Record<string, unknown>) => {
@@ -179,6 +191,7 @@ const scheduleUnpublish = await import('./events/schedule-unpublish')
 const scheduleRename = await import('./events/schedule-rename')
 const scheduleDelete = await import('./events/schedule-delete')
 const scheduleAdd = await import('./events/schedule-add')
+const changeKind = await import('./events/change-kind')
 
 type Action = (args: never) => Promise<unknown>
 
@@ -210,6 +223,7 @@ beforeEach(() => {
   state.notices = []
   state.renamed = true
   state.addReason = null
+  state.kindReason = null
   state.bulk = []
   state.publishOutcome = {}
   state.unpublishOutcome = {}
@@ -426,6 +440,52 @@ describe('adding a schedule', () => {
   it('refuses whoever may not', async () => {
     const response = await respond(() => add({ scheduleTemplateId: '12' }))
     expect(response.headers.get('Location')).toBe('/programs')
+    expect(state.done).toEqual([])
+  })
+})
+
+describe('changing the kind', () => {
+  const change = (entries: [string, string][]) => {
+    const body = new FormData()
+    for (const [key, value] of entries) body.append(key, value)
+    return (changeKind.action as Action)({
+      request: new Request('https://unitae.example.test/programs/events/40/change-kind', { method: 'POST', body }),
+      params: { eventId: '40' },
+      context: routeContext([]),
+    } as never)
+  }
+  const sent: [string, string][] = [
+    ['kindId', '4'],
+    ['keep', '2'],
+    ['remove', '1'],
+    ['add', '7'],
+  ]
+
+  it('changes it as the dialog sent, on the event of the address, and tells the removed schedule’s assignees', async () => {
+    state.answers.schedule = true
+    await change(sent)
+    expect(state.done).toEqual(['change-kind:40:{"kindId":4,"keep":[2],"remove":[1],"add":[7]}'])
+    expect(state.notices).toEqual(['cancelled:40:1'])
+    expect(state.flashed).toEqual([`success:${m.programs_kind_change_done()}`])
+  })
+
+  it('says why it was refused, staying on the page, and tells nobody', async () => {
+    state.answers.schedule = true
+    state.kindReason = 'stale'
+    expect(await change(sent)).toMatchObject({ data: { ok: false } })
+    state.answers.schedule = false
+    expect(await change(sent)).toMatchObject({ data: { ok: false } })
+    expect(state.flashed).toEqual([
+      `error:${m.programs_kind_change_stale()}`,
+      `error:${m.programs_kind_change_refused()}`,
+    ])
+    expect(state.notices).toEqual([])
+  })
+
+  it('answers a form without a kind with a 400, asking nothing', async () => {
+    state.answers.schedule = true
+    const response = (await change([['keep', '2']])) as { init: { status: number } }
+    expect(response.init.status).toBe(400)
     expect(state.done).toEqual([])
   })
 })
