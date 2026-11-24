@@ -1,6 +1,10 @@
 import type { AttendanceKind } from '~/features/events/model/attendance-kind.type'
 import { isSystemTemplate } from '~/features/events/model/event-template.type'
-import { ResponsibilityScope, scopesCovering } from '~/features/events/model/responsibility-scope.type'
+import {
+  ResponsibilityScope,
+  scheduleKindsCovering,
+  scopesCovering,
+} from '~/features/events/model/responsibility-scope.type'
 import { syncTemplateScheduleTemplates } from '~/features/events/server/schedule-templates.server'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
@@ -153,7 +157,8 @@ export async function removeTemplateResponsible(
 }
 
 /**
- * The responsible row for this template, if the caller holds the role it points at.
+ * Whether the caller answers for this template (kind): `{ id }` of the TemplateResponsible row, or of the link to a
+ * schedule template of the kind naming one of their roles (6a-1a); null when neither does.
  *
  * Still keyed by `userId` from the caller's side — the question routes ask has not changed —
  * but the answer now goes through the role. `resolveEffectiveRoleIds` is the canonical
@@ -176,7 +181,18 @@ export async function isTemplateResponsible(
   const roleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
   if (roleIds.length === 0) return null
 
-  return db.templateResponsible.findFirst({
+  // A TemplateResponsible row (until 6a-2), or a schedule template the kind suggests naming one of the caller's roles.
+  const row = await db.templateResponsible.findFirst({
     where: { templateId, congregationId, roleId: { in: roleIds }, scope: { in: scopesCovering(scope) } },
+    select: { id: true },
+  })
+  if (row != null) return row
+  return db.eventKindScheduleTemplate.findFirst({
+    where: {
+      eventKindId: templateId,
+      congregationId,
+      scheduleTemplate: { responsibleRoleId: { in: roleIds }, kind: { in: scheduleKindsCovering(scope) } },
+    },
+    select: { id: true },
   })
 }

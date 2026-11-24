@@ -33,6 +33,8 @@ beforeEach(() => {
   // The caller holds a role by default, so these cases keep testing what they always did:
   // whether that role is the template's responsible. The no-roles case is explicit below.
   vi.mocked(db.role.findMany).mockResolvedValue([{ id: ROLE_ID }] as never)
+  // No schedule template names the caller's roles unless a case says so.
+  vi.mocked(db.eventKindScheduleTemplate.findMany).mockResolvedValue([] as never)
 })
 
 describe('getResponsibleTemplateIds', () => {

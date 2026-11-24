@@ -3,6 +3,7 @@ import {
   findResponsible,
   RESPONSIBILITY_SCOPES,
   ResponsibilityScope,
+  scheduleKindsCovering,
   scopesCovering,
 } from '~/features/events/model/responsibility-scope.type'
 
@@ -21,6 +22,19 @@ describe('scopesCovering', () => {
         expect(RESPONSIBILITY_SCOPES).toContain(covering)
       }
     }
+  })
+})
+
+describe('scheduleKindsCovering', () => {
+  it('reads the programme template for the programme, both templates for the services', () => {
+    expect(scheduleKindsCovering(ResponsibilityScope.Programme)).toEqual(['programme'])
+    expect(scheduleKindsCovering(ResponsibilityScope.Service)).toEqual(['programme', 'duty'])
+  })
+
+  it('hands out a fresh array each call', () => {
+    expect(scheduleKindsCovering(ResponsibilityScope.Service)).not.toBe(
+      scheduleKindsCovering(ResponsibilityScope.Service),
+    )
   })
 })
 
