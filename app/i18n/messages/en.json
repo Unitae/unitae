@@ -1875,6 +1875,127 @@
     ],
     "programs_selection_toolbar": "Actions on the selection",
     "programs_selection_clear": "Clear the selection",
+    "programs_bulk_preview_title_all": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Publish {count} schedule?",
+                "countPlural=*": "Publish {count} schedules?"
+            }
+        }
+    ],
+    "programs_bulk_preview_title_some": [
+        {
+            "declarations": [
+                "input count",
+                "input total",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Publish {count} schedule of the {total} selected?",
+                "countPlural=*": "Publish {count} schedules of the {total} selected?"
+            }
+        }
+    ],
+    "programs_bulk_preview_nothing": "Nothing to publish in the selection",
+    "programs_bulk_preview_body": "The people assigned on the published schedules will be told. Each schedule goes whole, or not at all.",
+    "programs_bulk_preview_publish": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "will be published",
+                "countPlural=*": "will be published"
+            }
+        }
+    ],
+    "programs_bulk_preview_not_yours": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "will stay a draft: not yours",
+                "countPlural=*": "will stay drafts: not yours"
+            }
+        }
+    ],
+    "programs_bulk_preview_not_yours_hint": "Only the person in charge of a schedule publishes it, or someone who may publish every program.",
+    "programs_bulk_preview_conflicts": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "will stay a draft: someone is away",
+                "countPlural=*": "will stay drafts: people are away"
+            }
+        }
+    ],
+    "programs_bulk_preview_empty": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "will stay a draft: it is empty",
+                "countPlural=*": "will stay drafts: they are empty"
+            }
+        }
+    ],
+    "programs_bulk_preview_awaiting": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "will stay a draft: program still to create",
+                "countPlural=*": "will stay drafts: program still to create"
+            }
+        }
+    ],
+    "programs_bulk_preview_unfilled": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} slot unfilled",
+                "countPlural=*": "{count} slots unfilled"
+            }
+        }
+    ],
+    "programs_bulk_preview_submit": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Publish {count} schedule",
+                "countPlural=*": "Publish {count} schedules"
+            }
+        }
+    ],
     "programs_bulk_release_all": "Publish",
     "programs_bulk_release_some_one": "Publish the draft",
     "programs_bulk_release_some_other": [

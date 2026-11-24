@@ -1,3 +1,4 @@
+import type { BulkPublishPreview, PreviewSchedule } from '~/features/events/model/bulk-publish-preview.type'
 import { isAwaitingProgramme, programmeTemplate } from '~/features/events/model/empty-meetings'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import { type ScheduleKind, ScheduleStatus } from '~/features/events/model/schedule.type'
@@ -15,37 +16,6 @@ import { filterEventsByRight } from './schedule-rights.server'
 // selection in the bucket publishEvent puts it in, by the same rights (publishableScheduleIds) and the same refusals
 // (scheduleRefusal). A read: the selection may change before the person confirms, and the toast after publishing
 // stays what happened.
-
-/** A draft schedule as the dialog names it: its title (or its kind's label when unnamed), its meeting and day. */
-export interface PreviewSchedule {
-  id: number
-  name: string | null
-  kind: ScheduleKind
-  eventId: number
-  eventName: string
-  startDate: Date
-}
-
-/** A meeting holding no schedule, which publishes as a whole (D46). */
-export interface PreviewEvent {
-  id: number
-  name: string
-  startDate: Date
-}
-
-export interface BulkPublishPreview {
-  /** Published, each with its slots nobody holds yet: it publishes anyway (the user's rule: warn, allow). */
-  publish: (PreviewSchedule & { unfilled: number })[]
-  /** Someone else's to publish, with the role in charge of it when its template names one. */
-  notYours: (PreviewSchedule & { responsible: { key: string; name: string | null } | null })[]
-  /** Someone assigned is away that day: who, and on which part. */
-  conflicts: (PreviewSchedule & { away: { person: string; part: string }[] })[]
-  /** Nothing in it: no schedule is published empty. */
-  empty: PreviewSchedule[]
-  /** A programme still to give. */
-  awaiting: PreviewSchedule[]
-  events: { publish: PreviewEvent[]; awaiting: PreviewEvent[]; notYours: PreviewEvent[] }
-}
 
 const PERSON = { select: { firstname: true, lastname: true } } as const
 

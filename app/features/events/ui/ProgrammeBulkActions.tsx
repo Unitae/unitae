@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useFetcher } from 'react-router'
 import { toast } from 'sonner'
 
+import type { BulkPublishPreview } from '~/features/events/model/bulk-publish-preview.type'
 import type { ProgrammeRowData } from '~/features/events/model/programme-list.type'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
@@ -19,8 +20,10 @@ import {
 } from '~/shared/ui/alert-dialog'
 import { Button } from '~/shared/ui/button'
 import { formatEventDate } from '~/shared/utils/event-time'
+import { BulkPublishDialog } from './BulkPublishDialog'
 
 type BulkResult = { ok: boolean; error?: 'invalid_payload' }
+type PreviewResult = { ok: true; preview: BulkPublishPreview } | { ok: false; error: 'invalid_payload' }
 
 interface ProgrammeBulkActionsProps {
   selected: ProgrammeRowData[]
@@ -47,13 +50,23 @@ function useBulkFetcher(onDone: () => void) {
 export function ProgrammeBulkActions({ selected, onClear, timeZone }: ProgrammeBulkActionsProps) {
   const statusFetcher = useBulkFetcher(onClear)
   const deleteFetcher = useBulkFetcher(onClear)
+  // « Publier » asks first what it will do (design round A): the preview's answer opens the dialog, Annuler drops it.
+  const previewFetcher = useFetcher<PreviewResult>()
+  const [previewed, setPreviewed] = useState<BulkPublishPreview | null>(null)
+  const [previewIds, setPreviewIds] = useState<number[]>([])
   const [confirmDelete, setConfirmDelete] = useState(false)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reacts to the preview settling only
+  useEffect(() => {
+    if (previewFetcher.state !== 'idle' || previewFetcher.data == null) return
+    if (previewFetcher.data.ok) setPreviewed(previewFetcher.data.preview)
+    else toast.error(m.programs_bulk_invalid_payload())
+  }, [previewFetcher.state, previewFetcher.data])
   // By the reader's schedules, not the event's status: one that reads published may hold a draft of theirs (D52). A
   // meeting with no programme yet has nothing to publish.
   const toRelease = selected.filter(row => row.canRelease && !row.awaitingProgramme)
   const toUnrelease = selected.filter(row => row.canUnrelease)
   const toDelete = selected.filter(row => row.canDelete)
-  const busy = statusFetcher.state !== 'idle' || deleteFetcher.state !== 'idle'
+  const busy = statusFetcher.state !== 'idle' || deleteFetcher.state !== 'idle' || previewFetcher.state !== 'idle'
   const submit = (fetcher: typeof statusFetcher, rows: ProgrammeRowData[], action: string) =>
     fetcher.submit({ ids: rows.map(row => row.id) }, { method: 'POST', action, encType: 'application/json' })
   const day = (row: ProgrammeRowData) =>
@@ -73,9 +86,16 @@ export function ProgrammeBulkActions({ selected, onClear, timeZone }: ProgrammeB
             variant="ghost"
             size="sm"
             disabled={busy}
-            onClick={() => submit(statusFetcher, toRelease, '/programs/bulk-release')}
+            onClick={() => {
+              setPreviewIds(toRelease.map(row => row.id))
+              submit(previewFetcher, toRelease, '/programs/bulk-release-preview')
+            }}
           >
-            {statusFetcher.state !== 'idle' ? <Loader2 className="animate-spin" /> : <Send />}
+            {statusFetcher.state !== 'idle' || previewFetcher.state !== 'idle' ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <Send />
+            )}
             {toRelease.length === selected.length
               ? m.programs_bulk_release_all()
               : toRelease.length > 1
@@ -112,6 +132,20 @@ export function ProgrammeBulkActions({ selected, onClear, timeZone }: ProgrammeB
         )}
       </SelectionBar>
 
+      <BulkPublishDialog
+        preview={previewed}
+        timeZone={timeZone}
+        busy={busy}
+        onCancel={() => setPreviewed(null)}
+        onConfirm={() => {
+          // The ids the preview was asked about, so what publishes is what the dialog listed.
+          statusFetcher.submit(
+            { ids: previewIds },
+            { method: 'POST', action: '/programs/bulk-release', encType: 'application/json' },
+          )
+          setPreviewed(null)
+        }}
+      />
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent size="sm">
           <AlertDialogHeader>
