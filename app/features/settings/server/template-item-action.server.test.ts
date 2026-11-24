@@ -62,8 +62,14 @@ describe('handleTemplateItemAction', () => {
       handleTemplateItemAction({} as never, 4, form({ intent: 'upsert-part', partId: '12', partName: 'X' }), ACTOR),
       handleTemplateItemAction({} as never, 4, form({ intent: 'delete-part', partId: '12' }), ACTOR),
       handleTemplateItemAction({} as never, 4, form({ intent: 'delete-service-role', roleId: '22' }), ACTOR),
+      handleTemplateItemAction(
+        {} as never,
+        4,
+        form({ intent: 'upsert-service-role', roleId: '22', roleName: 'Sono' }),
+        ACTOR,
+      ),
     ])
-    expect(results.map(result => result?.kind)).toEqual(['refused', 'refused', 'refused'])
+    expect(results.map(result => result?.kind)).toEqual(['refused', 'refused', 'refused', 'refused'])
     expect(writes).toEqual([])
   })
 

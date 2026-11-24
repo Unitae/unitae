@@ -2,12 +2,15 @@ import { data } from 'react-router'
 import { ScheduleKind } from '~/features/events'
 import * as m from '~/i18n/paraglide/messages'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { createLogger } from '~/shared/infra/logger.server'
 import { getScheduleTemplateItems } from './schedule-template-items.queries'
 import {
   handleTemplateItemAction,
   TEMPLATE_ITEM_INTENTS,
   type TemplateActionResult,
 } from './template-item-action.server'
+
+const logger = createLogger('schedule-template-items')
 
 /** Every intent that writes a schedule template's items, on either sort. */
 export const SCHEDULE_TEMPLATE_ITEM_INTENTS: readonly string[] = [
@@ -18,7 +21,7 @@ export const SCHEDULE_TEMPLATE_ITEM_INTENTS: readonly string[] = [
 /**
  * Writes a schedule template's item from « Modèles de planning »: a programme template's parts, a duties template's
  * services, through the first kind that uses it until its items stop belonging to a kind (6a-1c-2). Null when the
- * template is not the congregation's or no kind uses it: nothing to write through.
+ * template is not the congregation's; refused when no kind uses it, nothing to write through.
  */
 export async function handleScheduleTemplateItem(
   db: TransactionClient,
@@ -27,10 +30,25 @@ export async function handleScheduleTemplateItem(
   actor: { id: number; congregationId: number },
 ): Promise<TemplateActionResult | null> {
   const items = await getScheduleTemplateItems(db, scheduleTemplateId, actor.congregationId)
-  if (items?.kindId == null) return null
+  if (items == null) {
+    logger.warn('handleScheduleTemplateItem: no such schedule template', { scheduleTemplateId, ...actor })
+    return null
+  }
+  if (items.kindId == null) {
+    logger.warn('handleScheduleTemplateItem: no kind uses the schedule template', { scheduleTemplateId, ...actor })
+    return {
+      kind: 'refused',
+      response: data({ status: 'error', error: { '': [m.settings_schedule_templates_no_kind()] } }, { status: 409 }),
+    }
+  }
   const own: readonly string[] =
     items.kind === ScheduleKind.Programme ? TEMPLATE_ITEM_INTENTS.part : TEMPLATE_ITEM_INTENTS.service
   if (!own.includes(String(formData.get('intent')))) {
+    logger.warn('handleScheduleTemplateItem: an intent of the other sort', {
+      scheduleTemplateId,
+      intent: String(formData.get('intent')),
+      ...actor,
+    })
     return {
       kind: 'refused',
       response: data({ status: 'error', error: { '': [m.settings_template_item_not_in_template()] } }, { status: 400 }),

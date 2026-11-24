@@ -33,7 +33,7 @@ Permission required: _Can create and configure meeting templates_. Who answers f
 
 ## Schedule templates
 
-What a schedule holds, and who answers for it: one list of every schedule template, each opening beside the list with its name, its responsible role (and who holds it today) and the meeting types that use it. A template's responsible and their deputies fill and publish the schedules made from it, on every meeting.
+What a schedule holds, and who answers for it: one list of every schedule template, each opening beside the list with its name, its responsible role (and who holds it today), the meeting types that use it, and what it holds: a programme's parts by section, a section's parallel rooms nested, with the time per section and in total; or the services, with the roles allowed on each. A part or a service opens in the same panel (« ← » or Escape goes back); what is open stays in the address. Changes reach the meetings created afterwards; schedules already created keep theirs. A template's responsible and their deputies fill and publish the schedules made from it, on every meeting.
 
 Permission required: _Can create and configure meeting templates_.
 

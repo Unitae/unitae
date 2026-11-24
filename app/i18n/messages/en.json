@@ -4462,8 +4462,8 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "{count} hall in parallel",
-                "countPlural=*": "{count} halls in parallel"
+                "countPlural=one": "{count} room in parallel",
+                "countPlural=*": "{count} rooms in parallel"
             }
         }
     ],

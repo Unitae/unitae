@@ -17,7 +17,7 @@ import {
 import * as m from '~/i18n/paraglide/messages'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
-/** What an intent did: a toast and, for a duplicate or a delete, where to go; or the form's refusal. */
+/** What an intent did: a toast, where to go (the type page's duplicate or delete), or the form's refusal. */
 export type TemplateActionResult =
   | { kind: 'saved'; message: string }
   | { kind: 'moved'; to: string; message: string }

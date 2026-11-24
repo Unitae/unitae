@@ -19,7 +19,7 @@ export async function getScheduleTemplateItems(
     where: { id: scheduleTemplateId, congregationId },
     select: {
       kind: true,
-      eventKinds: { select: { eventKindId: true }, orderBy: [{ order: 'asc' }, { eventKindId: 'asc' }], take: 1 },
+      eventKinds: { select: { eventKindId: true }, orderBy: [{ order: 'asc' }, { id: 'asc' }], take: 1 },
     },
   })
   if (template == null) return null
@@ -40,5 +40,3 @@ export async function getScheduleTemplateItems(
     trackSuggestions: distinct(parts.map(part => part.track)).filter(Boolean),
   }
 }
-
-export type ScheduleTemplateItems = NonNullable<Awaited<ReturnType<typeof getScheduleTemplateItems>>>

@@ -50,9 +50,11 @@ describe('handleScheduleTemplateItem', () => {
     expect(calls).toEqual([])
   })
 
-  it('has nothing to write through for a template no kind uses, or one not there', async () => {
+  it('refuses a template no kind uses, saying so, and has nothing for one not there', async () => {
     items.current = { kind: 'duty', kindId: null }
-    expect(await handleScheduleTemplateItem({} as never, 4, form('upsert-service-role'), ACTOR)).toBeNull()
+    expect(await handleScheduleTemplateItem({} as never, 4, form('upsert-service-role'), ACTOR)).toMatchObject({
+      kind: 'refused',
+    })
     items.current = null
     expect(await handleScheduleTemplateItem({} as never, 5, form('upsert-service-role'), ACTOR)).toBeNull()
     expect(calls).toEqual([])
