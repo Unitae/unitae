@@ -2,6 +2,7 @@ import { Pencil } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useFetcher } from 'react-router'
 import type { ExternalSpeakerOption } from '~/features/events/model/external-speaker.type'
+import { schedulePublishAction } from '~/features/events/model/programme-access'
 import { parseAssignKey } from '~/features/events/model/reassign'
 import type { KindChangeOption, ScheduleAddOptions } from '~/features/events/model/schedule.type'
 import { ScheduleKind, ScheduleStatus } from '~/features/events/model/schedule.type'
@@ -27,6 +28,7 @@ import { ScheduleConflictNotice } from './ScheduleConflictNotice'
 import {
   type EventScheduleView,
   ScheduleResponsibleLine,
+  ScheduleStatusBadge,
   ScheduleStatusControl,
   ScheduleTitle,
   scheduleTitle,
@@ -171,6 +173,17 @@ export function EventView({
   // kind, while an event holds one schedule of each (see maySeeSchedule): its items carry no schedule of their own.
   const programmeSchedule = event.schedules.find(schedule => schedule.kind === ScheduleKind.Programme)
   const dutySchedule = event.schedules.find(schedule => schedule.kind === ScheduleKind.Duty)
+  const mayEditStructure = (schedule: EventScheduleView) =>
+    canEdit && (schedule.kind === ScheduleKind.Programme ? canAssign : canAssignService)
+  const editLink = (schedule: EventScheduleView, className: string) =>
+    mayEditStructure(schedule) && (
+      <Button variant="ghost" size="sm" className={className} asChild>
+        <Link to={`/programs/events/${event.id}/schedules/${schedule.id}/edit`}>
+          <Pencil />
+          {m.programs_schedule_edit()}
+        </Link>
+      </Button>
+    )
   const headingOf = (schedule: EventScheduleView | undefined, fill: string, assignments: number) =>
     schedule && {
       title: <ScheduleTitle schedule={schedule} />,
@@ -183,14 +196,7 @@ export function EventView({
             unfilled={unfilledOf(schedule.kind)}
           />
           {/* « Modifier le planning » (D38): its structure on its own page, for whoever changes the meeting and fills it. */}
-          {canEdit && (schedule.kind === ScheduleKind.Programme ? canAssign : canAssignService) && (
-            <Button variant="ghost" size="sm" className="max-md:h-11" asChild>
-              <Link to={`/programs/events/${event.id}/schedules/${schedule.id}/edit`}>
-                <Pencil />
-                {m.programs_schedule_edit()}
-              </Link>
-            </Button>
-          )}
+          {editLink(schedule, 'max-md:hidden')}
           {schedule.mayChange && (
             <ScheduleActions
               eventId={event.id}
@@ -204,10 +210,31 @@ export function EventView({
           )}
         </>
       ),
-      // The board's header line: who answers for the schedule, under its title.
-      // Only with a responsible: an empty description would still take the header's second line.
-      description: schedule.responsible != null ? <ScheduleResponsibleLine schedule={schedule} /> : undefined,
+      // Under the title: on a phone its status (the board's phone layout), and who answers for the schedule. Without a
+      // responsible, the line is hidden from md up (PHONE_ONLY_DESCRIPTION), so the desktop header keeps one line.
+      description: (
+        <>
+          <span data-phone-only="" className="md:hidden">
+            <ScheduleStatusBadge schedule={schedule} fill={fill} />
+          </span>
+          {schedule.responsible != null && <ScheduleResponsibleLine schedule={schedule} />}
+        </>
+      ),
       intro: <ScheduleConflictNotice schedule={schedule} items={itemsOf(schedule.kind)} />,
+      // On a phone, « Publier » and « Modifier le planning » below the rows, which stay unfolded (the user's choice).
+      // Only when there is a button to put there: a reader who can act on nothing gets no empty strip.
+      foot: (schedulePublishAction(schedule) != null || mayEditStructure(schedule)) && (
+        <>
+          <ScheduleStatusControl
+            eventId={event.id}
+            schedule={schedule}
+            fill={fill}
+            unfilled={unfilledOf(schedule.kind)}
+            placement="foot"
+          />
+          {editLink(schedule, 'h-11')}
+        </>
+      ),
     }
   const bySchedule = event.schedules.length > 0
   const assignedParts = event.eventParts.filter(item => item.assigneeId ?? item.externalSpeakerId).length
