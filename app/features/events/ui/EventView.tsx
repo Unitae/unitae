@@ -245,7 +245,9 @@ export function EventView({
           kind: schedule.kind,
           status: schedule.status,
           assignments: schedule.kind === ScheduleKind.Programme ? programmeAssignments : filledServices,
+          removable: schedule.mayChange,
         }))}
+        hasAttendance={hasAttendance}
       />
 
       <div className="flex flex-wrap items-start gap-6">

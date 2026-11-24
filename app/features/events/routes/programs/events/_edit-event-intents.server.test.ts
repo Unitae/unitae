@@ -18,8 +18,6 @@ const db = {} as Parameters<typeof handleEditIntent>[2]
 const EVENT_ID = 31
 const CONGREGATION_ID = 4242
 const USER_ID = 7777
-const _OWNED_TEMPLATE_ID = 1001
-const _FOREIGN_TEMPLATE_ID = 2002
 // Parts and services: the first item belongs to the event in the URL, the second to another event. The old row the
 // first mirrors has its own id, which a form of the previous image posts under the old name (plan T12).
 const OWN_ID = 11

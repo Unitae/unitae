@@ -14,16 +14,17 @@ describe('kindChangeFrom', () => {
         form([
           ['kindId', '4'],
           ['keep', '10'],
-          ['keep', '11'],
+          ['remove', '11'],
           ['add', '7'],
         ]),
       ).data,
     ).toEqual({
       kindId: 4,
-      keep: [10, 11],
+      keep: [10],
+      remove: [11],
       add: [7],
     })
-    expect(kindChangeFrom(form([['kindId', '4']])).data).toEqual({ kindId: 4, keep: [], add: [] })
+    expect(kindChangeFrom(form([['kindId', '4']])).data).toEqual({ kindId: 4, keep: [], remove: [], add: [] })
   })
 
   it('refuses a missing kind or an id that is not one', () => {
