@@ -40,7 +40,8 @@ test.describe('Assignments', () => {
     await page.getByRole('button', { name: 'Tout publier' }).click()
     await publishAnyway(page)
     await expect(page.getByRole('button', { name: 'Repasser en brouillon' })).toHaveCount(2)
-    await expect(page.getByText(PUBLISHED_STATUS)).toHaveCount(2)
+    // Each status is drawn twice, one per breakpoint (under the title on a phone): count the one on screen.
+    await expect(page.getByText(PUBLISHED_STATUS).filter({ visible: true })).toHaveCount(2)
 
     // The board opened on this meeting, as a notice's link opens it.
     const viewer = `${await programmeDocument(page, DOCUMENT_TITLE)}?eventId=${eventId}`

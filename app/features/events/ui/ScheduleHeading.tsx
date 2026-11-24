@@ -10,6 +10,7 @@ import * as m from '~/i18n/paraglide/messages'
 import { getRoleDisplayName } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { formatPersonName } from '~/shared/utils/format-person-name'
+import { cn } from '~/shared/utils/utils'
 import { PublishUnfilledDialog } from './PublishUnfilledDialog'
 
 /** A schedule as its section on the event page shows it (D37, D43, D45: the reader sees only those they may). */
@@ -99,18 +100,41 @@ export function ScheduleResponsibleLine({ schedule }: { schedule: EventScheduleV
   )
 }
 
+/** A schedule's status and how full it is. */
+export function ScheduleStatusBadge({ schedule, fill }: { schedule: EventScheduleView; fill: string | null }) {
+  const published = schedule.status === ScheduleStatus.Published
+  return (
+    <Status tone={published ? 'success' : 'warning'}>
+      {published ? m.programs_view_released() : m.programs_event_draft_badge()}
+      {fill && ` · ${fill}`}
+    </Status>
+  )
+}
+
+/**
+ * A panel whose description holds only a part marked `data-phone-only` hides that line from md up, so its desktop
+ * header keeps one line.
+ */
+export const PHONE_ONLY_DESCRIPTION = 'md:[&_h2+div:has(>[data-phone-only]:only-child)]:hidden'
+
 /** Its status and how full it is, and its own « Publier » or « Repasser en brouillon » for whoever may (D8). */
 export function ScheduleStatusControl({
   eventId,
   schedule,
   fill,
   unfilled,
+  placement = 'header',
 }: {
   eventId: number
   schedule: EventScheduleView
   fill: string | null
   /** Its slots nobody holds: publishing asks first when there are some. */
   unfilled: number
+  /**
+   * `header`: the status, and the button from md up; `foot`: the button alone, on a phone, below the section's rows
+   * (the user's choice for the phone: no fold, the actions at the foot).
+   */
+  placement?: 'header' | 'foot'
 }) {
   const fetcher = useFetcher<{ ok: boolean }>()
   const [asking, setAsking] = useState(false)
@@ -120,16 +144,18 @@ export function ScheduleStatusControl({
   const submit = () => fetcher.submit({}, { method: 'POST', action })
   const Icon = published ? FileText : Send
   return (
-    <span className="flex flex-wrap items-center gap-2">
-      <Status tone={published ? 'success' : 'warning'}>
-        {published ? m.programs_view_released() : m.programs_event_draft_badge()}
-        {fill && ` · ${fill}`}
-      </Status>
+    <span className={cn('flex flex-wrap items-center gap-2', placement === 'foot' && 'md:hidden')}>
+      {/* On a phone the status reads under the title (ScheduleStatusBadge in the description). */}
+      {placement === 'header' && (
+        <span className="max-md:hidden">
+          <ScheduleStatusBadge schedule={schedule} fill={fill} />
+        </span>
+      )}
       {schedulePublishAction(schedule) != null && (
         <Button
           size="sm"
-          // 44 px to the touch on a phone.
-          className="max-md:h-11"
+          // 44 px to the touch on a phone, where it sits at the section's foot.
+          className={cn('max-md:h-11', placement === 'header' && 'max-md:hidden')}
           variant={published ? 'ghost' : 'default'}
           disabled={inFlight}
           onClick={() => (!published && unfilled > 0 ? setAsking(true) : submit())}

@@ -12,6 +12,7 @@ import { cn } from '~/shared/utils/utils'
 import type { AssignablePart } from './AssignPartEditor'
 import { PersonCell, type PersonName, personName } from './PersonCell'
 import { durationLabel, ProgrammeSectionHead, ProgrammeTrackHead, ROW_REVEAL } from './ProgrammeRows'
+import { PHONE_ONLY_DESCRIPTION } from './ScheduleHeading'
 import { ShareAssignmentButton } from './ShareAssignmentButton'
 
 export interface AssignedPart extends AssignablePart {
@@ -45,7 +46,14 @@ interface EventAssignmentsPanelProps {
   emptyHint?: string
   /** The schedule's own heading on the event page: its title, its controls, and a first line (its responsible). */
   /** `description`: a line under the title, in the header (the schedule's responsible). */
-  heading?: { title: ReactNode; actions?: ReactNode; description?: ReactNode; intro?: ReactNode }
+  heading?: {
+    title: ReactNode
+    actions?: ReactNode
+    description?: ReactNode
+    intro?: ReactNode
+    /** On a phone, the section's buttons below its rows. */
+    foot?: ReactNode
+  }
 }
 
 /**
@@ -71,6 +79,7 @@ export function EventAssignmentsPanel({
       title={heading?.title ?? m.programs_view_spiritual_program()}
       actions={heading?.actions}
       description={heading?.description}
+      className={PHONE_ONLY_DESCRIPTION}
       footer={
         parts.length > 0 && (
           <>
@@ -146,6 +155,11 @@ export function EventAssignmentsPanel({
             ))}
           </tbody>
         </table>
+      )}
+      {heading?.foot && (
+        <div className="flex flex-wrap items-center gap-2 border-border border-t px-4.5 py-3 md:hidden empty:hidden">
+          {heading.foot}
+        </div>
       )}
     </Panel>
   )
