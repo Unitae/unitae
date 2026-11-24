@@ -56,7 +56,7 @@ vi.mock('~/features/settings/server/schedule-template-item-action.server', async
 
 const { Permission } = await import('~/shared/types/permission')
 const { formRequest, respond, routeContext } = await import('~/tests/helpers/route-action')
-const { action, loader } = await import('./schedule-templates')
+const { action, loader, shouldRevalidate } = await import('./schedule-templates')
 
 const URL = 'https://unitae.example.test/settings/schedule-templates'
 const OTHER_RIGHTS = [[Permission.CanManagePrograms], [Permission.CanViewPrograms], []]
@@ -216,5 +216,32 @@ describe('schedule-templates loader, the open template', () => {
     expect(itemsAsked).toEqual([3])
     expect(open.items).toMatchObject({ kindId: 270 })
     expect(closed.items).toBeNull()
+  })
+})
+
+describe('schedule-templates shouldRevalidate', () => {
+  const at = (search: string) => new globalThis.URL(`${URL}${search}`)
+  const base = { defaultShouldRevalidate: false, currentParams: {}, nextParams: {} }
+
+  it('reads the page again after a refused submission, whatever data it missed', () => {
+    expect(
+      shouldRevalidate({
+        ...base,
+        currentUrl: at('?template=3&item=part-1'),
+        nextUrl: at('?template=3&item=part-1'),
+        formMethod: 'POST',
+        actionStatus: 400,
+      } as never),
+    ).toBe(true)
+  })
+
+  it('does not read it again for a move inside the open template', () => {
+    expect(
+      shouldRevalidate({
+        ...base,
+        currentUrl: at('?template=3'),
+        nextUrl: at('?template=3&item=part-1'),
+      } as never),
+    ).toBe(false)
   })
 })

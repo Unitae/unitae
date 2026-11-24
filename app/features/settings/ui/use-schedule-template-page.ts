@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useBlocker, useLocation, useNavigate, useSearchParams } from 'react-router'
+import { toast } from 'sonner'
+import * as m from '~/i18n/paraglide/messages'
 import type { ItemKind } from './ScheduleTemplateItemList'
 
 /** The item open at the panel's second level: one of the template's, or a new one (`id: null`). */
@@ -32,8 +34,8 @@ export function useScheduleTemplatePage({
   dirty,
 }: {
   templateIds: number[]
-  /** Whether the template open holds this item: one deleted while open closes it. */
-  itemExists: (item: OpenItem) => boolean
+  /** Whether the template open holds this item (a new one: whether it takes its sort). One deleted while open closes it. */
+  itemExists: (item: OpenItem, templateId: number) => boolean
   /** Unsaved changes on the level open: its name and responsible, or the item's form. */
   dirty: boolean
 }) {
@@ -53,12 +55,14 @@ export function useScheduleTemplatePage({
   const asked = Number(params.get('template'))
   const templateId = templateIds.includes(asked) ? asked : null
   const askedItem = templateId == null ? null : readItem(params.get('item'))
-  const item = askedItem != null && (askedItem.id == null || itemExists(askedItem)) ? askedItem : null
+  const item = askedItem != null && templateId != null && itemExists(askedItem, templateId) ? askedItem : null
   // An item the address names that is no longer there (deleted, here or elsewhere): back to the first level.
   const stale = askedItem != null && item == null
   // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the item goes, with the address of then
   useEffect(() => {
     if (!stale) return
+    // Not after this page's own delete, which leaves first: the item went elsewhere, unsaved changes with it.
+    if (!pass.current && askedItem?.id != null) toast.error(m.settings_schedule_templates_item_gone())
     pass.current = true
     setParams(
       prev => {

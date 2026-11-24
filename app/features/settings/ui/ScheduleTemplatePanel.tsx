@@ -82,12 +82,14 @@ export function ScheduleTemplatePanel({
   const deleteFetcher = useFetcher({ key: `schedule-template-${template.id}-delete` })
   const [version, setVersion] = useState(0)
   const [deleting, setDeleting] = useState(false)
+  // The item the last delete was for: its refusal shows on that item only, not on the next one opened.
+  const [deletedMark, setDeletedMark] = useState<string | null>(null)
   // Leaves once the save has settled, its reload included: leaving earlier lets that navigation drop the reload.
   useOnSettled(itemFetcher, onLeaveItem)
   useOnSettled(deleteFetcher, onLeaveItem)
   // Saved: the form starts again from what is stored, and its footer goes.
   useOnSettled(fetcher, () => setVersion(current => current + 1))
-  const refusal = replyMessages(itemFetcher) ?? replyMessages(deleteFetcher)
+  const refusal = replyMessages(itemFetcher) ?? (deletedMark === mark ? replyMessages(deleteFetcher) : null)
 
   const part = item?.kind === 'part' && item.id != null ? items?.parts.find(each => each.id === item.id) : undefined
   const service =
@@ -230,6 +232,7 @@ export function ScheduleTemplatePanel({
     formData.set('intent', item.kind === 'part' ? 'delete-part' : 'delete-service-role')
     formData.set(item.kind === 'part' ? 'partId' : 'roleId', String(item.id))
     deleteFetcher.submit(formData, { method: 'post' })
+    setDeletedMark(mark)
     setDeleting(false)
   }
 
@@ -283,9 +286,15 @@ export function ScheduleTemplatePanel({
         itemName={title}
         onConfirm={confirmDelete}
         isDeleting={deleteFetcher.state !== 'idle'}
+        returnFocus={openPanel}
       />
     </>
   )
+}
+
+/** The docked panel open beside the list (a phone's sheet keeps focus in itself). */
+export function openPanel(): HTMLElement | null {
+  return document.querySelector<HTMLElement>('aside[tabindex="-1"]')
 }
 
 function rowOf(mark: string | null): HTMLElement | null {

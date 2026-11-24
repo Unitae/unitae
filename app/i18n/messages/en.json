@@ -7833,5 +7833,6 @@
     "demo_expired_title": "This demo link no longer works",
     "demo_expired_message": "A demo link opens once, within a minute, and a demo is deleted after an hour without use.",
     "demo_expired_new": "Open a new demo",
-    "demo_refused": "Not available in the demo."
+    "demo_refused": "Not available in the demo.",
+    "settings_schedule_templates_item_gone": "This item was deleted in the meantime; your changes were not saved."
 }
