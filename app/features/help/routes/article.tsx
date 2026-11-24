@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 import { demoHelpLimit } from '~/features/demo'
+import { answersForASchedule } from '~/features/events/index.server'
 import type { HelpArticleView } from '~/features/help/model/help.type'
 import { helpLocaleFor, helpPagePath } from '~/features/help/model/help-links'
 import { helpArticleView } from '~/features/help/server/help-article-view.server'
@@ -8,7 +9,12 @@ import { helpReaderFor } from '~/features/help/server/help-reader.server'
 import { HelpArticleBody } from '~/features/help/ui/HelpArticleBody'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
-import { congregationContext, currentAccountContext, permissionsContext } from '~/shared/auth/route-context.server'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import { isDemoCongregation } from '~/shared/domain/demo-mode.server'
 import { logger } from '~/shared/infra/logger.server'
 import { Button } from '~/shared/ui/button'
@@ -26,9 +32,13 @@ export const meta: Route.MetaFunction = ({ loaderData }) => {
 
 // The same loader serves the page and the side panel, which reads it as data. An article that cannot be read is
 // answered as an error rather than thrown: a thrown error would replace the page the panel was opened from.
-export function loader({ params, context }: Route.LoaderArgs): HelpArticleView {
+export async function loader({ params, context }: Route.LoaderArgs): Promise<HelpArticleView> {
   try {
-    const reader = helpReaderFor(context.get(permissionsContext), context.get(currentAccountContext))
+    const account = context.get(currentAccountContext)
+    const answers = await withScopeFromContext(context, (db, congregationId) =>
+      answersForASchedule(db, account.id, congregationId),
+    )
+    const reader = helpReaderFor(context.get(permissionsContext), account, answers)
     const view = helpArticleView(loadHelpArticles(), params.slug, helpLocaleFor(getLocale()), reader)
     if (view.kind !== 'found' || !isDemoCongregation(context.get(congregationContext))) return view
     return { ...view, demoLimit: demoHelpLimit(view.slug) }

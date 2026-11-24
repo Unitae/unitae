@@ -5,6 +5,7 @@ import {
   type HelpArticle,
   type HelpLocale,
   type HelpModule,
+  SCHEDULE_RESPONSIBLE,
 } from '~/features/help/model/help.type'
 import { Permission } from '~/shared/types/permission'
 
@@ -95,7 +96,7 @@ function readPermission(value: string, slug: string): HelpArticle['permission'] 
   if (value === 'none') return null
   const names = readList(value)
   for (const name of names) {
-    if (name !== GROUP_LEADER && !Object.keys(Permission).includes(name)) {
+    if (name !== GROUP_LEADER && name !== SCHEDULE_RESPONSIBLE && !Object.keys(Permission).includes(name)) {
       throw new HelpArticleFormatError(`Help article « ${slug} » names an unknown permission « ${name} ».`)
     }
   }

@@ -4,7 +4,7 @@ slug: schedules
 title: How do I prepare and publish a meeting’s schedules?
 summary: Publish each schedule at its own pace, add one, rename it, delete it, change the meeting’s kind.
 module: programs
-permission: CanManagePrograms, CanPublishPrograms, CanAssignProgramParts
+permission: CanManagePrograms, CanPublishPrograms, CanAssignProgramParts, ScheduleResponsible
 keywords: schedule, schedules, spiritual, services, program, duties, publish, publish all, draft, add a schedule, empty schedule, rename, delete, edit the schedule, change the kind, person in charge
 related: my-parts, absences, external-speakers
 order: 2

@@ -45,8 +45,14 @@ export type HelpModule = (typeof HELP_MODULES)[number]
  */
 export const GROUP_LEADER = 'GroupLeader'
 
-/** What an article may be opened by: a permission, or leading a group. */
-export type HelpAccess = keyof typeof Permission | typeof GROUP_LEADER
+/**
+ * Not a permission either: answering for a schedule template, through a role it names. It fills and publishes that
+ * template's schedules without any right, so an article about them names it beside the permissions.
+ */
+export const SCHEDULE_RESPONSIBLE = 'ScheduleResponsible'
+
+/** What an article may be opened by: a permission, leading a group, or answering for a schedule template. */
+export type HelpAccess = keyof typeof Permission | typeof GROUP_LEADER | typeof SCHEDULE_RESPONSIBLE
 
 export interface HelpArticle {
   slug: string

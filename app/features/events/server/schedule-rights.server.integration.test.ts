@@ -27,6 +27,7 @@ const {
   filterEventsByRight,
   responsibleKindIds,
   scheduleRightsFor,
+  answersForASchedule,
 } = await import('./schedule-rights.server')
 const { syncTemplateScheduleTemplates } = await import('./schedule-templates.server')
 
@@ -256,6 +257,15 @@ describe('Add a schedule: « Attribuer », « Gérer », or the responsible of t
       expect(
         await canFillSchedule(db, only(Permission.CanManagePrograms), programmeLead, event, 'part', congregationId),
       ).toBe(true)
+    })
+  })
+})
+
+describe('answersForASchedule: what opens the schedules’ help', () => {
+  it('says so of a schedule template’s responsible, never of someone answering for none', async () => {
+    await inCongregation(async ({ db, congregationId, programmeLead, nobody }) => {
+      expect(await answersForASchedule(db, programmeLead, congregationId)).toBe(true)
+      expect(await answersForASchedule(db, nobody, congregationId)).toBe(false)
     })
   })
 })

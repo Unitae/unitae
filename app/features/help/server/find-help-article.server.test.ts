@@ -6,7 +6,7 @@ import { Permission } from '~/shared/types/permission'
 
 /** A reader holding these permissions and leading no group. */
 function readerWith(...permissions: Permission[]): HelpReader {
-  return { permissions: new Set(permissions), leadsGroup: false }
+  return { permissions: new Set(permissions), leadsGroup: false, answersForSchedule: false }
 }
 
 function article(overrides: Partial<HelpArticle> & Pick<HelpArticle, 'slug'>): HelpArticle {

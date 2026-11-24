@@ -4,7 +4,7 @@ slug: schedules
 title: Como preparar e publicar os planeamentos de uma reunião?
 summary: Publicar cada planeamento ao seu ritmo, adicionar um, renomeá-lo, eliminá-lo, alterar o tipo da reunião.
 module: programs
-permission: CanManagePrograms, CanPublishPrograms, CanAssignProgramParts
+permission: CanManagePrograms, CanPublishPrograms, CanAssignProgramParts, ScheduleResponsible
 keywords: planeamento, planeamentos, espiritual, serviços, programa, tarefas, publicar, publicar tudo, rascunho, adicionar um planeamento, planeamento vazio, renomear, eliminar, editar o planeamento, alterar o tipo, responsável
 related: my-parts, absences, external-speakers
 order: 2

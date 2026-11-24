@@ -63,6 +63,13 @@ export async function responsibleKindIds(
   return kindsAnsweredFor(db, await resolveEffectiveRoleIds(db, userId, congregationId), congregationId)
 }
 
+/** Whether the caller answers for some schedule template, through a role it names: what opens the schedules' help. */
+export async function answersForASchedule(db: TransactionClient, userId: number, congregationId: number) {
+  const roleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
+  if (roleIds.length === 0) return false
+  return (await db.scheduleTemplate.count({ where: { congregationId, responsibleRoleId: { in: roleIds } } })) > 0
+}
+
 async function kindsAnsweredFor(db: TransactionClient, roleIds: number[], congregationId: number): Promise<number[]> {
   if (roleIds.length === 0) return []
   const links = await db.eventKindScheduleTemplate.findMany({

@@ -9,7 +9,10 @@ vi.mock('~/shared/auth/route-context.server', () => ({
   permissionsContext,
   currentAccountContext,
   congregationContext,
+  withScopeFromContext: (_context: unknown, fn: (db: unknown, congregationId: number) => unknown) => fn({}, 1),
 }))
+// Whether the reader answers for a schedule template is the events feature's: none here.
+vi.mock('~/features/events/index.server', () => ({ answersForASchedule: () => Promise.resolve(false) }))
 
 // An account whose record leads no group.
 const ACCOUNT = { member: null }

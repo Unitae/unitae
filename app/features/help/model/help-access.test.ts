@@ -10,7 +10,7 @@ import { Permission } from '~/shared/types/permission'
 
 /** A reader holding these permissions and leading no group. */
 function readerWith(...permissions: Permission[]): HelpReader {
-  return { permissions: new Set(permissions), leadsGroup: false }
+  return { permissions: new Set(permissions), leadsGroup: false, answersForSchedule: false }
 }
 
 function article(slug: string, permission: HelpArticle['permission']): HelpArticle {
@@ -59,7 +59,9 @@ describe('canReadHelpArticle for a feature that leading a group opens', () => {
   const reports = article('group-reports', ['CanRecordActivity', 'GroupLeader'])
 
   it('lets a group overseer or assistant read it without any permission', () => {
-    expect(canReadHelpArticle(reports, { permissions: new Set(), leadsGroup: true })).toBe(true)
+    expect(canReadHelpArticle(reports, { permissions: new Set(), leadsGroup: true, answersForSchedule: false })).toBe(
+      true,
+    )
   })
 
   it('lets a reader who holds one of its permissions read it without leading a group', () => {
@@ -71,9 +73,13 @@ describe('canReadHelpArticle for a feature that leading a group opens', () => {
   })
 
   it('does not open an article without GroupLeader to a group leader', () => {
-    expect(canReadHelpArticle(article('board', ['CanViewBoard']), { permissions: new Set(), leadsGroup: true })).toBe(
-      false,
-    )
+    expect(
+      canReadHelpArticle(article('board', ['CanViewBoard']), {
+        permissions: new Set(),
+        leadsGroup: true,
+        answersForSchedule: false,
+      }),
+    ).toBe(false)
   })
 })
 
@@ -115,5 +121,18 @@ describe('visibleHelpSlugs across the two languages', () => {
     const articles = [...BILINGUAL, { ...article('board', ['CanViewBoard']), locale: 'en' as const }]
 
     expect(visibleHelpSlugs(articles, readerWith(Permission.CanViewBoard), 'pt-PT')).toEqual(['open', 'board'])
+  })
+})
+
+describe('an article opened to schedule responsibles', () => {
+  it('opens to whoever answers for a schedule template, without any right, and to no one else', () => {
+    const article = { permission: ['CanManagePrograms', 'ScheduleResponsible'] } as never
+    const reader = (answersForSchedule: boolean) => ({
+      permissions: new Set<never>(),
+      leadsGroup: false,
+      answersForSchedule,
+    })
+    expect(canReadHelpArticle(article, reader(true))).toBe(true)
+    expect(canReadHelpArticle(article, reader(false))).toBe(false)
   })
 })

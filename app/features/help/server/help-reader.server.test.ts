@@ -28,4 +28,9 @@ describe('helpReaderFor', () => {
     expect(helpReaderFor(new Set(), account({ responsibleFor: null, deputyFor: null })).leadsGroup).toBe(false)
     expect(helpReaderFor(new Set(), account(null)).leadsGroup).toBe(false)
   })
+
+  it('answers for a schedule only when told so: the events feature decides', () => {
+    expect(helpReaderFor(new Set(), account(null)).answersForSchedule).toBe(false)
+    expect(helpReaderFor(new Set(), account(null), true).answersForSchedule).toBe(true)
+  })
 })

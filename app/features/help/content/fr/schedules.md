@@ -4,7 +4,7 @@ slug: schedules
 title: Comment préparer et publier les plannings d’une réunion ?
 summary: Publier chaque planning à son rythme, en ajouter un, le renommer, le supprimer, changer le type de la réunion.
 module: programs
-permission: CanManagePrograms, CanPublishPrograms, CanAssignProgramParts
+permission: CanManagePrograms, CanPublishPrograms, CanAssignProgramParts, ScheduleResponsible
 keywords: planning, plannings, spirituel, services, programme, devoirs, publier, tout publier, brouillon, ajouter un planning, planning vide, renommer, supprimer, modifier le planning, changer le type, responsable
 related: my-parts, absences, external-speakers
 order: 2
