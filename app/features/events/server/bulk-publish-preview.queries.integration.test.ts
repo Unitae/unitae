@@ -117,7 +117,7 @@ afterAll(async () => {
 const ids = (schedules: { id: number }[]) => schedules.map(schedule => schedule.id).sort((a, b) => a - b)
 
 describe('bulkPublishPreview, what bulk « Publier » announces', () => {
-  it('sorts the drafts as publishing does: a conflict held back with who and on what, the rest published', async () => {
+  it('sorts the drafts as publishing does: a conflict held back with the parts concerned, the rest published', async () => {
     await withMeeting(async ({ db, congregationId, actorId, meetingId, programme, duties, member }) => {
       const away = await member()
       await db.item.update({
@@ -132,7 +132,12 @@ describe('bulkPublishPreview, what bulk « Publier » announces', () => {
       const preview = await bulkPublishPreview(db, publishes, actorId, [meetingId], congregationId)
 
       expect(ids(preview.conflicts)).toEqual([programme.id])
-      expect(preview.conflicts[0]?.away).toEqual([expect.any(String)])
+      // The part, never a person: the flag covers the speaker and the reader alike.
+      const part = await db.item.findFirstOrThrow({
+        where: { id: programme.itemIds[0] as number },
+        select: { name: true },
+      })
+      expect(preview.conflicts[0]?.away).toEqual([part.name])
       expect(ids(preview.publish)).toEqual([duties.id])
       // Every service but the one given has nobody yet: said beside it, publishing anyway.
       expect(preview.publish[0]?.unfilled).toBe(duties.itemIds.length - 1)
@@ -146,16 +151,51 @@ describe('bulkPublishPreview, what bulk « Publier » announces', () => {
     })
   })
 
-  it('leaves someone else’s draft to them, naming the role in charge', async () => {
-    await withMeeting(async ({ db, congregationId, dutyLead, meetingId, programme, duties }) => {
+  it('leaves someone else’s draft to them, naming the role in charge, when the page shows it', async () => {
+    await withMeeting(async ({ db, congregationId, programmeLead, meetingId, programme, duties }) => {
+      // The programme's responsible changes the meeting, so its page shows them the services' draft.
+      const preview = await bulkPublishPreview(db, nothing, programmeLead, [meetingId], congregationId)
+
+      expect(ids(preview.notYours)).toEqual([duties.id])
+      expect(preview.notYours[0]?.responsible).toEqual({ key: expect.stringContaining('duty-'), name: 'duty' })
+      expect(ids(preview.publish)).toEqual([programme.id])
+    })
+  })
+
+  it('says nothing of a draft the event page hides from its reader (D45)', async () => {
+    await withMeeting(async ({ db, congregationId, dutyLead, meetingId, duties }) => {
+      // A meeting of a kind they do not answer for, holding the services they fill: its page shows them the services
+      // and no trace of the draft programme.
+      const weekend = await db.eventTemplate.findFirstOrThrow({
+        where: { key: 'weekend-meeting' },
+        select: { id: true },
+      })
+      await db.event.update({
+        where: { id_congregationId: { id: meetingId, congregationId } },
+        data: { templateId: weekend.id },
+      })
       const preview = await bulkPublishPreview(db, nothing, dutyLead, [meetingId], congregationId)
 
-      expect(ids(preview.notYours)).toEqual([programme.id])
-      expect(preview.notYours[0]?.responsible).toEqual({
-        key: expect.stringContaining('programme-'),
-        name: 'programme',
-      })
       expect(ids(preview.publish)).toEqual([duties.id])
+      expect([...preview.notYours, ...preview.conflicts, ...preview.empty, ...preview.awaiting]).toEqual([])
+    })
+  })
+
+  it('reads several meetings at once: a programme still to give held back, the other meeting published', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, meetingId, programme, duties }) => {
+      const midweekId = (await db.eventTemplate.findFirstOrThrow({ where: { key: 'midweek-meeting' } })).id
+      await db.item.deleteMany({ where: { scheduleId: programme.id } })
+      const other = await createProgrammeOnDay(
+        db,
+        { templateId: midweekId, day: '2027-03-10' },
+        { congregationId, timezone: 'Europe/Paris', actorId },
+      )
+      const otherSchedules = await db.schedule.findMany({ where: { eventId: other.id }, select: { id: true } })
+
+      const preview = await bulkPublishPreview(db, publishes, actorId, [meetingId, other.id], congregationId)
+
+      expect(ids(preview.awaiting)).toEqual([programme.id])
+      expect(ids(preview.publish)).toEqual(ids([duties, ...otherSchedules]))
     })
   })
 
@@ -187,6 +227,28 @@ describe('bulkPublishPreview, what bulk « Publier » announces', () => {
         notYours: [],
       })
       expect(preview.publish).toEqual([])
+    })
+  })
+
+  it('announces a meeting without schedules nor kind as published whole, as publishEvent does', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, meetingId }) => {
+      await db.item.deleteMany({ where: { eventId: meetingId } })
+      await db.schedule.deleteMany({ where: { eventId: meetingId } })
+      await db.event.update({
+        where: { id_congregationId: { id: meetingId, congregationId } },
+        data: { templateId: null },
+      })
+
+      const preview = await bulkPublishPreview(db, publishes, actorId, [meetingId], congregationId)
+
+      expect(preview.events).toEqual({
+        publish: [expect.objectContaining({ id: meetingId })],
+        awaiting: [],
+        notYours: [],
+      })
+      const result = await publishEvent(db, publishes, actorId, meetingId, congregationId)
+      if (result == null || 'refused' in result) throw new Error('expected a publication')
+      expect(result.changed).toBe(true)
     })
   })
 })
