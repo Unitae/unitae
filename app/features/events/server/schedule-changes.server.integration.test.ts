@@ -24,7 +24,7 @@ const {
   renameEventSchedule,
   renameSchedule,
 } = await import('./schedule-changes.server')
-const { publishSchedule } = await import('./schedule-status.server')
+const { publishSchedule, unpublishSchedule } = await import('./schedule-status.server')
 
 class Rollback extends Error {}
 
@@ -291,42 +291,64 @@ describe('deleteSchedule', () => {
     })
   })
 
-  it('tells whoever already received « vous êtes assigné », a newer one waiting after a withdraw and a republish', async () => {
+  it('tells whoever may have been told at an earlier publication, a newer notice waiting after a republish', async () => {
     await withMeeting(async ({ db, congregationId, actorId, programme, member }) => {
       const speaker = await member()
       const reader = await member()
       const itemId = programme.itemIds[0]
       await db.item.update({ where: { id: itemId }, data: { assigneeId: speaker, assistantId: reader } })
-      const accountOf = async (memberId: number) =>
-        (
-          await db.userAccount.create({
-            data: { email: `m-${memberId}@test.com`, password: 'x', congregationId, memberId },
-          })
-        ).id
-      const notice = (recipientId: number, status: string) =>
-        db.notificationEvent.create({
+      // Published, withdrawn and republished: whatever the first publication sent is long gone from the notices.
+      await publishSchedule(db, programme.id, congregationId, actorId)
+      await unpublishSchedule(db, programme.id, congregationId, actorId)
+      await publishSchedule(db, programme.id, congregationId, actorId)
+      for (const memberId of [speaker, reader]) {
+        const account = await db.userAccount.create({
+          data: { email: `m-${memberId}@test.com`, password: 'x', congregationId, memberId },
+        })
+        await db.notificationEvent.create({
           data: {
             type: 'programme.assignment.assigned',
             entityType: 'Item',
             entityId: itemId,
-            recipientId,
+            recipientId: account.id,
             congregationId,
-            status,
+            status: 'pending',
             payload: '{}',
-            debounceKey: `Item:${itemId}:user:${recipientId}`,
+            debounceKey: `Item:${itemId}:user:${account.id}`,
           },
         })
-      const speakerAccount = await accountOf(speaker)
-      const readerAccount = await accountOf(reader)
-      // The speaker heard of it at the first publication; withdrawn and republished, a new notice waits for both.
-      await notice(speakerAccount, 'sent')
-      await notice(speakerAccount, 'pending')
-      await notice(readerAccount, 'pending')
-      await publishSchedule(db, programme.id, congregationId, actorId)
+      }
 
       const result = await deleteSchedule(db, programme.id, congregationId, actorId)
 
-      expect(result?.notifyTargets.map(target => [target.memberId, target.role])).toEqual([[speaker, 'speaker']])
+      expect(result?.notifyTargets.map(target => target.memberId)).toEqual([speaker, reader])
+    })
+  })
+
+  it('counts a release of the event as a publication, from before schedules published on their own', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, meetingId, duties, member }) => {
+      const usher = await member()
+      await db.item.update({ where: { id: duties.itemIds[0] }, data: { assigneeId: usher } })
+      const account = await db.userAccount.create({
+        data: { email: `u-${usher}@test.com`, password: 'x', congregationId, memberId: usher },
+      })
+      await db.auditLog.create({
+        data: { action: 'event.released', entityType: 'Event', entityId: meetingId, congregationId, actorId },
+      })
+      await publishSchedule(db, duties.id, congregationId, actorId)
+      await db.notificationEvent.create({
+        data: {
+          type: 'programme.assignment.assigned',
+          entityType: 'Item',
+          entityId: duties.itemIds[0],
+          recipientId: account.id,
+          congregationId,
+          status: 'pending',
+          payload: '{}',
+          debounceKey: `Item:${duties.itemIds[0]}:user:${account.id}`,
+        },
+      })
+      expect((await deleteSchedule(db, duties.id, congregationId, actorId))?.notifyTargets).toHaveLength(1)
     })
   })
 
