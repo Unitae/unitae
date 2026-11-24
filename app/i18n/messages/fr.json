@@ -4447,7 +4447,70 @@
     "settings_schedule_templates_holders_none": "Personne n’a ce rôle aujourd’hui.",
     "settings_schedule_templates_suggested_by": "Utilisé dans",
     "settings_schedule_templates_suggested_none": "Aucun type : il s’ajoute depuis la réunion, avec « Ajouter un planning ».",
-    "settings_schedule_templates_items_note": "Ses parties et ses services se modifient encore depuis le type, dans Modèles de programme.",
+    "settings_schedule_templates_parts_label": "Parties",
+    "settings_schedule_templates_services_label": "Services",
+    "settings_schedule_templates_add_part": "Ajouter une partie",
+    "settings_schedule_templates_add_service": "Ajouter un service",
+    "settings_schedule_templates_anyone": "Tous les proclamateurs",
+    "settings_schedule_templates_with_reader": "avec deuxième orateur",
+    "settings_schedule_templates_minutes": "{minutes} min",
+    "settings_schedule_templates_parallel": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} salle en parallèle",
+                "countPlural=*": "{count} salles en parallèle"
+            }
+        }
+    ],
+    "settings_schedule_templates_hall": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{name} · {count} partie",
+                "countPlural=*": "{name} · {count} parties"
+            }
+        }
+    ],
+    "settings_schedule_templates_total": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} partie · {minutes} min de programme",
+                "countPlural=*": "{count} parties · {minutes} min de programme"
+            }
+        }
+    ],
+    "settings_schedule_templates_without_duration": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} sans durée",
+                "countPlural=*": "{count} sans durée"
+            }
+        }
+    ],
+    "settings_schedule_templates_list_note": "Les changements de cette liste s’appliquent aussitôt. Les plannings déjà créés n’en sont pas touchés : seules les nouvelles réunions les prennent.",
+    "settings_schedule_templates_no_kind": "Aucun type n’utilise ce modèle : son contenu se modifie une fois qu’un type l’utilise.",
+    "settings_schedule_templates_save_part": "Enregistrer la partie",
+    "settings_schedule_templates_save_service": "Enregistrer le service",
+    "settings_schedule_templates_services_empty": "Aucun service. Ajoutez le premier.",
     "settings_schedule_templates_used": [
         {
             "declarations": [

@@ -4447,7 +4447,70 @@
     "settings_schedule_templates_holders_none": "Nobody holds this role today.",
     "settings_schedule_templates_suggested_by": "Used in",
     "settings_schedule_templates_suggested_none": "No kind: it is added from the meeting, with “Add a schedule”.",
-    "settings_schedule_templates_items_note": "Its parts and services are still edited from the kind, in Program templates.",
+    "settings_schedule_templates_parts_label": "Parts",
+    "settings_schedule_templates_services_label": "Services",
+    "settings_schedule_templates_add_part": "Add a part",
+    "settings_schedule_templates_add_service": "Add a service",
+    "settings_schedule_templates_anyone": "Every publisher",
+    "settings_schedule_templates_with_reader": "with a second speaker",
+    "settings_schedule_templates_minutes": "{minutes} min",
+    "settings_schedule_templates_parallel": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} hall in parallel",
+                "countPlural=*": "{count} halls in parallel"
+            }
+        }
+    ],
+    "settings_schedule_templates_hall": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{name} · {count} part",
+                "countPlural=*": "{name} · {count} parts"
+            }
+        }
+    ],
+    "settings_schedule_templates_total": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} part · {minutes} min of program",
+                "countPlural=*": "{count} parts · {minutes} min of program"
+            }
+        }
+    ],
+    "settings_schedule_templates_without_duration": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} without a duration",
+                "countPlural=*": "{count} without a duration"
+            }
+        }
+    ],
+    "settings_schedule_templates_list_note": "Changes to this list apply at once. Schedules already created are not touched: only new meetings take them.",
+    "settings_schedule_templates_no_kind": "No kind uses this template: its content can be edited once a kind uses it.",
+    "settings_schedule_templates_save_part": "Save the part",
+    "settings_schedule_templates_save_service": "Save the service",
+    "settings_schedule_templates_services_empty": "No service. Add the first one.",
     "settings_schedule_templates_used": [
         {
             "declarations": [

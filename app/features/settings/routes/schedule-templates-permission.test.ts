@@ -31,6 +31,16 @@ vi.mock('~/features/events/index.server', () => ({
 vi.mock('~/shared/domain/roles.server', () => ({ listDelegatableRoles: vi.fn(async () => []) }))
 vi.mock('~/features/settings/server/role-holders.queries', () => ({ holdersOfRoles: vi.fn(async () => new Map()) }))
 vi.mock('./_toast.server', () => ({ okWithToast: vi.fn(async () => ({ ok: true })) }))
+vi.mock('~/features/settings/server/schedule-template-items.queries', () => ({
+  getScheduleTemplateItems: vi.fn(async () => null),
+}))
+vi.mock('~/features/settings/server/schedule-template-item-action.server', async importOriginal => ({
+  ...(await importOriginal<typeof import('~/features/settings/server/schedule-template-item-action.server')>()),
+  handleScheduleTemplateItem: vi.fn(async (_db: unknown, id: number, formData: FormData) => {
+    saved.push(['item', id, formData.get('intent')])
+    return { kind: 'saved', message: 'ok' }
+  }),
+}))
 
 const { Permission } = await import('~/shared/types/permission')
 const { formRequest, respond, routeContext } = await import('~/tests/helpers/route-action')
@@ -95,6 +105,29 @@ describe('schedule-templates action', () => {
     } as never)
 
     expect(result).toMatchObject({ data: { ok: false, templateId: 3, errors: ['Le nom : 80 caractères au plus.'] } })
+    expect(saved).toEqual([])
+  })
+
+  it('writes an item of the template named in the address, for a template manager', async () => {
+    await action({
+      request: formRequest(`${URL}?template=3`, { intent: 'upsert-part', partName: 'Prière' }),
+      params: {},
+      context: routeContext([Permission.CanManageProgramTemplates]),
+    } as never)
+
+    expect(saved).toEqual([['item', 3, 'upsert-part']])
+  })
+
+  it.each(OTHER_RIGHTS)('refuses an item to anyone else, writing nothing (%s)', async (...rights) => {
+    const response = await respond(() =>
+      action({
+        request: formRequest(`${URL}?template=3`, { intent: 'delete-part', partId: '11' }),
+        params: {},
+        context: routeContext(rights),
+      } as never),
+    )
+
+    expect(response.headers.get('Location')).toBe('/settings')
     expect(saved).toEqual([])
   })
 })

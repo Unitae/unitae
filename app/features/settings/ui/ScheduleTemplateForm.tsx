@@ -98,9 +98,6 @@ export function ScheduleTemplateForm({
           <p className="text-faint text-sm">{m.settings_schedule_templates_suggested_none()}</p>
         )}
       </div>
-      <p className="rounded-md bg-sidebar px-3 py-2.5 text-muted-foreground text-sm">
-        {m.settings_schedule_templates_items_note()}
-      </p>
     </fetcher.Form>
   )
 }

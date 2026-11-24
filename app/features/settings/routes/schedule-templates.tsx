@@ -1,33 +1,33 @@
 import { parseWithZod } from '@conform-to/zod/v4'
-import { SidePanel } from '@unitae/ui'
-import { data, redirect, useFetcher } from 'react-router'
+import { useState } from 'react'
+import { data, redirect, type ShouldRevalidateFunctionArgs, useFetcher } from 'react-router'
 import { listScheduleTemplatesForSettings, updateScheduleTemplate } from '~/features/events/index.server'
 import { scheduleTemplateView } from '~/features/settings/model/schedule-template-view'
 import { scheduleTemplateSchema } from '~/features/settings/schemas/schedule-template.schema'
 import { holdersOfRoles } from '~/features/settings/server/role-holders.queries'
-import { ScheduleTemplateForm } from '~/features/settings/ui/ScheduleTemplateForm'
+import {
+  handleScheduleTemplateItem,
+  SCHEDULE_TEMPLATE_ITEM_INTENTS,
+} from '~/features/settings/server/schedule-template-item-action.server'
+import { getScheduleTemplateItems } from '~/features/settings/server/schedule-template-items.queries'
+import { ScheduleTemplatePanel } from '~/features/settings/ui/ScheduleTemplatePanel'
 import { ScheduleTemplateTable } from '~/features/settings/ui/ScheduleTemplateTable'
 import { SettingsHeader } from '~/features/settings/ui/SettingsHeader'
+import { useScheduleTemplatePage } from '~/features/settings/ui/use-schedule-template-page'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { listDelegatableRoles } from '~/shared/domain/roles.server'
 import { Permission } from '~/shared/types/permission'
 import { getRoleDisplayName } from '~/shared/types/role'
-import { Button } from '~/shared/ui/button'
-import { useCloseOnSave } from '~/shared/ui/hooks/use-close-on-save'
-import { useSideEditor } from '~/shared/ui/hooks/use-side-editor'
-import { SubmitButton } from '~/shared/ui/SubmitButton'
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '~/shared/ui/sheet'
+import { useMediaQuery } from '~/shared/ui/hooks/use-media-query'
 import { DiscardChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { okWithToast } from './_toast.server'
 import type { Route } from './+types/schedule-templates'
 
 export const meta: Route.MetaFunction = () => [{ title: m.settings_schedule_templates_meta_title() }]
 
-const FORM_ID = 'schedule-template-form'
-
-/** Réglages › « Modèles de planning » (6a-1b, plan §11): a schedule template's name and responsible. */
-export function loader({ context }: Route.LoaderArgs) {
+/** Réglages › « Modèles de planning » (6a-1b, 6a-1c): a schedule template's name, responsible and items. */
+export function loader({ request, context }: Route.LoaderArgs) {
   if (!context.get(permissionsContext).has(Permission.CanManageProgramTemplates)) throw redirect('/settings')
   return withScopeFromContext(context, async (db, congregationId) => {
     const [templates, delegatable] = await Promise.all([
@@ -37,8 +37,25 @@ export function loader({ context }: Route.LoaderArgs) {
     const roles = delegatable.map(role => ({ id: role.id, label: getRoleDisplayName(role) }))
     const roleIds = templates.flatMap(template => (template.responsibleRole ? [template.responsibleRole.id] : []))
     const holders = await holdersOfRoles(db, roleIds, congregationId)
-    return { roles, templates: templates.map(template => scheduleTemplateView(template, roles, holders)) }
+    // The open template's items only (`?template=`): the list itself needs none.
+    const open = Number(new URL(request.url).searchParams.get('template'))
+    const items = templates.some(template => template.id === open)
+      ? await getScheduleTemplateItems(db, open, congregationId)
+      : null
+    return { roles, templates: templates.map(template => scheduleTemplateView(template, roles, holders)), items }
   })
+}
+
+/** Entering or leaving an item changes only `?item=`: the template's data stays as it is. */
+export function shouldRevalidate({
+  currentUrl,
+  nextUrl,
+  formMethod,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs) {
+  const same = (name: string) => currentUrl.searchParams.get(name) === nextUrl.searchParams.get(name)
+  if (formMethod == null && currentUrl.pathname === nextUrl.pathname && same('template') && same('help')) return false
+  return defaultShouldRevalidate
 }
 
 /** A refusal names the template it answers, so another template's panel never shows it. */
@@ -49,6 +66,17 @@ export async function action({ request, context }: Route.ActionArgs) {
   if (!context.get(permissionsContext).has(Permission.CanManageProgramTemplates)) throw redirect('/settings')
   const currentUser = context.get(currentAccountContext)
   const formData = await request.formData()
+  if (SCHEDULE_TEMPLATE_ITEM_INTENTS.includes(String(formData.get('intent')))) {
+    // An item's form posts to the address it is open at: `?template=` names its template.
+    const scheduleTemplateId = Number(new URL(request.url).searchParams.get('template'))
+    return withScopeFromContext(context, async (db, congregationId) => {
+      const actor = { id: currentUser.id, congregationId }
+      const result = await handleScheduleTemplateItem(db, scheduleTemplateId, formData, actor)
+      if (result == null) return refusal(scheduleTemplateId, [m.settings_schedule_templates_error_vanished()], 409)
+      if (result.kind === 'refused') return result.response
+      return okWithToast(request, result.message)
+    })
+  }
   const submission = parseWithZod(formData, { schema: scheduleTemplateSchema })
   if (submission.status !== 'success') {
     const errors = Object.values(submission.reply().error ?? {}).flatMap(messages => messages ?? [])
@@ -72,41 +100,24 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function ScheduleTemplatesPage({ loaderData }: Route.ComponentProps) {
-  const { templates, roles } = loaderData
+  const { templates, roles, items } = loaderData
   const fetcher = useFetcher<typeof action>()
-  const panel = useSideEditor<'template'>(target => templates.some(template => template.id === target.id))
-  const template = panel.target?.id != null ? templates.find(each => each.id === panel.target?.id) : undefined
-  useCloseOnSave(fetcher, panel.close)
-  const refused = fetcher.state === 'idle' && fetcher.data && !fetcher.data.ok ? fetcher.data : undefined
+  const docked = useMediaQuery('(min-width: 1280px)') === true
+  const [dirty, setDirty] = useState(false)
+  const page = useScheduleTemplatePage({
+    templateIds: templates.map(template => template.id),
+    itemExists: item =>
+      item.kind === 'part'
+        ? (items?.parts.some(part => part.id === item.id) ?? false)
+        : (items?.services.some(service => service.id === item.id) ?? false),
+    dirty,
+  })
+  const template = templates.find(each => each.id === page.templateId)
+  // The name and responsible's refusal; an item's form reads its own fetcher's.
+  const data =
+    fetcher.state === 'idle' ? (fetcher.data as { ok?: boolean; templateId?: number; errors?: string[] }) : null
+  const refused = data != null && data.ok === false ? data : undefined
   const errors = refused != null && refused.templateId === template?.id ? refused.errors : undefined
-
-  const description =
-    template == null
-      ? undefined
-      : template.schedules === 0
-        ? m.settings_schedule_templates_used_none()
-        : m.settings_schedule_templates_used({ count: template.schedules })
-  const form = template && (
-    <ScheduleTemplateForm
-      key={template.id}
-      template={template}
-      roles={roles}
-      errors={errors}
-      fetcher={fetcher as never}
-      id={FORM_ID}
-      formRef={panel.formRef}
-    />
-  )
-  const footer = (
-    <>
-      <Button type="button" variant="ghost" onClick={panel.close}>
-        {m.common_cancel()}
-      </Button>
-      <SubmitButton form={FORM_ID} disabled={fetcher.state !== 'idle'}>
-        {m.common_save()}
-      </SubmitButton>
-    </>
-  )
 
   return (
     <div className="flex flex-col">
@@ -123,40 +134,49 @@ export default function ScheduleTemplatesPage({ loaderData }: Route.ComponentPro
             <ScheduleTemplateTable
               rows={templates}
               selectedId={template?.id ?? null}
-              onSelect={(row, trigger) => panel.request({ kind: 'template', id: row.id, trigger })}
+              onSelect={row => page.open(row.id)}
             />
           </div>
-          {panel.docked && template && (
-            <SidePanel
+          {docked && template && (
+            <ScheduleTemplatePanel
               key={template.id}
-              title={template.title}
-              description={description}
-              closeLabel={m.common_close()}
-              onClose={() => panel.request(null)}
-              returnFocus={panel.target?.trigger}
-              footer={footer}
-            >
-              {form}
-            </SidePanel>
+              template={template}
+              roles={roles}
+              items={items}
+              item={page.item}
+              docked
+              errors={errors}
+              fetcher={fetcher as never}
+              onClose={() => page.open(null)}
+              onOpenItem={page.openItem}
+              onBack={page.back}
+              onLeaveItem={page.leaveItem}
+              onDirtyChange={setDirty}
+            />
           )}
         </div>
       )}
 
-      {!panel.docked && (
-        <Sheet open={template != null} onOpenChange={next => !next && panel.close()}>
-          <SheetContent className="sm:max-w-md">
-            <SheetHeader>
-              <SheetTitle>{template?.title}</SheetTitle>
-              {description && <SheetDescription>{description}</SheetDescription>}
-            </SheetHeader>
-            <div className="flex-1 overflow-y-auto px-4 pb-4">{form}</div>
-            <SheetFooter className="flex-row justify-end border-border border-t">{footer}</SheetFooter>
-          </SheetContent>
-        </Sheet>
+      {!docked && template && (
+        <ScheduleTemplatePanel
+          key={template.id}
+          template={template}
+          roles={roles}
+          items={items}
+          item={page.item}
+          docked={false}
+          errors={errors}
+          fetcher={fetcher as never}
+          onClose={() => page.open(null)}
+          onOpenItem={page.openItem}
+          onBack={page.back}
+          onLeaveItem={page.leaveItem}
+          onDirtyChange={setDirty}
+        />
       )}
 
       <DiscardChangesDialog
-        {...panel.discard}
+        {...page.discard}
         description={m.common_discard_changes_description()}
         discardLabel={m.common_discard_changes_confirm()}
       />
