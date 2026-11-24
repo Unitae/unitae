@@ -6,7 +6,7 @@ import { Permission } from '~/shared/types/permission'
 
 /** A reader holding these permissions and leading no group. */
 function readerWith(...permissions: Permission[]): HelpReader {
-  return { permissions: new Set(permissions), leadsGroup: false }
+  return { permissions: new Set(permissions), leadsGroup: false, answersForSchedule: false }
 }
 
 // The access rules checked against the articles as shipped, not against fixtures.
@@ -59,7 +59,7 @@ describe('the shipped help articles, opened by a reader', () => {
 
 // A group's overseer and assistant hold no right for it: leading the group opens its reports and emergency roster.
 describe('the shipped help articles, opened by a group leader without any permission', () => {
-  const leader: HelpReader = { permissions: new Set(), leadsGroup: true }
+  const leader: HelpReader = { permissions: new Set(), leadsGroup: true, answersForSchedule: false }
 
   it('opens the reports and the emergency roster', () => {
     for (const slug of ['field-service-reports', 'emergency-roster']) {

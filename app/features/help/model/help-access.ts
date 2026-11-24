@@ -1,4 +1,4 @@
-import { GROUP_LEADER, type HelpArticle, type HelpLocale } from '~/features/help/model/help.type'
+import { GROUP_LEADER, type HelpArticle, type HelpLocale, SCHEDULE_RESPONSIBLE } from '~/features/help/model/help.type'
 import { helpArticlesIn } from '~/features/help/model/help-links'
 import { Permission } from '~/shared/types/permission'
 
@@ -7,18 +7,22 @@ export interface HelpReader {
   permissions: ReadonlySet<Permission>
   /** Overseer or assistant of a group: they enter its reports without holding a right. */
   leadsGroup: boolean
+  /** Holds a role a schedule template names: they fill and publish its schedules without holding a right. */
+  answersForSchedule: boolean
 }
 
 /**
  * An article follows the permission of its feature, or any one of its permissions when the feature opens to several
- * rights, or to group leaders. A reader who holds none of them does not see the article in the list, in the search, or
+ * rights, or to group leaders, or to a schedule template's responsibles. A reader who holds none of them does not see the article in the list, in the search, or
  * as a related link, and cannot open it. No permission is changed to show help.
  */
 export function canReadHelpArticle(article: HelpArticle, reader: HelpReader): boolean {
   if (article.permission == null) return true
-  return article.permission.some(name =>
-    name === GROUP_LEADER ? reader.leadsGroup : reader.permissions.has(Permission[name]),
-  )
+  return article.permission.some(name => {
+    if (name === GROUP_LEADER) return reader.leadsGroup
+    if (name === SCHEDULE_RESPONSIBLE) return reader.answersForSchedule
+    return reader.permissions.has(Permission[name])
+  })
 }
 
 export function visibleHelpArticles(articles: readonly HelpArticle[], reader: HelpReader): HelpArticle[] {

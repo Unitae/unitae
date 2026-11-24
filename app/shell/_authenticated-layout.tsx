@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { DemoBanner } from '~/features/demo'
 import { demoRoleOf, isDemoCongregation, refusedInDemoCopy, touchDemoCopy } from '~/features/demo/index.server'
+import { answersForASchedule } from '~/features/events/index.server'
 import { HelpAccessProvider, HelpPanel } from '~/features/help'
 import { helpReaderFor, visibleHelpSlugsFor } from '~/features/help/index.server'
 import { helpLocaleFor } from '~/features/help/model/help-links'
@@ -172,7 +173,20 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       }),
       messages,
       sidebarOpen,
-      helpSlugs: visibleHelpSlugsFor(helpReaderFor(permissions, currentUser), helpLocaleFor(getLocale())),
+      helpSlugs: visibleHelpSlugsFor(
+        helpReaderFor(
+          permissions,
+          currentUser,
+          // Only for a reader the programmes' rights do not already let in: no query for the managers.
+          !can(Permission.CanManagePrograms) &&
+            !can(Permission.CanPublishPrograms) &&
+            !can(Permission.CanAssignProgramParts) &&
+            (await withScopeFromContext(context, (db, congregationId) =>
+              answersForASchedule(db, currentUser.id, congregationId),
+            )),
+        ),
+        helpLocaleFor(getLocale()),
+      ),
     },
     {
       headers: {

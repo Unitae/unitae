@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { answersForASchedule } from '~/features/events/index.server'
 import type { HelpArticle } from '~/features/help/model/help.type'
 import { visibleHelpArticles } from '~/features/help/model/help-access'
 import { helpArticlesIn, helpLocaleFor, helpPagePath } from '~/features/help/model/help-links'
@@ -10,7 +11,7 @@ import { HelpFallback } from '~/features/help/ui/HelpFallback'
 import { helpModuleLabel } from '~/features/help/ui/help-module-label'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
-import { currentAccountContext, permissionsContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -32,8 +33,12 @@ function toListItem({ slug, title, summary, module }: HelpArticle): HelpListItem
 export const meta: Route.MetaFunction = () => [{ title: m.help_meta_title() }]
 
 // Only the articles the reader may see are listed, grouped or searched: the rest does not exist for them.
-export function loader({ request, context }: Route.LoaderArgs) {
-  const reader = helpReaderFor(context.get(permissionsContext), context.get(currentAccountContext))
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const account = context.get(currentAccountContext)
+  const answers = await withScopeFromContext(context, (db, congregationId) =>
+    answersForASchedule(db, account.id, congregationId),
+  )
+  const reader = helpReaderFor(context.get(permissionsContext), account, answers)
   const locale = helpLocaleFor(getLocale())
   const query = new URL(request.url).searchParams.get('q') ?? ''
   const visible = visibleHelpArticles(helpArticlesIn(loadHelpArticles(), locale), reader)

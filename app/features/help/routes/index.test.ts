@@ -4,7 +4,13 @@ import { Permission } from '~/shared/types/permission'
 // The index of /help, run as the loader runs it: only the articles the reader may see, in the reader's language.
 const permissionsContext = Symbol('permissionsContext')
 const currentAccountContext = Symbol('currentAccountContext')
-vi.mock('~/shared/auth/route-context.server', () => ({ permissionsContext, currentAccountContext }))
+vi.mock('~/shared/auth/route-context.server', () => ({
+  permissionsContext,
+  currentAccountContext,
+  withScopeFromContext: (_context: unknown, fn: (db: unknown, congregationId: number) => unknown) => fn({}, 1),
+}))
+// Whether the reader answers for a schedule template is the events feature's: none here.
+vi.mock('~/features/events/index.server', () => ({ answersForASchedule: () => Promise.resolve(false) }))
 
 // An account whose record leads no group.
 const ACCOUNT = { member: null }
