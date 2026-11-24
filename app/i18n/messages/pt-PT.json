@@ -2206,13 +2206,13 @@
     "programs_kind_change_choose": "Escolher um tipo",
     "programs_kind_change_keep": "Manter na reunião",
     "programs_kind_change_warning": "Estes planeamentos vêm do tipo anterior. Um planeamento retirado leva as suas designações, e as pessoas de um planeamento publicado recebem «Designação cancelada».",
-    "programs_kind_change_add": "Adicionar os planeamentos sugeridos pelo novo tipo",
+    "programs_kind_change_add": "Adicionar os planeamentos que o novo tipo utiliza",
     "programs_kind_change_unavailable_programme": "Indisponível enquanto a reunião mantiver o seu planeamento espiritual",
     "programs_kind_change_unavailable_duty": "Indisponível enquanto a reunião mantiver os seus serviços",
-    "programs_kind_change_none": "Este tipo não sugere nenhum planeamento.",
+    "programs_kind_change_none": "Este tipo não utiliza nenhum planeamento.",
     "programs_kind_change_done": "Tipo da reunião alterado.",
     "programs_kind_change_kind_held": "Uma reunião tem um planeamento de cada tipo: desmarque o anterior antes de adicionar o novo.",
-    "programs_kind_change_not_suggested": "Este tipo já não sugere um destes planeamentos: abra novamente a caixa de diálogo.",
+    "programs_kind_change_not_suggested": "Este tipo já não utiliza um destes planeamentos: abra novamente a caixa de diálogo.",
     "programs_kind_change_assignments": [
         {
             "declarations": [
@@ -2267,7 +2267,7 @@
     "programs_schedule_add_kind_duty_hint": "Tarefas confiadas a pessoas",
     "programs_schedule_add_kind_unavailable": "Indisponível: esta reunião já tem um",
     "programs_schedule_add": "Adicionar um planeamento",
-    "programs_schedule_add_suggested": "Sugeridos por «{kind}»",
+    "programs_schedule_add_suggested": "Utilizados por «{kind}»",
     "programs_schedule_add_others": "Outros modelos",
     "programs_schedule_add_empty": "Planeamento vazio…",
     "programs_schedule_add_empty_hint": "Um nome e o seu tipo: espiritual ou serviços",
@@ -2414,7 +2414,7 @@
     "programs_new_mode_series": "Várias semanas",
     "programs_new_mode_single": "Uma data específica",
     "programs_new_meetings_title": "Reuniões e planeamentos",
-    "programs_new_meetings_description": "Assinale as reuniões a criar. Cada uma vem com os planeamentos que o seu tipo sugere; um planeamento de que uma reunião não precisa elimina-se depois nessa reunião.",
+    "programs_new_meetings_description": "Assinale as reuniões a criar. Cada uma vem com os planeamentos que o seu tipo utiliza; um planeamento de que uma reunião não precisa elimina-se depois nessa reunião.",
     "programs_new_every": "Todas as {weekday} · {hours}",
     "programs_new_usually": "Habitualmente às {weekday} · {hours}",
     "programs_new_parts": [
@@ -2536,7 +2536,7 @@
     ],
     "programs_new_row_ahead": "já criada",
     "programs_new_schedules_title": "Planeamentos",
-    "programs_new_no_schedule": "Nenhum planeamento sugerido: a reunião cria-se sem nenhum; «Adicionar um planeamento» fica depois na sua página.",
+    "programs_new_no_schedule": "Este tipo não utiliza nenhum planeamento: a reunião cria-se sem nenhum; «Adicionar um planeamento» fica depois na sua página.",
     "programs_new_count_none": "Nada a criar",
     "programs_new_existing": [
         {
@@ -2716,7 +2716,7 @@
     "programs_edit_part_name_label": "Nome",
     "programs_edit_part_preset_label": "Tipo de parte",
     "programs_edit_part_preset_none": "Sem tipo",
-    "programs_edit_part_preset_hint": "Determina a mensagem enviada à pessoa a quem foi atribuída a designação.",
+    "programs_edit_part_preset_hint": "Determina a mensagem enviada à pessoa a quem foi atribuída a designação e as definições desta parte.",
     "programs_edit_part_section_label": "Secção",
     "programs_edit_part_track_label": "Faixa / Sala",
     "programs_edit_part_track_order_label": "Ordem das faixas",
@@ -4436,7 +4436,7 @@
     "external_speakers_empty_description": "Quando uma congregação lhe enviar a lista de oradores, adicione-a aqui. Depois, poderá convidá-los para os programas.",
     "settings_presets_meta_title": "Tipos de parte - Definições - Unitae",
     "settings_schedule_templates_meta_title": "Modelos de planeamento - Unitae",
-    "settings_schedule_templates_subtitle": "O que um planeamento contém e quem responde por ele. Um modelo serve todos os tipos que o sugerem.",
+    "settings_schedule_templates_subtitle": "Esta página serve para criar modelos de reunião, para não refazer o planeamento à mão de cada vez; qualquer alteração aqui reflete-se nos programas futuros.",
     "settings_schedule_templates_name": "Nome",
     "settings_schedule_templates_name_hint": "Os planeamentos já criados mantêm o seu nome.",
     "settings_schedule_templates_responsible": "Responsável",
@@ -4445,7 +4445,7 @@
     "settings_schedule_templates_responsible_hint": "O titular e os adjuntos desta função preenchem e publicam os planeamentos feitos a partir deste modelo, em todas as reuniões. Quem ocupa a função muda-se no organograma.",
     "settings_schedule_templates_holders": "Atualmente: {names}.",
     "settings_schedule_templates_holders_none": "Atualmente, ninguém tem esta função.",
-    "settings_schedule_templates_suggested_by": "Sugerido por",
+    "settings_schedule_templates_suggested_by": "Utilizado em",
     "settings_schedule_templates_suggested_none": "Nenhum tipo: adiciona-se a partir da reunião, com «Adicionar um planeamento».",
     "settings_schedule_templates_items_note": "As suas partes e serviços ainda se editam a partir do tipo, em Modelos de programa.",
     "settings_schedule_templates_used": [
