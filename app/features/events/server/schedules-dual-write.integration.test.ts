@@ -17,7 +17,6 @@ const testDb = new PrismaClient({ adapter })
 const { createProgrammeOnDay } = await import('./programme-creation.server')
 const { releaseEvent, unreleaseEvent } = await import('./event-status.server')
 const { addPartAssignment, addServicePartAssignment } = await import('./event-parts.server')
-const { applyTemplateToEvent } = await import('./apply-template.server')
 const { bulkDeleteEvents } = await import('./delete-events.server')
 const { upsertTemplatePart, upsertTemplateServicePart } = await import('./template-items.server')
 const { removeTemplateResponsible, setTemplateResponsible, updateTemplate } = await import('./event-templates.server')
@@ -175,22 +174,6 @@ describe('items written with their schedule', () => {
       expect(await schedules(other)).toEqual([
         { kind: 'programme', status: 'draft', items: 1, madeFrom: null },
         { kind: 'duty', status: 'draft', items: 1, madeFrom: null },
-      ])
-    })
-  })
-
-  it("moves an event's schedules onto the template applied to it, its items inside", async () => {
-    await inCongregation(async ({ db, congregationId, actorId, template, event, schedules }) => {
-      const midweek = await template('Réunion de semaine', { parts: 1, services: 1 })
-      const special = await template('Discours spécial', { parts: 2, services: 1 })
-      const moved = await event(midweek)
-      await applyTemplateToEvent(db, moved, midweek, congregationId, actorId)
-
-      await applyTemplateToEvent(db, moved, special, congregationId, actorId)
-
-      expect(await schedules(moved)).toEqual([
-        { kind: 'programme', status: 'draft', items: 3, madeFrom: special },
-        { kind: 'duty', status: 'draft', items: 2, madeFrom: special },
       ])
     })
   })

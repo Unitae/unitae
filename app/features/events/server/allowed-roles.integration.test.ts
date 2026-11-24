@@ -2,11 +2,11 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { resolveEligibleUserIds } from '~/features/events/server/allowed-roles.server'
-import { applyTemplateToEvent } from '~/features/events/server/apply-template.server'
 import { updatePartAssignment, updateServicePartAssignment } from '~/features/events/server/event-parts.server'
 import { createProgrammeOnDay } from '~/features/events/server/programme-creation.server'
 import { upsertTemplatePart, upsertTemplateServicePart } from '~/features/events/server/template-items.server'
 import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
+import { fillFromKind } from '~/tests/helpers/fill-from-kind'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -351,7 +351,7 @@ describe('createProgrammeOnDay copies allowed roles (integration)', () => {
   })
 })
 
-describe('applyTemplateToEvent copies allowed roles (integration)', () => {
+describe('a schedule added from a template copies allowed roles (integration)', () => {
   it('copies template allowed-role lists onto a freeform event', async () => {
     const freeform = await withScope(primaryCongId, async tx => {
       const ev = await tx.event.create({
@@ -363,7 +363,7 @@ describe('applyTemplateToEvent copies allowed roles (integration)', () => {
           congregationId: primaryCongId,
         },
       })
-      await applyTemplateToEvent(tx, ev.id, templateId, primaryCongId, elderAccountId)
+      await fillFromKind(tx, ev.id, templateId, primaryCongId, elderAccountId)
       return ev
     })
 

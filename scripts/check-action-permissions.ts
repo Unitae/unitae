@@ -111,6 +111,8 @@ export const DELEGATES: Record<string, { file: string; enforces: RegExp }> = {
 
 // Route actions that are intentionally open to any signed-in user, or to anonymous visitors.
 export const ALLOWLIST: Record<string, string> = {
+  'app/features/events/routes/programs/events/schedule-edit.tsx':
+    "the event editor's own action (edit.tsx), re-exported: canChangeEvent, then canFillSchedule for each intent",
   'app/features/authentication/routes/login.tsx': 'anonymous sign-in',
   'app/features/authentication/routes/logout.tsx': "ends the caller's own session",
   'app/features/authentication/routes/password-forgot.tsx': 'anonymous reset request',

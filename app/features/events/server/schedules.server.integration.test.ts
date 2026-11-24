@@ -12,15 +12,8 @@ const adapter = new PrismaPg({
 })
 const testDb = new PrismaClient({ adapter })
 
-const {
-  alignEventSchedules,
-  attachEventItems,
-  deleteEventSchedules,
-  eventScheduleId,
-  eventSchedulesOf,
-  setEventSchedulesStatus,
-} = await import('./schedules.server')
-const { applyTemplateToEvent } = await import('./apply-template.server')
+const { attachEventItems, deleteEventSchedules, eventScheduleId, eventSchedulesOf, setEventSchedulesStatus } =
+  await import('./schedules.server')
 
 class Rollback extends Error {}
 
@@ -256,32 +249,6 @@ describe('eventSchedulesOf', () => {
   })
 })
 
-describe('applying a template (D52)', () => {
-  it('starts the duties it brings as a draft beside the published programme, and publishes both on a bare event', async () => {
-    await inCongregation(async ({ db, congregationId, template, event, schedules }) => {
-      const actorId = (
-        await db.userAccount.create({
-          data: { email: `apply-${congregationId}@test.com`, password: 'x', congregationId },
-        })
-      ).id
-      const withDuties = await template('Réunion de semaine', { parts: 1, services: 1 })
-      const programmeOnly = await template('Discours', { parts: 1 })
-      const published = await event(programmeOnly, 'released')
-      const programmeId = await eventScheduleId(db, published, ScheduleKind.Programme, congregationId)
-
-      await applyTemplateToEvent(db, published, withDuties, congregationId, actorId)
-
-      expect(await schedules(published)).toMatchObject([
-        { id: programmeId, kind: 'programme', status: 'published' },
-        { kind: 'duty', status: 'draft' },
-      ])
-      const bare = await event(null, 'released')
-      await applyTemplateToEvent(db, bare, withDuties, congregationId, actorId)
-      expect((await schedules(bare)).map(schedule => schedule.status)).toEqual(['published', 'published'])
-    })
-  })
-})
-
 describe('attachEventItems, a restore keeping its statuses', () => {
   it('gives parts that came without a schedule a programme of the event’s status beside the archive’s duties', async () => {
     await inCongregation(async ({ db, congregationId, template, event, schedules }) => {
@@ -348,34 +315,6 @@ describe('eventScheduleId at the same moment', () => {
       })
       await testDb.congregation.delete({ where: { id: congregationId } })
     }
-  })
-})
-
-describe('alignEventSchedules', () => {
-  it("points an event's schedules at its new template's, by kind, and lets go of a kind it has none of", async () => {
-    await inCongregation(async ({ db, congregationId, template, event, scheduleTemplateOf, schedules }) => {
-      const midweek = await template('Réunion de semaine', { parts: 1, services: 1 })
-      const special = await template('Discours spécial', { parts: 1 })
-      const moved = await event(midweek)
-      await eventScheduleId(db, moved, ScheduleKind.Programme, congregationId)
-      await eventScheduleId(db, moved, ScheduleKind.Duty, congregationId)
-
-      await db.event.update({
-        where: { id_congregationId: { id: moved, congregationId } },
-        data: { templateId: special },
-      })
-      await alignEventSchedules(db, moved, congregationId)
-
-      expect(await schedules(moved)).toMatchObject([
-        {
-          kind: 'programme',
-          name: 'Discours spécial',
-          key: null,
-          scheduleTemplateId: await scheduleTemplateOf(special, 'programme'),
-        },
-        { kind: 'duty', name: null, key: 'services', scheduleTemplateId: null },
-      ])
-    })
   })
 })
 
