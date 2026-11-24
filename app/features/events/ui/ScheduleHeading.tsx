@@ -1,5 +1,6 @@
 import { Status, Tag } from '@unitae/ui'
 import { FileText, Loader2, Send } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { useState } from 'react'
 import { useFetcher } from 'react-router'
 import { schedulePublishAction } from '~/features/events/model/programme-access'
@@ -60,25 +61,40 @@ export function ScheduleResponsibleLine({ schedule }: { schedule: EventScheduleV
   // Without one, the section says nothing (the user's choice): the managers see to it (D47).
   if (responsible == null) return null
   const named = responsible.holders.some(holder => holder.you)
-  return (
-    <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-      <span>{m.programs_schedule_in_charge()}</span>
-      <span className="font-medium text-foreground">{getRoleDisplayName(responsible.role)}</span>
-      {responsible.holders.map(holder => (
-        <span key={holder.key} className="inline-flex items-center gap-1">
-          <span aria-hidden="true">·</span>
+  // Each part ends with its separator, so a wrapped line on a phone never starts with « · ».
+  const parts: { key: string; content: ReactNode }[] = [
+    {
+      key: 'role',
+      content: (
+        <>
+          <span>{m.programs_schedule_in_charge()}</span>
+          <span className="font-medium text-foreground">{getRoleDisplayName(responsible.role)}</span>
+        </>
+      ),
+    },
+    ...responsible.holders.map(holder => ({
+      key: holder.key,
+      content: (
+        <>
           <span className="text-foreground">{formatPersonName(holder)}</span>
           {holder.seat === 'leader' && <span>{m.org_seat_leader_personal().toLowerCase()}</span>}
           {holder.seat === 'deputy' && <span>{m.org_seat_deputy().toLowerCase()}</span>}
           {holder.you && <span className="font-medium text-brand-text">{m.programs_schedule_you()}</span>}
+        </>
+      ),
+    })),
+    ...(responsible.youHoldIt && !named
+      ? [{ key: 'you', content: <span className="font-medium text-brand-text">{m.programs_schedule_you()}</span> }]
+      : []),
+  ]
+  return (
+    <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+      {parts.map((part, index) => (
+        <span key={part.key} className="inline-flex items-center gap-1">
+          {part.content}
+          {index < parts.length - 1 && <span aria-hidden="true">·</span>}
         </span>
       ))}
-      {responsible.youHoldIt && !named && (
-        <span className="inline-flex items-center gap-1">
-          <span aria-hidden="true">·</span>
-          <span className="font-medium text-brand-text">{m.programs_schedule_you()}</span>
-        </span>
-      )}
     </span>
   )
 }

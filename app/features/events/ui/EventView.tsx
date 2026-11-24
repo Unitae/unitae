@@ -205,7 +205,8 @@ export function EventView({
         </>
       ),
       // The board's header line: who answers for the schedule, under its title.
-      description: <ScheduleResponsibleLine schedule={schedule} />,
+      // Only with a responsible: an empty description would still take the header's second line.
+      description: schedule.responsible != null ? <ScheduleResponsibleLine schedule={schedule} /> : undefined,
       intro: <ScheduleConflictNotice schedule={schedule} items={itemsOf(schedule.kind)} />,
     }
   const bySchedule = event.schedules.length > 0
