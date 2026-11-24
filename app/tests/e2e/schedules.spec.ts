@@ -4,6 +4,7 @@ import {
   assign,
   createPublisher,
   farTuesday,
+  gotoMeeting,
   openMeeting,
   programmeDocument,
   publishAnyway,
@@ -31,7 +32,7 @@ test.describe('Schedules', () => {
 
     // Days the assignments spec never draws from (it takes 400 to 1,100 days ahead).
     const eventId = await openMeeting(page, farTuesday(1200))
-    await page.goto(`/programs/events/${eventId}`)
+    await gotoMeeting(page, eventId)
     await withdrawAll(page)
     await assign(page, 'Lecture de la Bible', 'Orateur', person)
     await assign(page, 'Estrade', 'Proclamateur', person)
@@ -58,7 +59,7 @@ test.describe('Schedules', () => {
     await expect(main.getByText('Estrade')).toBeVisible()
     await expect(main.getByText('Lecture de la Bible')).toHaveCount(0)
 
-    await page.goto(`/programs/events/${eventId}`)
+    await gotoMeeting(page, eventId)
     await programme.getByRole('button', { name: 'Publier', exact: true }).click()
     await publishAnyway(page)
     await expect(programme.getByRole('button', { name: 'Repasser en brouillon' })).toBeVisible()
@@ -69,7 +70,7 @@ test.describe('Schedules', () => {
     await expect(main.getByText(lastname)).toHaveCount(2)
 
     // Back to drafts, so a rerun on the same meeting starts from nothing published.
-    await page.goto(`/programs/events/${eventId}`)
+    await gotoMeeting(page, eventId)
     await withdrawAll(page)
   })
 })

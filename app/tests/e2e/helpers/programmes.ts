@@ -128,3 +128,12 @@ export async function publishAnyway(page: Page) {
   await dialog.getByRole('button', { name: 'Publier quand même' }).click()
   await expect(dialog).toBeHidden()
 }
+
+/**
+ * Opens a meeting's page and waits for the network to settle: a click before the page hydrates lands on a button with
+ * no handler yet, and is lost.
+ */
+export async function gotoMeeting(page: Page, eventId: number | string) {
+  await page.goto(`/programs/events/${eventId}`)
+  await page.waitForLoadState('networkidle')
+}
