@@ -21,6 +21,8 @@ Cada planeamento é publicado ao seu ritmo: os serviços podem sair antes do pla
 1. Abra a reunião.
 2. No bloco do planeamento, clique em **Publicar**.
 
+Se alguns lugares ainda não têm ninguém, a página pergunta primeiro: **Publicar mesmo assim** publica, e esses lugares aparecem «Por preencher» no quadro.
+
 As pessoas desse planeamento são avisadas; as dos outros planeamentos não. No quadro, os membros veem os planeamentos publicados, e nada dos outros.
 
 No topo da página, **Publicar tudo** publica de uma vez todos os planeamentos em rascunho que pode publicar, e diz o que fica em rascunho, e porquê. Se publica os planeamentos de que é responsável, o botão chama-se **Publicar o seu planeamento** ou **Publicar os seus planeamentos**.

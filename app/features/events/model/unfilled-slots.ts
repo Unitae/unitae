@@ -24,3 +24,16 @@ export function unfilledSlots({ parts, services }: { parts: PartSlots[]; service
   )
   return { programme, duty: services.filter(service => service.assigneeId == null).length }
 }
+
+/**
+ * The slots « Tout publier » asks about: those of the drafts it would publish, each the reader may publish and
+ * publishing would not refuse (`publishable`). A published schedule, or someone else's draft, adds nothing.
+ */
+export function unfilledToPublish(
+  schedules: { kind: string; publishable: boolean }[],
+  unfilled: { programme: number; duty: number },
+): number {
+  return schedules
+    .filter(schedule => schedule.publishable)
+    .reduce((count, schedule) => count + (schedule.kind === 'programme' ? unfilled.programme : unfilled.duty), 0)
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { unfilledSlots } from './unfilled-slots'
+import { unfilledSlots, unfilledToPublish } from './unfilled-slots'
 
 describe('unfilledSlots', () => {
   it('counts a part without its speaker, and a reader slot its preset asks for that nobody holds', () => {
@@ -21,5 +21,30 @@ describe('unfilledSlots', () => {
       programme: 0,
       duty: 1,
     })
+  })
+})
+
+describe('unfilledToPublish', () => {
+  it('counts the slots of the drafts « Tout publier » would publish, nothing of the others', () => {
+    const unfilled = { programme: 5, duty: 3 }
+    expect(
+      unfilledToPublish(
+        [
+          { kind: 'programme', publishable: true },
+          { kind: 'duty', publishable: true },
+        ],
+        unfilled,
+      ),
+    ).toBe(8)
+    // Someone else's draft, or a published schedule, is not publishable here: it adds nothing.
+    expect(
+      unfilledToPublish(
+        [
+          { kind: 'programme', publishable: false },
+          { kind: 'duty', publishable: true },
+        ],
+        unfilled,
+      ),
+    ).toBe(3)
   })
 })

@@ -5,7 +5,7 @@ import type { ExternalSpeakerOption } from '~/features/events/model/external-spe
 import { parseAssignKey } from '~/features/events/model/reassign'
 import type { KindChangeOption, ScheduleAddOptions } from '~/features/events/model/schedule.type'
 import { ScheduleKind, ScheduleStatus } from '~/features/events/model/schedule.type'
-import { unfilledSlots } from '~/features/events/model/unfilled-slots'
+import { unfilledSlots, unfilledToPublish } from '~/features/events/model/unfilled-slots'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import { Button } from '~/shared/ui/button'
@@ -211,9 +211,7 @@ export function EventView({
   // Slots nobody holds, by kind: publishing a schedule that has some asks first (the user's rule).
   const unfilled = unfilledSlots({ parts: event.eventParts, services: event.eventServiceParts })
   const unfilledOf = (kind: string) => (kind === ScheduleKind.Programme ? unfilled.programme : unfilled.duty)
-  const draftsUnfilled = event.schedules
-    .filter(schedule => schedule.publishable)
-    .reduce((count, schedule) => count + unfilledOf(schedule.kind), 0)
+  const draftsUnfilled = unfilledToPublish(event.schedules, unfilled)
   // Each speaker and each reader: what a schedule deleted takes with it.
   const programmeAssignments =
     event.eventParts.filter(item => item.assigneeId != null).length +

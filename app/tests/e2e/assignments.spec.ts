@@ -1,6 +1,13 @@
 import { expect, test } from '@playwright/test'
 import { E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD, login } from './helpers/auth'
-import { assign, createPublisher, farTuesday, openMeeting, programmeDocument } from './helpers/programmes'
+import {
+  assign,
+  createPublisher,
+  farTuesday,
+  openMeeting,
+  programmeDocument,
+  publishAnyway,
+} from './helpers/programmes'
 
 // The whole path of an assignment, as whoever prepares the programmes walks it: a part and a service given to a
 // publisher, the programme published, the board's programme showing them, then unpublished and gone from the board.
@@ -30,6 +37,7 @@ test.describe('Assignments', () => {
 
     // Each schedule publishes on its own; « Tout publier » publishes both (D43), each section then reads « Publié ».
     await page.getByRole('button', { name: 'Tout publier' }).click()
+    await publishAnyway(page)
     await expect(page.getByRole('button', { name: 'Repasser en brouillon' })).toHaveCount(2)
     await expect(page.getByText(PUBLISHED_STATUS)).toHaveCount(2)
 
