@@ -1,10 +1,16 @@
-import { Callout, SegmentedControl } from '@unitae/ui'
+import { Callout } from '@unitae/ui'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useFetcher } from 'react-router'
-import { type ScheduleAddOption, type ScheduleAddOptions, ScheduleKind } from '~/features/events/model/schedule.type'
+import {
+  SCHEDULE_KINDS,
+  type ScheduleAddOption,
+  type ScheduleAddOptions,
+  ScheduleKind,
+} from '~/features/events/model/schedule.type'
 import { SCHEDULE_NAME_MAX } from '~/features/events/schemas/schedule-name.schema'
 import * as m from '~/i18n/paraglide/messages'
+import { getRoleDisplayName } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/shared/ui/dialog'
 import {
@@ -19,9 +25,14 @@ import { useCloseOnSave } from '~/shared/ui/hooks/use-close-on-save'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { cn } from '~/shared/utils/utils'
 
 const kindLabel = (kind: string) =>
   kind === ScheduleKind.Programme ? m.programs_schedule_kind_programme() : m.programs_schedule_kind_duty()
+const kindHint = (kind: string) =>
+  kind === ScheduleKind.Programme
+    ? m.programs_schedule_add_kind_programme_hint()
+    : m.programs_schedule_add_kind_duty_hint()
 // A template left unnamed reads as the catalogue's label.
 const optionName = (option: ScheduleAddOption) =>
   option.name ??
@@ -45,10 +56,28 @@ export function ScheduleAddMenu({
   const action = `/programs/events/${eventId}/schedules/add`
   const add = (option: ScheduleAddOption) =>
     fetcher.submit({ scheduleTemplateId: String(option.id) }, { method: 'POST', action })
+  // The board's line under each template: its kind and who answers for it; greyed with why when it cannot be added.
+  const detail = (option: ScheduleAddOption) => {
+    if (option.unavailable === 'present') return m.programs_schedule_add_present()
+    if (option.unavailable === 'kind-held') {
+      return option.kind === ScheduleKind.Programme
+        ? m.programs_schedule_add_kind_taken_programme()
+        : m.programs_schedule_add_kind_taken_duty()
+    }
+    // The kind unless the name already says it, who answers for it, and the meeting kinds that tell two unnamed apart.
+    const kind = kindLabel(option.kind) === optionName(option) ? [] : [kindLabel(option.kind)]
+    const who = option.responsible ? [getRoleDisplayName(option.responsible)] : []
+    return [...kind, ...who, ...option.usedBy].join(' · ')
+  }
   const item = (option: ScheduleAddOption) => (
-    <DropdownMenuItem key={option.id} onSelect={() => add(option)} className="flex-col items-start gap-0">
+    <DropdownMenuItem
+      key={option.id}
+      disabled={option.unavailable != null}
+      onSelect={() => add(option)}
+      className="flex-col items-start gap-0"
+    >
       <span className="font-medium">{optionName(option)}</span>
-      <span className="text-muted-foreground text-xs">{[kindLabel(option.kind), ...option.usedBy].join(' · ')}</span>
+      <span className="text-muted-foreground text-xs">{detail(option)}</span>
     </DropdownMenuItem>
   )
   return (
@@ -64,11 +93,16 @@ export function ScheduleAddMenu({
           {options.suggested.length > 0 && (
             <>
               <DropdownMenuLabel>
-                {eventKindName
-                  ? m.programs_schedule_add_suggested({ kind: eventKindName })
-                  : m.programs_schedule_add_others()}
+                {options.asResponsible
+                  ? m.programs_schedule_add_yours()
+                  : eventKindName
+                    ? m.programs_schedule_add_suggested({ kind: eventKindName })
+                    : m.programs_schedule_add_others()}
               </DropdownMenuLabel>
               {options.suggested.map(item)}
+              {options.asResponsible && (
+                <p className="px-2 pb-1.5 text-muted-foreground text-xs">{m.programs_schedule_add_yours_note()}</p>
+              )}
             </>
           )}
           {options.others.length > 0 && (
@@ -132,17 +166,34 @@ function EmptyScheduleDialog({
             <Label htmlFor="empty-schedule-name">{m.programs_schedule_name()}</Label>
             <Input id="empty-schedule-name" name="name" required maxLength={SCHEDULE_NAME_MAX} />
           </div>
-          {kinds.length > 1 && (
-            <div className="flex flex-col gap-1.5">
-              <span className="font-medium text-sm">{m.programs_schedule_add_kind()}</span>
-              <SegmentedControl
-                aria-label={m.programs_schedule_add_kind()}
-                value={posted}
-                onValueChange={setKind}
-                options={kinds.map(value => ({ value, label: kindLabel(value) }))}
-              />
+          {/* The board's two kinds, the one the meeting already holds greyed with why. */}
+          <fieldset className="flex flex-col gap-1.5">
+            <legend className="mb-1.5 font-medium text-sm">{m.programs_schedule_add_kind()}</legend>
+            <div className="grid grid-cols-2 gap-2">
+              {SCHEDULE_KINDS.map(value => {
+                const available = kinds.includes(value)
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={posted === value}
+                    disabled={!available}
+                    onClick={() => setKind(value)}
+                    className={cn(
+                      'flex min-h-11 flex-col gap-1 rounded-md border border-border bg-surface px-3 py-2.5 text-left text-sm transition-colors',
+                      posted === value && available && 'border-brand ring-1 ring-brand',
+                      !available && 'cursor-not-allowed bg-subtle text-faint',
+                    )}
+                  >
+                    <span className="font-medium">{kindLabel(value)}</span>
+                    <span className="text-muted-foreground text-xs">
+                      {available ? kindHint(value) : m.programs_schedule_add_kind_unavailable()}
+                    </span>
+                  </button>
+                )
+              })}
             </div>
-          )}
+          </fieldset>
           <input type="hidden" name="kind" value={posted} />
           {error && (
             <Callout tone="danger" role="alert">

@@ -204,7 +204,8 @@ export async function addSchedule(
  * What « Ajouter un planning » offers the caller on an event (D39): the schedule templates of a kind the event lacks
  * that they may add — those its kind suggests first, in its order, then the others by name, unnamed ones last — and
  * the kinds of an empty schedule, for « Gérer » only. While the meeting awaits its programme, only templates that bring
- * items of their kind, and no empty one. Nothing of a kind the event holds.
+ * items of their kind, and no empty one. The kind's suggestions of a kind the event holds are listed too, greyed with
+ * why (design round A); the other templates only of a kind it lacks.
  */
 export async function scheduleAddOptions(
   db: TransactionClient,
@@ -218,7 +219,7 @@ export async function scheduleAddOptions(
     where: { id: eventId, congregationId },
     select: {
       templateId: true,
-      schedules: { select: { kind: true } },
+      schedules: { select: { kind: true, scheduleTemplateId: true } },
       _count: { select: { items: true } },
       template: { select: { key: true, _count: { select: { parts: true, serviceParts: true } } } },
     },
@@ -232,23 +233,32 @@ export async function scheduleAddOptions(
   const templates = await db.scheduleTemplate.findMany({
     where: {
       congregationId,
-      kind: { in: [...missing] },
+      // A kind it lacks; or the meeting kind's own suggestions, greyed when their kind is held.
+      OR: [{ kind: { in: [...missing] } }, { eventKinds: { some: { eventKindId: event.templateId ?? -1 } } }],
       ...(manages ? {} : { responsibleRoleId: { in: roleIds } }),
     },
     select: {
       id: true,
       name: true,
       kind: true,
+      responsibleRole: { select: { key: true, name: true } },
       _count: { select: { parts: true, serviceParts: true } },
       eventKinds: { select: { eventKindId: true, order: true, eventKind: { select: { name: true } } } },
     },
     orderBy: [{ name: { sort: 'asc', nulls: 'last' } }, { id: 'asc' }],
   })
-  const option = ({ id, name, kind, eventKinds }: (typeof templates)[number]): ScheduleAddOption => ({
-    id,
-    name,
-    kind: kind as ScheduleKind,
-    usedBy: eventKinds.map(link => link.eventKind.name),
+  const unavailable = (template: (typeof templates)[number]) => {
+    const held = event.schedules.find(schedule => schedule.kind === template.kind)
+    if (held == null) return {}
+    return { unavailable: held.scheduleTemplateId === template.id ? ('present' as const) : ('kind-held' as const) }
+  }
+  const option = (template: (typeof templates)[number]): ScheduleAddOption => ({
+    id: template.id,
+    name: template.name,
+    kind: template.kind as ScheduleKind,
+    usedBy: template.eventKinds.map(link => link.eventKind.name),
+    responsible: template.responsibleRole,
+    ...unavailable(template),
   })
   const linkOf = (template: (typeof templates)[number]) =>
     template.eventKinds.find(link => link.eventKindId === event.templateId)
@@ -264,8 +274,11 @@ export async function scheduleAddOptions(
     .sort((a, b) => (linkOf(a)?.order ?? 0) - (linkOf(b)?.order ?? 0))
   return {
     suggested: suggested.map(option),
-    others: offered.filter(template => linkOf(template) == null).map(option),
+    others: offered
+      .filter(template => linkOf(template) == null && missing.includes(template.kind as ScheduleKind))
+      .map(option),
     emptyKinds: manages && !awaits ? [...missing] : [],
+    ...(manages ? {} : { asResponsible: true }),
   }
 }
 

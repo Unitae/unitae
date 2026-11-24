@@ -2236,6 +2236,43 @@
     "programs_schedule_edit_meta_title": "Modifier le planning - Unitae",
     "programs_schedule_edit": "Modifier le planning",
     "programs_edit_event": "Modifier la réunion",
+    "programs_schedule_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} planning",
+                "countPlural=*": "{count} plannings"
+            }
+        }
+    ],
+    "programs_schedules_footer": "Les plannings publiés apparaissent sur le tableau sous la réunion, dans cet ordre. Publier un planning n’avertit que les personnes de ce planning ; un planning en brouillon reste invisible pour qui ne le prépare pas.",
+    "programs_schedule_conflict_title": "Pas encore publiable.",
+    "programs_schedule_conflict_body": [
+        {
+            "declarations": [
+                "input count",
+                "input parts",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Une personne attribuée est absente ce jour-là, sur {parts}. Attribuez quelqu’un d’autre, ou retirez la personne, puis publiez.",
+                "countPlural=*": "Des personnes attribuées sont absentes ce jour-là, sur {parts}. Attribuez quelqu’un d’autre, ou retirez ces personnes, puis publiez."
+            }
+        }
+    ],
+    "programs_schedule_add_present": "Déjà présent",
+    "programs_schedule_add_kind_taken_programme": "Un planning spirituel est déjà présent : une réunion n’en a qu’un",
+    "programs_schedule_add_kind_taken_duty": "Un planning de services est déjà présent : une réunion n’en a qu’un",
+    "programs_schedule_add_yours": "Votre modèle",
+    "programs_schedule_add_yours_note": "Vous ajoutez les plannings des modèles dont vous êtes responsable.",
+    "programs_schedule_add_kind_programme_hint": "Des parties, avec leur orateur et leur lecteur",
+    "programs_schedule_add_kind_duty_hint": "Des tâches confiées à des personnes",
+    "programs_schedule_add_kind_unavailable": "Indisponible : cette réunion en a un",
     "programs_schedule_add": "Ajouter un planning",
     "programs_schedule_add_suggested": "Suggérés par « {kind} »",
     "programs_schedule_add_others": "Autres modèles",

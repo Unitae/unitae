@@ -4,6 +4,7 @@ import {
   assign,
   createPublisher,
   farTuesday,
+  gotoMeeting,
   openMeeting,
   programmeDocument,
   publishAnyway,
@@ -31,7 +32,7 @@ test.describe('Assignments', () => {
     await createPublisher(page, 'Lucien', lastname)
 
     const eventId = await openMeeting(page, farTuesday())
-    await page.goto(`/programs/events/${eventId}`)
+    await gotoMeeting(page, eventId)
     await assign(page, 'Lecture de la Bible', 'Orateur', person)
     await assign(page, 'Estrade', 'Proclamateur', person)
 
@@ -50,7 +51,7 @@ test.describe('Assignments', () => {
     await expect(main.getByText(lastname).first()).toBeVisible()
     await expect(main.getByText(lastname)).toHaveCount(2)
 
-    await page.goto(`/programs/events/${eventId}`)
+    await gotoMeeting(page, eventId)
     // Each section withdraws its own schedule.
     await page.getByRole('button', { name: 'Repasser en brouillon' }).first().click()
     await expect(page.getByRole('button', { name: 'Repasser en brouillon' })).toHaveCount(1)

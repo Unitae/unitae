@@ -29,7 +29,7 @@ No topo da página, **Publicar tudo** publica de uma vez todos os planeamentos e
 
 Um planeamento não é publicado:
 
-- enquanto alguém designado estiver ausente nesse dia: designe outra pessoa, ou retire-a. Os outros planeamentos da reunião não ficam retidos;
+- enquanto alguém designado estiver ausente nesse dia: o seu bloco indica-o, e em que parte; designe outra pessoa, ou retire-a. Os outros planeamentos da reunião não ficam retidos;
 - enquanto estiver vazio: nenhum planeamento é obrigatório, por isso um sem partes nem serviços fica em rascunho.
 
 Uma reunião criada com antecedência sem programa propõe **Criar o programa** em vez de a publicar.
@@ -39,7 +39,7 @@ Para retomar um planeamento, clique em **Voltar ao rascunho** no seu bloco: sai 
 ## Adicionar um planeamento
 
 1. Clique em **Adicionar um planeamento**, no topo da página.
-2. Escolha um modelo: os que o tipo da reunião sugere aparecem primeiro. O planeamento chega com as suas partes ou serviços, em rascunho.
+2. Escolha um modelo: os que o tipo da reunião sugere aparecem primeiro. O planeamento chega com as suas partes ou serviços, em rascunho. Um modelo que a reunião já tem, ou cujo tipo ela já tem, fica a cinzento, com o motivo.
 
 Com o direito de gerir os programas, **Planeamento vazio…** cria um planeamento só para esta reunião: dê-lhe um nome e o tipo, espiritual ou serviços. Para o reutilizar, crie antes um modelo nas **Definições**.
 

@@ -72,7 +72,15 @@ export async function kindChangeOptions(
     where: { congregationId, eventKindId: { in: kinds.map(kind => kind.id) } },
     select: {
       eventKindId: true,
-      scheduleTemplate: { select: { id: true, name: true, kind: true, _count: { select: TEMPLATE_COUNTS } } },
+      scheduleTemplate: {
+        select: {
+          id: true,
+          name: true,
+          kind: true,
+          responsibleRole: { select: { key: true, name: true } },
+          _count: { select: TEMPLATE_COUNTS },
+        },
+      },
     },
     orderBy: [{ order: 'asc' }, { id: 'asc' }],
   })
@@ -87,7 +95,12 @@ export async function kindChangeOptions(
     ...kind,
     suggested: links
       .filter(link => link.eventKindId === kind.id && addable.has(link.scheduleTemplate.id))
-      .map(({ scheduleTemplate: { id, name, kind } }) => ({ id, name, kind: kind as ScheduleKind })),
+      .map(({ scheduleTemplate: { id, name, kind, responsibleRole } }) => ({
+        id,
+        name,
+        kind: kind as ScheduleKind,
+        responsible: responsibleRole,
+      })),
   }))
 }
 

@@ -2231,6 +2231,43 @@
     "programs_schedule_edit_meta_title": "Edit the schedule - Unitae",
     "programs_schedule_edit": "Edit the schedule",
     "programs_edit_event": "Edit the meeting",
+    "programs_schedule_count": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} schedule",
+                "countPlural=*": "{count} schedules"
+            }
+        }
+    ],
+    "programs_schedules_footer": "Published schedules show on the board under the meeting, in this order. Publishing a schedule tells only its assignees; a draft stays out of sight of whoever does not prepare it.",
+    "programs_schedule_conflict_title": "Not publishable yet.",
+    "programs_schedule_conflict_body": [
+        {
+            "declarations": [
+                "input count",
+                "input parts",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Someone assigned is away that day, on {parts}. Assign someone else, or remove them, then publish.",
+                "countPlural=*": "People assigned are away that day, on {parts}. Assign someone else, or remove them, then publish."
+            }
+        }
+    ],
+    "programs_schedule_add_present": "Already there",
+    "programs_schedule_add_kind_taken_programme": "A spiritual schedule is already there: a meeting has one",
+    "programs_schedule_add_kind_taken_duty": "A services schedule is already there: a meeting has one",
+    "programs_schedule_add_yours": "Your template",
+    "programs_schedule_add_yours_note": "You add the schedules of the templates you are in charge of.",
+    "programs_schedule_add_kind_programme_hint": "Parts, with their speaker and reader",
+    "programs_schedule_add_kind_duty_hint": "Tasks given to people",
+    "programs_schedule_add_kind_unavailable": "Unavailable: this meeting has one",
     "programs_schedule_add": "Add a schedule",
     "programs_schedule_add_suggested": "Suggested by “{kind}”",
     "programs_schedule_add_others": "Other templates",
