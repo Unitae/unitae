@@ -22,7 +22,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const eventId = requireParamId(params.eventId, '/programs')
   const scheduleId = requireParamId(params.scheduleId, '/programs')
   const parsed = scheduleNameSchema.safeParse(Object.fromEntries(await request.formData()))
-  if (!parsed.success) return data({ ok: false as const, error: 'invalid_name' as const }, { status: 400 })
+  if (!parsed.success) return data({ ok: false as const, error: m.programs_schedule_name_invalid() }, { status: 400 })
 
   return withScopeFromContext(context, async db => {
     const can = (p: Permission) => permissions.has(p)
@@ -38,6 +38,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     )
     if (outcome == null || 'refused' in outcome) throw redirect('/programs')
 
+    // The name it already had: nothing to say.
+    if (!outcome.result.changed) return data({ ok: true as const })
     session.flash('success', m.programs_schedule_renamed())
     logger.info(`Schedule renamed. User: ${currentUser.id}. Event: ${eventId}. Schedule: ${scheduleId}.`)
     return data({ ok: true as const }, { headers: { 'Set-Cookie': await commitSession(session) } })

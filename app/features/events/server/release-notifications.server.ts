@@ -1,8 +1,9 @@
-// Who is told when a programme is published.
+// Who is told when a schedule is published, or a published one deleted.
 
-// Descriptor for a single publisher who needs the "you are assigned"
-// notification when the event flips to released. Computed from the event
-// under the release tx and fired OUTSIDE the tx by fireReleaseNotifications.
+// Descriptor for a single publisher who needs an assignment notice: "you are
+// assigned" when a schedule is published, "assignment cancelled" when a
+// published one is deleted. Computed under the writing tx and fired OUTSIDE it
+// by fireReleaseNotifications or fireCancellationNotifications.
 export type NotifyTarget = {
   entityType: 'Item'
   entityId: number

@@ -4,8 +4,7 @@ import { PrismaClient } from '~/database/generated/client'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { Permission } from '~/shared/types/permission'
 
-// Renaming a schedule for one event (D44) and deleting one (D41): the event stays, its other schedules and its counts
-// too; the assignees of a published schedule are told « Attribution annulée ». Who may: « Gérer », or the responsible
+// Renaming a schedule for one event (D44) and deleting one (D41): the event stays, with its other schedules; the assignees of a published schedule are told « Attribution annulée ». Who may: « Gérer », or the responsible
 // of its template. Against the database, in a congregation of its own, rolled back.
 
 const adapter = new PrismaPg({
@@ -50,7 +49,7 @@ async function withMeeting(fn: (fixture: Fixture) => Promise<void>) {
   try {
     await testDb.$transaction(
       async tx => {
-        const stamp = `pub-event-${process.pid}-${globalThis.performance.now().toString().replace('.', '')}`
+        const stamp = `sched-change-${process.pid}-${globalThis.performance.now().toString().replace('.', '')}`
         const congregationId = (await tx.congregation.create({ data: { name: stamp, slug: stamp, active: true } })).id
         await tx.$executeRawUnsafe(`SET LOCAL app.congregation_id = '${String(congregationId)}'`)
         const db = tx as unknown as TransactionClient
@@ -144,6 +143,14 @@ describe('renameSchedule', () => {
     })
   })
 
+  it('changes nothing for the name it already has', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, duties }) => {
+      await renameSchedule(db, duties.id, 'Accueil', congregationId, actorId)
+      expect(await renameSchedule(db, duties.id, 'Accueil', congregationId, actorId)).toMatchObject({ changed: false })
+      expect(await db.auditLog.count({ where: { action: 'schedule.renamed' } })).toBe(1)
+    })
+  })
+
   it('finds nothing in another congregation', async () => {
     await withMeeting(async ({ db, congregationId, actorId, duties }) => {
       expect(await renameSchedule(db, duties.id, 'X', congregationId + 1, actorId)).toBeNull()
@@ -203,6 +210,98 @@ describe('deleteSchedule', () => {
     })
   })
 
+  it('keeps the event published while its other schedule is, with that schedule’s items and notices', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, meetingId, programme, duties }) => {
+      await publishSchedule(db, programme.id, congregationId, actorId)
+      await publishSchedule(db, duties.id, congregationId, actorId)
+      const kept = await db.notificationEvent.create({
+        data: {
+          type: 'programme.assignment.assigned',
+          entityType: 'Item',
+          entityId: programme.itemIds[0],
+          congregationId,
+          status: 'pending',
+          payload: '{}',
+          debounceKey: `Item:${programme.itemIds[0]}:1`,
+        },
+      })
+      await deleteSchedule(db, duties.id, congregationId, actorId)
+      expect((await db.event.findFirstOrThrow({ where: { id: meetingId } })).status).toBe('released')
+      expect(await db.item.count({ where: { id: { in: programme.itemIds } } })).toBe(programme.itemIds.length)
+      expect((await db.notificationEvent.findFirstOrThrow({ where: { id: kept.id } })).status).toBe('pending')
+    })
+  })
+
+  it('tells the speaker and the reader of a published programme', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, programme, member }) => {
+      const speaker = await member()
+      const reader = await member()
+      await db.item.update({
+        where: { id: programme.itemIds[0] },
+        data: { assigneeId: speaker, assistantId: reader },
+      })
+      await publishSchedule(db, programme.id, congregationId, actorId)
+      const result = await deleteSchedule(db, programme.id, congregationId, actorId)
+      expect(result?.notifyTargets.map(target => [target.memberId, target.role])).toEqual([
+        [speaker, 'speaker'],
+        [reader, 'reader'],
+      ])
+    })
+  })
+
+  it('sends the event back to a draft when its last schedule goes, published or not, as removing a programme does', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, meetingId, programme, duties }) => {
+      await publishSchedule(db, programme.id, congregationId, actorId)
+      await deleteSchedule(db, duties.id, congregationId, actorId)
+      await deleteSchedule(db, programme.id, congregationId, actorId)
+      // Else a programme created later is born published, and every assignment on it notifies at once.
+      expect((await db.event.findFirstOrThrow({ where: { id: meetingId } })).status).toBe('draft')
+    })
+  })
+
+  it('tells nobody whose « vous êtes assigné » was still waiting: they never heard of it', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, duties, member }) => {
+      const usher = await member()
+      const told = await member()
+      await db.item.update({ where: { id: duties.itemIds[0] }, data: { assigneeId: usher } })
+      await db.item.update({ where: { id: duties.itemIds[1] }, data: { assigneeId: told } })
+      const usherAccount = await db.userAccount.create({
+        data: { email: `usher-${usher}@test.com`, password: 'x', congregationId, memberId: usher },
+      })
+      await publishSchedule(db, duties.id, congregationId, actorId)
+      // Published a moment ago: the usher's notice still waits out its debounce.
+      await db.notificationEvent.create({
+        data: {
+          type: 'programme.assignment.assigned',
+          entityType: 'Item',
+          entityId: duties.itemIds[0],
+          recipientId: usherAccount.id,
+          congregationId,
+          status: 'pending',
+          payload: '{}',
+          debounceKey: `Item:${duties.itemIds[0]}:${usherAccount.id}`,
+        },
+      })
+
+      const result = await deleteSchedule(db, duties.id, congregationId, actorId)
+
+      expect(result?.notifyTargets.map(target => target.memberId)).toEqual([told])
+    })
+  })
+
+  it('records the schedule’s name and who is told in its audit entry', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, duties, member }) => {
+      const usher = await member()
+      await db.item.update({ where: { id: duties.itemIds[0] }, data: { assigneeId: usher } })
+      await publishSchedule(db, duties.id, congregationId, actorId)
+      await deleteSchedule(db, duties.id, congregationId, actorId)
+      const audit = await db.auditLog.findFirstOrThrow({ where: { action: 'schedule.deleted' } })
+      const metadata = JSON.parse(String(audit.metadata))
+      expect(metadata).toMatchObject({ toldMemberIds: [usher] })
+      expect(metadata).toHaveProperty('name')
+    })
+  })
+
   it('finds nothing in another congregation', async () => {
     await withMeeting(async ({ db, congregationId, actorId, duties }) => {
       expect(await deleteSchedule(db, duties.id, congregationId + 1, actorId)).toBeNull()
@@ -228,6 +327,20 @@ describe('canChangeSchedule: « Gérer », or the responsible of its template', 
   })
 })
 
+describe('a schedule without a template is the managers’ (D47)', () => {
+  it('lets « Gérer » change it, never the lead of the template it came from', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, dutyLead, duties }) => {
+      await db.schedule.update({ where: { id: duties.id }, data: { scheduleTemplateId: null } })
+      expect(await canChangeSchedule(db, nothing, dutyLead, duties.id, congregationId)).toBe(false)
+      expect(await canChangeSchedule(db, manages, actorId, duties.id, congregationId)).toBe(true)
+      expect(await changeableScheduleIds(db, nothing, dutyLead, [duties.id], congregationId)).toEqual(new Set())
+      expect(await changeableScheduleIds(db, manages, actorId, [duties.id], congregationId)).toEqual(
+        new Set([duties.id]),
+      )
+    })
+  })
+})
+
 describe('one schedule of an event, as the routes ask', () => {
   it('renames and deletes for its responsible, refuses another’s, and finds nothing on another event', async () => {
     await withMeeting(async ({ db, congregationId, dutyLead, meetingId, programme, duties }) => {
@@ -242,6 +355,7 @@ describe('one schedule of an event, as the routes ask', () => {
       expect(await deleteEventSchedule(db, nothing, dutyLead, meetingId, programme.id, congregationId)).toEqual({
         refused: true,
       })
+      expect(await deleteEventSchedule(db, nothing, dutyLead, meetingId + 1, duties.id, congregationId)).toBeNull()
       expect(await deleteEventSchedule(db, nothing, dutyLead, meetingId, duties.id, congregationId)).toMatchObject({
         event: { id: meetingId },
         result: { schedule: { id: duties.id }, notifyTargets: [] },

@@ -257,3 +257,52 @@ export async function cancelPendingAssignmentNotices(
   })
   return result.count
 }
+
+/**
+ * Who among these targets is still waiting for their « vous êtes assigné » on these items: published inside the
+ * debounce, they were never told, so nothing is to be taken back from them. Read before the notices are cancelled;
+ * matched by item and by the account that notice goes to, the item's legacy keys included (plan T12).
+ */
+export async function awaitingAssignedNotice<T extends { entityId: number; memberId: number }>(
+  db: TransactionClient,
+  congregationId: number,
+  targets: T[],
+): Promise<(target: T) => boolean> {
+  if (targets.length === 0) return () => false
+  const itemIds = [...new Set(targets.map(target => target.entityId))]
+  const items = await db.item.findMany({
+    where: { id: { in: itemIds }, congregationId },
+    select: { id: true, legacyPartId: true, legacyServiceId: true },
+  })
+  const itemOf = new Map<string, number>()
+  for (const item of items) {
+    itemOf.set(`Item:${item.id}`, item.id)
+    if (item.legacyPartId != null) itemOf.set(`EventPart:${item.legacyPartId}`, item.id)
+    if (item.legacyServiceId != null) itemOf.set(`EventServicePart:${item.legacyServiceId}`, item.id)
+  }
+  const notices = await db.notificationEvent.findMany({
+    where: {
+      congregationId,
+      status: 'pending',
+      type: PROGRAMME_ASSIGNMENT_TYPE.assigned,
+      recipientId: { not: null },
+      OR: [...itemOf.keys()].map(key => {
+        const [entityType, id] = key.split(':')
+        return { entityType, entityId: Number(id) }
+      }),
+    },
+    select: { entityType: true, entityId: true, recipientId: true },
+  })
+  if (notices.length === 0) return () => false
+  const accounts = await db.userAccount.findMany({
+    where: { memberId: { in: [...new Set(targets.map(target => target.memberId))] }, congregationId },
+    select: { id: true, memberId: true },
+  })
+  const memberOf = new Map(accounts.map(account => [account.id, account.memberId]))
+  const waiting = new Set(
+    notices.map(
+      notice => `${itemOf.get(`${notice.entityType}:${notice.entityId}`)}:${memberOf.get(notice.recipientId ?? 0)}`,
+    ),
+  )
+  return target => waiting.has(`${target.entityId}:${target.memberId}`)
+}

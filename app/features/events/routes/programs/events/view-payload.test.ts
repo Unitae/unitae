@@ -29,6 +29,8 @@ const state = vi.hoisted(() => ({
   mine: [2] as number[],
   parts: [{ id: 1, name: 'Discours' }] as { id: number; name: string }[],
   services: [{ id: 2, name: 'Sono' }] as { id: number; name: string }[],
+  /** The schedules the reader may rename or delete. */
+  changeable: [] as number[],
 }))
 
 vi.mock('~/features/events/server/event-part-assignments.server', () => ({
@@ -93,9 +95,9 @@ vi.mock('~/shared/auth/permissions.server', async importOriginal => ({
   ...(await importOriginal<typeof import('~/shared/auth/permissions.server')>()),
   resolveEffectiveRoleIds: () => Promise.resolve([9]),
 }))
-// Who may rename or delete which is changeableScheduleIds' integration test: none here.
+// Who may rename or delete which is changeableScheduleIds' integration test: faked here.
 vi.mock('~/features/events/server/schedule-changes.server', () => ({
-  changeableScheduleIds: () => Promise.resolve(new Set<number>()),
+  changeableScheduleIds: () => Promise.resolve(new Set<number>(state.changeable)),
 }))
 // Who answers for each schedule is listScheduleResponsibles' integration test.
 vi.mock('~/features/events/server/schedule-responsibles.queries', () => ({
@@ -141,6 +143,7 @@ beforeEach(() => {
   state.mine = [2]
   state.parts = [{ id: 1, name: 'Discours' }]
   state.services = [{ id: 2, name: 'Sono' }]
+  state.changeable = []
 })
 
 describe('the event page’s publishing', () => {
@@ -173,6 +176,16 @@ describe('each schedule’s section', () => {
     ])
     // Its one schedule of theirs is published: nothing left for them to publish.
     expect(data.publishAll).toEqual({ count: 0, everyone: false })
+  })
+})
+
+describe('the section’s « … »', () => {
+  it('shows on the schedules the reader may change only', async () => {
+    state.changeable = [2]
+    const data = (await loader({ params: { eventId: '40' }, context: readerContext() } as never)) as {
+      event: { schedules: { id: number; mayChange: boolean }[] }
+    }
+    expect(data.event.schedules.map(schedule => [schedule.id, schedule.mayChange])).toEqual([[2, true]])
   })
 })
 

@@ -41,7 +41,9 @@ vi.mock('./notify-assignment.server', async importOriginal => {
   return { ...actual, notifyAssignment: vi.fn() }
 })
 
-const { releaseEvent, unreleaseEvent, fireReleaseNotifications } = await import('./event-status.server')
+const { releaseEvent, unreleaseEvent, fireReleaseNotifications, fireCancellationNotifications } = await import(
+  './event-status.server'
+)
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 const { audit, auditInTransaction } = await import('~/shared/domain/audit.server')
 const { notifyAssignment } = await import('./notify-assignment.server')
@@ -269,6 +271,12 @@ describe('fireReleaseNotifications', () => {
     const second = vi.mocked(notifyAssignment).mock.calls[1]
     expect(first[2]).toMatchObject({ memberId: 5, role: 'speaker', type: 'programme.assignment.assigned' })
     expect(second[2]).toMatchObject({ memberId: 6, role: 'reader', type: 'programme.assignment.assigned' })
+  })
+
+  it('tells each target « Attribution annulée » when a published schedule is deleted (D41)', async () => {
+    await fireCancellationNotifications(eventShape, [speakerTarget, readerTarget], 1, 5, nctx)
+    const types = vi.mocked(notifyAssignment).mock.calls.map(call => call[2].type)
+    expect(types).toEqual(['programme.assignment.unassigned', 'programme.assignment.unassigned'])
   })
 
   // Pin for the entityType / entityId / assignmentName threading from
