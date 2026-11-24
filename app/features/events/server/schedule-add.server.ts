@@ -72,6 +72,25 @@ function bringsNothing(kind: string, counts: { parts: number; serviceParts: numb
   return counts == null || (kind === ScheduleKind.Programme ? counts.parts : counts.serviceParts) === 0
 }
 
+/** Why the event refuses a schedule of this kind bringing these items, or null when it takes it. */
+function refusalOf(
+  event: {
+    schedules: { kind: string }[]
+    _count: { items: number }
+    template: { key: string | null; _count: { parts: number; serviceParts: number } } | null
+  },
+  kind: ScheduleKind,
+  counts: { parts: number; serviceParts: number } | null,
+): ScheduleAddRefusal | null {
+  if (event.schedules.some(schedule => schedule.kind === kind)) return 'kind-held'
+  const awaits = isAwaitingProgramme({
+    parts: event._count.items,
+    services: 0,
+    template: programmeTemplate(event.template),
+  })
+  return awaits && bringsNothing(kind, counts) ? 'awaiting-programme' : null
+}
+
 /**
  * Adds a schedule to an event. Null when the event or the template is not the congregation's. Refused when the event
  * already holds one of its kind, or, for one that brings no item of its kind (empty, or a template with nothing of
@@ -113,19 +132,11 @@ export async function addSchedule(
     },
   })
   if (event == null) return null
-  if (event.schedules.some(schedule => schedule.kind === kind)) {
-    logger.info('schedule add refused: kind held', { eventId, kind, congregationId, actorId })
-    return { reason: 'kind-held' }
-  }
-  const awaits = isAwaitingProgramme({
-    parts: event._count.items,
-    services: 0,
-    template: programmeTemplate(event.template),
-  })
   const counts = template && { parts: template.parts.length, serviceParts: template.serviceParts.length }
-  if (awaits && bringsNothing(kind, counts)) {
-    logger.info('schedule add refused: awaiting programme', { eventId, congregationId, actorId })
-    return { reason: 'awaiting-programme' }
+  const reason = refusalOf(event, kind, counts)
+  if (reason != null) {
+    logger.info('schedule add refused', { reason, eventId, kind, congregationId, actorId })
+    return { reason }
   }
 
   const name = template != null ? template.name : (source.name ?? null)
