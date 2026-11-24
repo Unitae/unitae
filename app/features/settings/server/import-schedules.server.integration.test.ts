@@ -317,6 +317,36 @@ describe('restoring a 2.21 archive into templates that already have schedule tem
   })
 })
 
+describe('restoring a schedule template the congregation renamed in Réglages', () => {
+  it('keeps the archived name on the schedule template it merges into, past the settle step', async () => {
+    await restored(async ({ db, congregationId, templateId }) => {
+      await syncTemplateScheduleTemplates(db, templateId, congregationId)
+      const zip = new JsZip()
+      writeNdjsonFile(zip, 'schedule-templates', [
+        { id: 11, name: 'Vie et ministère', key: null, kind: 'programme', responsibleRoleId: null },
+        { id: 12, name: null, key: 'services', kind: 'duty', responsibleRoleId: null },
+      ])
+      writeNdjsonFile(zip, 'kind-schedule-templates', [
+        { eventKindId: 2, scheduleTemplateId: 11, order: 0 },
+        { eventKindId: 2, scheduleTemplateId: 12, order: 1 },
+      ])
+      const idMap = new EntityIdMap()
+      idMap.set('programme-templates', 2, templateId)
+      const before = await db.scheduleTemplate.findMany({ select: { kind: true, name: true }, orderBy: { id: 'asc' } })
+
+      await importScheduleTemplates(zip, db, idMap, congregationId)
+      await importKindScheduleTemplates(zip, db, idMap, congregationId)
+      // The settle step brings the merged kinds up to date; since 6a-1b it names a schedule template on creation only.
+      await syncTemplateScheduleTemplates(db, templateId, congregationId)
+
+      const names = await db.scheduleTemplate.findMany({ select: { kind: true, name: true }, orderBy: { id: 'asc' } })
+      expect(names.find(row => row.kind === 'programme')?.name).toBe('Vie et ministère')
+      // An unnamed one in the archive leaves the congregation's own name as it was.
+      expect(names.find(row => row.kind === 'duty')?.name).toBe(before.find(row => row.kind === 'duty')?.name)
+    })
+  })
+})
+
 describe('restoring a 2.21 archive that a real export could not have written', () => {
   it('skips what would break a rule and lets the settle step place the items instead', async () => {
     await restored(async ({ db, congregationId, releasedId, emptyId }) => {
