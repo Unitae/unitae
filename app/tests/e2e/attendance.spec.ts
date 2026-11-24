@@ -11,6 +11,8 @@ const SATURDAY = 6
 const SINGLE_RE = /^Une seule date$/
 const SUBMIT_SINGLE_RE = /^Créer le programme$/
 const EDIT_URL_RE = /\/programs\/events\/\d+\/edit/
+// Created, a programme opens on the meeting's page.
+const EVENT_URL_RE = /\/programs\/events\/\d+(?:[?#]|$)/
 const MIDWEEK_RE = /^Réunion de semaine/
 const WEEKEND_RE = /^Réunion du week-end/
 const CARD_RE = /^Assistance · Réunion de semaine/
@@ -60,13 +62,12 @@ async function openMeeting(page: Page, template: RegExp, day: Day) {
   await page.getByText(template).first().click()
   await retype(page.locator('#creation-day'), day.typed)
   await page.getByRole('button', { name: SUBMIT_SINGLE_RE }).click()
-  // Created, the programme opens; already there, the page offers it.
+  // Created, the meeting's page opens; already there, the page offers it. Its details are on « Modifier la réunion ».
   const existing = page.getByRole('link', { name: 'Voir ce programme' })
-  await Promise.race([page.waitForURL(EDIT_URL_RE), existing.waitFor()])
-  if (!EDIT_URL_RE.test(page.url())) {
-    await page.goto(`${await existing.getAttribute('href')}/edit`)
-    await page.waitForURL(EDIT_URL_RE)
-  }
+  await Promise.race([page.waitForURL(EVENT_URL_RE), existing.waitFor()])
+  const meeting = EVENT_URL_RE.test(page.url()) ? new URL(page.url()).pathname : await existing.getAttribute('href')
+  await page.goto(`${meeting}/edit`)
+  await page.waitForURL(EDIT_URL_RE)
 }
 
 /** Saves the meeting's details from the save bar, which shows once a field changed and goes once they are saved. */
