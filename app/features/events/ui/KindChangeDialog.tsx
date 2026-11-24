@@ -25,6 +25,8 @@ export interface KindChangeSchedule {
 
 const kindLabel = (kind: string) =>
   kind === ScheduleKind.Programme ? m.programs_schedule_kind_programme() : m.programs_schedule_kind_duty()
+// The kind beside a title, unless the title already says it (an unnamed services schedule reads « Services »).
+const kindUnlessTitled = (title: string, kind: string) => (kindLabel(kind) === title ? [] : [kindLabel(kind)])
 const unavailable = (kind: string) =>
   kind === ScheduleKind.Programme
     ? m.programs_kind_change_unavailable_programme()
@@ -131,7 +133,7 @@ export function KindChangeDialog({
                   onChange={on => keep(schedule, on)}
                   title={schedule.title}
                   detail={[
-                    kindLabel(schedule.kind),
+                    ...kindUnlessTitled(schedule.title, schedule.kind),
                     statusLabel(schedule.status),
                     m.programs_kind_change_assignments({ count: schedule.assignments }),
                     ...(schedule.removable ? [] : [m.programs_kind_change_not_yours()]),
@@ -158,11 +160,10 @@ export function KindChangeDialog({
                     disabled={held}
                     onChange={on => setAdded(toggle(added, suggestion.id, on))}
                     title={scheduleTitle(suggestion)}
-                    detail={
-                      held
-                        ? `${kindLabel(suggestion.kind)} · ${unavailable(suggestion.kind)}`
-                        : kindLabel(suggestion.kind)
-                    }
+                    detail={[
+                      ...kindUnlessTitled(scheduleTitle(suggestion), suggestion.kind),
+                      ...(held ? [unavailable(suggestion.kind)] : []),
+                    ].join(' · ')}
                   />
                 )
               })}

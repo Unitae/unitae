@@ -2494,13 +2494,13 @@
     "programs_edit_part_order_label": "Ordem",
     "programs_edit_part_duration_label": "Duração (min)",
     "programs_edit_services_title": "Serviços",
-    "programs_edit_event_updated": "Evento atualizado.",
+    "programs_edit_event_updated": "Reunião atualizada.",
     "programs_edit_part_added": "Parte adicionada.",
     "programs_edit_part_deleted": "Parte eliminada.",
     "programs_edit_service_added": "Serviço adicionado.",
     "programs_edit_service_deleted": "Serviço eliminado.",
     "programs_edit_not_in_event": "Este item não pertence a este evento.",
-    "programs_edit_view_event": "Ver evento",
+    "programs_edit_view_event": "Ver a reunião",
     "programs_edit_crumb": "Editar",
     "programs_edit_parts": [
         {

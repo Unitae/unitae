@@ -2502,13 +2502,13 @@
     "programs_edit_part_order_label": "Ordre",
     "programs_edit_part_duration_label": "Durée (min)",
     "programs_edit_services_title": "Services",
-    "programs_edit_event_updated": "Évènement mis à jour.",
+    "programs_edit_event_updated": "Réunion mise à jour.",
     "programs_edit_part_added": "Partie ajoutée.",
     "programs_edit_part_deleted": "Partie supprimée.",
     "programs_edit_service_added": "Service ajouté.",
     "programs_edit_service_deleted": "Service supprimé.",
     "programs_edit_not_in_event": "Cet élément n’appartient pas à cet évènement.",
-    "programs_edit_view_event": "Voir l’évènement",
+    "programs_edit_view_event": "Voir la réunion",
     "programs_edit_crumb": "Modifier",
     "programs_edit_parts": [
         {
