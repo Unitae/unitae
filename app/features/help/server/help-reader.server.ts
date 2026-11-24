@@ -9,7 +9,7 @@ import type { Permission } from '~/shared/types/permission'
 export function helpReaderFor(
   permissions: ReadonlySet<Permission>,
   account: SanitizedAccount,
-  answersForSchedule = false,
+  answersForSchedule: boolean,
 ): HelpReader {
   return {
     permissions,

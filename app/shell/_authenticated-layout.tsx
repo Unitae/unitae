@@ -177,9 +177,13 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         helpReaderFor(
           permissions,
           currentUser,
-          await withScopeFromContext(context, (db, congregationId) =>
-            answersForASchedule(db, currentUser.id, congregationId),
-          ),
+          // Only for a reader the programmes' rights do not already let in: no query for the managers.
+          !can(Permission.CanManagePrograms) &&
+            !can(Permission.CanPublishPrograms) &&
+            !can(Permission.CanAssignProgramParts) &&
+            (await withScopeFromContext(context, (db, congregationId) =>
+              answersForASchedule(db, currentUser.id, congregationId),
+            )),
         ),
         helpLocaleFor(getLocale()),
       ),
