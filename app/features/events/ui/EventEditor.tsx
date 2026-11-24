@@ -3,6 +3,7 @@ import { SidePanel } from '@unitae/ui'
 import { CalendarDays, Eye } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useFetcher } from 'react-router'
+import { ScheduleKind } from '~/features/events/model/schedule.type'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
 import type { RoleOption } from '~/shared/types/role'
@@ -21,6 +22,7 @@ import { EventServicesPanel, type ServicePartAssignment } from './EventServicesP
 import { InlineDeleteDialog } from './InlineDeleteDialog'
 import { PART_FORM_ID, type PartData, PartEditor, type PartPresetOption, partEditorCopy } from './PartEditor'
 import { PartEditSheet } from './PartEditSheet'
+import { scheduleTitle } from './ScheduleHeading'
 import { SERVICE_FORM_ID, ServiceEditor, serviceEditorCopy } from './ServiceEditor'
 import { ServiceEditSheet } from './ServiceEditSheet'
 
@@ -43,6 +45,8 @@ interface EventEditorProps {
   /** Whether the caller may fill the programme and the duties: each section is read-only otherwise (plan §10). */
   canFillParts: boolean
   canFillServices: boolean
+  /** « Modifier le planning » (D38): the one schedule this page edits, without the meeting's own fields. */
+  focus?: { id: number; kind: ScheduleKind; name: string | null }
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: the page wires three panels, a docked or sheet editor and their guards
@@ -56,6 +60,7 @@ export function EventEditor({
   canViewPrograms,
   canFillParts,
   canFillServices,
+  focus,
 }: EventEditorProps) {
   const infoFetcher = useFetcher()
   const partFetcher = useFetcher()
@@ -135,6 +140,8 @@ export function EventEditor({
     editing?.kind === 'service'
       ? serviceEditorCopy('event', editing.id != null)
       : partEditorCopy('event', editing?.id != null)
+  // On « Modifier le planning », that schedule's panel alone.
+  const shows = (kind: ScheduleKind) => focus == null || focus.kind === kind
   const date = formatEventDate(event.startDate, timezone, getLocale(), {
     weekday: 'long',
     day: 'numeric',
@@ -147,12 +154,12 @@ export function EventEditor({
       <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         icon={CalendarDays}
-        title={m.programs_edit_page_title()}
-        subtitle={`${event.name} · ${date}`}
+        title={focus ? scheduleTitle(focus) : m.programs_edit_page_title()}
+        subtitle={focus ? `${m.programs_schedule_edit()} · ${event.name} · ${date}` : `${event.name} · ${date}`}
         breadcrumbs={[
           { label: m.sidebar_programs(), to: canViewPrograms ? '/programs' : undefined },
           { label: event.name, to: canViewPrograms ? `/programs/events/${event.id}` : undefined },
-          { label: m.programs_edit_crumb() },
+          { label: focus ? m.programs_schedule_edit() : m.programs_edit_crumb() },
         ]}
         actions={
           canViewPrograms && (
@@ -168,28 +175,34 @@ export function EventEditor({
 
       <div className="flex flex-wrap items-start gap-6">
         <div className="flex min-w-0 flex-[3_1_560px] flex-col gap-6">
-          <EventInfoPanel event={event} timezone={timezone} fetcher={infoFetcher} onDirtyChange={setInfoDirty} />
-          <EventProgrammePanel
-            parts={event.eventParts}
-            presetNames={new Map(presets.map(preset => [preset.id, preset.name]))}
-            selectedId={editing?.kind === 'part' ? editing.id : null}
-            dragLocked={panel.dirty}
-            onAddPart={trigger => panel.request({ kind: 'part', id: null, trigger })}
-            onEditPart={(part, trigger) => panel.request({ kind: 'part', id: part.id, trigger })}
-            onDeletePart={target => setDeleteTarget({ type: 'part', ...target })}
-            onDragEnd={handlePartDragEnd}
-            readOnly={!canFillParts}
-          />
-          <EventServicesPanel
-            services={event.eventServiceParts}
-            roles={roles}
-            selectedId={editing?.kind === 'service' ? editing.id : null}
-            onAddService={trigger => panel.request({ kind: 'service', id: null, trigger })}
-            onEditService={(service, trigger) => panel.request({ kind: 'service', id: service.id, trigger })}
-            onDeleteService={target => setDeleteTarget({ type: 'service', ...target })}
-            onDragEnd={handleServiceDragEnd}
-            readOnly={!canFillServices}
-          />
+          {focus == null && (
+            <EventInfoPanel event={event} timezone={timezone} fetcher={infoFetcher} onDirtyChange={setInfoDirty} />
+          )}
+          {shows(ScheduleKind.Programme) && (
+            <EventProgrammePanel
+              parts={event.eventParts}
+              presetNames={new Map(presets.map(preset => [preset.id, preset.name]))}
+              selectedId={editing?.kind === 'part' ? editing.id : null}
+              dragLocked={panel.dirty}
+              onAddPart={trigger => panel.request({ kind: 'part', id: null, trigger })}
+              onEditPart={(part, trigger) => panel.request({ kind: 'part', id: part.id, trigger })}
+              onDeletePart={target => setDeleteTarget({ type: 'part', ...target })}
+              onDragEnd={handlePartDragEnd}
+              readOnly={!canFillParts}
+            />
+          )}
+          {shows(ScheduleKind.Duty) && (
+            <EventServicesPanel
+              services={event.eventServiceParts}
+              roles={roles}
+              selectedId={editing?.kind === 'service' ? editing.id : null}
+              onAddService={trigger => panel.request({ kind: 'service', id: null, trigger })}
+              onEditService={(service, trigger) => panel.request({ kind: 'service', id: service.id, trigger })}
+              onDeleteService={target => setDeleteTarget({ type: 'service', ...target })}
+              onDragEnd={handleServiceDragEnd}
+              readOnly={!canFillServices}
+            />
+          )}
         </div>
 
         {panel.docked && editing != null && (

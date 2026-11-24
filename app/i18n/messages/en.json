@@ -2091,6 +2091,8 @@
             }
         }
     ],
+    "programs_schedule_edit": "Edit the schedule",
+    "programs_edit_event": "Edit the meeting",
     "programs_schedule_add": "Add a schedule",
     "programs_schedule_add_suggested": "Suggested by “{kind}”",
     "programs_schedule_add_others": "Other templates",

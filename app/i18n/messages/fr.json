@@ -2096,6 +2096,8 @@
             }
         }
     ],
+    "programs_schedule_edit": "Modifier le planning",
+    "programs_edit_event": "Modifier la réunion",
     "programs_schedule_add": "Ajouter un planning",
     "programs_schedule_add_suggested": "Suggérés par « {kind} »",
     "programs_schedule_add_others": "Autres modèles",
