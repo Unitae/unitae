@@ -1,13 +1,14 @@
 import { Tag } from '@unitae/ui'
 import { type Ref, useState } from 'react'
 import type { FetcherWithComponents } from 'react-router'
+import { NO_RESPONSIBLE } from '~/features/settings/schemas/schedule-template.schema'
 import * as m from '~/i18n/paraglide/messages'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 
-// Radix refuses an empty item value: « none » stands for those who manage the programmes, posted as blank.
-const NONE = 'none'
+// Radix refuses an empty item value; « none » is also what the action reads as no responsible.
+const NONE = NO_RESPONSIBLE
 
 /** One schedule template as its side panel edits it. */
 export interface ScheduleTemplateValues {
@@ -42,7 +43,7 @@ export function ScheduleTemplateForm({
   return (
     <fetcher.Form method="post" id={id} ref={formRef} className="flex flex-col gap-5">
       <input type="hidden" name="scheduleTemplateId" value={template.id} />
-      <input type="hidden" name="responsibleRoleId" value={role === NONE ? '' : role} />
+      <input type="hidden" name="responsibleRoleId" value={role} />
       {errors && errors.length > 0 && (
         <p role="alert" className="text-destructive text-sm">
           {errors[0]}
