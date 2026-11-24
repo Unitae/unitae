@@ -66,3 +66,10 @@ export interface ScheduleAddOptions {
   others: ScheduleAddOption[]
   emptyKinds: ScheduleKind[]
 }
+
+/** A kind « Changer le type » offers (D40), with the schedule templates it suggests, in its order. */
+export interface KindChangeOption {
+  id: number
+  name: string
+  suggested: { id: number; name: string | null; kind: ScheduleKind }[]
+}

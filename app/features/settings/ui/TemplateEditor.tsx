@@ -140,11 +140,6 @@ export function TemplateEditor({
           <EventProgrammePanel
             parts={parts}
             presetNames={new Map(presets.map(preset => [preset.id, preset.name]))}
-            templates={[]}
-            selectedTemplateId=""
-            onTemplateChange={() => undefined}
-            onApplyTemplate={() => undefined}
-            isApplyingTemplate={false}
             selectedId={editing?.kind === 'part' ? editing.id : null}
             dragLocked={panel.dirty}
             readOnly={!editable}

@@ -5,15 +5,10 @@ import {
   getServicePartAssignmentAllowedRoleIdsForParts,
 } from '~/features/events/server/allowed-roles.queries'
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
-import { listApplicableTemplates, resolveEventItem } from '~/features/events/server/events-auth.server'
+import { resolveEventItem } from '~/features/events/server/events-auth.server'
 import { listPartPresets } from '~/features/events/server/part-presets.queries'
 import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
-import {
-  canChangeEvent,
-  canChangeEventsOfKind,
-  canFillSchedule,
-  canFillTemplateSchedules,
-} from '~/features/events/server/schedule-rights.server'
+import { canChangeEvent, canFillSchedule } from '~/features/events/server/schedule-rights.server'
 import { EventEditor } from '~/features/events/ui/EventEditor'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -50,8 +45,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
       throw redirect('/programs')
     }
 
-    const [applicable, canFillParts, canFillServices, allRoles, partRoles, serviceRoles, presets] = await Promise.all([
-      listApplicableTemplates(db, can, currentUser.id, congregationId),
+    const [canFillParts, canFillServices, allRoles, partRoles, serviceRoles, presets] = await Promise.all([
       // Each schedule's section is editable by whoever may fill it (plan §10, D31): the action refuses the others.
       canFillSchedule(db, can, currentUser.id, event, 'part', congregationId),
       canFillSchedule(db, can, currentUser.id, event, 'service', congregationId),
@@ -68,12 +62,6 @@ export function loader({ params, context }: Route.LoaderArgs) {
       ),
       listPartPresets(db, congregationId),
     ])
-
-    // Only the templates whose every schedule the caller may fill: applying one fills them (mayApplyTemplate).
-    const mayFillAll = await Promise.all(
-      applicable.map(template => canFillTemplateSchedules(db, can, currentUser.id, template.id, congregationId)),
-    )
-    const templates = applicable.filter((_, index) => mayFillAll[index])
 
     const partsWithRoles = event.eventParts.map(part => ({
       ...part,
@@ -95,7 +83,6 @@ export function loader({ params, context }: Route.LoaderArgs) {
         eventParts: partsWithRoles,
         eventServiceParts: serviceAssignmentsWithRoles,
       },
-      templates,
       roles,
       presets,
       sectionSuggestions,
@@ -134,10 +121,6 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
     const timezone = context.get(congregationContext).timezone
     const result = await handleEditIntent(intent, formData, db, eventId, congregationId, currentUser.id, timezone, {
-      // Moving the event to a kind is changing it as an event of that kind (D49), and fills what that kind brings.
-      mayApplyTemplate: async templateId =>
-        (await canChangeEventsOfKind(db, can, currentUser.id, templateId, congregationId)) &&
-        (await canFillTemplateSchedules(db, can, currentUser.id, templateId, congregationId)),
       itemInEvent: (kind, { itemId, legacyId }) =>
         resolveEventItem(db, { itemId: itemId ?? null, legacyId: legacyId ?? null }, kind, eventId, congregationId),
     })

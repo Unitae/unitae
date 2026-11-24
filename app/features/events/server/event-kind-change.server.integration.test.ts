@@ -279,6 +279,12 @@ describe('kindChangeOptions', () => {
     })
   })
 
+  it('offers nothing to whoever may not change the meeting', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, meetingId }) => {
+      expect(await kindChangeOptions(db, nothing, actorId, meetingId, congregationId)).toEqual([])
+    })
+  })
+
   it('offers a responsible only the kinds they answer for: none other here', async () => {
     await withMeeting(async ({ db, congregationId, dutyLead, meetingId }) => {
       expect(await kindChangeOptions(db, nothing, dutyLead, meetingId, congregationId)).toEqual([])

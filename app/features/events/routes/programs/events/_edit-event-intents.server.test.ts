@@ -10,10 +10,7 @@ vi.mock('~/features/events/server/event-parts.server', () => ({
   updateServicePartAssignment: vi.fn(),
 }))
 
-vi.mock('~/features/events/server/apply-template.server', () => ({ applyTemplateToEvent: vi.fn() }))
-
 const { handleEditIntent, kindsFilledBy } = await import('./_edit-event-intents.server')
-const { applyTemplateToEvent } = await import('~/features/events/server/apply-template.server')
 const { deletePartAssignment, deleteServicePartAssignment, updatePartAssignment, updateServicePartAssignment } =
   await import('~/features/events/server/event-parts.server')
 
@@ -21,8 +18,8 @@ const db = {} as Parameters<typeof handleEditIntent>[2]
 const EVENT_ID = 31
 const CONGREGATION_ID = 4242
 const USER_ID = 7777
-const OWNED_TEMPLATE_ID = 1001
-const FOREIGN_TEMPLATE_ID = 2002
+const _OWNED_TEMPLATE_ID = 1001
+const _FOREIGN_TEMPLATE_ID = 2002
 // Parts and services: the first item belongs to the event in the URL, the second to another event. The old row the
 // first mirrors has its own id, which a form of the previous image posts under the old name (plan T12).
 const OWN_ID = 11
@@ -30,7 +27,6 @@ const FOREIGN_ID = 22
 const OWN_LEGACY_ID = 911
 
 const checks = {
-  mayApplyTemplate: async (templateId: number) => templateId === OWNED_TEMPLATE_ID,
   // The route's check: the item a form names, by its id or its old row's, when it is on this event.
   itemInEvent: async (_kind: 'part' | 'service', { itemId, legacyId }: { itemId?: string; legacyId?: string }) => {
     const id = itemId != null ? Number(itemId) : legacyId === String(OWN_LEGACY_ID) ? OWN_ID : null
@@ -44,27 +40,8 @@ function post(fields: Record<string, string>) {
   return handleEditIntent(fields.intent, formData, db, EVENT_ID, CONGREGATION_ID, USER_ID, 'Europe/Paris', checks)
 }
 
-function applyTemplate(templateId: number) {
-  return post({ intent: 'apply-template', templateId: String(templateId) })
-}
-
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(applyTemplateToEvent).mockResolvedValue({ id: OWNED_TEMPLATE_ID, name: 'Réunion de semaine' } as never)
-})
-
-describe('handleEditIntent — apply-template', () => {
-  it('applies a template whose events the caller may edit', async () => {
-    const result = await applyTemplate(OWNED_TEMPLATE_ID)
-    expect(result).toEqual({ message: 'Modèle « Réunion de semaine » appliqué.' })
-  })
-
-  // Applying moves the event onto the template, and who may edit the event follows its template: a template
-  // responsible must not hand their event to another template's responsibles, nor copy a template they do not run.
-  it('refuses a template whose events the caller may not edit', async () => {
-    const result = await applyTemplate(FOREIGN_TEMPLATE_ID)
-    expect(result != null && 'reply' in result).toBe(true)
-  })
 })
 
 // The action checked that the caller may edit the event in the URL. The writers find a part or a service by its id
@@ -129,9 +106,7 @@ describe('kindsFilledBy', () => {
     ])
   })
 
-  // Applying a template fills the schedules of the template applied, not the event's current ones: mayApplyTemplate
-  // checks those (canFillTemplateSchedules).
-  it('names none for applying a template, changing the event itself, or an intent it does not know', () => {
+  it('names none for changing the event itself, an intent it no longer knows, or one it never did', () => {
     expect(kindsFilledBy('apply-template')).toEqual([])
     expect(kindsFilledBy('update-event')).toEqual([])
     expect(kindsFilledBy(null)).toEqual([])

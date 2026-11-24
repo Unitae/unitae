@@ -33,8 +33,6 @@ interface EventEditorProps {
     eventParts: (PartAssignment & Pick<PartData, 'speakerLabel' | 'readerLabel'>)[]
     eventServiceParts: ServicePartAssignment[]
   }
-  /** The templates the caller may apply: applying one moves the event onto it. */
-  templates: { id: number; name: string }[]
   roles: RoleOption[]
   presets: PartPresetOption[]
   sectionSuggestions: string[]
@@ -50,7 +48,6 @@ interface EventEditorProps {
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: the page wires three panels, a docked or sheet editor and their guards
 export function EventEditor({
   event,
-  templates,
   roles,
   presets,
   sectionSuggestions,
@@ -65,10 +62,8 @@ export function EventEditor({
   const serviceFetcher = useFetcher()
   const deleteFetcher = useFetcher()
   const reorderFetcher = useFetcher()
-  const templateFetcher = useFetcher()
 
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'part' | 'service'; id: number; name: string } | null>(null)
-  const [selectedTemplateId, setSelectedTemplateId] = useState('')
   const [infoDirty, setInfoDirty] = useState(false)
   const { blocker, setDirty } = useUnsavedChanges()
 
@@ -125,14 +120,6 @@ export function EventEditor({
     setDeleteTarget(null)
   }
 
-  function handleApplyTemplate() {
-    if (!selectedTemplateId) return
-    const formData = new FormData()
-    formData.set('intent', 'apply-template')
-    formData.set('templateId', selectedTemplateId)
-    templateFetcher.submit(formData, { method: 'post' })
-  }
-
   const partEditor = {
     mode: 'event' as const,
     fetcher: partFetcher,
@@ -185,11 +172,6 @@ export function EventEditor({
           <EventProgrammePanel
             parts={event.eventParts}
             presetNames={new Map(presets.map(preset => [preset.id, preset.name]))}
-            templates={templates}
-            selectedTemplateId={selectedTemplateId}
-            onTemplateChange={setSelectedTemplateId}
-            onApplyTemplate={handleApplyTemplate}
-            isApplyingTemplate={templateFetcher.state !== 'idle'}
             selectedId={editing?.kind === 'part' ? editing.id : null}
             dragLocked={panel.dirty}
             onAddPart={trigger => panel.request({ kind: 'part', id: null, trigger })}

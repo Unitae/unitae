@@ -7,6 +7,7 @@ import { responsibleForPage } from '~/features/events/model/schedule-responsible
 import { buildAssignmentCandidates } from '~/features/events/server/assignment-candidates.server'
 import { eventHasAttendance } from '~/features/events/server/attendance.queries'
 import { buildShareTextsForEvent } from '~/features/events/server/build-share-message.server'
+import { kindChangeOptions } from '~/features/events/server/event-kind-change.server'
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
 import { publishActionsFor, publishableScheduleIds } from '~/features/events/server/event-publishing.server'
 import { listExternalSpeakerOptions } from '~/features/events/server/external-speakers.queries'
@@ -185,6 +186,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
       publishAll: { count: myDrafts, everyone: can(Permission.CanPublishPrograms) },
       // « Ajouter un planning » (D39): what the reader may add of a kind the event lacks.
       addSchedule: { options: addOptions, eventKindName: event.template?.name ?? null },
+      // « Changer le type » (D40): the kinds the reader may move it to, none for whoever may not change it.
+      kindChange: await kindChangeOptions(db, can, currentUser.id, event.id, congregationId),
       // Created ahead and still empty: the page offers « Créer le programme » instead of publishing it.
       awaitingProgramme,
       hasAttendance,

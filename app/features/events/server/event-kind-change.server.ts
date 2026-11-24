@@ -1,5 +1,5 @@
 import { EventOrigin } from '~/features/events/model/event-origin.type'
-import { SCHEDULE_ORDER, type ScheduleKind } from '~/features/events/model/schedule.type'
+import { type KindChangeOption, SCHEDULE_ORDER, type ScheduleKind } from '~/features/events/model/schedule.type'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import { ConflictError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -28,16 +28,9 @@ export interface KindChange {
 /** Why a change is refused though the caller may make it: two schedules of one kind, or a template the kind lacks. */
 export type KindChangeRefusal = 'kind-held' | 'not-suggested'
 
-/** A kind the dialog offers, with the schedule templates it suggests. */
-export interface KindChangeOption {
-  id: number
-  name: string
-  suggested: { id: number; name: string | null; kind: ScheduleKind }[]
-}
-
 /**
  * The kinds the caller may move the event to (listApplicableTemplates, never its own), each with the schedule
- * templates it suggests, in its order.
+ * templates it suggests, in its order. None for whoever may not change the event (canChangeEvent).
  */
 export async function kindChangeOptions(
   db: TransactionClient,
@@ -47,7 +40,7 @@ export async function kindChangeOptions(
   congregationId: number,
 ): Promise<KindChangeOption[]> {
   const event = await db.event.findFirst({ where: { id: eventId, congregationId }, select: { templateId: true } })
-  if (event == null) return []
+  if (event == null || !(await canChangeEvent(db, can, userId, event, congregationId))) return []
   const kinds = (await listApplicableTemplates(db, can, userId, congregationId)).filter(
     kind => kind.id !== event.templateId,
   )
