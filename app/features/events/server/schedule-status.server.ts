@@ -109,7 +109,8 @@ export async function lockScheduleEvent(db: TransactionClient, scheduleId: numbe
  * Publishes one schedule (tx-only, like releaseEvent). The caller fires the notices after commit from the targets
  * returned, with the event it already holds (fireReleaseNotifications). Refused while its own items hold a conflict,
  * for a programme left without parts while its template has parts to give, and for any schedule with nothing in it:
- * none is mandatory, so none is published empty. Publishing it again writes nothing and tells no one; the event's row is locked first, so two calls at once tell them once.
+ * none is mandatory, so none is published empty. Publishing it again writes nothing and tells no one; the event's row
+ * is locked first, so two calls at once tell them once.
  */
 export async function publishSchedule(
   db: TransactionClient,
