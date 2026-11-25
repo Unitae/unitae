@@ -249,9 +249,11 @@ export function ScheduleTemplatePanel({
   // « 4 sur 16 »: an existing part among the parts as the list shows them.
   const listed = items == null ? [] : partsInListOrder(items.parts)
   const position = item?.kind === 'part' && item.id != null ? listed.findIndex(each => each.id === item.id) : -1
+  // Not while a save or a delete is in flight: its settling would leave the part walked to.
+  const busy = itemFetcher.state !== 'idle' || deleteFetcher.state !== 'idle'
   const walkTo = (index: number) => {
     const target = listed[index]
-    return target == null ? undefined : () => onWalkItem({ kind: 'part', id: target.id })
+    return target == null || busy ? undefined : () => onWalkItem({ kind: 'part', id: target.id })
   }
   const walk =
     position < 0

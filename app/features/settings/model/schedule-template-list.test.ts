@@ -149,12 +149,23 @@ describe('the list’s order and places', () => {
   it('offers the sections in order and each section’s halls in their own, once each', () => {
     expect(templatePlaces(parts)).toEqual({
       sections: ['Joyaux', 'Ministère'],
-      halls: {
-        Ministère: [
-          { name: 'Salle principale', trackOrder: 1 },
-          { name: 'Salle B', trackOrder: 2 },
+      halls: new Map([
+        [
+          'Ministère',
+          [
+            { name: 'Salle principale', trackOrder: 1 },
+            { name: 'Salle B', trackOrder: 2 },
+          ],
         ],
-      },
+      ]),
     })
+  })
+
+  it('reads a section named like an object’s own property as any other', () => {
+    const places = templatePlaces([at(1, 0, 'constructor'), at(2, 1, 'toString', 'Salle B', 2)])
+    expect([places.halls.get('constructor'), places.halls.get('toString')]).toEqual([
+      undefined,
+      [{ name: 'Salle B', trackOrder: 2 }],
+    ])
   })
 })

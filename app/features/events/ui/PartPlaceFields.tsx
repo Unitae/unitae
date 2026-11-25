@@ -6,16 +6,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 /** A schedule template's sections and, per section, its parallel halls in order: what a part can be put in. */
 export interface PartPlaces {
   sections: string[]
-  halls: Record<string, { name: string; trackOrder: number | null }[]>
+  /** By section name: a Map, since a section may be named anything (« constructor » too). */
+  halls: ReadonlyMap<string, { name: string; trackOrder: number | null }[]>
 }
 
 // Radix refuses an empty item value: « none » stands for no section, or no hall.
 const NONE = '__none__'
 
 /**
- * Where a part of a schedule template sits, picked among what exists (sections and halls are created from the list).
- * Its order is not a field: it stays where it is, and goes to the end of the section or hall it is moved to (the
- * server places it). A new part keeps the place it was added at while left in its section and hall.
+ * Where a part of a schedule template sits, picked among what exists (sections and halls are created from the list),
+ * plus the section or hall a new part was drafted in (« Ajouter une section », a new parallel hall) while it is the
+ * one chosen. Its order and its hall's order are not fields: the server places it (where it is, at the end of where it
+ * is moved, or where a new part was added) and takes a hall's order from the halls.
  */
 export function PartPlaceFields({
   places,
@@ -31,14 +33,21 @@ export function PartPlaceFields({
 }) {
   const [section, setSection] = useState(initialSection)
   const [track, setTrack] = useState(initialTrack)
-  const halls = places.halls[section] ?? []
-  const hall = halls.find(each => each.name === track)
+  // The drafted section and hall are offered as long as they are the ones a new part was opened in.
+  const sections =
+    initialSection !== '' && !places.sections.includes(initialSection)
+      ? [...places.sections, initialSection]
+      : places.sections
+  const stored = places.halls.get(section) ?? []
+  const halls =
+    section === initialSection && initialTrack !== '' && !stored.some(each => each.name === initialTrack)
+      ? [...stored, { name: initialTrack, trackOrder: null }]
+      : stored
   const kept = section === initialSection && track === initialTrack
   return (
     <>
       <input type="hidden" name="partSection" value={section} />
       <input type="hidden" name="partTrack" value={track} />
-      <input type="hidden" name="partTrackOrder" value={hall?.trackOrder ?? ''} />
       <input type="hidden" name="partOrder" value={kept && order != null ? order : ''} />
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="partSection">{m.programs_edit_part_section_label()}</Label>
@@ -54,7 +63,7 @@ export function PartPlaceFields({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={NONE}>{m.programs_edit_part_section_none()}</SelectItem>
-            {places.sections.map(name => (
+            {sections.map(name => (
               <SelectItem key={name} value={name}>
                 {name}
               </SelectItem>

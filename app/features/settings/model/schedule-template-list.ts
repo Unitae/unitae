@@ -119,14 +119,14 @@ export function partsInListOrder<P extends ListedPart>(parts: P[]): P[] {
 /** What a part can be put in: the template's sections in the list's order, and each one's halls in their own. */
 export function templatePlaces(parts: readonly ListedPart[]): PartPlaces {
   const sections: string[] = []
-  const halls: PartPlaces['halls'] = {}
+  const halls = new Map<string, { name: string; trackOrder: number | null }[]>()
   for (const part of [...parts].sort((a, b) => a.order - b.order)) {
     if (part.section !== '' && !sections.includes(part.section)) sections.push(part.section)
     if (part.track === '') continue
-    halls[part.section] ??= []
-    const list = halls[part.section] ?? []
+    const list = halls.get(part.section) ?? []
+    halls.set(part.section, list)
     if (!list.some(hall => hall.name === part.track)) list.push({ name: part.track, trackOrder: part.trackOrder })
   }
-  for (const list of Object.values(halls)) list.sort((a, b) => (a.trackOrder ?? 0) - (b.trackOrder ?? 0))
+  for (const list of halls.values()) list.sort((a, b) => (a.trackOrder ?? 0) - (b.trackOrder ?? 0))
   return { sections, halls }
 }
