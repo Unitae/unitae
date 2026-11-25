@@ -16,12 +16,29 @@ type InlineDeleteDialogProps = {
   itemName: string
   onConfirm: () => void
   isDeleting: boolean
+  /** Where focus goes once it closes, when what opened it is gone (a menu item, a page button); the default otherwise. */
+  returnFocus?: () => HTMLElement | null
 }
 
-export function InlineDeleteDialog({ open, onOpenChange, itemName, onConfirm, isDeleting }: InlineDeleteDialogProps) {
+export function InlineDeleteDialog({
+  open,
+  onOpenChange,
+  itemName,
+  onConfirm,
+  isDeleting,
+  returnFocus,
+}: InlineDeleteDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent size="sm">
+      <AlertDialogContent
+        size="sm"
+        onCloseAutoFocus={event => {
+          const target = returnFocus?.()
+          if (target == null) return
+          event.preventDefault()
+          target.focus()
+        }}
+      >
         <AlertDialogHeader>
           <AlertDialogTitle>{m.programs_edit_delete_confirm_title()}</AlertDialogTitle>
           <AlertDialogDescription>

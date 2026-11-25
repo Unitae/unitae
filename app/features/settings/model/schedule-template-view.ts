@@ -17,6 +17,8 @@ export interface ListedScheduleTemplate {
 /** What its row and its side panel show. */
 export interface ScheduleTemplateView {
   id: number
+  /** Programme (parts) or duty (services). */
+  kind: string
   title: string
   /** « Spirituel · 15 parties », or « 4 services » where the title already says the kind. */
   detail: string
@@ -62,6 +64,7 @@ export function scheduleTemplateView(
   const label = role == null ? null : (offered?.label ?? getRoleDisplayName(role))
   return {
     id: template.id,
+    kind: template.kind,
     title,
     // The tag goes where the title already says the kind (« Services »), as on the meeting's page.
     detail: [...(tag === title ? [] : [tag]), content(template.kind, template.items)].join(' · '),

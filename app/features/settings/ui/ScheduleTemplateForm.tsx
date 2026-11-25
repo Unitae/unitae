@@ -12,8 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 const NONE = NO_RESPONSIBLE
 
 /**
- * Its name and responsible (design round A, « TourA-Reglages-Modeles »), and the kinds suggesting it. Its parts or
- * services are still edited from the kind until 6a-1c.
+ * Its name and responsible (design round A, « TourA-Reglages-Modeles »), and the kinds using it. Its parts or services
+ * are listed under it, in its panel.
  */
 export function ScheduleTemplateForm({
   template,
@@ -98,9 +98,6 @@ export function ScheduleTemplateForm({
           <p className="text-faint text-sm">{m.settings_schedule_templates_suggested_none()}</p>
         )}
       </div>
-      <p className="rounded-md bg-sidebar px-3 py-2.5 text-muted-foreground text-sm">
-        {m.settings_schedule_templates_items_note()}
-      </p>
     </fetcher.Form>
   )
 }
