@@ -32,7 +32,7 @@ test.describe('Schedule templates: a part in the template panel', () => {
     await form.getByLabel('Nom', { exact: true }).fill(name)
     await page.getByRole('button', { name: 'Enregistrer la partie' }).click()
     await expect(page).not.toHaveURL(ANY_ITEM_RE)
-    const row = page.getByRole('button', { name: new RegExp(name) })
+    const row = page.getByRole('button', { name: new RegExp(`^${name}`) })
     await expect(row).toBeVisible()
 
     await row.click()
@@ -76,8 +76,8 @@ test.describe('Schedule templates: a part in the template panel', () => {
     await save(`Seconde e2e ${stamp}`)
 
     // Listed under its section's header, right before its « + Partie »: the section's last part.
-    const first = page.getByRole('button', { name: new RegExp(`Première e2e ${stamp}`) })
-    const second = page.getByRole('button', { name: new RegExp(`Seconde e2e ${stamp}`) })
+    const first = page.getByRole('button', { name: new RegExp(`^Première e2e ${stamp}`) })
+    const second = page.getByRole('button', { name: new RegExp(`^Seconde e2e ${stamp}`) })
     const boxes = await Promise.all([
       page.getByRole('button', { name: `Actions de la section ${section}` }).boundingBox(),
       first.boundingBox(),
@@ -109,7 +109,7 @@ test.describe('Schedule templates: a part in the template panel', () => {
     await page.getByPlaceholder('Nom de la section').fill(later)
     await page.getByPlaceholder('Nom de la section').press('Enter')
     await save(`Troisième e2e ${stamp}`)
-    const third = page.getByRole('button', { name: new RegExp(`Troisième e2e ${stamp}`) })
+    const third = page.getByRole('button', { name: new RegExp(`^Troisième e2e ${stamp}`) })
     await third.click()
     await form.locator('#partSection').click()
     await page.getByRole('option', { name: section, exact: true }).click()
@@ -136,5 +136,70 @@ test.describe('Schedule templates: a part in the template panel', () => {
       await expect(row).toHaveCount(0)
     }
     await expect(page.getByRole('button', { name: `Actions de la section ${section}` })).toHaveCount(0)
+  })
+
+  test('reorders a section’s parts: dragged by keyboard, then up and down on a phone', async ({ page }) => {
+    const stamp = Date.now()
+    const section = `Ordre e2e ${stamp}`
+    await page.goto('/settings/schedule-templates')
+    const programme = page.locator('[data-row-primary]').filter({ hasText: 'Spirituel' }).first()
+    if ((await programme.count()) === 0) test.skip()
+    await programme.click()
+    await expect(page).toHaveURL(TEMPLATE_RE)
+    const form = page.locator('form#part-edit-form')
+    const save = async (name: string) => {
+      await form.getByLabel('Nom', { exact: true }).fill(name)
+      await page.getByRole('button', { name: 'Enregistrer la partie' }).click()
+      await expect(page).not.toHaveURL(ANY_ITEM_RE)
+    }
+    await page.getByRole('button', { name: 'Ajouter une section', exact: true }).click()
+    await page.getByPlaceholder('Nom de la section').fill(section)
+    await page.getByPlaceholder('Nom de la section').press('Enter')
+    await save(`Alpha e2e ${stamp}`)
+    await page.getByRole('button', { name: `Ajouter une partie à ${section}`, exact: true }).click()
+    await save(`Beta e2e ${stamp}`)
+    const alpha = page.getByRole('button', { name: new RegExp(`^Alpha e2e ${stamp}`) })
+    const beta = page.getByRole('button', { name: new RegExp(`^Beta e2e ${stamp}`) })
+    const above = async (upper: typeof alpha, lower: typeof alpha) => {
+      const [a, b] = await Promise.all([upper.boundingBox(), lower.boundingBox()])
+      return a != null && b != null && a.y < b.y
+    }
+
+    // By keyboard: Space lifts the part, the arrow moves it, Space drops it, and the order is saved.
+    await page.getByRole('button', { name: `Déplacer Beta e2e ${stamp}`, exact: true }).focus()
+    await page.keyboard.press('Space')
+    await expect(page.getByText(`« Beta e2e ${stamp} » prise.`)).toBeAttached()
+    // The list is measured just after the lift, and an arrow pressed before that moves nothing: press it again
+    // until the lifted part is drawn on top (two parts: a second press cannot take it further), then drop.
+    await expect
+      .poll(async () => {
+        await page.keyboard.press('ArrowUp')
+        return above(beta, alpha)
+      })
+      .toBe(true)
+    // The drop saves the new order: wait for its answer before reading the page again.
+    const saved = page.waitForResponse(response => response.request().method() === 'POST')
+    await page.keyboard.press('Space')
+    expect((await saved).ok()).toBe(true)
+    await page.reload()
+    await expect.poll(() => above(beta, alpha)).toBe(true)
+
+    // On a phone: « Réorganiser les parties », « Descendre », the move said, « Terminé ».
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.getByRole('button', { name: 'Réorganiser les parties' }).click()
+    await page.getByRole('button', { name: `Descendre Beta e2e ${stamp}`, exact: true }).click()
+    await expect(page.getByText(`« Beta e2e ${stamp} » descendue d’une place.`)).toBeVisible()
+    await page.getByRole('button', { name: 'Terminé' }).click()
+    await expect.poll(() => above(alpha, beta)).toBe(true)
+
+    await page.setViewportSize({ width: 1440, height: 1000 })
+    for (const row of [beta, alpha]) {
+      await row.click()
+      await page.getByRole('button', { name: 'Plus d’actions' }).click()
+      await page.getByRole('menuitem', { name: 'Supprimer' }).click()
+      await page.getByRole('alertdialog').getByRole('button', { name: DELETE_RE }).click()
+      await expect(page).not.toHaveURL(ANY_ITEM_RE)
+      await expect(row).toHaveCount(0)
+    }
   })
 })
