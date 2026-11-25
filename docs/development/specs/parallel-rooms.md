@@ -42,14 +42,14 @@
 
 | Table | Columns | Notes |
 |---|---|---|
-| `ScheduleTemplateRoom` | `id`, `scheduleTemplateId`, `name`, `order`, `congregationId` | `order` 0 is the main room: created with every programme template, renamable, never deleted. Unique `[scheduleTemplateId, name]`. |
+| `ScheduleTemplateRoom` | `id`, `scheduleTemplateId`, `name`, `key`, `order`, `congregationId` | `key: 'main'` (order 0) is the main room: created with every programme template, renamable, never deleted; its name stays null until one is given. Unique `[scheduleTemplateId, name]` and `[scheduleTemplateId, key]`. |
 | `ScheduleRoom` | `id`, `scheduleId`, `name`, `order`, `congregationId` | A meeting's own rooms, copied from its template's when the schedule is created, then edited on that meeting only (decision 3). Same main-room rule. |
 
 A room belongs to a programme schedule (template or meeting). Duties schedules have none.
 
 ### 3.2 A template part's rooms
 
-`TemplatePartRoom(templatePartId, scheduleTemplateRoomId)` — the rooms a template part is held in.
+`TemplatePartRoom(templatePartId, roomId)` — the rooms a template part is held in.
 No row means « toute l'assemblée » (the main room only, no parallel). Rows always include the main
 room (decision 2), enforced by the writer. The template part keeps every other column; `track` and
 `trackOrder` stop being written, then go (§5).
@@ -63,11 +63,11 @@ attaches to `TemplatePart`; when 6a-1c-2 moves template items off kinds, it move
 
 | Column | Meaning |
 |---|---|
-| `id`, `itemId`, `scheduleRoomId`, `congregationId` | which part, which room |
+| `id`, `itemId`, `roomId`, `congregationId` | which part, which room |
 | `assigneeId`, `assistantId`, `externalSpeakerId` | the room's speaker, second speaker, outside speaker |
 | `hasConflict` | an assignee's conflict (absence), so per room |
 
-Unique `[itemId, scheduleRoomId]`. A part for everyone has **one** row, for the main room, so every
+Unique `[itemId, roomId]`. A part for everyone has **one** row, for the main room, so every
 assignment lives in `ItemRoom` and readers have one shape to read. `Item` keeps what is per part:
 `name`, `section`, `order`, `durationMin`, `presetId`, labels, allowed roles, schedule, event.
 
