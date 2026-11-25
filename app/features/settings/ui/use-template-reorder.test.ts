@@ -47,10 +47,11 @@ const part = (id: number, order: number, section = '') => ({
 })
 // P1 · Joyaux (P2, P3) · P4
 const parts = [part(1, 0), part(2, 1, 'Joyaux'), part(3, 2, 'Joyaux'), part(4, 3)]
-const render = (docked: boolean, enabled = true) => {
+const services = [{ id: 21 }, { id: 22 }, { id: 23 }]
+const render = (docked: boolean, enabled = true, of: 'parts' | 'services' = 'parts') => {
   slot = 0
   effects.length = 0
-  const result = useTemplateReorder({ templateId: 3, parts, enabled, docked })
+  const result = useTemplateReorder({ templateId: 3, of, parts, services, enabled, docked })
   for (const effect of effects) effect()
   return result
 }
@@ -136,5 +137,14 @@ describe('useTemplateReorder', () => {
     expect(render(true).refusal).toBe('La liste a changé')
     answer({ ok: false, templateId: 3, errors: ['Ce modèle n’existe plus'] }, true)
     expect(render(true).refusal).toBe('Ce modèle n’existe plus')
+  })
+
+  it('moves a duties template’s services as a flat list, and shows their order while it saves', () => {
+    render(true, true, 'services').controls?.top(2, 0, 'Sono')
+    expect(fetcher.sent).toEqual([[{ intent: 'reorder-services', orderedIds: '[23,21,22]' }, { method: 'post' }]])
+    const sending = new FormData()
+    sending.set('orderedIds', '[23,21,22]')
+    Object.assign(fetcher, { state: 'submitting', formData: sending })
+    expect(render(true, true, 'services').services.map(each => each.id)).toEqual([23, 21, 22])
   })
 })
