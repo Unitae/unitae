@@ -293,6 +293,18 @@ describe('renameTemplateHall, scoped', () => {
     })
   })
 
+  it('refuses a name that sanitizing leaves blank (zero-width characters only)', async () => {
+    await inTemplate(async ({ db, congregationId, actorId, templateId, parts }) => {
+      const ids = { templateId, scheduleTemplateId: SCHEDULE_TEMPLATE_ID }
+      const before = await parts()
+      expect(await renameTemplateHall(db, ids, 'Ministère', 'Salle B', '\u200b\u200b', congregationId, actorId)).toBe(
+        'blank',
+      )
+      expect(await renameTemplateSection(db, ids, 'Joyaux', '\u200b', congregationId, actorId)).toBe('blank')
+      expect(await parts()).toEqual(before)
+    })
+  })
+
   it('writes no audit row for a rename it refuses', async () => {
     await inTemplate(async ({ db, congregationId, actorId, templateId }) => {
       const ids = { templateId, scheduleTemplateId: SCHEDULE_TEMPLATE_ID }

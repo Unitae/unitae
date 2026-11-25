@@ -7843,5 +7843,6 @@
     "settings_schedule_templates_hall_taken": "Une autre salle de cette section porte déjà ce nom : choisissez-en un autre.",
     "settings_schedule_templates_section_gone": "Cette section n’existe plus : la liste vient d’être rechargée.",
     "settings_schedule_templates_hall_gone": "Cette salle n’existe plus : la liste vient d’être rechargée.",
-    "settings_schedule_templates_nth_hall": "Salle {number}"
+    "settings_schedule_templates_nth_hall": "Salle {number}",
+    "settings_schedule_templates_name_blank": "Donnez-lui un nom."
 }

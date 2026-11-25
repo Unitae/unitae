@@ -7843,5 +7843,6 @@
     "settings_schedule_templates_hall_taken": "Another room of this section already has this name: choose another one.",
     "settings_schedule_templates_section_gone": "This section no longer exists: the list has just been reloaded.",
     "settings_schedule_templates_hall_gone": "This room no longer exists: the list has just been reloaded.",
-    "settings_schedule_templates_nth_hall": "Room {number}"
+    "settings_schedule_templates_nth_hall": "Room {number}",
+    "settings_schedule_templates_name_blank": "Give it a name."
 }

@@ -87,6 +87,7 @@ export async function handleScheduleTemplateItem(
         : await renameTemplateHall(db, target, value.section, value.from, value.to, congregationId, actorId)
     if (outcome !== 'renamed') {
       logger.warn('handleScheduleTemplateItem: a rename refused', { scheduleTemplateId, intent, outcome, ...actor })
+      if (outcome === 'blank') return refused([m.settings_schedule_templates_name_blank()])
       if (outcome === 'unchanged') return refused([m.settings_schedule_templates_name_unchanged()])
       if (outcome === 'taken') {
         return refused([

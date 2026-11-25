@@ -195,8 +195,8 @@ export function ScheduleTemplateItemList({
           {runs.map((run, index) => {
             const inSection = run.section != null
             return (
-              // biome-ignore lint/suspicious/noArrayIndexKey: two runs may share a section, apart in the order
-              <div key={`${run.section ?? ''}-${index}`}>
+              // biome-ignore lint/suspicious/noArrayIndexKey: by place, so a renamed section keeps its header (focus, refusal)
+              <div key={index}>
                 {inSection && (
                   <PartGroupHeader
                     level="section"
@@ -221,8 +221,9 @@ export function ScheduleTemplateItemList({
                 )}
                 {run.parts.map(part => partRow(part, inSection ? 'pl-6' : ''))}
                 {inSection && run.halls.length === 0 && addPart(run.section ?? '', sectionPartDraft(run, lastOrder))}
-                {run.halls.map(hall => (
-                  <div key={hall.name}>
+                {run.halls.map((hall, hallIndex) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: by place, so a renamed hall keeps its header
+                  <div key={hallIndex}>
                     <PartGroupHeader
                       level="hall"
                       name={hall.name}

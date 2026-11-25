@@ -12,8 +12,11 @@ export interface TemplateSectionTarget {
   scheduleTemplateId: number
 }
 
-/** What a rename did: renamed, or why not (the same name, one already carried, nothing carrying the old one). */
-export type SectionRename = 'renamed' | 'unchanged' | 'taken' | 'gone'
+/**
+ * What a rename did: renamed, or why not (nothing left once sanitized, the same name, one already carried, nothing
+ * carrying the old one).
+ */
+export type SectionRename = 'renamed' | 'blank' | 'unchanged' | 'taken' | 'gone'
 
 /** Renames a section on every part of the template in it; never to a name another section carries (that would merge). */
 export async function renameTemplateSection(
@@ -25,6 +28,7 @@ export async function renameTemplateSection(
   actorId: number,
 ): Promise<SectionRename> {
   const name = sanitizeText(to).trim()
+  if (name === '') return 'blank'
   if (name === from) return 'unchanged'
   if (await db.templatePart.findFirst({ where: { templateId, congregationId, section: name }, select: { id: true } }))
     return 'taken'
@@ -49,6 +53,7 @@ export async function renameTemplateHall(
   actorId: number,
 ): Promise<SectionRename> {
   const name = sanitizeText(to).trim()
+  if (name === '') return 'blank'
   if (name === from) return 'unchanged'
   if (
     await db.templatePart.findFirst({
