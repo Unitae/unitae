@@ -7844,5 +7844,9 @@
     "settings_schedule_templates_section_gone": "Cette section n’existe plus : la liste vient d’être rechargée.",
     "settings_schedule_templates_hall_gone": "Cette salle n’existe plus : la liste vient d’être rechargée.",
     "settings_schedule_templates_nth_hall": "Salle {number}",
-    "settings_schedule_templates_name_blank": "Donnez-lui un nom."
+    "settings_schedule_templates_name_blank": "Donnez-lui un nom.",
+    "programs_edit_part_section_none": "Aucune section",
+    "programs_edit_part_section_pick_hint": "Les sections du modèle, ou « Aucune section ». La partie va à la fin de la section choisie. Une section se crée depuis la liste.",
+    "programs_edit_part_track_none": "Aucune : toute l’assemblée",
+    "programs_edit_part_track_pick_hint": "Une salle en parallèle : choisissez-en une. Une salle s’ajoute depuis le menu de sa section."
 }

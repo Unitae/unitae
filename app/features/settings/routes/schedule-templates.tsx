@@ -158,6 +158,7 @@ export default function ScheduleTemplatesPage({ loaderData }: Route.ComponentPro
               fetcher={fetcher as never}
               onClose={() => page.open(null)}
               onOpenItem={page.openItem}
+              onWalkItem={page.walkItem}
               onBack={page.back}
               onLeaveItem={page.leaveItem}
               onDirtyChange={setDirty}
@@ -178,6 +179,7 @@ export default function ScheduleTemplatesPage({ loaderData }: Route.ComponentPro
           fetcher={fetcher as never}
           onClose={() => page.open(null)}
           onOpenItem={page.openItem}
+          onWalkItem={page.walkItem}
           onBack={page.back}
           onLeaveItem={page.leaveItem}
           onDirtyChange={setDirty}

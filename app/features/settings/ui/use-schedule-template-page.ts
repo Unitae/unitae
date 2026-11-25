@@ -134,6 +134,18 @@ export function useScheduleTemplatePage({
           { ...keep, state: { level: 'item' } },
         ),
       ),
+    /** Another of the template's items in place of the one open (« 4 sur 16 »): « ← » still goes back to the list. */
+    walkItem: (next: OpenItem) =>
+      guard(() =>
+        setParams(
+          prev => {
+            prev.set('item', next.id == null ? `new-${next.kind}` : `${next.kind}-${next.id}`)
+            for (const name of DRAFT_PARAMS) prev.delete(name)
+            return prev
+          },
+          { ...keep, replace: true, state: location.state },
+        ),
+      ),
     /** Back to the template's first level; asks first while the item holds unsaved changes. */
     back: () => guard(leaveItem),
     /** Back without asking: after the item was saved or deleted, nothing is lost. */

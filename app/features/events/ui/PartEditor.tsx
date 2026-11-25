@@ -4,6 +4,7 @@ import { MANAGED_ROLE_SLOTS_FIELD } from '~/features/events/model/allowed-roles-
 import { resolvePartCapability } from '~/features/events/model/part-capability'
 import { partReaderLabel, partSpeakerLabel } from '~/features/events/model/part-labels'
 import { NO_PRESET_VALUE } from '~/features/events/schemas/program-edit.schema'
+import { PartPlaceFields, type PartPlaces } from '~/features/events/ui/PartPlaceFields'
 import { PartPresetSummary } from '~/features/events/ui/PartPresetSummary'
 import * as m from '~/i18n/paraglide/messages'
 import type { RoleOption } from '~/shared/types/role'
@@ -54,6 +55,8 @@ export interface PartEditorProps {
   presets: PartPresetOption[]
   sectionSuggestions: string[]
   trackSuggestions: string[]
+  /** A schedule template's sections and halls: the place is picked among them, and the order is not a field. */
+  places?: PartPlaces
   /** Receives the form element, e.g. to count its changes. */
   formRef?: (form: HTMLFormElement | null) => void
   className?: string
@@ -102,6 +105,7 @@ export function PartEditor({
   presets,
   sectionSuggestions,
   trackSuggestions,
+  places,
   formRef,
   className,
 }: PartEditorProps) {
@@ -153,28 +157,37 @@ export function PartEditor({
           <p className="text-faint text-xs">{m.programs_edit_part_preset_hint()}</p>
           {selectedPreset && <PartPresetSummary preset={selectedPreset} />}
         </Field>
-        <div className="grid grid-cols-2 gap-2.5">
-          <Field>
-            <Label htmlFor="partSection">{m.programs_edit_part_section_label()}</Label>
-            <Combobox
-              id="partSection"
-              name="partSection"
-              defaultValue={part?.section ?? ''}
-              suggestions={sectionSuggestions}
-            />
-          </Field>
-          <Field>
-            <Label htmlFor="partTrack">{m.programs_edit_part_track_label()}</Label>
-            <Combobox
-              id="partTrack"
-              name="partTrack"
-              value={trackValue}
-              onValueChange={setTrackValue}
-              suggestions={trackSuggestions}
-            />
-          </Field>
-        </div>
-        {trackValue !== '' && (
+        {places != null ? (
+          <PartPlaceFields
+            places={places}
+            section={part?.section ?? ''}
+            track={part?.track ?? ''}
+            order={part?.order ?? null}
+          />
+        ) : (
+          <div className="grid grid-cols-2 gap-2.5">
+            <Field>
+              <Label htmlFor="partSection">{m.programs_edit_part_section_label()}</Label>
+              <Combobox
+                id="partSection"
+                name="partSection"
+                defaultValue={part?.section ?? ''}
+                suggestions={sectionSuggestions}
+              />
+            </Field>
+            <Field>
+              <Label htmlFor="partTrack">{m.programs_edit_part_track_label()}</Label>
+              <Combobox
+                id="partTrack"
+                name="partTrack"
+                value={trackValue}
+                onValueChange={setTrackValue}
+                suggestions={trackSuggestions}
+              />
+            </Field>
+          </div>
+        )}
+        {places == null && trackValue !== '' && (
           <Field>
             <Label htmlFor="partTrackOrder">{m.programs_edit_part_track_order_label()}</Label>
             <Input id="partTrackOrder" name="partTrackOrder" type="number" defaultValue={part?.trackOrder ?? ''} />
@@ -184,10 +197,18 @@ export function PartEditor({
 
       <EditorGroup title={m.programs_edit_group_programme()}>
         <div className="grid grid-cols-2 gap-2.5">
-          <Field>
-            <Label htmlFor="partOrder">{m.programs_edit_part_order_label()}</Label>
-            <Input id="partOrder" name="partOrder" type="number" defaultValue={part?.order ?? defaultOrder} required />
-          </Field>
+          {places == null && (
+            <Field>
+              <Label htmlFor="partOrder">{m.programs_edit_part_order_label()}</Label>
+              <Input
+                id="partOrder"
+                name="partOrder"
+                type="number"
+                defaultValue={part?.order ?? defaultOrder}
+                required
+              />
+            </Field>
+          )}
           <Field>
             <Label htmlFor="partDuration">{m.programs_edit_part_duration_label()}</Label>
             <Input id="partDuration" name="partDuration" type="number" defaultValue={part?.durationMin ?? ''} />

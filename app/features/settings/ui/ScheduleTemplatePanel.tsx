@@ -11,6 +11,7 @@ import {
   ServiceEditor,
   serviceEditorCopy,
 } from '~/features/events'
+import { partsInListOrder, templatePlaces } from '~/features/settings/model/schedule-template-list'
 import type { ScheduleTemplateView } from '~/features/settings/model/schedule-template-view'
 import { ScheduleTemplateForm } from '~/features/settings/ui/ScheduleTemplateForm'
 import { itemMark, ScheduleTemplateItemList } from '~/features/settings/ui/ScheduleTemplateItemList'
@@ -57,6 +58,7 @@ export function ScheduleTemplatePanel({
   fetcher,
   onClose,
   onOpenItem,
+  onWalkItem,
   onBack,
   onLeaveItem,
   onDirtyChange,
@@ -70,6 +72,8 @@ export function ScheduleTemplatePanel({
   fetcher: ReturnType<typeof useFetcher>
   onClose: () => void
   onOpenItem: (item: OpenItem) => void
+  /** « 4 sur 16 »: the previous or next part, in place of the one open. */
+  onWalkItem: (item: OpenItem) => void
   onBack: () => void
   onLeaveItem: () => void
   onDirtyChange: (dirty: boolean) => void
@@ -176,6 +180,7 @@ export function ScheduleTemplatePanel({
         presets={items.presets}
         sectionSuggestions={items.sectionSuggestions}
         trackSuggestions={items.trackSuggestions}
+        places={templatePlaces(items.parts)}
         formRef={itemForm.ref}
       />
     ) : (
@@ -241,6 +246,25 @@ export function ScheduleTemplatePanel({
       </DropdownMenu>
     ) : undefined
   const back = { label: template.title, onClick: onBack, returnFocus: () => rowOf(left.current) }
+  // « 4 sur 16 »: an existing part among the parts as the list shows them.
+  const listed = items == null ? [] : partsInListOrder(items.parts)
+  const position = item?.kind === 'part' && item.id != null ? listed.findIndex(each => each.id === item.id) : -1
+  // Not while a save or a delete is in flight: its settling would leave the part walked to.
+  const busy = itemFetcher.state !== 'idle' || deleteFetcher.state !== 'idle'
+  const walkTo = (index: number) => {
+    const target = listed[index]
+    return target == null || busy ? undefined : () => onWalkItem({ kind: 'part', id: target.id })
+  }
+  const walk =
+    position < 0
+      ? undefined
+      : {
+          position: m.common_walk_position({ position: position + 1, total: listed.length }),
+          previousLabel: m.programs_panel_previous_part(),
+          nextLabel: m.programs_panel_next_part(),
+          onPrevious: walkTo(position - 1),
+          onNext: walkTo(position + 1),
+        }
 
   function confirmDelete() {
     if (item?.id == null) return
@@ -262,6 +286,7 @@ export function ScheduleTemplatePanel({
           onClose={onClose}
           back={item == null ? undefined : back}
           actions={actions}
+          walk={walk}
           footer={footer}
         >
           {item == null ? levelOne : levelTwo}

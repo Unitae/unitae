@@ -1,3 +1,5 @@
+import type { PartPlaces } from '~/features/events'
+
 /** A part as the schedule template's list shows it. */
 export interface ListedPart {
   id: number
@@ -107,4 +109,24 @@ export function newHallDraft<P extends ListedPart>(
     trackOrder: first ? 2 : run.halls.length + 1,
     order: orderAfter([...run.parts, ...run.halls.flatMap(hall => hall.parts)], lastOrder),
   }
+}
+
+/** The parts as the list shows them, top to bottom: each run's parts outside any hall, then its halls'. */
+export function partsInListOrder<P extends ListedPart>(parts: P[]): P[] {
+  return groupTemplateParts(parts).runs.flatMap(run => [...run.parts, ...run.halls.flatMap(hall => hall.parts)])
+}
+
+/** What a part can be put in: the template's sections in the list's order, and each one's halls in their own. */
+export function templatePlaces(parts: readonly ListedPart[]): PartPlaces {
+  const sections: string[] = []
+  const halls = new Map<string, { name: string; trackOrder: number | null }[]>()
+  for (const part of [...parts].sort((a, b) => a.order - b.order)) {
+    if (part.section !== '' && !sections.includes(part.section)) sections.push(part.section)
+    if (part.track === '') continue
+    const list = halls.get(part.section) ?? []
+    halls.set(part.section, list)
+    if (!list.some(hall => hall.name === part.track)) list.push({ name: part.track, trackOrder: part.trackOrder })
+  }
+  for (const list of halls.values()) list.sort((a, b) => (a.trackOrder ?? 0) - (b.trackOrder ?? 0))
+  return { sections, halls }
 }
