@@ -4,7 +4,9 @@ import {
   hallPartDraft,
   type ListedPart,
   newHallDraft,
+  partsInListOrder,
   sectionPartDraft,
+  templatePlaces,
 } from './schedule-template-list'
 
 const part = (id: number, section: string, durationMin: number | null, track = '', trackOrder = 0): ListedPart => ({
@@ -119,6 +121,40 @@ describe('the drafts of a new part', () => {
       track: 'Salle 3',
       trackOrder: 3,
       order: 6,
+    })
+  })
+})
+
+describe('the list’s order and places', () => {
+  const at = (id: number, order: number, section: string, track = '', trackOrder: number | null = null) => ({
+    ...part(id, section, 5, track, trackOrder ?? 0),
+    trackOrder,
+    order,
+  })
+  const parts = [
+    at(1, 0, ''),
+    at(2, 10, 'Ministère', 'Salle B', 2),
+    at(3, 5, 'Ministère', 'Salle principale', 1),
+    at(4, 3, 'Ministère'),
+    at(5, 1, 'Joyaux'),
+    at(6, 20, 'Ministère', 'Salle principale', 1),
+  ]
+
+  it('walks the parts as the list shows them: a section’s parts outside its halls, then each hall', () => {
+    // In their order, as the page reads them.
+    const ordered = [...parts].sort((a, b) => a.order - b.order)
+    expect(partsInListOrder(ordered).map(each => each.id)).toEqual([1, 5, 4, 3, 6, 2])
+  })
+
+  it('offers the sections in order and each section’s halls in their own, once each', () => {
+    expect(templatePlaces(parts)).toEqual({
+      sections: ['Joyaux', 'Ministère'],
+      halls: {
+        Ministère: [
+          { name: 'Salle principale', trackOrder: 1 },
+          { name: 'Salle B', trackOrder: 2 },
+        ],
+      },
     })
   })
 })

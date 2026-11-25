@@ -88,12 +88,29 @@ test.describe('Schedule templates: a part in the template panel', () => {
     if (header == null || firstBox == null || secondBox == null || add == null) throw new Error('not listed')
     expect([header.y < firstBox.y, firstBox.y < secondBox.y, secondBox.y < add.y]).toEqual([true, true, true])
 
+    // « n sur N » walks to the next part as the list shows it.
+    await first.click()
+    await page.getByRole('button', { name: 'Partie suivante' }).click()
+    await expect(form.getByLabel('Nom', { exact: true })).toHaveValue(`Seconde e2e ${stamp}`)
+
+    // Moved out of its section through the picker: it goes to the end of the parts outside any section, below it.
+    await form.locator('#partSection').click()
+    await page.getByRole('option', { name: 'Aucune section', exact: true }).click()
+    await page.getByRole('button', { name: 'Enregistrer la partie' }).click()
+    await expect(page).not.toHaveURL(ANY_ITEM_RE)
+    const moved = await second.boundingBox()
+    const sectionAdd = await page.getByRole('button', { name: `Ajouter une partie à ${section}` }).boundingBox()
+    if (moved == null || sectionAdd == null) throw new Error('not listed')
+    expect(moved.y).toBeGreaterThan(sectionAdd.y)
+
     // The section goes with its last part.
     for (const row of [second, first]) {
       await row.click()
       await page.getByRole('button', { name: 'Plus d’actions' }).click()
       await page.getByRole('menuitem', { name: 'Supprimer' }).click()
       await page.getByRole('alertdialog').getByRole('button', { name: DELETE_RE }).click()
+      // Back on the list first: while a part is open, the list is not shown and no row would be found anyway.
+      await expect(page).not.toHaveURL(ANY_ITEM_RE)
       await expect(row).toHaveCount(0)
     }
     await expect(page.getByRole('button', { name: `Actions de la section ${section}` })).toHaveCount(0)

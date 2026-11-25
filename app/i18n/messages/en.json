@@ -7844,5 +7844,9 @@
     "settings_schedule_templates_section_gone": "This section no longer exists: the list has just been reloaded.",
     "settings_schedule_templates_hall_gone": "This room no longer exists: the list has just been reloaded.",
     "settings_schedule_templates_nth_hall": "Room {number}",
-    "settings_schedule_templates_name_blank": "Give it a name."
+    "settings_schedule_templates_name_blank": "Give it a name.",
+    "programs_edit_part_section_none": "No section",
+    "programs_edit_part_section_pick_hint": "The template’s sections, or « No section ». The part goes to the end of the section chosen. A section is created from the list.",
+    "programs_edit_part_track_none": "None: the whole congregation",
+    "programs_edit_part_track_pick_hint": "A room in parallel: choose one. A room is added from its section’s menu."
 }

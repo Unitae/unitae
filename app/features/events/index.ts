@@ -67,6 +67,7 @@ export { EventServicesPanel, type ServicePartAssignment } from './ui/EventServic
 export { InlineDeleteDialog } from './ui/InlineDeleteDialog'
 export { PART_FORM_ID, type PartData, PartEditor, type PartPresetOption, partEditorCopy } from './ui/PartEditor'
 export { PartEditSheet } from './ui/PartEditSheet'
+export type { PartPlaces } from './ui/PartPlaceFields'
 export { PartPresetForm } from './ui/PartPresetForm'
 export { PartPresetSummary } from './ui/PartPresetSummary'
 export { SectionHeading, TrackHeading } from './ui/ProgrammeHeadings'

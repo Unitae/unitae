@@ -7844,5 +7844,9 @@
     "settings_schedule_templates_section_gone": "Esta secção já não existe: a lista acabou de ser recarregada.",
     "settings_schedule_templates_hall_gone": "Esta sala já não existe: a lista acabou de ser recarregada.",
     "settings_schedule_templates_nth_hall": "Sala {number}",
-    "settings_schedule_templates_name_blank": "Dê-lhe um nome."
+    "settings_schedule_templates_name_blank": "Dê-lhe um nome.",
+    "programs_edit_part_section_none": "Nenhuma secção",
+    "programs_edit_part_section_pick_hint": "As secções do modelo, ou « Nenhuma secção ». A parte vai para o fim da secção escolhida. Uma secção cria-se a partir da lista.",
+    "programs_edit_part_track_none": "Nenhuma: toda a congregação",
+    "programs_edit_part_track_pick_hint": "Uma sala em paralelo: escolha uma. Uma sala adiciona-se a partir do menu da sua secção."
 }
