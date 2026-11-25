@@ -4,9 +4,9 @@ import { useFetcher } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
-import { useCloseOnSave } from '~/shared/ui/hooks/use-close-on-save'
 import { Input } from '~/shared/ui/input'
 import { cn } from '~/shared/utils/utils'
+import { useOnSettled } from './use-on-settled'
 
 /**
  * A section's or a hall's header in a schedule template's list, with its « … » menu: rename it in place (on every part
@@ -46,7 +46,7 @@ export function PartGroupHeader({
     refocus.current = true
     setEditing(false)
   }
-  useCloseOnSave(fetcher, close)
+  useOnSettled(fetcher, close)
   useEffect(() => {
     if (editing || !refocus.current) return
     refocus.current = false

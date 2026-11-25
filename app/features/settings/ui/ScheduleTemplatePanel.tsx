@@ -22,6 +22,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useFormChanges } from '~/shared/ui/hooks/use-form-changes'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '~/shared/ui/sheet'
+import { useOnSettled } from './use-on-settled'
 
 const FORM_ID = 'schedule-template-form'
 
@@ -323,18 +324,6 @@ export function openPanel(): HTMLElement | null {
 
 function rowOf(mark: string | null): HTMLElement | null {
   return mark == null ? null : document.querySelector<HTMLElement>(`[data-item="${mark}"]`)
-}
-
-/** Runs once a fetcher's submission has settled with `{ ok: true }`: answered and its reload done. */
-function useOnSettled(fetcher: Pick<ReturnType<typeof useFetcher>, 'state' | 'data'>, onSettled: () => void) {
-  const previous = useRef(fetcher.state)
-  const latest = useRef(onSettled)
-  latest.current = onSettled
-  useEffect(() => {
-    const ok = (fetcher.data as { ok?: boolean } | undefined)?.ok
-    if (previous.current !== 'idle' && fetcher.state === 'idle' && ok) latest.current()
-    previous.current = fetcher.state
-  }, [fetcher.state, fetcher.data])
 }
 
 /** What a refused item save says: the form's errors (a conform reply) or the page's refusal. */
