@@ -6,8 +6,8 @@ import { PrismaClient } from '~/database/generated/client'
 
 // 20261130090000_template_rooms: a template's copies become one part held in their rooms, template parts stop carrying
 // a room in `track`, and the template part trigger only fills in a part's room when it has none. CI applies the
-// migration before the suite: the merge is exercised by writing copies the way older code did and running the shipped
-// statements of steps 1 and 2 again; the trigger by writing rows.
+// migration before the suite: the merge is exercised by writing copies the way older code did (or an older archive
+// restores them) and calling the shipped `merge_template_part_copies` again; the trigger by writing rows.
 
 // Runs against DB_URL rather than DB_RUNTIME_URL: a migration executes as the schema owner.
 const db = new PrismaClient({
@@ -19,14 +19,9 @@ afterAll(async () => {
 })
 
 const shipped = readFileSync(join(__dirname, '20261130090000_template_rooms', 'migration.sql'), 'utf8')
-const merge = shipped
-  .slice(shipped.indexOf('-- 1. Copies into one part.'), shipped.indexOf('-- 3. The trigger fills in'))
-  .split('\n')
-  .filter(line => !line.trimStart().startsWith('--'))
-  .join('\n')
-  .split(';')
-  .map(statement => statement.trim())
-  .filter(statement => statement !== '')
+/** The merge, for one congregation as a restore runs it, or for all as the migration did. */
+const merge = (tx: PrismaClient, congregationId: number | null) =>
+  tx.$queryRawUnsafe<{ merged: number }[]>('SELECT "merge_template_part_copies"($1) AS merged', congregationId)
 
 class Rollback extends Error {}
 
@@ -102,9 +97,44 @@ async function partsOf(f: Fixture) {
 }
 
 describe('20261130090000_template_rooms', () => {
+  it('runs the merge for every congregation, as it ships', () => {
+    expect(shipped).toContain('SELECT "merge_template_part_copies"(NULL);')
+  })
+
+  it('merges one congregation’s copies only, and says how many went', async () => {
+    const { mine, theirs } = await inFixture(async f => {
+      const other = await f.tx.congregation.create({
+        data: { name: `${f.congregationId}-o`, slug: `${f.congregationId}-o`, active: true },
+      })
+      const template = await f.tx.scheduleTemplate.create({
+        data: { name: 'o', kind: 'programme', congregationId: other.id },
+      })
+      const kind = await f.tx.eventTemplate.create({
+        data: { name: 'o', key: `o-${other.id}`, congregationId: other.id },
+      })
+      for (const track of ['Salle principale', 'Deuxième école']) {
+        await f.tx.templatePart.create({
+          data: {
+            name: 'Lecture',
+            section: 'Joyaux',
+            track,
+            order: 2,
+            templateId: kind.id,
+            scheduleTemplateId: template.id,
+            congregationId: other.id,
+          },
+        })
+      }
+      const [mine] = await merge(f.tx, f.congregationId)
+      return { mine: mine?.merged, theirs: await f.tx.templatePart.count({ where: { congregationId: other.id } }) }
+    })
+    expect(mine).toBe(1)
+    expect(theirs).toBe(2)
+  })
+
   it('makes a template’s copies one part held in their rooms, the main room’s copy kept', async () => {
     const { parts, ids } = await inFixture(async f => {
-      for (const statement of merge) await f.tx.$executeRawUnsafe(statement)
+      await merge(f.tx, f.congregationId)
       return { parts: await partsOf(f), ids: f.partIds }
     })
     expect(parts).toEqual([
@@ -117,9 +147,9 @@ describe('20261130090000_template_rooms', () => {
 
   it('points a meeting part made from a removed copy at the kept part, and running it twice changes nothing', async () => {
     const { linkedTo, kept, first, second } = await inFixture(async f => {
-      for (const statement of merge) await f.tx.$executeRawUnsafe(statement)
+      await merge(f.tx, f.congregationId)
       const first = await partsOf(f)
-      for (const statement of merge) await f.tx.$executeRawUnsafe(statement)
+      await merge(f.tx, f.congregationId)
       const item = await f.tx.item.findUniqueOrThrow({ where: { id: f.itemId } })
       const kept = await f.tx.templateItem.findFirstOrThrow({ where: { legacyPartId: f.partIds.lectureMain } })
       return { linkedTo: item.templateItemId, kept: kept.id, first, second: await partsOf(f) }
@@ -130,7 +160,7 @@ describe('20261130090000_template_rooms', () => {
 
   it('fills in a new part’s room and leaves the rooms a part already has, whatever its track says', async () => {
     const { added, kept } = await inFixture(async f => {
-      for (const statement of merge) await f.tx.$executeRawUnsafe(statement)
+      await merge(f.tx, f.congregationId)
       const added = await f.tx.templatePart.create({
         data: {
           name: 'Nouvelle',

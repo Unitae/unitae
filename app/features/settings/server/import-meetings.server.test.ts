@@ -31,11 +31,12 @@ vi.mock('./import-schedules.server', () => ({
   importEventSchedules: step('schedules'),
   settleImportedSchedules: step('settle schedules'),
 }))
+vi.mock('./import-template-rooms.server', () => ({ importTemplateRooms: step('template rooms') }))
 
 const { importMeetings } = await import('./import-meetings.server')
 
 describe('importMeetings', () => {
-  it('imports the meeting entities in dependency order, settles the schedules last, reporting progress after each step', async () => {
+  it('imports the meeting entities in dependency order, settles the schedules and then the template rooms last, reporting progress after each step', async () => {
     const progress = vi.fn(async () => {
       calls.push('·')
     })
@@ -59,7 +60,7 @@ describe('importMeetings', () => {
         'event part roles ·',
         'event services origins ·',
         'event service roles ·',
-        'settle schedules ·',
+        'settle schedules template rooms ·',
       ].join(' '),
     )
   })

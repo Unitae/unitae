@@ -1,4 +1,4 @@
-export const ARCHIVE_VERSION = '2.21'
+export const ARCHIVE_VERSION = '2.22'
 
 // Older archive versions an import will still accept. v1.0 archives miss every
 // post-shipping feature table (custom roles, allowed-roles, external speakers,
@@ -80,6 +80,10 @@ export const ARCHIVE_VERSION = '2.21'
 // role), `kind-schedule-templates.ndjson` (which ones each template suggests, in order) and `schedules.ndjson`
 // (each event's, with its own status); the four item files name theirs (`scheduleTemplateId`, `scheduleId`). A 2.20 or
 // older archive carries none, and a restore gives them by the add_schedules migration's rule.
+// v2.22 carries a programme template's rooms: `schedule-template-rooms.ndjson` (each one's name, the main room's `key`,
+// order and schedule template) and `programme-template-part-rooms.ndjson` (the rooms each template part is held in);
+// template parts no longer carry a room in `track`. A 2.21 or older archive brings a part in several rooms as one copy
+// per room: a restore makes them one part held in their rooms, the template_rooms migration's rule.
 // v1.x archives are listed here so the import path reports them with a warning rather than rejecting outright;
 // `migrateLegacyUsersNdjson` splits their `users.ndjson` before the import runs.
 export const SUPPORTED_ARCHIVE_VERSIONS = [
@@ -107,6 +111,7 @@ export const SUPPORTED_ARCHIVE_VERSIONS = [
   '2.19',
   '2.20',
   '2.21',
+  '2.22',
 ] as const
 
 export interface ManifestJson {
@@ -171,6 +176,8 @@ export const ENTITY_FILES = [
   'kind-schedule-templates',
   'programme-template-parts',
   'programme-template-part-allowed-roles',
+  'schedule-template-rooms',
+  'programme-template-part-rooms',
   'programme-template-service-roles',
   'programme-template-service-role-allowed-roles',
   'programme-template-responsibles',
