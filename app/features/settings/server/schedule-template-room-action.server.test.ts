@@ -35,6 +35,7 @@ describe('handleRoomIntent', () => {
   it('refuses a blank name, a name already used, and a template gone', async () => {
     for (const [outcome, status] of [
       ['blank', 400],
+      ['long', 400],
       ['taken', 400],
       ['gone', 409],
     ] as const) {
@@ -51,6 +52,7 @@ describe('handleRoomIntent', () => {
     expect(renameTemplateRoom).toHaveBeenCalledWith(db, 12, 41, 'Annexe', 3, 7)
     for (const [outcome, status] of [
       ['unchanged', 400],
+      ['long', 400],
       ['taken', 400],
       ['blank', 400],
       ['gone', 409],

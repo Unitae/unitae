@@ -1,3 +1,4 @@
+import * as m from '~/i18n/paraglide/messages'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
@@ -7,7 +8,32 @@ import { sanitizeText } from '~/shared/utils/sanitize-text'
 // part is held in the main room alone (for the whole congregation), or in several rooms, the main room among them.
 
 /** What adding a room did: added, or why not. */
-export type RoomAdd = { outcome: 'added'; id: number } | { outcome: 'blank' | 'taken' | 'gone' }
+export type RoomAdd = { outcome: 'added'; id: number } | { outcome: 'blank' | 'long' | 'taken' | 'gone' }
+
+/** As long as a section's name may be. */
+const MAX_ROOM_NAME = 80
+
+/** A room as the page reads it: an unnamed main room is « Salle principale », in the reader's language. */
+const labelOf = (room: { name: string | null; key: string | null }) =>
+  room.name ?? (room.key === 'main' ? m.settings_schedule_templates_main_hall() : '')
+
+/**
+ * Whether another of the template's rooms reads `name`: a room carrying it, or the unnamed main room, which reads
+ * « Salle principale » (two rooms reading alike would write meetings' copies under one name).
+ */
+async function nameTaken(
+  db: TransactionClient,
+  scheduleTemplateId: number,
+  congregationId: number,
+  name: string,
+  roomId: number | null,
+) {
+  const others = await db.scheduleTemplateRoom.findMany({
+    where: { scheduleTemplateId, congregationId, ...(roomId != null && { NOT: { id: roomId } }) },
+    select: { name: true, key: true },
+  })
+  return others.some(room => labelOf(room) === name)
+}
 
 /** Adds a room to a template by its name, last in order; never a blank name or one the template already uses. */
 export async function addTemplateRoom(
@@ -19,14 +45,13 @@ export async function addTemplateRoom(
 ): Promise<RoomAdd> {
   const clean = sanitizeText(name).trim()
   if (clean === '') return { outcome: 'blank' }
+  if (clean.length > MAX_ROOM_NAME) return { outcome: 'long' }
   const template = await db.scheduleTemplate.findFirst({
     where: { id: scheduleTemplateId, congregationId, kind: 'programme' },
     select: { id: true },
   })
   if (template == null) return { outcome: 'gone' }
-  if (await db.scheduleTemplateRoom.findFirst({ where: { scheduleTemplateId, name: clean }, select: { id: true } })) {
-    return { outcome: 'taken' }
-  }
+  if (await nameTaken(db, scheduleTemplateId, congregationId, clean, null)) return { outcome: 'taken' }
   const { _max } = await db.scheduleTemplateRoom.aggregate({ where: { scheduleTemplateId }, _max: { order: true } })
   const room = await db.scheduleTemplateRoom.create({
     data: { name: clean, order: (_max.order ?? 0) + 1, scheduleTemplateId, congregationId },
@@ -43,20 +68,14 @@ export async function renameTemplateRoom(
   name: string,
   congregationId: number,
   actorId: number,
-): Promise<'renamed' | 'unchanged' | 'blank' | 'taken' | 'gone'> {
+): Promise<'renamed' | 'unchanged' | 'blank' | 'long' | 'taken' | 'gone'> {
   const clean = sanitizeText(name).trim()
   if (clean === '') return 'blank'
+  if (clean.length > MAX_ROOM_NAME) return 'long'
   const room = await db.scheduleTemplateRoom.findFirst({ where: { id: roomId, scheduleTemplateId, congregationId } })
   if (room == null) return 'gone'
   if (room.name === clean) return 'unchanged'
-  if (
-    await db.scheduleTemplateRoom.findFirst({
-      where: { scheduleTemplateId, congregationId, name: clean, NOT: { id: roomId } },
-      select: { id: true },
-    })
-  ) {
-    return 'taken'
-  }
+  if (await nameTaken(db, scheduleTemplateId, congregationId, clean, roomId)) return 'taken'
   await db.scheduleTemplateRoom.update({
     where: { id_congregationId: { id: roomId, congregationId } },
     data: { name: clean },
@@ -101,7 +120,8 @@ export async function deleteTemplateRoom(
 
 /**
  * Holds a template part in its rooms: none or the main room alone is the whole congregation; any other room brings the
- * main room with it (decided 2026-11-25). Rooms must be the template's.
+ * main room with it (decided 2026-11-25). Rooms must be the template's. Given who did it, a change is audited on the
+ * schedule template, by the rooms' names.
  */
 export async function setTemplatePartRooms(
   db: TransactionClient,
@@ -109,6 +129,7 @@ export async function setTemplatePartRooms(
   templatePartId: number,
   roomIds: readonly number[],
   congregationId: number,
+  actorId?: number,
 ): Promise<'saved' | 'unknown-room' | 'gone'> {
   const part = await db.templatePart.findFirst({
     where: { id: templatePartId, scheduleTemplateId, congregationId },
@@ -116,8 +137,8 @@ export async function setTemplatePartRooms(
   })
   if (part == null) return 'gone'
   const rooms = await db.scheduleTemplateRoom.findMany({
-    where: { scheduleTemplateId },
-    select: { id: true, key: true },
+    where: { scheduleTemplateId, congregationId },
+    select: { id: true, key: true, name: true },
   })
   const own = new Set(rooms.map(room => room.id))
   const wanted = [...new Set(roomIds)]
@@ -125,11 +146,22 @@ export async function setTemplatePartRooms(
   const main = rooms.find(room => room.key === 'main')
   if (main == null) return 'gone'
   const held = new Set([main.id, ...wanted])
+  const before = (
+    await db.templatePartRoom.findMany({ where: { templatePartId, congregationId }, select: { roomId: true } })
+  ).map(row => row.roomId)
   await db.templatePartRoom.deleteMany({ where: { templatePartId, NOT: { roomId: { in: [...held] } } } })
   await db.templatePartRoom.createMany({
     data: [...held].map(roomId => ({ templatePartId, roomId, congregationId })),
     skipDuplicates: true,
   })
+  const names = (ids: number[]) => rooms.filter(room => ids.includes(room.id)).map(labelOf)
+  const added = names([...held].filter(id => !before.includes(id)))
+  const removed = names(before.filter(id => !held.has(id)))
+  if (actorId != null && (added.length > 0 || removed.length > 0)) {
+    await record(db, scheduleTemplateId, congregationId, actorId, {
+      partRooms: { part: templatePartId, added, removed },
+    })
+  }
   return 'saved'
 }
 

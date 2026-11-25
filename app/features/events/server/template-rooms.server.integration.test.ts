@@ -124,6 +124,33 @@ describe('addTemplateRoom', () => {
   })
 })
 
+describe('a room’s name', () => {
+  it('refuses the unnamed main room’s reading, and a name past 80 characters, on adding and renaming', async () => {
+    await inTemplate(async ({ db, congregationId, actorId, scheduleTemplateId, mainId, rooms }) => {
+      expect(await addTemplateRoom(db, scheduleTemplateId, 'Salle principale', congregationId, actorId)).toEqual({
+        outcome: 'taken',
+      })
+      expect(await addTemplateRoom(db, scheduleTemplateId, 'x'.repeat(81), congregationId, actorId)).toEqual({
+        outcome: 'long',
+      })
+      const added = await addTemplateRoom(db, scheduleTemplateId, 'Salle B', congregationId, actorId)
+      const roomId = added.outcome === 'added' ? added.id : 0
+      expect(
+        await renameTemplateRoom(db, scheduleTemplateId, roomId, 'Salle principale', congregationId, actorId),
+      ).toBe('taken')
+      expect(await renameTemplateRoom(db, scheduleTemplateId, roomId, 'y'.repeat(81), congregationId, actorId)).toBe(
+        'long',
+      )
+      // Named otherwise, the main room frees its reading.
+      await renameTemplateRoom(db, scheduleTemplateId, mainId, 'Auditorium', congregationId, actorId)
+      expect(
+        await renameTemplateRoom(db, scheduleTemplateId, roomId, 'Salle principale', congregationId, actorId),
+      ).toBe('renamed')
+      expect(await rooms()).toEqual(['main@0', 'Salle principale@1'])
+    })
+  })
+})
+
 describe('renameTemplateRoom', () => {
   it('renames a room, the main room too, and says why it renames nothing', async () => {
     await inTemplate(async ({ db, congregationId, actorId, scheduleTemplateId, otherTemplateId, mainId, rooms }) => {
@@ -233,6 +260,16 @@ describe('upsertTemplatePart, with « Où »', () => {
       expect(await partRooms(created.id)).toEqual(['Salle B', 'main'])
       await write(created.id, [])
       expect(await partRooms(created.id)).toEqual(['main'])
+      // Each change audited on the schedule template (the new part's first rooms too), none when nothing changed.
+      await write(created.id, [])
+      const audited = await db.auditLog.findMany({
+        where: { congregationId, entityId: scheduleTemplateId, entityType: 'ScheduleTemplate' },
+        orderBy: { id: 'asc' },
+      })
+      expect(audited.map(row => JSON.parse(row.metadata ?? '{}')).filter(meta => meta.partRooms != null)).toEqual([
+        { partRooms: { part: created.id, added: ['Salle B'], removed: [] } },
+        { partRooms: { part: created.id, added: [], removed: ['Salle B'] } },
+      ])
       // Without « Où » (the meeting type's own form) its rooms stay.
       await setTemplatePartRooms(db, scheduleTemplateId, created.id, [bId], congregationId)
       await write(created.id)

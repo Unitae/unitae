@@ -31,6 +31,7 @@ export async function handleRoomIntent(
     if (added.outcome === 'added') return { kind: 'saved', message: m.settings_schedule_templates_room_added() }
     logger.warn('handleRoomIntent: a room not added', { scheduleTemplateId, outcome: added.outcome, ...actor })
     if (added.outcome === 'blank') return refused([m.settings_schedule_templates_name_blank()])
+    if (added.outcome === 'long') return refused([m.settings_schedule_templates_error_name_long()])
     if (added.outcome === 'taken') return refused([m.settings_schedule_templates_room_taken()])
     return refused([m.settings_schedule_templates_room_gone()], 409)
   }
@@ -46,6 +47,7 @@ export async function handleRoomIntent(
     if (outcome === 'renamed') return { kind: 'saved', message: m.settings_schedule_templates_room_renamed() }
     logger.warn('handleRoomIntent: a room not renamed', { scheduleTemplateId, roomId, outcome, ...actor })
     if (outcome === 'blank') return refused([m.settings_schedule_templates_name_blank()])
+    if (outcome === 'long') return refused([m.settings_schedule_templates_error_name_long()])
     if (outcome === 'unchanged') return refused([m.settings_schedule_templates_name_unchanged()])
     if (outcome === 'taken') return refused([m.settings_schedule_templates_room_taken()])
     return refused([m.settings_schedule_templates_room_gone()], 409)

@@ -60,7 +60,7 @@ export async function upsertTemplatePart(
         data: { ...baseData, templateId, congregationId },
       })
   await syncTemplateScheduleTemplates(db, templateId, congregationId)
-  if (partData.roomIds !== undefined) await holdInRooms(db, part.id, partData.roomIds, congregationId)
+  if (partData.roomIds !== undefined) await holdInRooms(db, part.id, partData.roomIds, congregationId, actorId)
 
   const noChange = { added: [] as number[], removed: [] as number[] }
   const speakerDiff = partData.allowedSpeakerRoleIds
@@ -176,12 +176,18 @@ export async function reorderTemplateParts(
 }
 
 /** Holds a part in its rooms, in the schedule template it was just placed in; its caller checked the rooms first. */
-async function holdInRooms(db: TransactionClient, partId: number, roomIds: readonly number[], congregationId: number) {
+async function holdInRooms(
+  db: TransactionClient,
+  partId: number,
+  roomIds: readonly number[],
+  congregationId: number,
+  actorId: number,
+) {
   const placed = await db.templatePart.findFirst({
     where: { id: partId, congregationId },
     select: { scheduleTemplateId: true },
   })
   if (placed?.scheduleTemplateId == null) throw new ConflictError('The part is in no schedule template')
-  const outcome = await setTemplatePartRooms(db, placed.scheduleTemplateId, partId, roomIds, congregationId)
+  const outcome = await setTemplatePartRooms(db, placed.scheduleTemplateId, partId, roomIds, congregationId, actorId)
   if (outcome !== 'saved') throw new ConflictError(`The part's rooms were refused: ${outcome}`)
 }
