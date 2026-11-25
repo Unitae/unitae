@@ -177,7 +177,8 @@ const EXPECTED_ROOMS = ['main:Salle principale@0', '-:Deuxième école@1']
 const EXPECTED_PARTS = {
   discours: ['main:Salle principale'],
   lectureMain: ['main:Salle principale'],
-  lectureSecond: ['-:Deuxième école'],
+  // A template part in another room is held in the main room too since 20261130090000 (the trigger fills it in).
+  lectureSecond: ['-:Deuxième école', 'main:Salle principale'],
 }
 const row = (room: string, assignee: number | undefined, assistant: number | null = null, conflict = false) => ({
   room,
@@ -225,46 +226,6 @@ describe('20261129090000_parallel_rooms', () => {
     expect(rooms.schedule).toEqual(['main:Salle principale@0', '-:Salle C@1'])
   })
 
-  it('follows a template’s renames and removals: a room renamed, the main hall renamed, a room emptied', async () => {
-    const steps = await inFixture(async f => {
-      const steps: string[][] = []
-      // The second room renamed (as a rename does, through an update of its parts).
-      await f.db.templatePart.updateMany({ where: { id: f.templatePartIds.lectureSecond }, data: { track: 'Annexe' } })
-      steps.push((await roomsOf(f)).template)
-      // The main hall renamed: room order 1 is the main room, whatever it is called.
-      await f.db.templatePart.updateMany({
-        where: { id: f.templatePartIds.lectureMain },
-        data: { track: 'Grande salle', trackOrder: 1 },
-      })
-      steps.push((await roomsOf(f)).template)
-      // The second room's only part deleted.
-      await f.db.templatePart.delete({ where: { id: f.templatePartIds.lectureSecond } })
-      steps.push((await roomsOf(f)).template)
-      return steps
-    })
-    expect(steps).toEqual([
-      ['main:Salle principale@0', '-:Annexe@1'],
-      ['main:Grande salle@0', '-:Annexe@1'],
-      ['main:Grande salle@0'],
-    ])
-  })
-
-  it('moves a template part’s one room row when its track changes, and keeps one room per name', async () => {
-    const { byPart, duplicate } = await inFixture(async f => {
-      await f.db.templatePart.update({ where: { id: f.templatePartIds.discours }, data: { track: 'Deuxième école' } })
-      const byPart = (await roomsOf(f)).byPart
-      const duplicate = await f.db.$executeRawUnsafe(
-        `INSERT INTO "ScheduleTemplateRoom" ("name", "order", "scheduleTemplateId", "congregationId", "updatedAt")
-         VALUES ('Deuxième école', 9, ${f.scheduleTemplateId}, ${f.congregationId}, CURRENT_TIMESTAMP)
-         ON CONFLICT ("scheduleTemplateId", "name") DO NOTHING`,
-      )
-      return { byPart, duplicate }
-    })
-    expect(byPart.discours).toEqual(['-:Deuxième école'])
-    // The unique name the room helper relies on when two writers make the same room at once.
-    expect(duplicate).toBe(0)
-  })
-
   it('rebuilds the same rooms and rows from the shipped backfill, and running it twice changes nothing', async () => {
     const { first, second, members } = await inFixture(async f => {
       await f.db.scheduleTemplateRoom.deleteMany({ where: { scheduleTemplateId: f.scheduleTemplateId } })
@@ -276,7 +237,8 @@ describe('20261129090000_parallel_rooms', () => {
     })
     expect(backfill.length).toBeGreaterThanOrEqual(6)
     expect(first.template).toEqual(EXPECTED_ROOMS)
-    expect(first.byPart).toEqual(EXPECTED_PARTS)
+    // The R1 backfill alone gives each copy its one room; 20261130090000 merges the copies afterwards.
+    expect(first.byPart).toEqual({ ...EXPECTED_PARTS, lectureSecond: ['-:Deuxième école'] })
     expect(first.byItem).toEqual(expectedItems(members))
     expect(second).toEqual(first)
   })
@@ -331,16 +293,52 @@ describe('20261129090000_parallel_rooms', () => {
     expect(schedule).toEqual(['main:Salle principale@0'])
   })
 
-  it('renames the main room when all its parts are renamed, without a room order (the copies’ usual shape)', async () => {
-    const { template, byPart } = await inFixture(async f => {
-      await f.db.templatePart.updateMany({
-        where: { scheduleTemplateId: f.scheduleTemplateId, track: 'Salle principale' },
-        data: { track: 'Grande salle' },
+  // On meetings the rooms still follow today's copies (a template's are its editor's from 20261130090000).
+  it('follows a meeting’s renames and removals: a room renamed, the main hall renamed, a room emptied', async () => {
+    const steps = await inFixture(async f => {
+      const steps: string[][] = []
+      await f.db.item.updateMany({ where: { id: f.itemIds.lectureSecond }, data: { track: 'Annexe' } })
+      steps.push((await roomsOf(f)).schedule)
+      await f.db.item.updateMany({
+        where: { id: f.itemIds.lectureMain },
+        data: { track: 'Grande salle', trackOrder: 1 },
       })
-      const rooms = await roomsOf(f)
-      return { template: rooms.template, byPart: rooms.byPart }
+      steps.push((await roomsOf(f)).schedule)
+      await f.db.item.delete({ where: { id: f.itemIds.lectureSecond } })
+      steps.push((await roomsOf(f)).schedule)
+      return steps
     })
-    expect(template).toEqual(['main:Grande salle@0', '-:Deuxième école@1'])
-    expect(byPart.lectureMain).toEqual(['main:Grande salle'])
+    expect(steps).toEqual([
+      ['main:Salle principale@0', '-:Annexe@1'],
+      ['main:Grande salle@0', '-:Annexe@1'],
+      ['main:Grande salle@0'],
+    ])
+  })
+
+  it('moves a meeting part’s one room row when its track changes, and keeps one room per name', async () => {
+    const { byItem, duplicate } = await inFixture(async f => {
+      await f.db.item.update({ where: { id: f.itemIds.discours }, data: { track: 'Deuxième école' } })
+      const byItem = (await roomsOf(f)).byItem
+      const duplicate = await f.db.$executeRawUnsafe(
+        `INSERT INTO "ScheduleRoom" ("name", "order", "scheduleId", "congregationId", "updatedAt")
+         VALUES ('Deuxième école', 9, ${f.scheduleId}, ${f.congregationId}, CURRENT_TIMESTAMP)
+         ON CONFLICT ("scheduleId", "name") DO NOTHING`,
+      )
+      return { byItem, duplicate }
+    })
+    expect(byItem.discours?.map(each => each.room)).toEqual(['-:Deuxième école'])
+    // The unique name the room helper relies on when two writers make the same room at once.
+    expect(duplicate).toBe(0)
+  })
+
+  it('renames a meeting’s main room when all its parts are renamed, without a room order', async () => {
+    const schedule = await inFixture(async f => {
+      await f.db.item.updateMany({
+        where: { scheduleId: f.scheduleId, track: 'Salle principale' },
+        data: { track: 'Auditorium' },
+      })
+      return (await roomsOf(f)).schedule
+    })
+    expect(schedule).toEqual(['main:Auditorium@0', '-:Deuxième école@1'])
   })
 })

@@ -4,6 +4,7 @@ import { ITEM_SLOT, type PartRoleKind } from '~/features/events/server/allowed-r
 import { templateItemsOf } from '~/features/events/server/item-projection.server'
 import type { CreatedProgramme, CreationContext } from '~/features/events/server/programme-creation.server'
 import { eventSchedulesOf } from '~/features/events/server/schedules.server'
+import * as m from '~/i18n/paraglide/messages'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -31,6 +32,8 @@ export interface TemplateWithRelations {
     readerLabel: string | null
     presetId: number | null
     allowedRoles: { roleId: number; asKind: string }[]
+    /** The rooms it is held in (none read as the main room alone). */
+    rooms?: { room: { name: string | null; key: string | null; order: number } }[]
   }[]
   serviceParts: { id: number; name: string; order: number; allowedRoles: { roleId: number }[] }[]
 }
@@ -39,7 +42,7 @@ export interface TemplateWithRelations {
 export const TEMPLATE_PROGRAMME_COUNT = { _count: { select: { parts: true, serviceParts: true } } } as const
 
 export const TEMPLATE_INCLUDE = {
-  parts: { orderBy: { order: 'asc' }, include: { allowedRoles: true } },
+  parts: { orderBy: { order: 'asc' }, include: { allowedRoles: true, rooms: { include: { room: true } } } },
   serviceParts: { orderBy: [{ order: 'asc' }, { id: 'asc' }], include: { allowedRoles: true } },
 } satisfies Prisma.EventTemplateInclude
 
@@ -119,36 +122,38 @@ export async function writeTemplateItems(
     congregationId,
   )
   for (const part of parts) {
-    const assignment = await db.item.create({
-      data: {
-        eventId: eventId,
-        scheduleId: programmeId,
-        templateItemId: templates.parts.get(part.id) ?? null,
-        name: part.name,
-        section: part.section,
-        track: part.track,
-        trackOrder: part.trackOrder,
-        order: part.order,
-        durationMin: part.durationMin,
-        allowExternalSpeaker: part.allowExternalSpeaker,
-        speakerLabel: part.speakerLabel,
-        readerLabel: part.readerLabel,
-        // Carried, not denormalized-and-frozen like the labels above: the preset row itself stays the source of
-        // truth for the share message, so an improved wording reaches assignments that already exist.
-        presetId: part.presetId,
-        congregationId,
-      },
-    })
-    if (part.allowedRoles.length > 0) {
-      await db.itemAllowedRole.createMany({
-        data: part.allowedRoles.map(role => ({
-          itemId: assignment.id,
-          roleId: role.roleId,
-          slot: ITEM_SLOT[role.asKind as PartRoleKind],
+    for (const place of placesOf(part)) {
+      const assignment = await db.item.create({
+        data: {
+          eventId: eventId,
+          scheduleId: programmeId,
+          templateItemId: templates.parts.get(part.id) ?? null,
+          name: part.name,
+          section: part.section,
+          track: place.track,
+          trackOrder: place.trackOrder,
+          order: part.order,
+          durationMin: part.durationMin,
+          allowExternalSpeaker: part.allowExternalSpeaker,
+          speakerLabel: part.speakerLabel,
+          readerLabel: part.readerLabel,
+          // Carried, not denormalized-and-frozen like the labels above: the preset row itself stays the source of
+          // truth for the share message, so an improved wording reaches assignments that already exist.
+          presetId: part.presetId,
           congregationId,
-        })),
-        skipDuplicates: true,
+        },
       })
+      if (part.allowedRoles.length > 0) {
+        await db.itemAllowedRole.createMany({
+          data: part.allowedRoles.map(role => ({
+            itemId: assignment.id,
+            roleId: role.roleId,
+            slot: ITEM_SLOT[role.asKind as PartRoleKind],
+            congregationId,
+          })),
+          skipDuplicates: true,
+        })
+      }
     }
   }
 
@@ -175,4 +180,19 @@ export async function writeTemplateItems(
       })
     }
   }
+}
+
+/**
+ * Where a template part goes on a meeting: once for the whole congregation, or once per room it is held in, the copies
+ * sharing its section and order (as the meeting page and the board read rooms until they read them from ItemRoom). A
+ * main room without a name is written « Salle principale » in the writer's language, as the editor always wrote it.
+ */
+function placesOf(part: TemplateWithRelations['parts'][number]): { track: string; trackOrder: number | null }[] {
+  const rooms = [...(part.rooms ?? [])].map(row => row.room).sort((a, b) => a.order - b.order)
+  if (rooms.length <= 1)
+    return [{ track: rooms.length === 0 ? part.track : '', trackOrder: rooms.length === 0 ? part.trackOrder : null }]
+  return rooms.map(room => ({
+    track: room.name ?? (room.key === 'main' ? m.settings_schedule_templates_main_hall() : ''),
+    trackOrder: room.order + 1,
+  }))
 }

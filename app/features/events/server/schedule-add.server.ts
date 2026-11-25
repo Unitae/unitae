@@ -60,7 +60,7 @@ export async function canAddSchedule(
 }
 
 const TEMPLATE_ITEMS = {
-  parts: { orderBy: { order: 'asc' }, include: { allowedRoles: true } },
+  parts: { orderBy: { order: 'asc' }, include: { allowedRoles: true, rooms: { include: { room: true } } } },
   serviceParts: { orderBy: [{ order: 'asc' }, { id: 'asc' }], include: { allowedRoles: true } },
 } satisfies Prisma.ScheduleTemplateInclude
 

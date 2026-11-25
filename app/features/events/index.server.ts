@@ -67,6 +67,13 @@ export {
   upsertTemplateServicePart,
 } from './server/template-items.server'
 export {
+  addTemplateRoom,
+  deleteTemplateRoom,
+  type RoomAdd,
+  renameTemplateRoom,
+  setTemplatePartRooms,
+} from './server/template-rooms.server'
+export {
   makeRoomAtTemplateOrder,
   mergeLoneHalls,
   orderAtEndOf,

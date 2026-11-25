@@ -15,7 +15,7 @@ export async function duplicateTemplate(
     include: {
       parts: {
         orderBy: { order: 'asc' },
-        include: { allowedRoles: true },
+        include: { allowedRoles: true, rooms: { include: { room: true } } },
       },
       serviceParts: { orderBy: [{ order: 'asc' }, { id: 'asc' }], include: { allowedRoles: true } },
     },
@@ -103,6 +103,7 @@ export async function duplicateTemplate(
   }
 
   await syncTemplateScheduleTemplates(db, duplicated.id, congregationId)
+  await copyRooms(db, source.parts, duplicated.id, congregationId)
   audit({
     action: AuditAction.TemplateDuplicated,
     congregationId,
@@ -112,4 +113,62 @@ export async function duplicateTemplate(
     metadata: { from: templateId },
   })
   return duplicated
+}
+
+/**
+ * The rooms travel with the parts: the copy's programme template gets the source's rooms (the main room's name too),
+ * and each copied part is held in the same rooms as its source (matched by order, as the roles are).
+ */
+async function copyRooms(
+  db: TransactionClient,
+  // Rooms may be absent (a part read without them): held in the main room alone.
+  sourceParts: { order: number; rooms?: { room: { key: string | null; name: string | null; order: number } }[] }[],
+  duplicatedId: number,
+  congregationId: number,
+) {
+  const roomsOf = (part: (typeof sourceParts)[number]) => part.rooms ?? []
+  if (!sourceParts.some(part => roomsOf(part).length > 1 || roomsOf(part).some(row => row.room.name != null))) return
+  const copies = await db.templatePart.findMany({
+    where: { templateId: duplicatedId, congregationId },
+    select: { id: true, order: true, scheduleTemplateId: true },
+  })
+  const scheduleTemplateId = copies.find(part => part.scheduleTemplateId != null)?.scheduleTemplateId
+  if (scheduleTemplateId == null) return
+  const sourceRooms = new Map<string, { key: string | null; name: string | null; order: number }>()
+  for (const part of sourceParts) {
+    for (const { room } of roomsOf(part)) sourceRooms.set(room.key ?? `room:${room.name}`, room)
+  }
+  const roomIds = new Map<string, number>()
+  for (const [mark, room] of sourceRooms) {
+    if (room.key === 'main') {
+      const main = await db.scheduleTemplateRoom.findFirstOrThrow({ where: { scheduleTemplateId, key: 'main' } })
+      if (room.name != null)
+        await db.scheduleTemplateRoom.update({
+          where: { id_congregationId: { id: main.id, congregationId } },
+          data: { name: room.name },
+        })
+      roomIds.set(mark, main.id)
+    } else {
+      const created = await db.scheduleTemplateRoom.upsert({
+        where: { scheduleTemplateId_name: { scheduleTemplateId, name: room.name ?? '' } },
+        create: { name: room.name, order: room.order, scheduleTemplateId, congregationId },
+        update: {},
+      })
+      roomIds.set(mark, created.id)
+    }
+  }
+  const sourceByOrder = new Map(sourceParts.map(part => [part.order, part]))
+  for (const copy of copies) {
+    const source = sourceByOrder.get(copy.order)
+    if (source == null) continue
+    const held = roomsOf(source)
+      .map(({ room }) => roomIds.get(room.key ?? `room:${room.name}`))
+      .filter((id): id is number => id != null)
+    if (held.length === 0) continue
+    await db.templatePartRoom.deleteMany({ where: { templatePartId: copy.id, NOT: { roomId: { in: held } } } })
+    await db.templatePartRoom.createMany({
+      data: held.map(roomId => ({ templatePartId: copy.id, roomId, congregationId })),
+      skipDuplicates: true,
+    })
+  }
 }
