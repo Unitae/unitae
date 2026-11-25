@@ -79,8 +79,12 @@ describe('ARCHIVE_VERSION', () => {
     expect(SUPPORTED_ARCHIVE_VERSIONS).toContain(ARCHIVE_VERSION)
   })
 
-  it('is the current 2.21 schema version', () => {
-    expect(ARCHIVE_VERSION).toBe('2.21')
+  it('is the current 2.22 schema version', () => {
+    expect(ARCHIVE_VERSION).toBe('2.22')
+  })
+
+  it('still imports 2.21 archives, whose template parts are copies per room', () => {
+    expect(SUPPORTED_ARCHIVE_VERSIONS).toContain('2.21')
   })
 
   it('still imports 2.19 archives', () => {
@@ -115,6 +119,13 @@ describe('ENTITY_FILES', () => {
     expect(at('kind-schedule-templates')).toBeGreaterThan(at('schedule-templates'))
     expect(at('schedules')).toBeGreaterThan(at('events'))
     expect(at('schedules')).toBeLessThan(at('programme-part-assignments'))
+  })
+
+  it('has a template’s rooms after its schedule template and the parts held in them', () => {
+    const at = (file: EntityFile) => ENTITY_FILES.indexOf(file)
+    expect(at('schedule-template-rooms')).toBeGreaterThan(at('schedule-templates'))
+    expect(at('programme-template-part-rooms')).toBeGreaterThan(at('schedule-template-rooms'))
+    expect(at('programme-template-part-rooms')).toBeGreaterThan(at('programme-template-parts'))
   })
 
   it('has attendance after the events it belongs to and the accounts that entered it', () => {

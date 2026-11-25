@@ -10,18 +10,13 @@ describe('readItem', () => {
     expect(read('item=new-service')).toEqual({ kind: 'service', id: null, draft: undefined })
   })
 
-  it('reads a new part’s starting point: its section, hall and place', () => {
-    expect(read('item=new-part&section=Joyaux&hall=Salle+B&hallOrder=2&order=11')).toEqual({
+  it('reads a new part’s starting point: its section and place', () => {
+    expect(read('item=new-part&section=Joyaux&order=11')).toEqual({
       kind: 'part',
       id: null,
-      draft: { section: 'Joyaux', track: 'Salle B', trackOrder: 2, order: 11 },
+      draft: { section: 'Joyaux', order: 11 },
     })
-    expect(read('item=new-part&section=&hall=&order=4')?.draft).toEqual({
-      section: '',
-      track: '',
-      trackOrder: null,
-      order: 4,
-    })
+    expect(read('item=new-part&section=&order=4')?.draft).toEqual({ section: '', order: 4 })
   })
 
   it('opens nothing for what is not an item', () => {

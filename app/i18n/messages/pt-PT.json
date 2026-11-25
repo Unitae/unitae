@@ -4453,19 +4453,6 @@
     "settings_schedule_templates_anyone": "Todos os publicadores",
     "settings_schedule_templates_with_reader": "com segundo orador",
     "settings_schedule_templates_minutes": "{minutes} min",
-    "settings_schedule_templates_parallel": [
-        {
-            "declarations": [
-                "input count",
-                "local countPlural = count: plural"
-            ],
-            "selectors": ["countPlural"],
-            "match": {
-                "countPlural=one": "{count} sala em paralelo",
-                "countPlural=*": "{count} salas em paralelo"
-            }
-        }
-    ],
     "settings_schedule_templates_total": [
         {
             "declarations": [
@@ -4497,22 +4484,17 @@
     "settings_schedule_templates_save_part": "Guardar a parte",
     "settings_schedule_templates_save_service": "Guardar o serviço",
     "settings_schedule_templates_section_renamed": "Secção renomeada.",
-    "settings_schedule_templates_hall_renamed": "Sala renomeada.",
     "settings_schedule_templates_main_hall": "Sala principal",
     "settings_schedule_templates_rename": "Renomear",
-    "settings_schedule_templates_add_hall": "Adicionar uma sala em paralelo",
     "settings_schedule_templates_delete_when_empty": "Eliminar: retire primeiro as suas partes.",
     "settings_schedule_templates_section_actions": "Ações da secção {name}",
-    "settings_schedule_templates_hall_actions": "Ações da sala {name}",
     "settings_schedule_templates_add_part_to": "Adicionar uma parte a {name}",
     "settings_schedule_templates_part_short": "Parte",
     "settings_schedule_templates_section_name": "Nome da secção",
-    "settings_schedule_templates_hall_name": "Nome da sala",
     "settings_schedule_templates_new_section_hint": "Uma secção sem partes não é guardada: adicione a sua primeira parte. Se fechar o painel antes, é abandonada.",
     "settings_schedule_templates_first_part": "Primeira parte",
     "settings_schedule_templates_add_section": "Adicionar uma secção",
     "settings_schedule_templates_add_part_loose": "Adicionar uma parte fora de secção",
-    "settings_schedule_templates_second_hall": "Segunda sala",
     "settings_schedule_templates_services_empty": "Nenhum serviço. Adicione o primeiro.",
     "settings_schedule_templates_used": [
         {
@@ -7840,15 +7822,10 @@
     "settings_schedule_templates_item_gone": "Este elemento foi eliminado entretanto; as suas alterações não foram guardadas.",
     "settings_schedule_templates_name_unchanged": "O nome não mudou.",
     "settings_schedule_templates_section_taken": "Outra secção já tem este nome: escolha outro.",
-    "settings_schedule_templates_hall_taken": "Outra sala desta secção já tem este nome: escolha outro.",
     "settings_schedule_templates_section_gone": "Esta secção já não existe: a lista acabou de ser recarregada.",
-    "settings_schedule_templates_hall_gone": "Esta sala já não existe: a lista acabou de ser recarregada.",
-    "settings_schedule_templates_nth_hall": "Sala {number}",
     "settings_schedule_templates_name_blank": "Dê-lhe um nome.",
     "programs_edit_part_section_none": "Nenhuma secção",
     "programs_edit_part_section_pick_hint": "As secções do modelo, ou « Nenhuma secção ». A parte vai para o fim da secção escolhida. Uma secção cria-se a partir da lista.",
-    "programs_edit_part_track_none": "Nenhuma: toda a congregação",
-    "programs_edit_part_track_pick_hint": "Uma sala em paralelo: escolha uma. Uma sala adiciona-se a partir do menu da sua secção.",
     "settings_schedule_templates_order_stale": "A lista mudou entretanto: acabou de ser recarregada, tente de novo.",
     "settings_schedule_templates_move_part": "Mover {name}",
     "settings_schedule_templates_move_section": "Mover a secção {name}",
@@ -7856,7 +7833,6 @@
     "settings_schedule_templates_move_down": "Descer {name}",
     "settings_schedule_templates_move_section_up": "Subir a secção {name}",
     "settings_schedule_templates_move_section_down": "Descer a secção {name}",
-    "settings_schedule_templates_part_in_hall": "{name}, {hall}",
     "settings_schedule_templates_reorder": "Reorganizar as partes",
     "settings_schedule_templates_reorder_done": "Concluído",
     "settings_schedule_templates_reorder_hint": "Uma parte sobe ou desce dentro da sua secção ou sala; uma secção move-se com todas as suas partes. Para mudar de secção ou de sala, abra a parte.",
@@ -7871,5 +7847,64 @@
     "settings_schedule_templates_service_moved_up": "« {name} » subiu uma posição.",
     "settings_schedule_templates_service_moved_down": "« {name} » desceu uma posição.",
     "settings_schedule_templates_service_drag_picked": "« {name} » selecionado.",
-    "settings_schedule_templates_service_drag_dropped": "« {name} » colocado."
+    "settings_schedule_templates_service_drag_dropped": "« {name} » colocado.",
+    "settings_schedule_templates_room_added": "Sala adicionada.",
+    "settings_schedule_templates_room_renamed": "Sala renomeada.",
+    "settings_schedule_templates_room_deleted": "Sala eliminada.",
+    "settings_schedule_templates_room_taken": "Outra sala deste modelo já tem este nome: escolha outro.",
+    "settings_schedule_templates_room_gone": "Esta sala já não existe: a lista acabou de ser recarregada.",
+    "settings_schedule_templates_room_main_stays": "A sala principal fica sempre: mude-lhe o nome se for preciso.",
+    "settings_schedule_templates_rooms_title": "Salas",
+    "settings_schedule_templates_rooms_hint": "As salas onde as partes decorrem ao mesmo tempo. Adicionar uma sala pede o seu nome; as suas partes escolhem-se depois, parte a parte.",
+    "settings_schedule_templates_room_whole": "toda a congregação",
+    "settings_schedule_templates_room_parts": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} parte",
+                "countPlural=*": "{count} partes"
+            }
+        }
+    ],
+    "settings_schedule_templates_room_name": "Nome da sala",
+    "settings_schedule_templates_room_add": "Adicionar",
+    "settings_schedule_templates_room_actions": "Ações da sala {name}",
+    "settings_schedule_templates_room_delete": "Eliminar",
+    "settings_schedule_templates_room_delete_title": "Eliminar a sala «{name}»?",
+    "settings_schedule_templates_room_delete_body": "As próximas reuniões criadas com este modelo deixarão de ter partes nesta sala; as suas partes ficam nas outras. As reuniões já preparadas mantêm-na, com quem lá está designado.",
+    "settings_schedule_templates_room_delete_confirm": "Eliminar a sala",
+    "settings_schedule_templates_part_rooms": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} sala",
+                "countPlural=*": "{count} salas"
+            }
+        }
+    ],
+    "programs_edit_part_where_label": "Onde",
+    "programs_edit_part_where_whole": "Toda a congregação",
+    "programs_edit_part_where_whole_hint": "Na sala principal, uma só vez.",
+    "programs_edit_part_where_parallel": "Ao mesmo tempo em várias salas",
+    "programs_edit_part_where_parallel_hint": "A mesma parte, com os seus próprios oradores em cada sala.",
+    "programs_edit_part_where_always": "sempre",
+    "programs_edit_part_where_count": "As salas declaram-se no modelo. Em cada reunião, esta parte terá {count} oradores, um por sala.",
+    "programs_edit_part_where_single": "Toda a congregação, na sala principal.",
+    "programs_edit_part_where_single_hint": "Para uma parte ao mesmo tempo em várias salas, adicione primeiro uma sala ao modelo.",
+    "programs_edit_part_where_remove_title": "Retirar «{part}» de {rooms}?",
+    "programs_edit_part_where_remove_body": "As próximas reuniões criadas com este modelo deixarão de ter esta parte nestas salas. As reuniões já preparadas mantêm-na, com quem lá está designado.",
+    "programs_edit_part_where_remove_confirm": "Retirar",
+    "programs_edit_part_where_room_quoted": "«{name}»",
+    "programs_edit_part_where_pick_room": "Marque pelo menos outra sala, ou escolha «Toda a congregação».",
+    "settings_schedule_templates_room_moved": "Sala movida.",
+    "settings_schedule_templates_room_up": "Subir",
+    "settings_schedule_templates_room_down": "Descer"
 }

@@ -18,6 +18,8 @@ export interface ItemListPart extends ListedPart {
   speakerLabel?: string | null
   readerLabel?: string | null
   allowExternalSpeaker?: boolean
+  /** The rooms it is held in: several show « N salles ». */
+  roomIds: number[]
 }
 
 export interface ItemListService {
@@ -212,7 +214,7 @@ export function ScheduleTemplateItemList({
   const lastOrder = parts.reduce((max, part) => Math.max(max, part.order), -1)
   const startSection = () => {
     if (sectionName === '' || sectionTaken) return
-    onAdd('part', { section: sectionName, track: '', trackOrder: null, order: lastOrder + 1 })
+    onAdd('part', { section: sectionName, order: lastOrder + 1 })
   }
   return (
     <div className="flex flex-col gap-2">
@@ -289,7 +291,7 @@ export function ScheduleTemplateItemList({
             <div className="flex flex-wrap gap-2">
               <AddButton
                 label={m.settings_schedule_templates_add_part_loose()}
-                onClick={() => onAdd('part', { section: '', track: '', trackOrder: null, order: lastOrder + 1 })}
+                onClick={() => onAdd('part', { section: '', order: lastOrder + 1 })}
               />
               <AddButton
                 ref={addSection}

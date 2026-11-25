@@ -4453,19 +4453,6 @@
     "settings_schedule_templates_anyone": "Every publisher",
     "settings_schedule_templates_with_reader": "with a second speaker",
     "settings_schedule_templates_minutes": "{minutes} min",
-    "settings_schedule_templates_parallel": [
-        {
-            "declarations": [
-                "input count",
-                "local countPlural = count: plural"
-            ],
-            "selectors": ["countPlural"],
-            "match": {
-                "countPlural=one": "{count} room in parallel",
-                "countPlural=*": "{count} rooms in parallel"
-            }
-        }
-    ],
     "settings_schedule_templates_total": [
         {
             "declarations": [
@@ -4497,22 +4484,17 @@
     "settings_schedule_templates_save_part": "Save the part",
     "settings_schedule_templates_save_service": "Save the service",
     "settings_schedule_templates_section_renamed": "Section renamed.",
-    "settings_schedule_templates_hall_renamed": "Room renamed.",
     "settings_schedule_templates_main_hall": "Main room",
     "settings_schedule_templates_rename": "Rename",
-    "settings_schedule_templates_add_hall": "Add a parallel room",
     "settings_schedule_templates_delete_when_empty": "Delete: remove its parts first.",
     "settings_schedule_templates_section_actions": "Actions for the section {name}",
-    "settings_schedule_templates_hall_actions": "Actions for the room {name}",
     "settings_schedule_templates_add_part_to": "Add a part to {name}",
     "settings_schedule_templates_part_short": "Part",
     "settings_schedule_templates_section_name": "Section name",
-    "settings_schedule_templates_hall_name": "Room name",
     "settings_schedule_templates_new_section_hint": "A section with no part is not kept: add its first part. If you close the panel first, it is dropped.",
     "settings_schedule_templates_first_part": "First part",
     "settings_schedule_templates_add_section": "Add a section",
     "settings_schedule_templates_add_part_loose": "Add a part outside any section",
-    "settings_schedule_templates_second_hall": "Second room",
     "settings_schedule_templates_services_empty": "No service. Add the first one.",
     "settings_schedule_templates_used": [
         {
@@ -7840,15 +7822,10 @@
     "settings_schedule_templates_item_gone": "This item was deleted in the meantime; your changes were not saved.",
     "settings_schedule_templates_name_unchanged": "The name has not changed.",
     "settings_schedule_templates_section_taken": "Another section already has this name: choose another one.",
-    "settings_schedule_templates_hall_taken": "Another room of this section already has this name: choose another one.",
     "settings_schedule_templates_section_gone": "This section no longer exists: the list has just been reloaded.",
-    "settings_schedule_templates_hall_gone": "This room no longer exists: the list has just been reloaded.",
-    "settings_schedule_templates_nth_hall": "Room {number}",
     "settings_schedule_templates_name_blank": "Give it a name.",
     "programs_edit_part_section_none": "No section",
     "programs_edit_part_section_pick_hint": "The template’s sections, or « No section ». The part goes to the end of the section chosen. A section is created from the list.",
-    "programs_edit_part_track_none": "None: the whole congregation",
-    "programs_edit_part_track_pick_hint": "A room in parallel: choose one. A room is added from its section’s menu.",
     "settings_schedule_templates_order_stale": "The list changed in the meantime: it has just been reloaded, try again.",
     "settings_schedule_templates_move_part": "Move {name}",
     "settings_schedule_templates_move_section": "Move the section {name}",
@@ -7856,7 +7833,6 @@
     "settings_schedule_templates_move_down": "Move {name} down",
     "settings_schedule_templates_move_section_up": "Move the section {name} up",
     "settings_schedule_templates_move_section_down": "Move the section {name} down",
-    "settings_schedule_templates_part_in_hall": "{name}, {hall}",
     "settings_schedule_templates_reorder": "Reorder the parts",
     "settings_schedule_templates_reorder_done": "Done",
     "settings_schedule_templates_reorder_hint": "A part moves up or down within its section or room; a section moves with all its parts. To change a part’s section or room, open the part.",
@@ -7871,5 +7847,64 @@
     "settings_schedule_templates_service_moved_up": "« {name} » moved up one place.",
     "settings_schedule_templates_service_moved_down": "« {name} » moved down one place.",
     "settings_schedule_templates_service_drag_picked": "« {name} » picked up.",
-    "settings_schedule_templates_service_drag_dropped": "« {name} » dropped."
+    "settings_schedule_templates_service_drag_dropped": "« {name} » dropped.",
+    "settings_schedule_templates_room_added": "Room added.",
+    "settings_schedule_templates_room_renamed": "Room renamed.",
+    "settings_schedule_templates_room_deleted": "Room deleted.",
+    "settings_schedule_templates_room_taken": "Another room of this template already has this name: choose another.",
+    "settings_schedule_templates_room_gone": "This room no longer exists: the list has just been reloaded.",
+    "settings_schedule_templates_room_main_stays": "The main room always stays: rename it if needed.",
+    "settings_schedule_templates_rooms_title": "Rooms",
+    "settings_schedule_templates_rooms_hint": "The rooms where parts take place at the same time. Adding a room asks for its name; its parts are then chosen part by part.",
+    "settings_schedule_templates_room_whole": "the whole congregation",
+    "settings_schedule_templates_room_parts": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} part",
+                "countPlural=*": "{count} parts"
+            }
+        }
+    ],
+    "settings_schedule_templates_room_name": "Room name",
+    "settings_schedule_templates_room_add": "Add",
+    "settings_schedule_templates_room_actions": "Actions for room {name}",
+    "settings_schedule_templates_room_delete": "Delete",
+    "settings_schedule_templates_room_delete_title": "Delete the room “{name}”?",
+    "settings_schedule_templates_room_delete_body": "The next meetings created from this template will have no part in this room; its parts stay in the others. Meetings already prepared keep it, with whoever is assigned there.",
+    "settings_schedule_templates_room_delete_confirm": "Delete the room",
+    "settings_schedule_templates_part_rooms": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} room",
+                "countPlural=*": "{count} rooms"
+            }
+        }
+    ],
+    "programs_edit_part_where_label": "Where",
+    "programs_edit_part_where_whole": "The whole congregation",
+    "programs_edit_part_where_whole_hint": "In the main room, once.",
+    "programs_edit_part_where_parallel": "At the same time in several rooms",
+    "programs_edit_part_where_parallel_hint": "The same part, with its own speakers in each room.",
+    "programs_edit_part_where_always": "always",
+    "programs_edit_part_where_count": "Rooms are declared in the template. At each meeting, this part will have {count} speakers, one per room.",
+    "programs_edit_part_where_single": "The whole congregation, in the main room.",
+    "programs_edit_part_where_single_hint": "For a part at the same time in several rooms, first add a room to the template.",
+    "programs_edit_part_where_remove_title": "Remove “{part}” from {rooms}?",
+    "programs_edit_part_where_remove_body": "The next meetings created from this template will no longer have this part in these rooms. Meetings already prepared keep it, with whoever is assigned there.",
+    "programs_edit_part_where_remove_confirm": "Remove",
+    "programs_edit_part_where_room_quoted": "“{name}”",
+    "programs_edit_part_where_pick_room": "Tick at least one other room, or choose “The whole congregation”.",
+    "settings_schedule_templates_room_moved": "Room moved.",
+    "settings_schedule_templates_room_up": "Move up",
+    "settings_schedule_templates_room_down": "Move down"
 }

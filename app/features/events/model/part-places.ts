@@ -1,35 +1,48 @@
-/** A schedule template's sections and, per section, its parallel halls in order: what a part can be put in. */
+import * as m from '~/i18n/paraglide/messages'
+
+/** One of a programme template's rooms: the main room's name stays null until someone names it. */
+export interface PartRoom {
+  id: number
+  name: string | null
+  isMain: boolean
+}
+
+/** What a schedule template part can be put in: the template's sections, and its rooms, the main room first. */
 export interface PartPlaces {
   sections: string[]
-  /** By section name: a Map, since a section may be named anything (« constructor » too). */
-  halls: ReadonlyMap<string, { name: string; trackOrder: number | null }[]>
+  rooms: PartRoom[]
 }
 
-/** A part's section and hall: where it was opened, or where its form has it now. */
-export interface PartPlace {
-  section: string
-  track: string
-}
+/** A room as the page writes it: an unnamed main room is « Salle principale », in the reader's language. */
+export const roomLabel = (room: PartRoom) => room.name ?? (room.isMain ? m.settings_schedule_templates_main_hall() : '')
 
 /**
- * What a schedule template part's place pickers offer, and the order the form sends. The sections and the chosen
- * section's halls, plus the section or hall a new part was drafted in (« Ajouter une section », a new parallel hall)
- * while it is the one chosen. The order is sent only while the part stays where it was opened (a new part's place in
- * the list); moved, the server puts it at the end of where it goes.
+ * What a schedule template part's section picker offers, and the order the form sends. The sections, plus the one a
+ * new part was drafted in (« Ajouter une section »). The order is sent only while the part stays in the section it
+ * was opened in (a new part's place in the list); moved, the server puts it at the end of where it goes.
  */
-export function placeChoices(places: PartPlaces, opened: PartPlace & { order: number | null }, chosen: PartPlace) {
+export function placeChoices(places: PartPlaces, opened: { section: string; order: number | null }, chosen: string) {
   const sections =
     opened.section !== '' && !places.sections.includes(opened.section)
       ? [...places.sections, opened.section]
       : places.sections
-  const stored = places.halls.get(chosen.section) ?? []
-  const halls =
-    chosen.section === opened.section && opened.track !== '' && !stored.some(each => each.name === opened.track)
-      ? [...stored, { name: opened.track, trackOrder: null }]
-      : stored
-  const kept = chosen.section === opened.section && chosen.track === opened.track
-  return { sections, halls, order: kept && opened.order != null ? String(opened.order) : '' }
+  return { sections, order: chosen === opened.section && opened.order != null ? String(opened.order) : '' }
 }
 
-/** Another section picked: its hall starts at none, the halls being the section's own. */
-export const pickSection = (section: string): PartPlace => ({ section, track: '' })
+/**
+ * The rooms « Où » holds a part in: the main room alone for the whole congregation; the main room and the rooms ticked
+ * when in parallel (decided 2026-11-25: the main room always takes part). In the rooms' order; a room gone is left out.
+ */
+export function roomsAfterWhere(rooms: readonly PartRoom[], parallel: boolean, ticked: readonly number[]): number[] {
+  return rooms.filter(room => room.isMain || (parallel && ticked.includes(room.id))).map(room => room.id)
+}
+
+/** The rooms a save takes a part out of (what the confirmation names); none for a new part. */
+export function roomsTakenAway(
+  rooms: readonly PartRoom[],
+  before: readonly number[] | null,
+  after: readonly number[],
+): PartRoom[] {
+  if (before == null) return []
+  return rooms.filter(room => before.includes(room.id) && !after.includes(room.id))
+}

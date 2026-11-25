@@ -474,6 +474,18 @@ beforeAll(async () => {
     })
     // The parts and duties live in their meetings' schedules, as the writers put them: the export reads items.
     await settleFixtureSchedules(tx as never, sourceId)
+
+    // The part in two rooms of its schedule template, the main one named (2.22).
+    const placed = await tx.templatePart.findUniqueOrThrow({ where: { id: part.id } })
+    if (placed.scheduleTemplateId == null) throw new Error('the fixture part is in no schedule template')
+    await tx.scheduleTemplateRoom.updateMany({
+      where: { scheduleTemplateId: placed.scheduleTemplateId, key: 'main' },
+      data: { name: 'Auditorium' },
+    })
+    const annexe = await tx.scheduleTemplateRoom.create({
+      data: { name: 'Annexe', order: 1, scheduleTemplateId: placed.scheduleTemplateId, congregationId: sourceId },
+    })
+    await tx.templatePartRoom.create({ data: { templatePartId: part.id, roomId: annexe.id, congregationId: sourceId } })
   })
 
   const target = await testDb.congregation.create({
@@ -690,6 +702,8 @@ describe('Export/Import round-trip', () => {
     expect(entityCounts['territory-card-overlays']).toBe(1)
     expect(entityCounts['territory-perimeter']).toBe(1)
     expect(entityCounts['programme-template-part-allowed-roles']).toBe(1)
+    expect(entityCounts['schedule-template-rooms']).toBe(2) // the main room and « Annexe »
+    expect(entityCounts['programme-template-part-rooms']).toBe(2)
     expect(entityCounts['programme-template-service-role-allowed-roles']).toBe(1)
     expect(entityCounts['programme-part-assignment-allowed-roles']).toBe(1)
     expect(entityCounts['programme-service-role-assignment-allowed-roles']).toBe(1)
@@ -902,6 +916,15 @@ describe('Export/Import round-trip', () => {
       expect(templateParts).toHaveLength(1)
       expect(templateParts[0].templateId).toBe(templates[0].id)
       expect(templateParts[0].trackOrder).toBe(1)
+      // Its rooms survived too, the main room's name with them.
+      const partRooms = await tx.templatePartRoom.findMany({
+        where: { templatePartId: templateParts[0].id },
+        select: { room: { select: { key: true, name: true } } },
+      })
+      expect(partRooms.map(row => `${row.room.key ?? '-'}:${row.room.name}`).sort()).toEqual([
+        '-:Annexe',
+        'main:Auditorium',
+      ])
       const serviceParts = await tx.templateServicePart.findMany({})
       expect(serviceParts).toHaveLength(1)
       const responsibles = await tx.templateResponsible.findMany({})

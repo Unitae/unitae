@@ -23,6 +23,7 @@ export { EventTemplateKey, isSystemTemplate } from './model/event-template.type'
 export { groupPartsBySlot } from './model/group-parts-by-slot'
 export type { MemberAbsence, MemberAssignment } from './model/member-engagement.type'
 export { resolvePartCapability } from './model/part-capability'
+export { type PartPlaces, type PartRoom, roomLabel } from './model/part-places'
 export { PartPresetKey, PartPresetScope } from './model/part-preset.type'
 export {
   hasPartPresetShareMessage,
@@ -62,12 +63,10 @@ export {
   type PartAssignment,
   reorderPartIds,
 } from './ui/EventProgrammePanel'
-
 export { EventServicesPanel, type ServicePartAssignment } from './ui/EventServicesPanel'
 export { InlineDeleteDialog } from './ui/InlineDeleteDialog'
 export { PART_FORM_ID, type PartData, PartEditor, type PartPresetOption, partEditorCopy } from './ui/PartEditor'
 export { PartEditSheet } from './ui/PartEditSheet'
-export type { PartPlaces } from './ui/PartPlaceFields'
 export { PartPresetForm } from './ui/PartPresetForm'
 export { PartPresetSummary } from './ui/PartPresetSummary'
 export { SectionHeading, TrackHeading } from './ui/ProgrammeHeadings'

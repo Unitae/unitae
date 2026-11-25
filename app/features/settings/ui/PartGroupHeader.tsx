@@ -9,29 +9,20 @@ import { cn } from '~/shared/utils/utils'
 import { useOnSettled } from './use-on-settled'
 
 /**
- * A section's or a hall's header in a schedule template's list, with its « … » menu: rename it in place (on every part
- * in it), add a parallel hall to a section, and « Supprimer » shown disabled with its reason, since a section or a hall
- * goes once its last part does.
+ * A section's header in a schedule template's list, with its « … » menu: rename it in place (on every part in it), and
+ * « Supprimer » shown disabled with its reason, since a section goes once its last part does.
  */
 export function PartGroupHeader({
-  level,
   name,
-  section,
   meta,
-  onAddHall,
   taken,
   handle,
   readOnly = false,
 }: {
-  level: 'section' | 'hall'
   name: string
-  /** A hall's section. */
-  section?: string
-  /** Its time and halls, after the name. */
+  /** Its time, after the name. */
   meta: string
-  /** A section's « Ajouter une salle en parallèle ». */
-  onAddHall?: () => void
-  /** The other names in use (the template's other sections, or the section's other halls): one of them would merge. */
+  /** The template's other sections: one of them would merge. */
   taken: readonly string[]
   /** What moves the section (a grip, or « Monter » / « Descendre »), before its name. */
   handle?: ReactNode
@@ -58,18 +49,13 @@ export function PartGroupHeader({
     refocus.current = false
     trigger.current?.focus()
   }, [editing])
-  const isSection = level === 'section'
   const next = value.trim()
   const clash = next !== name && taken.includes(next)
   const refusal =
     fetcher.state === 'idle' && fetcher.data != null && sent === next
       ? [...(fetcher.data.errors ?? []), ...Object.values(fetcher.data.error ?? {}).flatMap(each => each ?? [])]
       : []
-  const message = clash
-    ? isSection
-      ? m.settings_schedule_templates_section_taken()
-      : m.settings_schedule_templates_hall_taken()
-    : refusal.join(' ')
+  const message = clash ? m.settings_schedule_templates_section_taken() : refusal.join(' ')
 
   if (editing) {
     return (
@@ -77,7 +63,7 @@ export function PartGroupHeader({
         method="post"
         // The phone's sheet hears Escape first: this mark tells it the rename takes it, not the panel.
         data-own-escape=""
-        className={cn('flex flex-col gap-1 border-border border-b px-2 py-1.5', isSection ? 'bg-subtle' : 'pl-5')}
+        className="flex flex-col gap-1 border-border border-b bg-subtle px-2 py-1.5"
         onKeyDown={event => {
           if (event.key !== 'Escape') return
           event.preventDefault()
@@ -94,11 +80,10 @@ export function PartGroupHeader({
         }}
       >
         <div className="flex items-center gap-1.5">
-          <input type="hidden" name="intent" value={isSection ? 'rename-section' : 'rename-hall'} />
+          <input type="hidden" name="intent" value="rename-section" />
           <input type="hidden" name="from" value={name} />
-          {!isSection && <input type="hidden" name="section" value={section ?? ''} />}
           <label htmlFor={inputId} className="sr-only">
-            {isSection ? m.settings_schedule_templates_section_name() : m.settings_schedule_templates_hall_name()}
+            {m.settings_schedule_templates_section_name()}
           </label>
           {/* biome-ignore lint/a11y/noAutofocus: the rename the person just asked for */}
           <Input
@@ -138,16 +123,13 @@ export function PartGroupHeader({
   return (
     <div
       className={cn(
-        'group/header flex items-center gap-2 border-border border-b',
-        isSection ? 'bg-subtle py-1 pr-1' : 'py-0.5 pr-1 pl-6',
-        isSection && (handle == null ? 'pl-3' : 'pl-0'),
+        'group/header flex items-center gap-2 border-border border-b bg-subtle py-1 pr-1',
+        handle == null ? 'pl-3' : 'pl-0',
       )}
     >
       {handle}
-      <span
-        className={cn('flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2', isSection ? 'py-1.5 text-xs' : 'text-xs')}
-      >
-        <span className={isSection ? 'font-semibold text-foreground text-sm' : 'text-muted-foreground'}>{name}</span>
+      <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 py-1.5 text-xs">
+        <span className="font-semibold text-foreground text-sm">{name}</span>
         {meta !== '' && <span className="text-muted-foreground tabular-nums">{meta}</span>}
       </span>
       {!readOnly && (
@@ -158,11 +140,7 @@ export function PartGroupHeader({
               type="button"
               variant="ghost"
               size="icon-sm"
-              aria-label={
-                isSection
-                  ? m.settings_schedule_templates_section_actions({ name })
-                  : m.settings_schedule_templates_hall_actions({ name })
-              }
+              aria-label={m.settings_schedule_templates_section_actions({ name })}
             >
               <MoreHorizontal aria-hidden="true" />
             </Button>
@@ -177,9 +155,6 @@ export function PartGroupHeader({
             >
               {m.settings_schedule_templates_rename()}
             </DropdownMenuItem>
-            {onAddHall != null && (
-              <DropdownMenuItem onSelect={onAddHall}>{m.settings_schedule_templates_add_hall()}</DropdownMenuItem>
-            )}
             {/* Reachable with the arrow keys, unlike a disabled item, so its reason is read; choosing it does nothing. */}
             <DropdownMenuItem
               aria-disabled="true"

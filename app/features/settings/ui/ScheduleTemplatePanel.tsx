@@ -15,6 +15,7 @@ import { partsInListOrder, templatePlaces } from '~/features/settings/model/sche
 import type { ScheduleTemplateView } from '~/features/settings/model/schedule-template-view'
 import { ScheduleTemplateForm } from '~/features/settings/ui/ScheduleTemplateForm'
 import { itemMark, ScheduleTemplateItemList } from '~/features/settings/ui/ScheduleTemplateItemList'
+import { type TemplateRoom, TemplateRooms } from '~/features/settings/ui/TemplateRooms'
 import type { OpenItem } from '~/features/settings/ui/use-schedule-template-page'
 import * as m from '~/i18n/paraglide/messages'
 import type { RoleOption } from '~/shared/types/role'
@@ -35,12 +36,14 @@ export interface PanelItems {
     id: number
     allowedSpeakerRoleIds: number[]
     allowedReaderRoleIds: number[]
-  } & { trackOrder: number | null })[]
+    roomIds: number[]
+  })[]
   services: { id: number; name: string; key: string; allowedRoleIds: number[] }[]
   roles: RoleOption[]
   presets: React.ComponentProps<typeof PartEditor>['presets']
   sectionSuggestions: string[]
-  trackSuggestions: string[]
+  /** A programme template's rooms, the main room first; none for a duties one. */
+  rooms: TemplateRoom[]
 }
 
 /**
@@ -146,6 +149,7 @@ export function ScheduleTemplatePanel({
         id={FORM_ID}
         formRef={fields.ref}
       />
+      {template.kind !== 'duty' && items != null && items.kindId != null && <TemplateRooms rooms={items.rooms} />}
       {items == null || items.kindId == null ? (
         <p className="text-muted-foreground text-sm">{m.settings_schedule_templates_no_kind()}</p>
       ) : (
@@ -168,7 +172,7 @@ export function ScheduleTemplatePanel({
   const itemEditor =
     item == null || items == null ? null : item.kind === 'part' ? (
       <PartEditor
-        key={`part-${item.id ?? `new-${item.draft?.section}-${item.draft?.track}-${item.draft?.order}`}`}
+        key={`part-${item.id ?? `new-${item.draft?.section}-${item.draft?.order}`}`}
         mode="template"
         fetcher={itemFetcher}
         part={
@@ -178,13 +182,13 @@ export function ScheduleTemplatePanel({
             : {
                 name: '',
                 section: item.draft.section,
-                track: item.draft.track,
-                trackOrder: item.draft.trackOrder,
+                track: '',
                 order: item.draft.order,
                 durationMin: null,
                 presetId: null,
                 allowedSpeakerRoleIds: [],
                 allowedReaderRoleIds: [],
+                roomIds: [],
               })
         }
         // After the last part, whatever their numbering (a reorder writes them five apart).
@@ -192,8 +196,8 @@ export function ScheduleTemplatePanel({
         roles={items.roles}
         presets={items.presets}
         sectionSuggestions={items.sectionSuggestions}
-        trackSuggestions={items.trackSuggestions}
-        places={templatePlaces(items.parts)}
+        trackSuggestions={[]}
+        places={templatePlaces(items.parts, items.rooms)}
         formRef={itemForm.ref}
       />
     ) : (

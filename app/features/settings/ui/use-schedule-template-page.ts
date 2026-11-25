@@ -8,12 +8,12 @@ import type { ItemKind, PartDraft } from './ScheduleTemplateItemList'
 export interface OpenItem {
   kind: ItemKind
   id: number | null
-  /** A new part's section, hall and place, from where it was added. */
+  /** A new part's section and place, from where it was added. */
   draft?: PartDraft
 }
 
 /** A new part's starting point in the address: kept by a reload, dropped with the item. */
-const DRAFT_PARAMS = ['section', 'hall', 'hallOrder', 'order'] as const
+const DRAFT_PARAMS = ['section', 'order'] as const
 
 const ITEM = /^(part|service)-(\d+)$/
 const NEW_ITEM = /^new-(part|service)$/
@@ -26,15 +26,9 @@ export function readItem(params: URLSearchParams): OpenItem | null {
   const fresh = value?.match(NEW_ITEM)
   if (!fresh) return null
   const order = Number(params.get('order'))
-  const hallOrder = Number(params.get('hallOrder'))
   const draft =
     params.get('order') != null && params.get('order') !== '' && Number.isFinite(order)
-      ? {
-          section: params.get('section') ?? '',
-          track: params.get('hall') ?? '',
-          trackOrder: params.has('hallOrder') && Number.isFinite(hallOrder) ? hallOrder : null,
-          order,
-        }
+      ? { section: params.get('section') ?? '', order }
       : undefined
   return { kind: fresh[1] as ItemKind, id: null, draft }
 }
@@ -125,8 +119,6 @@ export function useScheduleTemplatePage({
             for (const name of DRAFT_PARAMS) prev.delete(name)
             if (next.draft != null) {
               prev.set('section', next.draft.section)
-              prev.set('hall', next.draft.track)
-              if (next.draft.trackOrder != null) prev.set('hallOrder', String(next.draft.trackOrder))
               prev.set('order', String(next.draft.order))
             }
             return prev

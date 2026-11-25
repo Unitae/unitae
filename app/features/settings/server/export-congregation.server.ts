@@ -560,6 +560,24 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
         }),
     },
     {
+      // A programme template's rooms, the main room by its key (2.22).
+      name: 'schedule-template-rooms',
+      export: () =>
+        db.scheduleTemplateRoom.findMany({
+          select: { id: true, name: true, key: true, order: true, scheduleTemplateId: true },
+          orderBy: [{ scheduleTemplateId: 'asc' }, { order: 'asc' }, { id: 'asc' }],
+        }),
+    },
+    {
+      // The rooms each template part is held in (2.22).
+      name: 'programme-template-part-rooms',
+      export: () =>
+        db.templatePartRoom.findMany({
+          select: { templatePartId: true, roomId: true },
+          orderBy: [{ templatePartId: 'asc' }, { roomId: 'asc' }],
+        }),
+    },
+    {
       name: 'programme-template-part-allowed-roles',
       export: () =>
         db.templatePartAllowedRole.findMany({

@@ -26,6 +26,7 @@ import {
   importScheduleTemplates,
   settleImportedSchedules,
 } from './import-schedules.server'
+import { importTemplateRooms } from './import-template-rooms.server'
 
 /**
  * The meeting steps of runImport, in their order: part presets, templates and their items and responsibles, events with
@@ -92,5 +93,7 @@ export async function importMeetings(
 
   // Last: it finds the items that came without a schedule, so every item must be in.
   await settleImportedSchedules(zip, db, congregationId, mergedTemplateIds)
+  // Once every template part is in its schedule template; an older archive's copies merge, their meeting parts too.
+  await importTemplateRooms(zip, db, idMap, congregationId)
   await progress()
 }

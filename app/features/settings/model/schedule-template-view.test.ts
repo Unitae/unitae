@@ -10,6 +10,7 @@ const programme: ListedScheduleTemplate = {
   responsibleRole: { id: 7, key: 'vcm', name: 'Responsable VCM' },
   kinds: [{ id: 270, name: 'Réunion Vie et ministère' }],
   schedules: 99,
+  rooms: 1,
 }
 const services: ListedScheduleTemplate = {
   id: 2,
@@ -23,6 +24,7 @@ const services: ListedScheduleTemplate = {
     { id: 271, name: 'Réunion du week-end' },
   ],
   schedules: 0,
+  rooms: 0,
 }
 const roles = [{ id: 7, label: 'Responsable VCM' }]
 
@@ -38,6 +40,12 @@ describe('scheduleTemplateView', () => {
       storedRole: null,
       holders: ['Marc DUPONT'],
     })
+  })
+
+  it('counts a programme’s rooms once it has rooms in parallel', () => {
+    expect(scheduleTemplateView({ ...programme, rooms: 3 }, roles, new Map()).detail).toBe(
+      'Spirituel · 15 parties · 3 salles',
+    )
   })
 
   it('reads an unnamed template as its kind once, counts several kinds, and has no holders without a role', () => {

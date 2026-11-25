@@ -5,54 +5,30 @@ export interface ListedPart {
   id: number
   name: string
   section: string
-  track: string
-  trackOrder: number | null
   order: number
   durationMin: number | null
 }
 
-/** A section's hall (« Salle principale », « Salle B »): its parts run in parallel with the other halls'. */
-export interface PartHall<P extends ListedPart> {
-  name: string
-  parts: P[]
-  minutes: number
-}
-
-/** Consecutive parts of one section, or outside any (`section: null`): those outside a hall, then its halls. */
+/** Consecutive parts of one section, or outside any (`section: null`). */
 export interface PartRun<P extends ListedPart> {
   section: string | null
   parts: P[]
-  halls: PartHall<P>[]
-  /** Its time, parallel halls counted once (the longest). */
+  /** Its time: a part held in several rooms happens once, at the same time in each. */
   minutes: number
 }
 
 const minutesOf = (parts: ListedPart[]) => parts.reduce((sum, part) => sum + (part.durationMin ?? 0), 0)
 
-/**
- * A programme template's parts as its list reads them, in their order: runs of one section, the halls of a section
- * nested in their own order, and the programme's time, parallel halls counted once.
- */
+/** A programme template's parts as its list reads them, in their order: runs of one section, and the programme's time. */
 export function groupTemplateParts<P extends ListedPart>(parts: P[]) {
   const runs: PartRun<P>[] = []
   for (const part of parts) {
     const section = part.section === '' ? null : part.section
     const last = runs.at(-1)
     if (last != null && last.section === section) last.parts.push(part)
-    else runs.push({ section, parts: [part], halls: [], minutes: 0 })
+    else runs.push({ section, parts: [part], minutes: 0 })
   }
-  for (const run of runs) {
-    const inHall = run.parts.filter(part => part.track !== '')
-    run.parts = run.parts.filter(part => part.track === '')
-    const names = [...new Set(inHall.map(part => part.track))].sort(
-      (a, b) => trackOrder(inHall, a) - trackOrder(inHall, b),
-    )
-    run.halls = names.map(name => {
-      const hallParts = inHall.filter(part => part.track === name)
-      return { name, parts: hallParts, minutes: minutesOf(hallParts) }
-    })
-    run.minutes = minutesOf(run.parts) + Math.max(0, ...run.halls.map(hall => hall.minutes))
-  }
+  for (const run of runs) run.minutes = minutesOf(run.parts)
   return {
     runs,
     total: {
@@ -63,86 +39,42 @@ export function groupTemplateParts<P extends ListedPart>(parts: P[]) {
   }
 }
 
-function trackOrder(parts: ListedPart[], track: string) {
-  return parts.find(part => part.track === track)?.trackOrder ?? 0
-}
-
-/** Where a new part starts: its section and hall, and its place. */
+/** Where a new part starts: its section, and its place. */
 export interface PartDraft {
   section: string
-  track: string
-  trackOrder: number | null
   order: number
 }
 
 /** A place after a group's last part; after the template's last for an empty group. */
 export const orderAfter = (group: readonly ListedPart[], lastOrder: number) => (group.at(-1)?.order ?? lastOrder) + 1
 
-/** « + Partie » at the end of a section's parts outside any hall. */
+/** « + Partie » at the end of a section's parts. */
 export function sectionPartDraft<P extends ListedPart>(run: PartRun<P>, lastOrder: number): PartDraft {
-  return { section: run.section ?? '', track: '', trackOrder: null, order: orderAfter(run.parts, lastOrder) }
+  return { section: run.section ?? '', order: orderAfter(run.parts, lastOrder) }
 }
 
-/** « + Partie » at the end of a hall, in that hall. */
-export function hallPartDraft<P extends ListedPart>(run: PartRun<P>, hall: PartHall<P>, lastOrder: number): PartDraft {
-  return {
-    section: run.section ?? '',
-    track: hall.name,
-    trackOrder: hall.parts[0]?.trackOrder ?? null,
-    order: orderAfter(hall.parts, lastOrder),
-  }
-}
-
-/**
- * « Ajouter une salle en parallèle »: the section's next hall, after its last part. The first is the second hall (its
- * parts become the main one), the next ones are numbered on; the names come from the caller, in the reader's language.
- */
-export function newHallDraft<P extends ListedPart>(
-  run: PartRun<P>,
-  lastOrder: number,
-  names: { second: string; nth: (number: number) => string },
-): PartDraft {
-  const first = run.halls.length === 0
-  return {
-    section: run.section ?? '',
-    track: first ? names.second : names.nth(run.halls.length + 1),
-    trackOrder: first ? 2 : run.halls.length + 1,
-    order: orderAfter([...run.parts, ...run.halls.flatMap(hall => hall.parts)], lastOrder),
-  }
-}
-
-/** The parts as the list shows them, top to bottom: each run's parts outside any hall, then its halls'. */
+/** The parts as the list shows them, top to bottom. */
 export function partsInListOrder<P extends ListedPart>(parts: P[]): P[] {
-  return groupTemplateParts(parts).runs.flatMap(run => [...run.parts, ...run.halls.flatMap(hall => hall.parts)])
+  return groupTemplateParts(parts).runs.flatMap(run => run.parts)
 }
 
-/** What a part can be put in: the template's sections in the list's order, and each one's halls in their own. */
-export function templatePlaces(parts: readonly ListedPart[]): PartPlaces {
+/** What a part can be put in: the template's sections in the list's order, and its rooms. */
+export function templatePlaces(parts: readonly ListedPart[], rooms: PartPlaces['rooms']): PartPlaces {
   const sections: string[] = []
-  const halls = new Map<string, { name: string; trackOrder: number | null }[]>()
   for (const part of [...parts].sort((a, b) => a.order - b.order)) {
     if (part.section !== '' && !sections.includes(part.section)) sections.push(part.section)
-    if (part.track === '') continue
-    const list = halls.get(part.section) ?? []
-    halls.set(part.section, list)
-    if (!list.some(hall => hall.name === part.track)) list.push({ name: part.track, trackOrder: part.trackOrder })
   }
-  for (const list of halls.values()) list.sort((a, b) => (a.trackOrder ?? 0) - (b.trackOrder ?? 0))
-  return { sections, halls }
+  return { sections, rooms }
 }
 
 /**
- * What moves at the top of the list: a part outside any section on its own (one carrying a hall too, as the meeting
- * type's own form may still write), or a section with all its parts (design round A: « une section se déplace avec
- * toutes ses parties »). A section's `run` is its place among the runs; its `key`, its smallest part id, is what a
- * move or a rename leaves as it is, to keep its header and focus.
+ * What moves at the top of the list: a part outside any section on its own, or a section with all its parts (design
+ * round A: « une section se déplace avec toutes ses parties »). A section's `run` is its place among the runs; its
+ * `key`, its smallest part id, is what a move or a rename leaves as it is, to keep its header and focus.
  */
 export type TopItem = { kind: 'part'; id: number } | { kind: 'section'; section: string; run: number; key: number }
 
-const runIds = <P extends ListedPart>(run: PartRun<P>) => [
-  ...run.parts.map(part => part.id),
-  ...run.halls.flatMap(hall => hall.parts.map(part => part.id)),
-]
+const runIds = <P extends ListedPart>(run: PartRun<P>) => run.parts.map(part => part.id)
 
 /** The top of the list, in order. */
 export function topItems<P extends ListedPart>(parts: P[]): TopItem[] {
@@ -169,21 +101,18 @@ export function idsAfterTopMove<P extends ListedPart>(parts: P[], from: number, 
 }
 
 /**
- * Every part's id in the new order once a part is moved within its group (its section's parts outside any hall, or
- * its hall) to `to`, its place in that group; null when nothing moves. A part outside any section moves at the top.
+ * Every part's id in the new order once a part is moved within its section to `to`, its place there; null when
+ * nothing moves. A part outside any section moves at the top.
  */
 export function idsAfterGroupMove<P extends ListedPart>(parts: P[], partId: number, to: number): number[] | null {
   const { runs } = groupTemplateParts(parts)
   for (const run of runs) {
     if (run.section == null) continue
-    for (const group of [run.parts, ...run.halls.map(hall => hall.parts)]) {
-      const from = group.findIndex(part => part.id === partId)
-      if (from < 0) continue
-      if (from === to || to < 0 || to >= group.length) return null
-      const reordered = moved(group, from, to)
-      group.splice(0, group.length, ...reordered)
-      return runs.flatMap(runIds)
-    }
+    const from = run.parts.findIndex(part => part.id === partId)
+    if (from < 0) continue
+    if (from === to || to < 0 || to >= run.parts.length) return null
+    run.parts = moved(run.parts, from, to)
+    return runs.flatMap(runIds)
   }
   return null
 }

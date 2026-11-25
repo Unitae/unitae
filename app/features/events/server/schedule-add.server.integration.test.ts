@@ -16,8 +16,11 @@ const adapter = new PrismaPg({
 })
 const testDb = new PrismaClient({ adapter })
 
-const { seedDefaultTemplates, syncTemplateScheduleTemplates } = await import('~/features/events/index.server')
+const { addTemplateRoom, seedDefaultTemplates, setTemplatePartRooms, syncTemplateScheduleTemplates } = await import(
+  '~/features/events/index.server'
+)
 const { createProgrammeOnDay } = await import('./programme-creation.server')
+const { duplicateTemplate } = await import('./duplicate-template.server')
 const { publishSchedule } = await import('./schedule-status.server')
 const { addEventSchedule, addSchedule, canAddSchedule, scheduleAddOptions } = await import('./schedule-add.server')
 
@@ -217,6 +220,81 @@ describe('addSchedule, beside what the event holds', () => {
       })
       expect(parts.length).toBeGreaterThan(1)
       expect(added.items.map(item => item.name)).toEqual(parts.map(part => part.name))
+    })
+  })
+
+  it('writes a part held in several rooms as one copy per room, sharing its section and order', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, meetingId, programme }) => {
+      const programmeTemplate = await templateOf(db, programme.id)
+      const first = await db.templatePart.findFirstOrThrow({
+        where: { scheduleTemplateId: programmeTemplate },
+        orderBy: { order: 'asc' },
+      })
+      const added = await addTemplateRoom(db, programmeTemplate, 'Salle B', congregationId, actorId)
+      await setTemplatePartRooms(
+        db,
+        programmeTemplate,
+        first.id,
+        [added.outcome === 'added' ? added.id : 0],
+        congregationId,
+      )
+      await db.schedule.delete({ where: { id: programme.id } })
+      await addSchedule(db, meetingId, { scheduleTemplateId: programmeTemplate }, congregationId, actorId)
+      const copies = await db.item.findMany({
+        where: { eventId: meetingId, name: first.name, schedule: { kind: 'programme' } },
+        orderBy: { trackOrder: 'asc' },
+        select: {
+          section: true,
+          order: true,
+          track: true,
+          rooms: { select: { room: { select: { key: true, name: true } } } },
+        },
+      })
+      expect(copies.map(copy => [copy.section, copy.order, copy.track])).toEqual([
+        [first.section, first.order, 'Salle principale'],
+        [first.section, first.order, 'Salle B'],
+      ])
+      // Each copy in its room on the meeting, the first in the main room.
+      expect(copies.map(copy => copy.rooms.map(row => row.room.key ?? row.room.name))).toEqual([['main'], ['Salle B']])
+    })
+  })
+
+  it('carries a template’s rooms and its parts’ rooms into a duplicated meeting type', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, programme }) => {
+      const programmeTemplate = await templateOf(db, programme.id)
+      const first = await db.templatePart.findFirstOrThrow({
+        where: { scheduleTemplateId: programmeTemplate },
+        orderBy: { order: 'asc' },
+        select: { id: true, order: true, templateId: true },
+      })
+      await db.scheduleTemplateRoom.updateMany({
+        where: { scheduleTemplateId: programmeTemplate, key: 'main' },
+        data: { name: 'Auditorium' },
+      })
+      const added = await addTemplateRoom(db, programmeTemplate, 'Salle B', congregationId, actorId)
+      await setTemplatePartRooms(
+        db,
+        programmeTemplate,
+        first.id,
+        [added.outcome === 'added' ? added.id : 0],
+        congregationId,
+      )
+      const copy = await duplicateTemplate(db, first.templateId, congregationId, actorId)
+      const copied = await db.templatePart.findFirstOrThrow({
+        where: { templateId: copy?.id, order: first.order },
+        select: { scheduleTemplateId: true, rooms: { select: { room: { select: { key: true, name: true } } } } },
+      })
+      const rooms = await db.scheduleTemplateRoom.findMany({
+        where: { scheduleTemplateId: copied.scheduleTemplateId as number },
+        orderBy: { order: 'asc' },
+        select: { key: true, name: true },
+      })
+      expect(copied.scheduleTemplateId).not.toBe(programmeTemplate)
+      expect(rooms).toEqual([
+        { key: 'main', name: 'Auditorium' },
+        { key: null, name: 'Salle B' },
+      ])
+      expect(copied.rooms.map(row => row.room.key ?? row.room.name).sort()).toEqual(['Salle B', 'main'])
     })
   })
 
