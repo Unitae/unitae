@@ -7,7 +7,7 @@ const TEMPLATE_RE = /template=\d+/
 const NEW_PART_RE = /item=new-part/
 const PART_RE = /item=part-\d+/
 const ANY_ITEM_RE = /item=/
-const SERVICES_RE = /\d+ services?/
+const SEVERAL_SERVICES_RE = /(?:[2-9]|\d{2,}) services/
 const DOWN_RE = /^Descendre /
 const ITEM_PARAM_RE = /&item=[^&]*/
 const IN_SECTION_RE = /section=[^&]+/
@@ -213,7 +213,17 @@ test.describe('Schedule templates: a part in the template panel', () => {
       const freshTop = async () => {
         await page.reload()
         await page.getByRole('button', { name: 'Réorganiser les parties' }).click()
-        return (await header.boundingBox())?.y ?? 0
+        // The phone's sheet slides in after a reload: read once it has stopped moving.
+        let last = Number.NaN
+        await expect
+          .poll(async () => {
+            const y = (await header.boundingBox())?.y ?? Number.NaN
+            const settled = y === last
+            last = y
+            return settled
+          })
+          .toBe(true)
+        return last
       }
       const before = await freshTop()
       const up = orderSaved(page)
@@ -244,13 +254,13 @@ test.describe('Schedule templates: a part in the template panel', () => {
 
   test('reorders a duties template’s services on a phone, and puts them back', async ({ page }) => {
     await page.goto('/settings/schedule-templates')
-    const duties = page.locator('[data-row-primary]').filter({ hasText: SERVICES_RE }).first()
+    // A duties template with two services or more: one with fewer has nothing to reorder.
+    const duties = page.locator('[data-row-primary]').filter({ hasText: SEVERAL_SERVICES_RE }).first()
     if ((await duties.count()) === 0) test.skip()
     await duties.click()
     await expect(page).toHaveURL(TEMPLATE_RE)
     await page.setViewportSize({ width: 390, height: 844 })
     const reorder = page.getByRole('button', { name: 'Réorganiser les services' })
-    await reorder.waitFor()
     const names = () =>
       page
         .getByRole('button', { name: DOWN_RE })
@@ -258,18 +268,26 @@ test.describe('Schedule templates: a part in the template panel', () => {
     await reorder.click()
     const before = await names()
     const [first, second] = before
-    const down = orderSaved(page)
-    await page.getByRole('button', { name: `Descendre ${first}`, exact: true }).click()
-    expect((await down).ok()).toBe(true)
-    await expect(page.getByText(`« ${first} » descendue d’une place.`)).toBeVisible()
-    await page.reload()
-    await page.getByRole('button', { name: 'Réorganiser les services' }).click()
-    expect((await names()).slice(0, 2)).toEqual([second, first])
-    const up = orderSaved(page)
-    await page.getByRole('button', { name: `Monter ${first}`, exact: true }).click()
-    expect((await up).ok()).toBe(true)
-    await page.reload()
-    await page.getByRole('button', { name: 'Réorganiser les services' }).click()
-    expect(await names()).toEqual(before)
+    // A failed run puts the order back too, so the next one starts from the same template.
+    try {
+      const down = orderSaved(page)
+      await page.getByRole('button', { name: `Descendre ${first}`, exact: true }).click()
+      expect((await down).ok()).toBe(true)
+      await expect(page.getByText(`« ${first} » descendu d’une place.`)).toBeVisible()
+      await page.reload()
+      await page.getByRole('button', { name: 'Réorganiser les services' }).click()
+      expect((await names()).slice(0, 2)).toEqual([second, first])
+    } finally {
+      await page.reload()
+      await page.getByRole('button', { name: 'Réorganiser les services' }).click()
+      if ((await names())[0] !== first) {
+        const up = orderSaved(page)
+        await page.getByRole('button', { name: `Monter ${first}`, exact: true }).click()
+        expect((await up).ok()).toBe(true)
+      }
+      await page.reload()
+      await page.getByRole('button', { name: 'Réorganiser les services' }).click()
+      expect(await names()).toEqual(before)
+    }
   })
 })
