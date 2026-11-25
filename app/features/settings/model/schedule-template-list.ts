@@ -64,3 +64,47 @@ export function groupTemplateParts<P extends ListedPart>(parts: P[]) {
 function trackOrder(parts: ListedPart[], track: string) {
   return parts.find(part => part.track === track)?.trackOrder ?? 0
 }
+
+/** Where a new part starts: its section and hall, and its place. */
+export interface PartDraft {
+  section: string
+  track: string
+  trackOrder: number | null
+  order: number
+}
+
+/** A place after a group's last part; after the template's last for an empty group. */
+export const orderAfter = (group: readonly ListedPart[], lastOrder: number) => (group.at(-1)?.order ?? lastOrder) + 1
+
+/** « + Partie » at the end of a section's parts outside any hall. */
+export function sectionPartDraft<P extends ListedPart>(run: PartRun<P>, lastOrder: number): PartDraft {
+  return { section: run.section ?? '', track: '', trackOrder: null, order: orderAfter(run.parts, lastOrder) }
+}
+
+/** « + Partie » at the end of a hall, in that hall. */
+export function hallPartDraft<P extends ListedPart>(run: PartRun<P>, hall: PartHall<P>, lastOrder: number): PartDraft {
+  return {
+    section: run.section ?? '',
+    track: hall.name,
+    trackOrder: hall.parts[0]?.trackOrder ?? null,
+    order: orderAfter(hall.parts, lastOrder),
+  }
+}
+
+/**
+ * « Ajouter une salle en parallèle »: the section's next hall, after its last part. The first is the second hall (its
+ * parts become the main one), the next ones are numbered on; the names come from the caller, in the reader's language.
+ */
+export function newHallDraft<P extends ListedPart>(
+  run: PartRun<P>,
+  lastOrder: number,
+  names: { second: string; nth: (number: number) => string },
+): PartDraft {
+  const first = run.halls.length === 0
+  return {
+    section: run.section ?? '',
+    track: first ? names.second : names.nth(run.halls.length + 1),
+    trackOrder: first ? 2 : run.halls.length + 1,
+    order: orderAfter([...run.parts, ...run.halls.flatMap(hall => hall.parts)], lastOrder),
+  }
+}

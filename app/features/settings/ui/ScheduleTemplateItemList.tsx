@@ -1,7 +1,14 @@
 import { Plus } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { resolvePartCapability } from '~/features/events'
-import { groupTemplateParts, type ListedPart } from '~/features/settings/model/schedule-template-list'
+import {
+  groupTemplateParts,
+  hallPartDraft,
+  type ListedPart,
+  newHallDraft,
+  type PartDraft,
+  sectionPartDraft,
+} from '~/features/settings/model/schedule-template-list'
 import * as m from '~/i18n/paraglide/messages'
 import { getRoleDisplayName, type RoleOption } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
@@ -27,13 +34,7 @@ export interface ItemListService {
 
 export type ItemKind = 'part' | 'service'
 
-/** Where a new part starts: its section and hall, and its place (after its group's last part). */
-export interface PartDraft {
-  section: string
-  track: string
-  trackOrder: number | null
-  order: number
-}
+export type { PartDraft }
 
 /** The `data-item` mark of an item's row, where focus goes back after its form closes. */
 export const itemMark = (kind: ItemKind, id: number) => `${kind}-${id}`
@@ -167,7 +168,6 @@ export function ScheduleTemplateItemList({
     onAdd('part', { section: sectionName, track: '', trackOrder: null, order: lastOrder + 1 })
   }
   const lastOrder = parts.reduce((max, part) => Math.max(max, part.order), -1)
-  const after = (group: ItemListPart[]) => (group.at(-1)?.order ?? lastOrder) + 1
   const addPart = (label: string, draft: PartDraft) => (
     <div className="flex min-h-10 items-center border-border border-b px-2">
       <Button
@@ -209,27 +209,18 @@ export function ScheduleTemplateItemList({
                         : []),
                     ].join(' · ')}
                     onAddHall={() =>
-                      onAdd('part', {
-                        section: run.section ?? '',
-                        track:
-                          run.halls.length === 0
-                            ? m.settings_schedule_templates_second_hall()
-                            : m.settings_schedule_templates_nth_hall({ number: run.halls.length + 1 }),
-                        trackOrder: run.halls.length === 0 ? 2 : run.halls.length + 1,
-                        order: after([...run.parts, ...run.halls.flatMap(hall => hall.parts)]),
-                      })
+                      onAdd(
+                        'part',
+                        newHallDraft(run, lastOrder, {
+                          second: m.settings_schedule_templates_second_hall(),
+                          nth: number => m.settings_schedule_templates_nth_hall({ number }),
+                        }),
+                      )
                     }
                   />
                 )}
                 {run.parts.map(part => partRow(part, inSection ? 'pl-6' : ''))}
-                {inSection &&
-                  run.halls.length === 0 &&
-                  addPart(run.section ?? '', {
-                    section: run.section ?? '',
-                    track: '',
-                    trackOrder: null,
-                    order: after(run.parts),
-                  })}
+                {inSection && run.halls.length === 0 && addPart(run.section ?? '', sectionPartDraft(run, lastOrder))}
                 {run.halls.map(hall => (
                   <div key={hall.name}>
                     <PartGroupHeader
@@ -243,12 +234,7 @@ export function ScheduleTemplateItemList({
                       ].join(' · ')}
                     />
                     {hall.parts.map(part => partRow(part, 'pl-9'))}
-                    {addPart(hall.name, {
-                      section: run.section ?? '',
-                      track: hall.name,
-                      trackOrder: hall.parts[0]?.trackOrder ?? null,
-                      order: after(hall.parts),
-                    })}
+                    {addPart(hall.name, hallPartDraft(run, hall, lastOrder))}
                   </div>
                 ))}
               </div>
