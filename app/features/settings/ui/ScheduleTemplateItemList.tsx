@@ -144,52 +144,55 @@ export function ScheduleTemplateItemList({
             {m.settings_schedule_templates_services_empty()}
           </p>
         ) : (
-          // The last row's line would double the box's own border.
-          <div className="overflow-hidden rounded-md border border-border [&>div:last-child>div]:border-b-0">
+          <div className="overflow-hidden rounded-md border border-border">
             <OrderArea controls={controls} topIds={serviceKeys} names={serviceNames} words={SERVICE_WORDS}>
-              {services.map((service, index) => {
-                const body = (
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate">{service.name}</span>
-                    <span className={detailClass}>
-                      {roleNames(service.allowedRoleIds) || m.settings_schedule_templates_anyone()}
+              {/* A line between rows only: the drag area adds its own nodes after them, so « last row » is not
+                  the box's last child. */}
+              <div className="divide-y divide-border">
+                {services.map((service, index) => {
+                  const body = (
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate">{service.name}</span>
+                      <span className={detailClass}>
+                        {roleNames(service.allowedRoleIds) || m.settings_schedule_templates_anyone()}
+                      </span>
                     </span>
-                  </span>
-                )
-                return (
-                  <Movable
-                    key={service.id}
-                    id={serviceKeys[index] ?? ''}
-                    index={index}
-                    count={services.length}
-                    controls={controls}
-                    labels={{
-                      drag: m.settings_schedule_templates_move_part({ name: service.name }),
-                      up: m.settings_schedule_templates_move_up({ name: service.name }),
-                      down: m.settings_schedule_templates_move_down({ name: service.name }),
-                    }}
-                    onMove={to => controls?.top(index, to, service.name)}
-                  >
-                    {handle => (
-                      <div className="flex items-stretch border-border border-b">
-                        {handle}
-                        {reordering ? (
-                          <div className={serviceRowClass}>{body}</div>
-                        ) : (
-                          <button
-                            type="button"
-                            data-item={itemMark('service', service.id)}
-                            onClick={() => onOpen('service', service.id)}
-                            className={serviceRowClass}
-                          >
-                            {body}
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </Movable>
-                )
-              })}
+                  )
+                  return (
+                    <Movable
+                      key={service.id}
+                      id={serviceKeys[index] ?? ''}
+                      index={index}
+                      count={services.length}
+                      controls={controls}
+                      labels={{
+                        drag: m.settings_schedule_templates_move_part({ name: service.name }),
+                        up: m.settings_schedule_templates_move_up({ name: service.name }),
+                        down: m.settings_schedule_templates_move_down({ name: service.name }),
+                      }}
+                      onMove={to => controls?.top(index, to, service.name)}
+                    >
+                      {handle => (
+                        <div className="flex items-stretch">
+                          {handle}
+                          {reordering ? (
+                            <div className={serviceRowClass}>{body}</div>
+                          ) : (
+                            <button
+                              type="button"
+                              data-item={itemMark('service', service.id)}
+                              onClick={() => onOpen('service', service.id)}
+                              className={serviceRowClass}
+                            >
+                              {body}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </Movable>
+                  )
+                })}
+              </div>
             </OrderArea>
           </div>
         )}

@@ -207,6 +207,12 @@ export function Movable({
         className="flex w-8 flex-none cursor-grab touch-none items-center justify-center text-faint outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
         {...attributes}
         {...listeners}
+        onKeyDown={event => {
+          // Escape cancels the drag (dnd-kit hears it after the page): marked as handled, the panel around keeps
+          // its own Escape (close, or back up a level) for when nothing is being dragged.
+          if (event.key === 'Escape' && isDragging) event.preventDefault()
+          listeners?.onKeyDown?.(event)
+        }}
       >
         <GripVertical aria-hidden="true" className="size-4" />
       </button>
