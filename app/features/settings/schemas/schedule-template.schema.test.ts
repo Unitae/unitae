@@ -1,6 +1,6 @@
 import { parseWithZod } from '@conform-to/zod/v4'
 import { describe, expect, it } from 'vitest'
-import { scheduleTemplateSchema } from './schedule-template.schema'
+import { renameHallSchema, renameSectionSchema, scheduleTemplateSchema } from './schedule-template.schema'
 
 // Through parseWithZod on a FormData, as the action reads it: conform turns a blank field into a missing one.
 const parse = (fields: Record<string, string>) => {
@@ -51,5 +51,37 @@ describe('scheduleTemplateSchema', () => {
       expect(parse({ scheduleTemplateId: id })).toBeNull()
       expect(parse({ scheduleTemplateId: '7', responsibleRoleId: id })).toBeNull()
     }
+  })
+})
+
+describe('the rename schemas', () => {
+  const read = (schema: typeof renameSectionSchema | typeof renameHallSchema, fields: Record<string, string>) => {
+    const form = new FormData()
+    for (const [name, value] of Object.entries(fields)) form.set(name, value)
+    const submission = parseWithZod(form, { schema })
+    return submission.status === 'success' ? submission.value : null
+  }
+
+  it('reads a section’s rename, trimmed, and refuses a blank or too long name', () => {
+    expect(read(renameSectionSchema, { intent: 'rename-section', from: 'Joyaux', to: '  Perles  ' })).toEqual({
+      intent: 'rename-section',
+      from: 'Joyaux',
+      to: 'Perles',
+    })
+    expect(read(renameSectionSchema, { intent: 'rename-section', from: 'Joyaux', to: '   ' })).toBeNull()
+    expect(read(renameSectionSchema, { intent: 'rename-section', from: 'Joyaux', to: 'x'.repeat(81) })).toBeNull()
+    expect(read(renameSectionSchema, { intent: 'rename-section', to: 'Perles' })).toBeNull()
+  })
+
+  it('reads a hall’s rename within its section, a hall outside any section too', () => {
+    expect(
+      read(renameHallSchema, { intent: 'rename-hall', section: 'Ministère', from: 'Salle B', to: 'Salle 2' }),
+    ).toEqual({ intent: 'rename-hall', section: 'Ministère', from: 'Salle B', to: 'Salle 2' })
+    expect(read(renameHallSchema, { intent: 'rename-hall', from: 'Salle B', to: 'Salle 2' })).toEqual({
+      intent: 'rename-hall',
+      section: '',
+      from: 'Salle B',
+      to: 'Salle 2',
+    })
   })
 })

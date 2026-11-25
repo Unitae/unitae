@@ -22,6 +22,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useFormChanges } from '~/shared/ui/hooks/use-form-changes'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '~/shared/ui/sheet'
+import { useOnSettled } from './use-on-settled'
 
 const FORM_ID = 'schedule-template-form'
 
@@ -142,7 +143,7 @@ export function ScheduleTemplatePanel({
           roles={items.roles}
           presets={items.presets}
           onOpen={(kind, id) => onOpenItem({ kind, id })}
-          onAdd={kind => onOpenItem({ kind, id: null })}
+          onAdd={(kind, draft) => onOpenItem({ kind, id: null, draft })}
         />
       )}
     </div>
@@ -150,10 +151,25 @@ export function ScheduleTemplatePanel({
   const itemEditor =
     item == null || items == null ? null : item.kind === 'part' ? (
       <PartEditor
-        key={`part-${item.id ?? 'new'}`}
+        key={`part-${item.id ?? `new-${item.draft?.section}-${item.draft?.track}-${item.draft?.order}`}`}
         mode="template"
         fetcher={itemFetcher}
-        part={part ?? null}
+        part={
+          part ??
+          (item.draft == null
+            ? null
+            : {
+                name: '',
+                section: item.draft.section,
+                track: item.draft.track,
+                trackOrder: item.draft.trackOrder,
+                order: item.draft.order,
+                durationMin: null,
+                presetId: null,
+                allowedSpeakerRoleIds: [],
+                allowedReaderRoleIds: [],
+              })
+        }
         // After the last part, whatever their numbering (a reorder writes them five apart).
         defaultOrder={items.parts.reduce((max, each) => Math.max(max, each.order), -1) + 1}
         roles={items.roles}
@@ -256,6 +272,11 @@ export function ScheduleTemplatePanel({
             data-schedule-template-sheet=""
             className="sm:max-w-md"
             onEscapeKeyDown={event => {
+              // A rename or a new section's name takes its own Escape (it hears it after this sheet does).
+              if ((event.target as HTMLElement | null)?.closest('[data-own-escape]')) {
+                event.preventDefault()
+                return
+              }
               if (item == null) return
               event.preventDefault()
               onBack()
@@ -303,18 +324,6 @@ export function openPanel(): HTMLElement | null {
 
 function rowOf(mark: string | null): HTMLElement | null {
   return mark == null ? null : document.querySelector<HTMLElement>(`[data-item="${mark}"]`)
-}
-
-/** Runs once a fetcher's submission has settled with `{ ok: true }`: answered and its reload done. */
-function useOnSettled(fetcher: Pick<ReturnType<typeof useFetcher>, 'state' | 'data'>, onSettled: () => void) {
-  const previous = useRef(fetcher.state)
-  const latest = useRef(onSettled)
-  latest.current = onSettled
-  useEffect(() => {
-    const ok = (fetcher.data as { ok?: boolean } | undefined)?.ok
-    if (previous.current !== 'idle' && fetcher.state === 'idle' && ok) latest.current()
-    previous.current = fetcher.state
-  }, [fetcher.state, fetcher.data])
 }
 
 /** What a refused item save says: the form's errors (a conform reply) or the page's refusal. */

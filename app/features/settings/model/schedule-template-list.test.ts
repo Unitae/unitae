@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { groupTemplateParts, type ListedPart } from './schedule-template-list'
+import {
+  groupTemplateParts,
+  hallPartDraft,
+  type ListedPart,
+  newHallDraft,
+  sectionPartDraft,
+} from './schedule-template-list'
 
 const part = (id: number, section: string, durationMin: number | null, track = '', trackOrder = 0): ListedPart => ({
   id,
@@ -7,6 +13,7 @@ const part = (id: number, section: string, durationMin: number | null, track = '
   section,
   track,
   trackOrder,
+  order: id,
   durationMin,
 })
 
@@ -65,5 +72,53 @@ describe('groupTemplateParts', () => {
       ['Salle B', [2, 4]],
     ])
     expect(runs[0]?.minutes).toBe(2 + 9)
+  })
+})
+
+describe('the drafts of a new part', () => {
+  const names = { second: 'Deuxième salle', nth: (number: number) => `Salle ${number}` }
+  const ordered = (id: number, order: number, section: string, track = '', trackOrder: number | null = null) => ({
+    ...part(id, section, 5, track, trackOrder ?? 0),
+    trackOrder,
+    order,
+  })
+
+  it('goes after the last part of its group, keeping its section and hall', () => {
+    const { runs } = groupTemplateParts([
+      ordered(1, 3, 'Ministère'),
+      ordered(2, 4, 'Ministère', 'Salle principale', 1),
+      ordered(3, 6, 'Ministère', 'Salle B', 2),
+      ordered(4, 7, 'Ministère', 'Salle B', 2),
+    ])
+    const [run] = runs
+    if (run == null) throw new Error('no run')
+    expect(sectionPartDraft(run, 40)).toEqual({ section: 'Ministère', track: '', trackOrder: null, order: 4 })
+    expect(hallPartDraft(run, run.halls[1] ?? run.halls[0], 40)).toEqual({
+      section: 'Ministère',
+      track: 'Salle B',
+      trackOrder: 2,
+      order: 8,
+    })
+  })
+
+  it('opens a section’s first parallel hall as its second, the next ones numbered on, after the section', () => {
+    const plain = groupTemplateParts([ordered(1, 3, 'Joyaux'), ordered(2, 4, 'Joyaux')]).runs[0]
+    const inHalls = groupTemplateParts([
+      ordered(1, 3, 'Ministère', 'Salle principale', 1),
+      ordered(2, 5, 'Ministère', 'Salle B', 2),
+    ]).runs[0]
+    if (plain == null || inHalls == null) throw new Error('no run')
+    expect(newHallDraft(plain, 40, names)).toEqual({
+      section: 'Joyaux',
+      track: 'Deuxième salle',
+      trackOrder: 2,
+      order: 5,
+    })
+    expect(newHallDraft(inHalls, 40, names)).toEqual({
+      section: 'Ministère',
+      track: 'Salle 3',
+      trackOrder: 3,
+      order: 6,
+    })
   })
 })

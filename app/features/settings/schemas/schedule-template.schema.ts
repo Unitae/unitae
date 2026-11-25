@@ -23,3 +23,18 @@ export const scheduleTemplateSchema = z.object({
 })
 
 export type ScheduleTemplateInput = z.infer<typeof scheduleTemplateSchema>
+
+/** « Renommer » on a section's header: its name on every part in it. */
+export const renameSectionSchema = z.object({
+  intent: z.literal('rename-section'),
+  from: z.string().min(1),
+  to: z.string().trim().min(1).max(80),
+})
+
+/** « Renommer » on a hall's header, within its section. */
+export const renameHallSchema = z.object({
+  intent: z.literal('rename-hall'),
+  section: z.string().optional().default(''),
+  from: z.string().min(1),
+  to: z.string().trim().min(1).max(80),
+})

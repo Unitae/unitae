@@ -2,23 +2,41 @@ import { useEffect, useRef, useState } from 'react'
 import { useBlocker, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 import * as m from '~/i18n/paraglide/messages'
-import type { ItemKind } from './ScheduleTemplateItemList'
+import type { ItemKind, PartDraft } from './ScheduleTemplateItemList'
 
 /** The item open at the panel's second level: one of the template's, or a new one (`id: null`). */
 export interface OpenItem {
   kind: ItemKind
   id: number | null
+  /** A new part's section, hall and place, from where it was added. */
+  draft?: PartDraft
 }
+
+/** A new part's starting point in the address: kept by a reload, dropped with the item. */
+const DRAFT_PARAMS = ['section', 'hall', 'hallOrder', 'order'] as const
 
 const ITEM = /^(part|service)-(\d+)$/
 const NEW_ITEM = /^new-(part|service)$/
 
-/** The item `?item=` opens: one of the template's (`part-12`), or a new one (`new-part`). */
-export function readItem(value: string | null): OpenItem | null {
+/** The item the address opens: one of the template's (`part-12`), or a new one with its starting point. */
+export function readItem(params: URLSearchParams): OpenItem | null {
+  const value = params.get('item')
   const existing = value?.match(ITEM)
   if (existing) return { kind: existing[1] as ItemKind, id: Number(existing[2]) }
   const fresh = value?.match(NEW_ITEM)
-  return fresh ? { kind: fresh[1] as ItemKind, id: null } : null
+  if (!fresh) return null
+  const order = Number(params.get('order'))
+  const hallOrder = Number(params.get('hallOrder'))
+  const draft =
+    params.get('order') != null && params.get('order') !== '' && Number.isFinite(order)
+      ? {
+          section: params.get('section') ?? '',
+          track: params.get('hall') ?? '',
+          trackOrder: params.has('hallOrder') && Number.isFinite(hallOrder) ? hallOrder : null,
+          order,
+        }
+      : undefined
+  return { kind: fresh[1] as ItemKind, id: null, draft }
 }
 
 /**
@@ -54,7 +72,7 @@ export function useScheduleTemplatePage({
 
   const asked = Number(params.get('template'))
   const templateId = templateIds.includes(asked) ? asked : null
-  const askedItem = templateId == null ? null : readItem(params.get('item'))
+  const askedItem = templateId == null ? null : readItem(params)
   const item = askedItem != null && templateId != null && itemExists(askedItem, templateId) ? askedItem : null
   // An item the address names that is no longer there (deleted, here or elsewhere): back to the first level.
   const stale = askedItem != null && item == null
@@ -73,6 +91,7 @@ export function useScheduleTemplatePage({
     setParams(
       prev => {
         prev.delete('item')
+        for (const name of DRAFT_PARAMS) prev.delete(name)
         return prev
       },
       { preventScrollReset: true, replace: true },
@@ -103,6 +122,13 @@ export function useScheduleTemplatePage({
         setParams(
           prev => {
             prev.set('item', next.id == null ? `new-${next.kind}` : `${next.kind}-${next.id}`)
+            for (const name of DRAFT_PARAMS) prev.delete(name)
+            if (next.draft != null) {
+              prev.set('section', next.draft.section)
+              prev.set('hall', next.draft.track)
+              if (next.draft.trackOrder != null) prev.set('hallOrder', String(next.draft.trackOrder))
+              prev.set('order', String(next.draft.order))
+            }
             return prev
           },
           { ...keep, state: { level: 'item' } },
@@ -140,6 +166,7 @@ export function useScheduleTemplatePage({
     setParams(
       prev => {
         prev.delete('item')
+        for (const name of DRAFT_PARAMS) prev.delete(name)
         return prev
       },
       { ...keep, replace: true },

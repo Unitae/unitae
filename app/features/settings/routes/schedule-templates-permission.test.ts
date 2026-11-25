@@ -145,17 +145,21 @@ describe('schedule-templates action', () => {
     expect(saved).toEqual([])
   })
 
-  it.each(['upsert-part', 'delete-part', 'upsert-service-role', 'delete-service-role'])(
-    'sends the item intent %s to the item handler, a duties template’s too',
-    async intent => {
-      await action({
-        request: formRequest(`${URL}?template=8`, { intent }),
-        params: {},
-        context: routeContext([Permission.CanManageProgramTemplates]),
-      } as never)
-      expect(saved).toEqual([['item', 8, intent]])
-    },
-  )
+  it.each([
+    'upsert-part',
+    'delete-part',
+    'upsert-service-role',
+    'delete-service-role',
+    'rename-section',
+    'rename-hall',
+  ])('sends the item intent %s to the item handler, a duties template’s too', async intent => {
+    await action({
+      request: formRequest(`${URL}?template=8`, { intent }),
+      params: {},
+      context: routeContext([Permission.CanManageProgramTemplates]),
+    } as never)
+    expect(saved).toEqual([['item', 8, intent]])
+  })
 
   it.each(
     ['upsert-part', 'upsert-service-role', 'delete-service-role'].flatMap(intent =>

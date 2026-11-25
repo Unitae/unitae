@@ -4449,7 +4449,6 @@
     "settings_schedule_templates_suggested_none": "Nenhum tipo: adiciona-se a partir da reunião, com «Adicionar um planeamento».",
     "settings_schedule_templates_parts_label": "Partes",
     "settings_schedule_templates_services_label": "Serviços",
-    "settings_schedule_templates_add_part": "Adicionar uma parte",
     "settings_schedule_templates_add_service": "Adicionar um serviço",
     "settings_schedule_templates_anyone": "Todos os publicadores",
     "settings_schedule_templates_with_reader": "com segundo orador",
@@ -4464,19 +4463,6 @@
             "match": {
                 "countPlural=one": "{count} sala em paralelo",
                 "countPlural=*": "{count} salas em paralelo"
-            }
-        }
-    ],
-    "settings_schedule_templates_hall": [
-        {
-            "declarations": [
-                "input count",
-                "local countPlural = count: plural"
-            ],
-            "selectors": ["countPlural"],
-            "match": {
-                "countPlural=one": "{name} · {count} parte",
-                "countPlural=*": "{name} · {count} partes"
             }
         }
     ],
@@ -4510,6 +4496,23 @@
     "settings_schedule_templates_no_kind": "Nenhum tipo utiliza este modelo: o seu conteúdo edita-se quando um tipo o utilizar.",
     "settings_schedule_templates_save_part": "Guardar a parte",
     "settings_schedule_templates_save_service": "Guardar o serviço",
+    "settings_schedule_templates_section_renamed": "Secção renomeada.",
+    "settings_schedule_templates_hall_renamed": "Sala renomeada.",
+    "settings_schedule_templates_main_hall": "Sala principal",
+    "settings_schedule_templates_rename": "Renomear",
+    "settings_schedule_templates_add_hall": "Adicionar uma sala em paralelo",
+    "settings_schedule_templates_delete_when_empty": "Eliminar: retire primeiro as suas partes.",
+    "settings_schedule_templates_section_actions": "Ações da secção {name}",
+    "settings_schedule_templates_hall_actions": "Ações da sala {name}",
+    "settings_schedule_templates_add_part_to": "Adicionar uma parte a {name}",
+    "settings_schedule_templates_part_short": "Parte",
+    "settings_schedule_templates_section_name": "Nome da secção",
+    "settings_schedule_templates_hall_name": "Nome da sala",
+    "settings_schedule_templates_new_section_hint": "Uma secção sem partes não é guardada: adicione a sua primeira parte. Se fechar o painel antes, é abandonada.",
+    "settings_schedule_templates_first_part": "Primeira parte",
+    "settings_schedule_templates_add_section": "Adicionar uma secção",
+    "settings_schedule_templates_add_part_loose": "Adicionar uma parte fora de secção",
+    "settings_schedule_templates_second_hall": "Segunda sala",
     "settings_schedule_templates_services_empty": "Nenhum serviço. Adicione o primeiro.",
     "settings_schedule_templates_used": [
         {
@@ -7834,5 +7837,12 @@
     "demo_expired_message": "Uma ligação de demonstração abre uma só vez, no prazo de um minuto, e uma demonstração é apagada após uma hora sem atividade.",
     "demo_expired_new": "Abrir uma nova demonstração",
     "demo_refused": "Não disponível na demonstração.",
-    "settings_schedule_templates_item_gone": "Este elemento foi eliminado entretanto; as suas alterações não foram guardadas."
+    "settings_schedule_templates_item_gone": "Este elemento foi eliminado entretanto; as suas alterações não foram guardadas.",
+    "settings_schedule_templates_name_unchanged": "O nome não mudou.",
+    "settings_schedule_templates_section_taken": "Outra secção já tem este nome: escolha outro.",
+    "settings_schedule_templates_hall_taken": "Outra sala desta secção já tem este nome: escolha outro.",
+    "settings_schedule_templates_section_gone": "Esta secção já não existe: a lista acabou de ser recarregada.",
+    "settings_schedule_templates_hall_gone": "Esta sala já não existe: a lista acabou de ser recarregada.",
+    "settings_schedule_templates_nth_hall": "Sala {number}",
+    "settings_schedule_templates_name_blank": "Dê-lhe um nome."
 }
