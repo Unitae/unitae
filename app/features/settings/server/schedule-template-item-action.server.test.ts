@@ -45,9 +45,10 @@ vi.mock('~/features/events/index.server', () => ({
       return 2
     },
   ),
+  // A write the service itself refuses: an order starting with part 99.
   reorderTemplateParts: vi.fn(async (_db: unknown, _congregationId: number, kindId: number, ids: number[]) => {
     calls.push(['reorder', kindId, ids])
-    return true
+    return ids[0] !== 99
   }),
   makeRoomAtTemplateOrder: vi.fn(async (_db: unknown, kindId: number, order: number) => {
     calls.push(['room', kindId, order])
@@ -347,4 +348,37 @@ describe('handleScheduleTemplateItem', () => {
     expect(outcomes).toEqual(Array(7).fill('refused'))
     expect(calls).toEqual([])
   })
+
+  it('answers an incomplete order 409 with « la liste a changé », so the page reloads; an unreadable one 400', async () => {
+    items.current = { kind: 'programme', kindId: 270, parts: [{ id: 1 }, { id: 2 }] }
+    const incomplete = await handleScheduleTemplateItem(
+      {} as never,
+      3,
+      form('reorder-parts', { orderedIds: '[2]' }),
+      ACTOR,
+    )
+    const unreadable = await handleScheduleTemplateItem(
+      {} as never,
+      3,
+      form('reorder-parts', { orderedIds: 'x' }),
+      ACTOR,
+    )
+    expect([statusOf(incomplete), statusOf(unreadable)]).toEqual([409, 400])
+    expect(JSON.stringify(incomplete)).toContain('La liste a changé entre-temps')
+  })
+
+  it('answers 409 when the write itself is refused', async () => {
+    items.current = { kind: 'programme', kindId: 270, parts: [{ id: 99 }, { id: 2 }] }
+    const result = await handleScheduleTemplateItem(
+      {} as never,
+      3,
+      form('reorder-parts', { orderedIds: '[99,2]' }),
+      ACTOR,
+    )
+    expect([result?.kind, statusOf(result)]).toEqual(['refused', 409])
+  })
 })
+
+function statusOf(result: Awaited<ReturnType<typeof handleScheduleTemplateItem>>) {
+  return result?.kind === 'refused' ? (result.response as { init: ResponseInit | null }).init?.status : null
+}

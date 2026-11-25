@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
 import { E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD, login } from './helpers/auth'
 
 // Réglages › « Modèles de planning »: a part added, changed and deleted in a template's panel shows in its list at
@@ -9,6 +9,12 @@ const PART_RE = /item=part-\d+/
 const ANY_ITEM_RE = /item=/
 const IN_SECTION_RE = /section=[^&]+/
 const DELETE_RE = /Supprimer/
+
+// The answer to a reorder posted from the page (not any other request).
+const orderSaved = (page: Page) =>
+  page.waitForResponse(
+    response => response.request().method() === 'POST' && response.url().includes('/settings/schedule-templates'),
+  )
 
 test.describe('Schedule templates: a part in the template panel', () => {
   test.beforeEach(async ({ page }) => {
@@ -178,18 +184,37 @@ test.describe('Schedule templates: a part in the template panel', () => {
       })
       .toBe(true)
     // The drop saves the new order: wait for its answer before reading the page again.
-    const saved = page.waitForResponse(response => response.request().method() === 'POST')
+    const saved = orderSaved(page)
     await page.keyboard.press('Space')
     expect((await saved).ok()).toBe(true)
     await page.reload()
     await expect.poll(() => above(beta, alpha)).toBe(true)
 
-    // On a phone: « Réorganiser les parties », « Descendre », the move said, « Terminé ».
+    // On a phone: « Réorganiser les parties » (rows only move: nothing opens, nothing is added), « Descendre »,
+    // the move said once saved, « Terminé », and the order kept on a reload.
     await page.setViewportSize({ width: 390, height: 844 })
     await page.getByRole('button', { name: 'Réorganiser les parties' }).click()
+    await expect(page.locator('[data-item^="part-"]')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Ajouter une partie hors section' })).toHaveCount(0)
+    const down = orderSaved(page)
     await page.getByRole('button', { name: `Descendre Beta e2e ${stamp}`, exact: true }).click()
+    expect((await down).ok()).toBe(true)
     await expect(page.getByText(`« Beta e2e ${stamp} » descendue d’une place.`)).toBeVisible()
+
+    // A whole section up one place, then back: each move saved and kept on a reload.
+    const header = page.getByRole('button', { name: `Monter la section ${section}`, exact: true })
+    const before = (await header.boundingBox())?.y ?? 0
+    const up = orderSaved(page)
+    await header.click()
+    expect((await up).ok()).toBe(true)
+    await page.reload()
+    await page.getByRole('button', { name: 'Réorganiser les parties' }).click()
+    await expect.poll(async () => (await header.boundingBox())?.y ?? 0).toBeLessThan(before)
+    const back = orderSaved(page)
+    await page.getByRole('button', { name: `Descendre la section ${section}`, exact: true }).click()
+    expect((await back).ok()).toBe(true)
     await page.getByRole('button', { name: 'Terminé' }).click()
+    await page.reload()
     await expect.poll(() => above(alpha, beta)).toBe(true)
 
     await page.setViewportSize({ width: 1440, height: 1000 })

@@ -223,6 +223,23 @@ describe('reordering', () => {
     ])
   })
 
+  it('keeps every part in a top move, whatever the shapes: a section run twice, a section with loose parts and halls', () => {
+    const mixed = [
+      at(1, 0, 'Joyaux'),
+      at(2, 1, ''),
+      at(3, 2, 'Joyaux'),
+      at(4, 3, 'Ministère'),
+      at(5, 4, 'Ministère', 'Salle B', 2),
+      at(6, 5, '', 'Annexe', 1),
+    ]
+    for (let from = 0; from < topItems(mixed).length; from++) {
+      for (let to = 0; to < topItems(mixed).length; to++) {
+        const ids = idsAfterTopMove(mixed, from, to)
+        if (ids != null) expect([...ids].sort()).toEqual([1, 2, 3, 4, 5, 6])
+      }
+    }
+  })
+
   it('moves a part outside any section that carries a room on its own, never leaving it out', () => {
     // Written by the meeting type's own form, which still takes any room: « Annexe » outside any section.
     const withRoom = [at(1, 0, ''), at(8, 1, '', 'Annexe', 1), at(2, 2, 'Joyaux'), at(3, 3, 'Joyaux')]
@@ -252,7 +269,9 @@ describe('reordering', () => {
     // Alone in its hall, or past its group's end: nowhere to go.
     expect(idsAfterGroupMove(parts, 5, 1)).toBeNull()
     expect(idsAfterGroupMove(parts, 2, 2)).toBeNull()
-    // A part outside any section moves at the top, not here.
+    // A part outside any section moves at the top, not here, even beside another one.
     expect(idsAfterGroupMove(parts, 1, 0)).toBeNull()
+    const twoLoose = [at(1, 0, ''), at(9, 1, ''), at(2, 2, 'Joyaux')]
+    expect(idsAfterGroupMove(twoLoose, 9, 0)).toBeNull()
   })
 })

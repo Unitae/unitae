@@ -31,7 +31,7 @@ vi.mock('react', () => ({
   useEffect: (run: () => void) => effects.push(run),
 }))
 vi.mock('react-router', () => ({
-  useFetcher: () => ({ ...fetcher, submit: (data: unknown) => fetcher.sent.push(data) }),
+  useFetcher: () => ({ ...fetcher, submit: (data: unknown, options: unknown) => fetcher.sent.push([data, options]) }),
 }))
 
 const { useTemplateReorder } = await import('./use-template-reorder')
@@ -81,9 +81,25 @@ describe('useTemplateReorder', () => {
     render(false).controls?.top(2, 1, 'P4')
     render(false).controls?.group(3, 1, 0, 'P3')
     expect(fetcher.sent).toEqual([
-      { intent: 'reorder-parts', orderedIds: '[1,4,2,3]' },
-      { intent: 'reorder-parts', orderedIds: '[1,3,2,4]' },
+      [{ intent: 'reorder-parts', orderedIds: '[1,4,2,3]' }, { method: 'post' }],
+      [{ intent: 'reorder-parts', orderedIds: '[1,3,2,4]' }, { method: 'post' }],
     ])
+  })
+
+  it('builds a move made while the previous one saves on the order being saved, not the stored one', () => {
+    const sending = new FormData()
+    sending.set('orderedIds', '[4,1,2,3]')
+    Object.assign(fetcher, { state: 'submitting', formData: sending })
+    // P1 is now second at the top: moved first, after P4.
+    render(true).controls?.top(1, 0, 'P1')
+    expect(fetcher.sent).toEqual([[{ intent: 'reorder-parts', orderedIds: '[1,4,2,3]' }, { method: 'post' }]])
+  })
+
+  it('shows no refusal while a new order saves', () => {
+    answer({ ok: false, errors: ['La liste a changé'] }, true)
+    expect(render(true).refusal).toBe('La liste a changé')
+    Object.assign(fetcher, { state: 'submitting' })
+    expect(render(true).refusal).toBe('')
   })
 
   it('says an up or down move once it is saved, the refusal instead when refused, and the same words twice', () => {
