@@ -7902,5 +7902,6 @@
     "programs_edit_part_where_remove_title": "Retirer « {part} » de {rooms} ?",
     "programs_edit_part_where_remove_body": "Les prochaines réunions créées avec ce modèle n’auront plus cette partie dans ces salles. Les réunions déjà préparées la gardent, avec qui y est assigné.",
     "programs_edit_part_where_remove_confirm": "Retirer",
-    "programs_edit_part_where_room_quoted": "« {name} »"
+    "programs_edit_part_where_room_quoted": "« {name} »",
+    "programs_edit_part_where_pick_room": "Cochez au moins une autre salle, ou choisissez « Toute l’assemblée »."
 }

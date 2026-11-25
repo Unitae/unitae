@@ -7902,5 +7902,6 @@
     "programs_edit_part_where_remove_title": "Remove “{part}” from {rooms}?",
     "programs_edit_part_where_remove_body": "The next meetings created from this template will no longer have this part in these rooms. Meetings already prepared keep it, with whoever is assigned there.",
     "programs_edit_part_where_remove_confirm": "Remove",
-    "programs_edit_part_where_room_quoted": "“{name}”"
+    "programs_edit_part_where_room_quoted": "“{name}”",
+    "programs_edit_part_where_pick_room": "Tick at least one other room, or choose “The whole congregation”."
 }

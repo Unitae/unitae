@@ -95,17 +95,24 @@ export function PartPlaceFields({
               hint={m.programs_edit_part_where_parallel_hint()}
             >
               {parallel && (
-                <div className="flex flex-col gap-2 pt-1 pb-3 pl-[38px] pr-3">
+                <fieldset
+                  aria-label={m.settings_schedule_templates_rooms_title()}
+                  className="m-0 flex min-w-0 flex-col gap-2 border-0 pt-1 pr-3 pb-3 pl-[38px]"
+                >
                   {main != null && (
-                    <div className="flex items-center gap-2.5 text-sm">
+                    // 44 px rows on a phone, as every control there.
+                    <div className="flex min-h-11 items-center gap-2.5 text-sm sm:min-h-0">
                       <Checkbox id={`${id}-room-${main.id}`} checked disabled />
-                      <label htmlFor={`${id}-room-${main.id}`}>{roomLabel(main)}</label>
-                      <span className="text-faint text-xs">{m.programs_edit_part_where_always()}</span>
+                      <label htmlFor={`${id}-room-${main.id}`}>
+                        {roomLabel(main)}{' '}
+                        <span className="text-faint text-xs">{m.programs_edit_part_where_always()}</span>
+                      </label>
                     </div>
                   )}
                   {others.map(room => (
-                    <div key={room.id} className="flex items-center gap-2.5 text-sm">
+                    <div key={room.id} className="flex min-h-11 items-center gap-2.5 text-sm sm:min-h-0">
                       <Checkbox
+                        data-room-checkbox=""
                         id={`${id}-room-${room.id}`}
                         checked={ticked.includes(room.id)}
                         onCheckedChange={checked =>
@@ -117,10 +124,20 @@ export function PartPlaceFields({
                       <label htmlFor={`${id}-room-${room.id}`}>{roomLabel(room)}</label>
                     </div>
                   ))}
-                  <p className="text-faint text-xs">
-                    {m.programs_edit_part_where_count({ count: String(held.length) })}
-                  </p>
-                </div>
+                  {ticked.length === 0 ? (
+                    <>
+                      {/* Read by the form: it will not save « plusieurs salles » with no other room. */}
+                      <input type="hidden" name="partRoomsMissing" value="on" />
+                      <p role="alert" className="text-danger-text text-xs">
+                        {m.programs_edit_part_where_pick_room()}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-faint text-xs">
+                      {m.programs_edit_part_where_count({ count: String(held.length) })}
+                    </p>
+                  )}
+                </fieldset>
               )}
             </WhereOption>
           </RadioGroup>

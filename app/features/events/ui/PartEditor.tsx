@@ -116,7 +116,7 @@ export function PartEditor({
   const [trackValue, setTrackValue] = useState(part?.track ?? '')
   const [presetValue, setPresetValue] = useState(part?.presetId ? String(part.presetId) : NO_PRESET_VALUE)
   // A save that takes the part out of rooms waits for « Retirer » (design « TourA-Salles-Partie »).
-  const [takenAway, setTakenAway] = useState<{ rooms: PartRoom[]; form: HTMLFormElement } | null>(null)
+  const [takenAway, setTakenAway] = useState<{ rooms: PartRoom[]; form: HTMLFormElement; name: string } | null>(null)
   const speakerRolesId = useId()
   const readerRolesId = useId()
 
@@ -141,16 +141,25 @@ export function PartEditor({
       method="post"
       className={cn('flex flex-col gap-4', className)}
       onSubmit={event => {
-        if (places == null || part?.id == null) return
-        const after = new FormData(event.currentTarget).getAll('partRooms').map(Number)
+        if (places == null) return
+        const sent = new FormData(event.currentTarget)
+        // « En même temps dans plusieurs salles » with no other room ticked: nothing to save yet.
+        if (sent.get('partRoomsMissing') != null) {
+          event.preventDefault()
+          event.currentTarget.querySelector<HTMLElement>('[data-room-checkbox]')?.focus()
+          return
+        }
+        if (part?.id == null) return
+        const after = sent.getAll('partRooms').map(Number)
         const rooms = roomsTakenAway(places.rooms, part.roomIds ?? [], after)
         if (rooms.length === 0) return
         event.preventDefault()
-        setTakenAway({ rooms, form: event.currentTarget })
+        // Named as the form has it now: a part renamed in the same edit.
+        setTakenAway({ rooms, form: event.currentTarget, name: String(sent.get('partName') ?? part.name) })
       }}
     >
       <RoomRemovalDialog
-        part={part?.name ?? ''}
+        part={takenAway?.name ?? part?.name ?? ''}
         rooms={takenAway?.rooms ?? []}
         onCancel={() => setTakenAway(null)}
         onConfirm={() => {

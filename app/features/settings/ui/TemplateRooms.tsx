@@ -1,5 +1,5 @@
 import { Check, MoreHorizontal, X } from 'lucide-react'
-import { useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useFetcher } from 'react-router'
 import { type PartRoom, roomLabel } from '~/features/events'
 import * as m from '~/i18n/paraglide/messages'
@@ -46,6 +46,12 @@ export function TemplateRooms({ rooms }: { rooms: TemplateRoom[] }) {
     setName('')
     input.current?.focus()
   })
+  // A room deleted takes its row and its « … » button: focus goes to the name field rather than the page.
+  const count = useRef(rooms.length)
+  useEffect(() => {
+    if (rooms.length < count.current && document.activeElement === document.body) input.current?.focus()
+    count.current = rooms.length
+  }, [rooms.length])
   const clean = name.trim()
   const taken = rooms.some(room => roomLabel(room) === clean)
   const message = taken ? m.settings_schedule_templates_room_taken() : refusalOf(add)
@@ -61,6 +67,14 @@ export function TemplateRooms({ rooms }: { rooms: TemplateRoom[] }) {
         ))}
         <add.Form
           method="post"
+          // While a name is typed, Escape clears it rather than closing the panel (the sheet reads this mark).
+          data-own-escape={name !== '' ? '' : undefined}
+          onKeyDown={event => {
+            if (event.key !== 'Escape' || name === '') return
+            event.preventDefault()
+            event.stopPropagation()
+            setName('')
+          }}
           className="flex flex-col gap-1 px-2 py-1.5"
           onSubmit={event => {
             if (clean === '' || taken) event.preventDefault()

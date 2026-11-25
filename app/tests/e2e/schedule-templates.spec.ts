@@ -13,7 +13,7 @@ const IN_SECTION_RE = /section=[^&]+/
 const DELETE_RE = /Supprimer/
 const PARALLEL_RE = /En même temps dans plusieurs salles/
 const WHOLE_RE = /Toute l’assemblée/
-const ROOMS_TAG_RE = /\d salles/
+const ROOMS_TAG_RE = /[2-9] salles/
 
 // The answer to a reorder posted from the page (not any other request).
 const orderSaved = (page: Page) =>
@@ -332,6 +332,11 @@ test.describe('Schedule templates: a part in the template panel', () => {
     const row = page.getByRole('button', { name: new RegExp(`^${part}`) })
     const roomRow = page.getByText(room, { exact: true })
     try {
+      // Escape clears a name being typed, and the panel stays.
+      await page.getByPlaceholder('Nom de la salle').fill('Brouillon')
+      await page.getByPlaceholder('Nom de la salle').press('Escape')
+      await expect(page.getByPlaceholder('Nom de la salle')).toHaveValue('')
+      await expect(page).toHaveURL(TEMPLATE_RE)
       await page.getByPlaceholder('Nom de la salle').fill(room)
       await page.getByRole('button', { name: 'Ajouter', exact: true }).click()
       await expect(roomRow).toBeVisible()
@@ -344,6 +349,10 @@ test.describe('Schedule templates: a part in the template panel', () => {
       await row.click()
       await expect(page).toHaveURL(PART_RE)
       await form.getByRole('radio', { name: PARALLEL_RE }).click()
+      // In several rooms with none ticked: not saved, said, and the first room takes focus.
+      await page.getByRole('button', { name: 'Enregistrer la partie' }).click()
+      await expect(form.getByRole('alert')).toContainText('Cochez au moins une autre salle')
+      await expect(page).toHaveURL(PART_RE)
       await form.getByRole('checkbox', { name: room }).click()
       await page.getByRole('button', { name: 'Enregistrer la partie' }).click()
       await expect(page).not.toHaveURL(ANY_ITEM_RE)
