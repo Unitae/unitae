@@ -186,7 +186,8 @@ BEGIN
 END
 $$;
 
-CREATE OR REPLACE FUNCTION "schedule_template_room_for"(template_id int, track text, track_order int, congregation_id int)
+CREATE OR REPLACE FUNCTION "schedule_template_room_for"(template_id int, track text, track_order int, congregation_id int,
+  rename_main boolean DEFAULT false)
 RETURNS int LANGUAGE plpgsql AS $$
 DECLARE main_id int; main_name text; room_id int;
 BEGIN
@@ -195,15 +196,22 @@ BEGIN
   SELECT "id" INTO room_id FROM "ScheduleTemplateRoom" WHERE "scheduleTemplateId" = template_id AND "name" = track;
   IF room_id = main_id THEN RETURN main_id; END IF;
   SELECT "name" INTO main_name FROM "ScheduleTemplateRoom" WHERE "id" = main_id;
-  -- The main room: the editor's main hall (room order 1), renamed with it, or the first room named while it has none.
-  IF track_order = 1 OR (main_name IS NULL AND NOT EXISTS (SELECT 1 FROM "ScheduleTemplateRoom" WHERE "scheduleTemplateId" = template_id AND "id" <> main_id)) THEN
+  -- The main room: the editor's main hall (room order 1), or its parts all renamed at once (`rename_main`), renamed
+  -- with it; or the first room named while it has none.
+  IF track_order = 1 OR rename_main OR (main_name IS NULL AND NOT EXISTS (SELECT 1 FROM "ScheduleTemplateRoom" WHERE "scheduleTemplateId" = template_id AND "id" <> main_id)) THEN
     IF room_id IS NOT NULL THEN
       -- Another room carries the name: its parts join the main room, and it goes.
       UPDATE "TemplatePartRoom" l SET "roomId" = main_id WHERE l."roomId" = room_id
         AND NOT EXISTS (SELECT 1 FROM "TemplatePartRoom" o WHERE o."roomId" = main_id AND o."templatePartId" = l."templatePartId");
       DELETE FROM "ScheduleTemplateRoom" WHERE "id" = room_id;
     END IF;
-    UPDATE "ScheduleTemplateRoom" SET "name" = track, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = main_id AND "name" IS DISTINCT FROM track;
+    BEGIN
+      UPDATE "ScheduleTemplateRoom" SET "name" = track, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = main_id AND "name" IS DISTINCT FROM track;
+    EXCEPTION WHEN unique_violation THEN
+      -- Another writer gave that name to another room at the same moment: the part is in the main room all the
+      -- same, which keeps its name rather than failing the write.
+      NULL;
+    END;
     RETURN main_id;
   END IF;
   IF room_id IS NOT NULL THEN RETURN room_id; END IF;
@@ -246,7 +254,8 @@ BEGIN
 END
 $$;
 
-CREATE OR REPLACE FUNCTION "schedule_room_for"(schedule_id int, track text, track_order int, congregation_id int)
+CREATE OR REPLACE FUNCTION "schedule_room_for"(schedule_id int, track text, track_order int, congregation_id int,
+  rename_main boolean DEFAULT false)
 RETURNS int LANGUAGE plpgsql AS $$
 DECLARE main_id int; main_name text; template_main text; room_id int;
 BEGIN
@@ -259,7 +268,7 @@ BEGIN
   SELECT r."name" INTO template_main FROM "Schedule" s JOIN "ScheduleTemplateRoom" r
     ON r."scheduleTemplateId" = s."scheduleTemplateId" AND r."key" = 'main' WHERE s."id" = schedule_id;
   -- The main room: the editor's main hall (room order 1), renamed with it, or the first room named while it has none.
-  IF track_order = 1 OR track = template_main OR (template_main IS NULL AND main_name IS NULL
+  IF track_order = 1 OR rename_main OR track = template_main OR (template_main IS NULL AND main_name IS NULL
       AND NOT EXISTS (SELECT 1 FROM "ScheduleRoom" WHERE "scheduleId" = schedule_id AND "id" <> main_id)) THEN
     IF room_id IS NOT NULL THEN
       -- Another room carries the name: its parts join the main room, and it goes.
@@ -267,7 +276,13 @@ BEGIN
         AND NOT EXISTS (SELECT 1 FROM "ItemRoom" o WHERE o."roomId" = main_id AND o."itemId" = l."itemId");
       DELETE FROM "ScheduleRoom" WHERE "id" = room_id;
     END IF;
-    UPDATE "ScheduleRoom" SET "name" = track, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = main_id AND "name" IS DISTINCT FROM track;
+    BEGIN
+      UPDATE "ScheduleRoom" SET "name" = track, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = main_id AND "name" IS DISTINCT FROM track;
+    EXCEPTION WHEN unique_violation THEN
+      -- Another writer gave that name to another room at the same moment: the part is in the main room all the
+      -- same, which keeps its name rather than failing the write.
+      NULL;
+    END;
     RETURN main_id;
   END IF;
   IF room_id IS NOT NULL THEN RETURN room_id; END IF;
@@ -379,24 +394,47 @@ $$;
 
 -- A template part written by today's code: its one room row follows its track; a room it leaves empty goes.
 CREATE OR REPLACE FUNCTION "template_part_room"() RETURNS trigger LANGUAGE plpgsql AS $$
-DECLARE room_id int;
+DECLARE room_id int; renamed boolean := false;
 BEGIN
-  IF TG_OP <> 'INSERT' AND OLD."scheduleTemplateId" IS NOT NULL THEN
-    IF TG_OP = 'DELETE' THEN
+  IF TG_OP = 'DELETE' THEN
+    IF OLD."scheduleTemplateId" IS NOT NULL THEN
+      -- Its row goes first: the cascade that would remove it may come after this trigger.
+      DELETE FROM "TemplatePartRoom" WHERE "templatePartId" = OLD."id";
       PERFORM "prune_schedule_template_rooms"(OLD."scheduleTemplateId");
-      RETURN OLD;
     END IF;
+    RETURN OLD;
   END IF;
   IF NEW."scheduleTemplateId" IS NULL
     OR NOT EXISTS (SELECT 1 FROM "ScheduleTemplate" WHERE "id" = NEW."scheduleTemplateId" AND "kind" = 'programme') THEN
     DELETE FROM "TemplatePartRoom" WHERE "templatePartId" = NEW."id";
   ELSE
-    room_id := "schedule_template_room_for"(NEW."scheduleTemplateId", NEW."track", NEW."trackOrder", NEW."congregationId");
-    UPDATE "TemplatePartRoom" SET "roomId" = room_id WHERE "templatePartId" = NEW."id";
-    IF NOT FOUND THEN
-      INSERT INTO "TemplatePartRoom" ("templatePartId", "roomId", "congregationId")
-        VALUES (NEW."id", room_id, NEW."congregationId") ON CONFLICT DO NOTHING;
+    -- The main room's parts all renamed at once (a rename of its hall, with or without a room order): the main room
+    -- takes the name, rather than a new room.
+    IF TG_OP = 'UPDATE' AND OLD."track" <> '' AND NEW."track" IS DISTINCT FROM OLD."track" THEN
+      renamed := EXISTS (
+        SELECT 1 FROM "TemplatePartRoom" l JOIN "ScheduleTemplateRoom" r ON r."id" = l."roomId" AND r."key" = 'main'
+        WHERE l."templatePartId" = NEW."id"
+      ) AND NOT EXISTS (
+        SELECT 1 FROM "TemplatePart" p
+        JOIN "TemplatePartRoom" l ON l."templatePartId" = p."id"
+        JOIN "ScheduleTemplateRoom" r ON r."id" = l."roomId" AND r."key" = 'main'
+        WHERE r."scheduleTemplateId" = NEW."scheduleTemplateId" AND p."id" <> NEW."id" AND p."track" = OLD."track"
+      );
     END IF;
+    -- A room another writer empties and removes at the same moment is made again, once.
+    FOR attempt IN 1..2 LOOP
+      BEGIN
+        room_id := "schedule_template_room_for"(NEW."scheduleTemplateId", NEW."track", NEW."trackOrder", NEW."congregationId", renamed);
+        UPDATE "TemplatePartRoom" SET "roomId" = room_id WHERE "templatePartId" = NEW."id";
+        IF NOT FOUND THEN
+          INSERT INTO "TemplatePartRoom" ("templatePartId", "roomId", "congregationId")
+            VALUES (NEW."id", room_id, NEW."congregationId") ON CONFLICT DO NOTHING;
+        END IF;
+        EXIT;
+      EXCEPTION WHEN foreign_key_violation THEN
+        IF attempt = 2 THEN RAISE; END IF;
+      END;
+    END LOOP;
     PERFORM "prune_schedule_template_rooms"(NEW."scheduleTemplateId");
   END IF;
   IF TG_OP = 'UPDATE' AND OLD."scheduleTemplateId" IS DISTINCT FROM NEW."scheduleTemplateId" AND OLD."scheduleTemplateId" IS NOT NULL THEN
@@ -409,30 +447,54 @@ $$;
 -- A meeting part written by today's code: its one room row follows its track and carries its assignees, keeping its id
 -- when it changes room; a room it leaves empty goes.
 CREATE OR REPLACE FUNCTION "item_room"() RETURNS trigger LANGUAGE plpgsql AS $$
-DECLARE room_id int;
+DECLARE room_id int; renamed boolean := false;
 BEGIN
   IF TG_OP = 'DELETE' THEN
-    IF OLD."scheduleId" IS NOT NULL THEN PERFORM "prune_schedule_rooms"(OLD."scheduleId"); END IF;
+    IF OLD."scheduleId" IS NOT NULL THEN
+      -- Its row goes first: the cascade that would remove it comes after this trigger.
+      DELETE FROM "ItemRoom" WHERE "itemId" = OLD."id";
+      PERFORM "prune_schedule_rooms"(OLD."scheduleId");
+    END IF;
     RETURN OLD;
   END IF;
   IF NEW."scheduleId" IS NULL
     OR NOT EXISTS (SELECT 1 FROM "Schedule" WHERE "id" = NEW."scheduleId" AND "kind" = 'programme') THEN
     DELETE FROM "ItemRoom" WHERE "itemId" = NEW."id";
   ELSE
-    room_id := "schedule_room_for"(NEW."scheduleId", NEW."track", NEW."trackOrder", NEW."congregationId");
-    UPDATE "ItemRoom" SET
-      "roomId" = room_id,
-      "assigneeId" = NEW."assigneeId",
-      "assistantId" = NEW."assistantId",
-      "externalSpeakerId" = NEW."externalSpeakerId",
-      "hasConflict" = NEW."hasConflict",
-      "updatedAt" = CURRENT_TIMESTAMP
-    WHERE "itemId" = NEW."id";
-    IF NOT FOUND THEN
-      INSERT INTO "ItemRoom" ("itemId", "roomId", "assigneeId", "assistantId", "externalSpeakerId", "hasConflict", "congregationId", "updatedAt")
-        VALUES (NEW."id", room_id, NEW."assigneeId", NEW."assistantId", NEW."externalSpeakerId", NEW."hasConflict", NEW."congregationId", CURRENT_TIMESTAMP)
-        ON CONFLICT ("itemId", "roomId") DO NOTHING;
+    -- The main room's parts all renamed at once: the main room takes the name, rather than a new room.
+    IF TG_OP = 'UPDATE' AND OLD."track" <> '' AND NEW."track" IS DISTINCT FROM OLD."track" THEN
+      renamed := EXISTS (
+        SELECT 1 FROM "ItemRoom" l JOIN "ScheduleRoom" r ON r."id" = l."roomId" AND r."key" = 'main'
+        WHERE l."itemId" = NEW."id"
+      ) AND NOT EXISTS (
+        SELECT 1 FROM "Item" p
+        JOIN "ItemRoom" l ON l."itemId" = p."id"
+        JOIN "ScheduleRoom" r ON r."id" = l."roomId" AND r."key" = 'main'
+        WHERE r."scheduleId" = NEW."scheduleId" AND p."id" <> NEW."id" AND p."track" = OLD."track"
+      );
     END IF;
+    -- A room another writer empties and removes at the same moment is made again, once.
+    FOR attempt IN 1..2 LOOP
+      BEGIN
+        room_id := "schedule_room_for"(NEW."scheduleId", NEW."track", NEW."trackOrder", NEW."congregationId", renamed);
+        UPDATE "ItemRoom" SET
+          "roomId" = room_id,
+          "assigneeId" = NEW."assigneeId",
+          "assistantId" = NEW."assistantId",
+          "externalSpeakerId" = NEW."externalSpeakerId",
+          "hasConflict" = NEW."hasConflict",
+          "updatedAt" = CURRENT_TIMESTAMP
+        WHERE "itemId" = NEW."id";
+        IF NOT FOUND THEN
+          INSERT INTO "ItemRoom" ("itemId", "roomId", "assigneeId", "assistantId", "externalSpeakerId", "hasConflict", "congregationId", "updatedAt")
+            VALUES (NEW."id", room_id, NEW."assigneeId", NEW."assistantId", NEW."externalSpeakerId", NEW."hasConflict", NEW."congregationId", CURRENT_TIMESTAMP)
+            ON CONFLICT ("itemId", "roomId") DO NOTHING;
+        END IF;
+        EXIT;
+      EXCEPTION WHEN foreign_key_violation THEN
+        IF attempt = 2 THEN RAISE; END IF;
+      END;
+    END LOOP;
     PERFORM "prune_schedule_rooms"(NEW."scheduleId");
   END IF;
   IF TG_OP = 'UPDATE' AND OLD."scheduleId" IS DISTINCT FROM NEW."scheduleId" AND OLD."scheduleId" IS NOT NULL THEN

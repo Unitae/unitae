@@ -287,6 +287,8 @@ describe('20261129090000_parallel_rooms', () => {
       await f.db.templatePart.update({ where: { id: f.templatePartIds.lectureSecond }, data: { trackOrder: 1 } })
       await f.db.item.update({ where: { id: f.itemIds.lectureMain }, data: { trackOrder: 2 } })
       await f.db.item.update({ where: { id: f.itemIds.lectureSecond }, data: { trackOrder: 1 } })
+      // A meeting with no template: its own room order decides, not the template's main room.
+      await f.db.schedule.update({ where: { id: f.scheduleId }, data: { scheduleTemplateId: null } })
       await f.db.scheduleTemplateRoom.deleteMany({ where: { scheduleTemplateId: f.scheduleTemplateId } })
       await f.db.scheduleRoom.deleteMany({ where: { scheduleId: f.scheduleId } })
       for (const statement of backfill) await f.db.$executeRawUnsafe(statement)
@@ -317,5 +319,26 @@ describe('20261129090000_parallel_rooms', () => {
       }
     })
     expect(counts).toEqual({ rooms: 0, rows: 0 })
+  })
+
+  it('removes a meeting room once its last parts are deleted', async () => {
+    const schedule = await inFixture(async f => {
+      await f.db.item.delete({ where: { id: f.itemIds.lectureSecond } })
+      return (await roomsOf(f)).schedule
+    })
+    expect(schedule).toEqual(['main:Salle principale@0'])
+  })
+
+  it('renames the main room when all its parts are renamed, without a room order (the copies’ usual shape)', async () => {
+    const { template, byPart } = await inFixture(async f => {
+      await f.db.templatePart.updateMany({
+        where: { scheduleTemplateId: f.scheduleTemplateId, track: 'Salle principale' },
+        data: { track: 'Grande salle' },
+      })
+      const rooms = await roomsOf(f)
+      return { template: rooms.template, byPart: rooms.byPart }
+    })
+    expect(template).toEqual(['main:Grande salle@0', '-:Deuxième école@1'])
+    expect(byPart.lectureMain).toEqual(['main:Grande salle'])
   })
 })
