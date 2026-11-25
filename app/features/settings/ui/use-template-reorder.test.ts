@@ -147,4 +147,11 @@ describe('useTemplateReorder', () => {
     Object.assign(fetcher, { state: 'submitting', formData: sending })
     expect(render(true, true, 'services').services.map(each => each.id)).toEqual([23, 21, 22])
   })
+
+  it('says a service’s move in its own words (masculine in French)', () => {
+    render(false, true, 'services').toggle?.()
+    render(false, true, 'services').controls?.top(0, 1, 'Sono')
+    answer({ ok: true })
+    expect(render(false, true, 'services').announcement.trim()).toBe('« Sono » descendu d’une place.')
+  })
 })

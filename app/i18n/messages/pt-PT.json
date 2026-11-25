@@ -7867,5 +7867,9 @@
     "settings_schedule_templates_drag_dropped": "« {name} » colocada.",
     "settings_schedule_templates_drag_cancelled": "Movimento de « {name} » cancelado.",
     "settings_schedule_templates_reorder_services": "Reorganizar os serviços",
-    "settings_schedule_templates_reorder_services_hint": "Um serviço sobe ou desce na lista: as próximas reuniões apresentam-nos por esta ordem."
+    "settings_schedule_templates_reorder_services_hint": "Um serviço sobe ou desce na lista: as próximas reuniões apresentam-nos por esta ordem.",
+    "settings_schedule_templates_service_moved_up": "« {name} » subiu uma posição.",
+    "settings_schedule_templates_service_moved_down": "« {name} » desceu uma posição.",
+    "settings_schedule_templates_service_drag_picked": "« {name} » selecionado.",
+    "settings_schedule_templates_service_drag_dropped": "« {name} » colocado."
 }

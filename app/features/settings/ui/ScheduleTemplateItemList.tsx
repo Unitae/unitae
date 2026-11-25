@@ -7,7 +7,7 @@ import { getRoleDisplayName, type RoleOption } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Input } from '~/shared/ui/input'
 import { type ItemKind, itemMark } from './item-mark'
-import { Movable, OrderArea, type OrderControls, topId } from './TemplateOrder'
+import { type DragWords, Movable, OrderArea, type OrderControls, topId } from './TemplateOrder'
 import { TemplatePartRuns } from './TemplatePartRuns'
 
 /** What a part's row says: who may take it. */
@@ -29,6 +29,12 @@ export interface ItemListService {
 export type { ItemKind, PartDraft }
 
 export { itemMark }
+
+// A service is masculine in French: « pris », « déposé ».
+const SERVICE_WORDS: DragWords = {
+  picked: name => m.settings_schedule_templates_service_drag_picked({ name }),
+  dropped: name => m.settings_schedule_templates_service_drag_dropped({ name }),
+}
 
 const serviceRowClass =
   'flex min-w-0 flex-1 min-h-12 items-center gap-3 px-3 py-1.5 text-left text-sm outline-none transition-colors duration-(--u-duration-fast) hover:bg-hover focus-visible:bg-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset'
@@ -138,8 +144,9 @@ export function ScheduleTemplateItemList({
             {m.settings_schedule_templates_services_empty()}
           </p>
         ) : (
-          <div className="overflow-hidden rounded-md border border-border">
-            <OrderArea controls={controls} topIds={serviceKeys} names={serviceNames}>
+          // The last row's line would double the box's own border.
+          <div className="overflow-hidden rounded-md border border-border [&>div:last-child>div]:border-b-0">
+            <OrderArea controls={controls} topIds={serviceKeys} names={serviceNames} words={SERVICE_WORDS}>
               {services.map((service, index) => {
                 const body = (
                   <span className="min-w-0 flex-1">

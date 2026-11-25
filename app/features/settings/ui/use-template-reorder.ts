@@ -79,12 +79,18 @@ export function useTemplateReorder<P extends ListedPart, S extends { id: number 
     pendingSaid.current = said
     fetcher.submit({ intent: `reorder-${of}`, orderedIds: JSON.stringify(ids) }, { method: 'post' })
   }
-  const told = (from: number, to: number, name: string) =>
-    !docked
-      ? to < from
-        ? m.settings_schedule_templates_moved_up({ name })
-        : m.settings_schedule_templates_moved_down({ name })
-      : ''
+  // A part or a section is feminine in French, a service masculine: each says its own move.
+  const told = (from: number, to: number, name: string) => {
+    if (docked) return ''
+    if (of === 'services') {
+      return to < from
+        ? m.settings_schedule_templates_service_moved_up({ name })
+        : m.settings_schedule_templates_service_moved_down({ name })
+    }
+    return to < from
+      ? m.settings_schedule_templates_moved_up({ name })
+      : m.settings_schedule_templates_moved_down({ name })
+  }
   const moves = {
     top: (from: number, to: number, name: string) =>
       save(of === 'parts' ? idsAfterTopMove(shown, from, to) : servicesAfterMove(from, to), told(from, to, name)),

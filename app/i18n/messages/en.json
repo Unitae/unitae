@@ -7867,5 +7867,9 @@
     "settings_schedule_templates_drag_dropped": "« {name} » dropped.",
     "settings_schedule_templates_drag_cancelled": "Moving « {name} » cancelled.",
     "settings_schedule_templates_reorder_services": "Reorder the services",
-    "settings_schedule_templates_reorder_services_hint": "A service moves up or down the list: the next meetings show them in this order."
+    "settings_schedule_templates_reorder_services_hint": "A service moves up or down the list: the next meetings show them in this order.",
+    "settings_schedule_templates_service_moved_up": "« {name} » moved up one place.",
+    "settings_schedule_templates_service_moved_down": "« {name} » moved down one place.",
+    "settings_schedule_templates_service_drag_picked": "« {name} » picked up.",
+    "settings_schedule_templates_service_drag_dropped": "« {name} » dropped."
 }
