@@ -7903,5 +7903,8 @@
     "programs_edit_part_where_remove_body": "As próximas reuniões criadas com este modelo deixarão de ter esta parte nestas salas. As reuniões já preparadas mantêm-na, com quem lá está designado.",
     "programs_edit_part_where_remove_confirm": "Retirar",
     "programs_edit_part_where_room_quoted": "«{name}»",
-    "programs_edit_part_where_pick_room": "Marque pelo menos outra sala, ou escolha «Toda a congregação»."
+    "programs_edit_part_where_pick_room": "Marque pelo menos outra sala, ou escolha «Toda a congregação».",
+    "settings_schedule_templates_room_moved": "Sala movida.",
+    "settings_schedule_templates_room_up": "Subir",
+    "settings_schedule_templates_room_down": "Descer"
 }

@@ -7903,5 +7903,8 @@
     "programs_edit_part_where_remove_body": "Les prochaines réunions créées avec ce modèle n’auront plus cette partie dans ces salles. Les réunions déjà préparées la gardent, avec qui y est assigné.",
     "programs_edit_part_where_remove_confirm": "Retirer",
     "programs_edit_part_where_room_quoted": "« {name} »",
-    "programs_edit_part_where_pick_room": "Cochez au moins une autre salle, ou choisissez « Toute l’assemblée »."
+    "programs_edit_part_where_pick_room": "Cochez au moins une autre salle, ou choisissez « Toute l’assemblée ».",
+    "settings_schedule_templates_room_moved": "Salle déplacée.",
+    "settings_schedule_templates_room_up": "Monter",
+    "settings_schedule_templates_room_down": "Descendre"
 }

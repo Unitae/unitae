@@ -14,9 +14,8 @@ const testDb = new PrismaClient({
   }),
 })
 
-const { addTemplateRoom, deleteTemplateRoom, renameTemplateRoom, setTemplatePartRooms } = await import(
-  './template-rooms.server'
-)
+const { addTemplateRoom, deleteTemplateRoom, renameTemplateRoom, reorderTemplateRooms, setTemplatePartRooms } =
+  await import('./template-rooms.server')
 const { upsertTemplatePart } = await import('./template-items.server')
 
 class Rollback extends Error {}
@@ -197,6 +196,42 @@ describe('deleteTemplateRoom', () => {
         expect(await rooms()).toEqual(['main@0', 'Salle C@1'])
       },
     )
+  })
+})
+
+describe('reorderTemplateRooms', () => {
+  it('puts the other rooms in the order given after the main room, and audits it', async () => {
+    await inTemplate(async ({ db, congregationId, actorId, scheduleTemplateId, rooms }) => {
+      const ids: number[] = []
+      for (const name of ['Salle B', 'Salle C', 'Salle D']) {
+        const added = await addTemplateRoom(db, scheduleTemplateId, name, congregationId, actorId)
+        if (added.outcome === 'added') ids.push(added.id)
+      }
+      const [b, c, d] = ids as [number, number, number]
+      expect(await reorderTemplateRooms(db, scheduleTemplateId, [d, b, c], congregationId, actorId)).toBe('reordered')
+      expect(await rooms()).toEqual(['main@0', 'Salle D@1', 'Salle B@2', 'Salle C@3'])
+      const audited = await db.auditLog.findMany({ where: { congregationId, entityId: scheduleTemplateId } })
+      expect(audited.map(row => JSON.parse(row.metadata ?? '{}')).at(-1)).toEqual({
+        rooms: { reordered: ['Salle D', 'Salle B', 'Salle C'] },
+      })
+    })
+  })
+
+  it('refuses an order that is not exactly the other rooms: one missing, twice, the main room, another template’s', async () => {
+    await inTemplate(async ({ db, congregationId, actorId, scheduleTemplateId, otherTemplateId, mainId, rooms }) => {
+      const b = await addTemplateRoom(db, scheduleTemplateId, 'Salle B', congregationId, actorId)
+      const c = await addTemplateRoom(db, scheduleTemplateId, 'Salle C', congregationId, actorId)
+      const other = await addTemplateRoom(db, otherTemplateId, 'Ailleurs', congregationId, actorId)
+      const [bId, cId, otherId] = [b, c, other].map(each => (each.outcome === 'added' ? each.id : 0)) as [
+        number,
+        number,
+        number,
+      ]
+      for (const order of [[cId], [cId, cId], [mainId, cId, bId], [cId, otherId]]) {
+        expect(await reorderTemplateRooms(db, scheduleTemplateId, order, congregationId, actorId)).toBe('stale')
+      }
+      expect(await rooms()).toEqual(['main@0', 'Salle B@1', 'Salle C@2'])
+    })
   })
 })
 

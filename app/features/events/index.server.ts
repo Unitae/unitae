@@ -71,6 +71,7 @@ export {
   deleteTemplateRoom,
   type RoomAdd,
   renameTemplateRoom,
+  reorderTemplateRooms,
   setTemplatePartRooms,
 } from './server/template-rooms.server'
 export {

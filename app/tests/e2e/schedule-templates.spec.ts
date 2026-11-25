@@ -321,6 +321,7 @@ test.describe('Schedule templates: a part in the template panel', () => {
 
   test('adds a room, holds a part in it, takes it out after a confirmation, and deletes the room', async ({ page }) => {
     const room = `Salle e2e ${Date.now()}`
+    const second = `Annexe e2e ${Date.now()}`
     const part = `Partie e2e ${Date.now()}`
     await page.goto('/settings/schedule-templates')
     const programme = page.locator('[data-row-primary]').filter({ hasText: 'Spirituel' }).first()
@@ -340,6 +341,22 @@ test.describe('Schedule templates: a part in the template panel', () => {
       await page.getByPlaceholder('Nom de la salle').fill(room)
       await page.getByRole('button', { name: 'Ajouter', exact: true }).click()
       await expect(roomRow).toBeVisible()
+
+      // A second room, moved above the first: the rooms after the main one take the order given.
+      await page.getByPlaceholder('Nom de la salle').fill(second)
+      await page.getByRole('button', { name: 'Ajouter', exact: true }).click()
+      const secondRow = page.getByText(second, { exact: true })
+      await expect(secondRow).toBeVisible()
+      await page.getByRole('button', { name: `Actions de la salle ${second}`, exact: true }).click()
+      await expect(page.getByRole('menuitem', { name: 'Descendre' })).toHaveCount(0)
+      await page.getByRole('menuitem', { name: 'Monter' }).click()
+      await expect
+        .poll(async () => ((await secondRow.boundingBox())?.y ?? 0) < ((await roomRow.boundingBox())?.y ?? 0))
+        .toBe(true)
+      await page.reload()
+      await expect
+        .poll(async () => ((await secondRow.boundingBox())?.y ?? 0) < ((await roomRow.boundingBox())?.y ?? 0))
+        .toBe(true)
 
       // A new part in the whole congregation, then in the room too: the list says « N salles ».
       await page.getByRole('button', { name: 'Ajouter une partie hors section', exact: true }).click()
@@ -369,20 +386,31 @@ test.describe('Schedule templates: a part in the template panel', () => {
       await expect(page).not.toHaveURL(ANY_ITEM_RE)
       await expect(row).not.toContainText(ROOMS_TAG_RE)
 
-      await page.getByRole('button', { name: `Actions de la salle ${room}`, exact: true }).click()
+      for (const name of [room, second]) {
+        await page.getByRole('button', { name: `Actions de la salle ${name}`, exact: true }).click()
+        await page.getByRole('menuitem', { name: 'Supprimer' }).click()
+        await page.getByRole('alertdialog').getByRole('button', { name: 'Supprimer la salle' }).click()
+        await expect(page.getByText(name, { exact: true })).toHaveCount(0)
+      }
+      await row.click()
+      await page.getByRole('button', { name: 'Plus d’actions' }).click()
       await page.getByRole('menuitem', { name: 'Supprimer' }).click()
-      await page.getByRole('alertdialog').getByRole('button', { name: 'Supprimer la salle' }).click()
-      await expect(roomRow).toHaveCount(0)
+      await page.getByRole('alertdialog').getByRole('button', { name: DELETE_RE }).click()
+      await expect(row).toHaveCount(0)
     } finally {
-      // Whatever failed: the template as it was, without the room or the part.
+      // Whatever failed: the template as it was, without the rooms or the part. The panel opens from the address once
+      // the page runs: wait for it before looking for what to delete.
       await page.goto(templateUrl)
-      const actions = page.getByRole('button', { name: `Actions de la salle ${room}`, exact: true })
-      if ((await actions.count()) > 0) {
+      await page.getByPlaceholder('Nom de la salle').waitFor({ timeout: 10_000 })
+      for (const name of [room, second]) {
+        const actions = page.getByRole('button', { name: `Actions de la salle ${name}`, exact: true })
+        if ((await actions.count()) === 0) continue
         await actions.click()
         await page.getByRole('menuitem', { name: 'Supprimer' }).click()
         await page.getByRole('alertdialog').getByRole('button', { name: 'Supprimer la salle' }).click()
-        await expect(roomRow).toHaveCount(0)
+        await expect(page.getByText(name, { exact: true })).toHaveCount(0)
       }
+      await page.locator('[data-item^="part-"]').first().waitFor({ timeout: 10_000 })
       if ((await row.count()) > 0) {
         await row.click()
         await page.getByRole('button', { name: 'Plus d’actions' }).click()

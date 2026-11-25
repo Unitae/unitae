@@ -155,6 +155,7 @@ describe('schedule-templates action', () => {
     'add-room',
     'rename-room',
     'delete-room',
+    'reorder-rooms',
     'reorder-parts',
     'reorder-services',
   ])('sends the item intent %s to the item handler, a duties template’s too', async intent => {

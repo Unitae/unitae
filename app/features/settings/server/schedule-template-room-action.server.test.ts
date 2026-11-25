@@ -6,7 +6,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const addTemplateRoom = vi.fn()
 const renameTemplateRoom = vi.fn()
 const deleteTemplateRoom = vi.fn()
-vi.mock('~/features/events/index.server', () => ({ addTemplateRoom, renameTemplateRoom, deleteTemplateRoom }))
+const reorderTemplateRooms = vi.fn()
+vi.mock('~/features/events/index.server', () => ({
+  addTemplateRoom,
+  renameTemplateRoom,
+  deleteTemplateRoom,
+  reorderTemplateRooms,
+}))
 
 const { handleRoomIntent } = await import('./schedule-template-room-action.server')
 
@@ -73,6 +79,22 @@ describe('handleRoomIntent', () => {
     expect(statusOf(await handleRoomIntent(db, 12, form({ intent: 'delete-room', roomId: '40' }), actor))).toBe(400)
     deleteTemplateRoom.mockResolvedValueOnce('gone')
     expect(statusOf(await handleRoomIntent(db, 12, form({ intent: 'delete-room', roomId: '41' }), actor))).toBe(409)
+  })
+
+  it('puts the rooms in a new order, and answers a stale or unreadable one', async () => {
+    reorderTemplateRooms.mockResolvedValueOnce('reordered')
+    expect(
+      await handleRoomIntent(db, 12, form({ intent: 'reorder-rooms', orderedIds: '[43,42]' }), actor),
+    ).toMatchObject({ kind: 'saved' })
+    expect(reorderTemplateRooms).toHaveBeenCalledWith(db, 12, [43, 42], 3, 7)
+    reorderTemplateRooms.mockResolvedValueOnce('stale')
+    expect(statusOf(await handleRoomIntent(db, 12, form({ intent: 'reorder-rooms', orderedIds: '[43]' }), actor))).toBe(
+      409,
+    )
+    expect(statusOf(await handleRoomIntent(db, 12, form({ intent: 'reorder-rooms', orderedIds: 'x' }), actor))).toBe(
+      400,
+    )
+    expect(reorderTemplateRooms).toHaveBeenCalledTimes(2)
   })
 
   it('refuses a room id that is not one, before any write', async () => {

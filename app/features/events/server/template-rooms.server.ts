@@ -119,6 +119,42 @@ export async function deleteTemplateRoom(
 }
 
 /**
+ * Puts a template's rooms other than the main one in the order given, after it (1, 2…): new meetings write their copies
+ * in that order. `roomIds` must be exactly those rooms, or the list changed meanwhile (`stale`).
+ */
+export async function reorderTemplateRooms(
+  db: TransactionClient,
+  scheduleTemplateId: number,
+  roomIds: readonly number[],
+  congregationId: number,
+  actorId: number,
+): Promise<'reordered' | 'stale'> {
+  const others = await db.scheduleTemplateRoom.findMany({
+    where: { scheduleTemplateId, congregationId, OR: [{ key: null }, { key: { not: 'main' } }] },
+    select: { id: true, name: true, key: true, order: true },
+  })
+  const byId = new Map(others.map(room => [room.id, room]))
+  if (
+    roomIds.length !== others.length ||
+    new Set(roomIds).size !== roomIds.length ||
+    roomIds.some(id => !byId.has(id))
+  ) {
+    return 'stale'
+  }
+  for (const [index, id] of roomIds.entries()) {
+    if (byId.get(id)?.order !== index + 1) {
+      await db.scheduleTemplateRoom.update({
+        where: { id_congregationId: { id, congregationId } },
+        data: { order: index + 1 },
+      })
+    }
+  }
+  const reordered = roomIds.map(id => labelOf(byId.get(id) ?? { name: null, key: null }))
+  await record(db, scheduleTemplateId, congregationId, actorId, { rooms: { reordered } })
+  return 'reordered'
+}
+
+/**
  * Holds a template part in its rooms: none or the main room alone is the whole congregation; any other room brings the
  * main room with it (decided 2026-11-25). Rooms must be the template's. Given who did it, a change is audited on the
  * schedule template, by the rooms' names.

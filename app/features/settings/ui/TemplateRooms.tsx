@@ -38,6 +38,16 @@ const refusalOf = (fetcher: { state: string; data?: Reply }) =>
  */
 export function TemplateRooms({ rooms }: { rooms: TemplateRoom[] }) {
   const add = useFetcher<Reply>()
+  const reorder = useFetcher<Reply>()
+  // The rooms after the main one, in their order: « Monter » and « Descendre » move one among them.
+  const others = rooms.filter(room => !room.isMain).map(room => room.id)
+  const move = (roomId: number, by: -1 | 1) => {
+    const from = others.indexOf(roomId)
+    const next = [...others]
+    next.splice(from, 1)
+    next.splice(from + by, 0, roomId)
+    reorder.submit({ intent: 'reorder-rooms', orderedIds: JSON.stringify(next) }, { method: 'post' })
+  }
   const [name, setName] = useState('')
   const inputId = useId()
   const errorId = useId()
@@ -62,9 +72,18 @@ export function TemplateRooms({ rooms }: { rooms: TemplateRoom[] }) {
         {m.settings_schedule_templates_rooms_title()}
       </h3>
       <div className="flex flex-col rounded-md border border-border">
-        {rooms.map(room => (
-          <RoomRow key={room.id} room={room} others={rooms.filter(each => each.id !== room.id)} />
-        ))}
+        {rooms.map(room => {
+          const at = others.indexOf(room.id)
+          return (
+            <RoomRow
+              key={room.id}
+              room={room}
+              others={rooms.filter(each => each.id !== room.id)}
+              onUp={at > 0 ? () => move(room.id, -1) : undefined}
+              onDown={at >= 0 && at < others.length - 1 ? () => move(room.id, 1) : undefined}
+            />
+          )
+        })}
         <add.Form
           method="post"
           // While a name is typed, Escape clears it rather than closing the panel (the sheet reads this mark).
@@ -108,12 +127,28 @@ export function TemplateRooms({ rooms }: { rooms: TemplateRoom[] }) {
           )}
         </add.Form>
       </div>
+      {refusalOf(reorder) !== '' && (
+        <p role="alert" className="text-danger-text text-xs">
+          {refusalOf(reorder)}
+        </p>
+      )}
       <p className="text-faint text-xs">{m.settings_schedule_templates_rooms_hint()}</p>
     </section>
   )
 }
 
-function RoomRow({ room, others }: { room: TemplateRoom; others: TemplateRoom[] }) {
+function RoomRow({
+  room,
+  others,
+  onUp,
+  onDown,
+}: {
+  room: TemplateRoom
+  others: TemplateRoom[]
+  /** Up or down among the rooms after the main one; absent where it cannot go. */
+  onUp?: () => void
+  onDown?: () => void
+}) {
   const rename = useFetcher<Reply>()
   const remove = useFetcher<Reply>()
   const [editing, setEditing] = useState(false)
@@ -224,6 +259,12 @@ function RoomRow({ room, others }: { room: TemplateRoom; others: TemplateRoom[] 
             >
               {m.settings_schedule_templates_rename()}
             </DropdownMenuItem>
+            {onUp != null && (
+              <DropdownMenuItem onSelect={onUp}>{m.settings_schedule_templates_room_up()}</DropdownMenuItem>
+            )}
+            {onDown != null && (
+              <DropdownMenuItem onSelect={onDown}>{m.settings_schedule_templates_room_down()}</DropdownMenuItem>
+            )}
             {!room.isMain && (
               <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(true)}>
                 {m.settings_schedule_templates_room_delete()}
