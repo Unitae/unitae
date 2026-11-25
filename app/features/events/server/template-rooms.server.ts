@@ -141,8 +141,10 @@ export async function reorderTemplateRooms(
   ) {
     return 'stale'
   }
+  const moved = roomIds.filter((id, index) => byId.get(id)?.order !== index + 1)
+  if (moved.length === 0) return 'reordered'
   for (const [index, id] of roomIds.entries()) {
-    if (byId.get(id)?.order !== index + 1) {
+    if (moved.includes(id)) {
       await db.scheduleTemplateRoom.update({
         where: { id_congregationId: { id, congregationId } },
         data: { order: index + 1 },

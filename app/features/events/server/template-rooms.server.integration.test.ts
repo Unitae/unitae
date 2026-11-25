@@ -214,6 +214,9 @@ describe('reorderTemplateRooms', () => {
       expect(audited.map(row => JSON.parse(row.metadata ?? '{}')).at(-1)).toEqual({
         rooms: { reordered: ['Salle D', 'Salle B', 'Salle C'] },
       })
+      // The same order again changes nothing, and records nothing.
+      expect(await reorderTemplateRooms(db, scheduleTemplateId, [d, b, c], congregationId, actorId)).toBe('reordered')
+      expect(await db.auditLog.count({ where: { congregationId, entityId: scheduleTemplateId } })).toBe(audited.length)
     })
   })
 
