@@ -1,5 +1,5 @@
 import { Check, MoreHorizontal, X } from 'lucide-react'
-import { useEffect, useId, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useId, useRef, useState } from 'react'
 import { useFetcher } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
@@ -20,6 +20,8 @@ export function PartGroupHeader({
   meta,
   onAddHall,
   taken,
+  handle,
+  readOnly = false,
 }: {
   level: 'section' | 'hall'
   name: string
@@ -31,6 +33,10 @@ export function PartGroupHeader({
   onAddHall?: () => void
   /** The other names in use (the template's other sections, or the section's other halls): one of them would merge. */
   taken: readonly string[]
+  /** What moves the section (a grip, or « Monter » / « Descendre »), before its name. */
+  handle?: ReactNode
+  /** While reordering: the name only, no « … » menu. */
+  readOnly?: boolean
 }) {
   const fetcher = useFetcher<{ errors?: string[]; error?: Record<string, string[] | null> }>()
   const [editing, setEditing] = useState(false)
@@ -133,54 +139,58 @@ export function PartGroupHeader({
     <div
       className={cn(
         'group/header flex items-center gap-2 border-border border-b',
-        isSection ? 'bg-subtle py-1 pr-1 pl-3' : 'py-0.5 pr-1 pl-6',
+        isSection ? 'bg-subtle py-1 pr-1' : 'py-0.5 pr-1 pl-6',
+        isSection && (handle == null ? 'pl-3' : 'pl-0'),
       )}
     >
+      {handle}
       <span
         className={cn('flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2', isSection ? 'py-1.5 text-xs' : 'text-xs')}
       >
         <span className={isSection ? 'font-semibold text-foreground text-sm' : 'text-muted-foreground'}>{name}</span>
         {meta !== '' && <span className="text-muted-foreground tabular-nums">{meta}</span>}
       </span>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            ref={trigger}
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            aria-label={
-              isSection
-                ? m.settings_schedule_templates_section_actions({ name })
-                : m.settings_schedule_templates_hall_actions({ name })
-            }
-          >
-            <MoreHorizontal aria-hidden="true" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem
-            onSelect={() => {
-              setValue(name)
-              setSent(null)
-              setEditing(true)
-            }}
-          >
-            {m.settings_schedule_templates_rename()}
-          </DropdownMenuItem>
-          {onAddHall != null && (
-            <DropdownMenuItem onSelect={onAddHall}>{m.settings_schedule_templates_add_hall()}</DropdownMenuItem>
-          )}
-          {/* Reachable with the arrow keys, unlike a disabled item, so its reason is read; choosing it does nothing. */}
-          <DropdownMenuItem
-            aria-disabled="true"
-            className="text-muted-foreground"
-            onSelect={event => event.preventDefault()}
-          >
-            {m.settings_schedule_templates_delete_when_empty()}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {!readOnly && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              ref={trigger}
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={
+                isSection
+                  ? m.settings_schedule_templates_section_actions({ name })
+                  : m.settings_schedule_templates_hall_actions({ name })
+              }
+            >
+              <MoreHorizontal aria-hidden="true" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onSelect={() => {
+                setValue(name)
+                setSent(null)
+                setEditing(true)
+              }}
+            >
+              {m.settings_schedule_templates_rename()}
+            </DropdownMenuItem>
+            {onAddHall != null && (
+              <DropdownMenuItem onSelect={onAddHall}>{m.settings_schedule_templates_add_hall()}</DropdownMenuItem>
+            )}
+            {/* Reachable with the arrow keys, unlike a disabled item, so its reason is read; choosing it does nothing. */}
+            <DropdownMenuItem
+              aria-disabled="true"
+              className="text-muted-foreground"
+              onSelect={event => event.preventDefault()}
+            >
+              {m.settings_schedule_templates_delete_when_empty()}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
     </div>
   )
 }

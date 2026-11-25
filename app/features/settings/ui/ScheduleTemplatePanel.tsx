@@ -24,6 +24,7 @@ import { useFormChanges } from '~/shared/ui/hooks/use-form-changes'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '~/shared/ui/sheet'
 import { useOnSettled } from './use-on-settled'
+import { useTemplateReorder } from './use-template-reorder'
 
 const FORM_ID = 'schedule-template-form'
 
@@ -85,6 +86,12 @@ export function ScheduleTemplatePanel({
   const itemFetcher = useFetcher({ key: `schedule-template-${template.id}-${mark ?? 'none'}` })
   // The delete's settles once its item is gone from the data: its key must not follow the item.
   const deleteFetcher = useFetcher({ key: `schedule-template-${template.id}-delete` })
+  const order = useTemplateReorder({
+    templateId: template.id,
+    parts: items?.parts ?? [],
+    enabled: template.kind !== 'duty' && items?.kindId != null,
+    docked,
+  })
   const [version, setVersion] = useState(0)
   const [deleting, setDeleting] = useState(false)
   // The item the last delete was for: its refusal shows on that item only, not on the next one opened.
@@ -142,13 +149,21 @@ export function ScheduleTemplatePanel({
       ) : (
         <ScheduleTemplateItemList
           kind={template.kind === 'duty' ? 'service' : 'part'}
-          parts={items.parts}
+          parts={order.parts}
           services={items.services}
           roles={items.roles}
           presets={items.presets}
           onOpen={(kind, id) => onOpenItem({ kind, id })}
           onAdd={(kind, draft) => onOpenItem({ kind, id: null, draft })}
+          controls={order.controls}
+          onReorder={order.toggle}
+          announcement={order.announcement}
         />
+      )}
+      {order.refusal !== '' && (
+        <Callout tone="danger" role="alert">
+          {order.refusal}
+        </Callout>
       )}
     </div>
   )
