@@ -228,6 +228,19 @@ describe('handleScheduleTemplateItem', () => {
     ])
   })
 
+  it('counts a room change alone, or a section change alone, as a move', async () => {
+    items.current = { kind: 'programme', kindId: 270 }
+    const room = form('upsert-part', { partId: '11', partName: 'X', partSection: 'Ministère', partTrack: 'Salle B' })
+    const section = form('upsert-part', { partId: '11', partName: 'X', partSection: 'Joyaux', partTrack: '' })
+    await handleScheduleTemplateItem({} as never, 3, room, ACTOR)
+    await handleScheduleTemplateItem({} as never, 3, section, ACTOR)
+    expect([room.get('partOrder'), section.get('partOrder')]).toEqual(['40', '40'])
+    expect(calls.filter(call => (call as unknown[])[0] === 'end')).toEqual([
+      ['end', 270, 'Ministère', 'Salle B', 11],
+      ['end', 270, 'Joyaux', '', 11],
+    ])
+  })
+
   it('keeps the stored order of a part edited in place, whatever order the form sent', async () => {
     items.current = { kind: 'programme', kindId: 270 }
     const formData = form('upsert-part', {

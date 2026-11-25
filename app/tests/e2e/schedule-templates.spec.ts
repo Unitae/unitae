@@ -103,8 +103,30 @@ test.describe('Schedule templates: a part in the template panel', () => {
     if (moved == null || sectionAdd == null) throw new Error('not listed')
     expect(moved.y).toBeGreaterThan(sectionAdd.y)
 
+    // Moved into an earlier section through the picker: listed at that section's end, before its « + Partie ».
+    const later = `Section e2e bis ${stamp}`
+    await page.getByRole('button', { name: 'Ajouter une section', exact: true }).click()
+    await page.getByPlaceholder('Nom de la section').fill(later)
+    await page.getByPlaceholder('Nom de la section').press('Enter')
+    await save(`Troisième e2e ${stamp}`)
+    const third = page.getByRole('button', { name: new RegExp(`Troisième e2e ${stamp}`) })
+    await third.click()
+    await form.locator('#partSection').click()
+    await page.getByRole('option', { name: section, exact: true }).click()
+    await page.getByRole('button', { name: 'Enregistrer la partie' }).click()
+    await expect(page).not.toHaveURL(ANY_ITEM_RE)
+    const [firstAt, thirdAt, endOfSection] = await Promise.all([
+      first.boundingBox(),
+      third.boundingBox(),
+      page.getByRole('button', { name: `Ajouter une partie à ${section}` }).boundingBox(),
+    ])
+    if (firstAt == null || thirdAt == null || endOfSection == null) throw new Error('not listed')
+    expect([firstAt.y < thirdAt.y, thirdAt.y < endOfSection.y]).toEqual([true, true])
+    // Its own section went with its only part.
+    await expect(page.getByRole('button', { name: `Actions de la section ${later}` })).toHaveCount(0)
+
     // The section goes with its last part.
-    for (const row of [second, first]) {
+    for (const row of [third, second, first]) {
       await row.click()
       await page.getByRole('button', { name: 'Plus d’actions' }).click()
       await page.getByRole('menuitem', { name: 'Supprimer' }).click()

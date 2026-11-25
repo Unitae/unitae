@@ -161,6 +161,21 @@ describe('the list’s order and places', () => {
     })
   })
 
+  it('keeps the sections in the list’s order and each section’s halls in hall order, per section', () => {
+    const places = templatePlaces([
+      at(1, 0, 'Vie chrétienne', 'Salle B', 2),
+      at(2, 1, 'Vie chrétienne', 'Salle principale', 1),
+      at(3, 2, 'Applique-toi', 'Salle B', 2),
+      at(4, 3, 'Applique-toi', 'Salle principale', 1),
+      at(5, 4, 'Joyaux'),
+    ])
+    expect(places.sections).toEqual(['Vie chrétienne', 'Applique-toi', 'Joyaux'])
+    expect([...places.halls].map(([section, halls]) => [section, halls.map(hall => hall.name)])).toEqual([
+      ['Vie chrétienne', ['Salle principale', 'Salle B']],
+      ['Applique-toi', ['Salle principale', 'Salle B']],
+    ])
+  })
+
   it('reads a section named like an object’s own property as any other', () => {
     const places = templatePlaces([at(1, 0, 'constructor'), at(2, 1, 'toString', 'Salle B', 2)])
     expect([places.halls.get('constructor'), places.halls.get('toString')]).toEqual([

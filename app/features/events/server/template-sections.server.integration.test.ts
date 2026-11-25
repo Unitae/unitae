@@ -430,6 +430,9 @@ describe('orderAtEndOf', () => {
       expect(await orderAtEndOf(db, templateId, 'Ministère', 'Salle principale', moving.id, congregationId)).toBe(16)
       // No part outside a hall in « Ministère »: after the section's last part.
       expect(await orderAtEndOf(db, templateId, 'Ministère', '', moving.id, congregationId)).toBe(21)
+      // Ministère has no part outside its halls: after the section's last part, not at the template's end (26).
+      const discours = await db.templatePart.findFirstOrThrow({ where: { templateId, name: 'Discours' } })
+      expect(await orderAtEndOf(db, templateId, 'Ministère', '', discours.id, congregationId)).toBe(21)
       // Alone in its section: it stays at the end of the template, after the others.
       expect(await orderAtEndOf(db, templateId, 'Vie chrétienne', '', moving.id, congregationId)).toBe(21)
     })
