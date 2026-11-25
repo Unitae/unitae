@@ -1,3 +1,4 @@
+import { Callout } from '@unitae/ui'
 import { Plus } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import type { ListedPart, PartDraft } from '~/features/settings/model/schedule-template-list'
@@ -5,6 +6,7 @@ import * as m from '~/i18n/paraglide/messages'
 import { getRoleDisplayName, type RoleOption } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Input } from '~/shared/ui/input'
+import { type ItemKind, itemMark } from './item-mark'
 import type { OrderControls } from './TemplateOrder'
 import { TemplatePartRuns } from './TemplatePartRuns'
 
@@ -24,12 +26,9 @@ export interface ItemListService {
   allowedRoleIds: number[]
 }
 
-export type ItemKind = 'part' | 'service'
+export type { ItemKind, PartDraft }
 
-export type { PartDraft }
-
-/** The `data-item` mark of an item's row, where focus goes back after its form closes. */
-export const itemMark = (kind: ItemKind, id: number) => `${kind}-${id}`
+export { itemMark }
 
 const rowClass =
   'flex w-full min-h-12 items-center gap-3 border-border border-b px-3 py-1.5 text-left text-sm outline-none transition-colors duration-(--u-duration-fast) last:border-b-0 hover:bg-hover focus-visible:bg-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset'
@@ -50,6 +49,7 @@ export function ScheduleTemplateItemList({
   controls = null,
   onReorder,
   announcement = '',
+  refusal = '',
 }: {
   kind: ItemKind
   parts: ItemListPart[]
@@ -71,6 +71,8 @@ export function ScheduleTemplateItemList({
   onReorder?: () => void
   /** What the last move did, said to the reader (and shown while reordering). */
   announcement?: string
+  /** Why the last move was refused. */
+  refusal?: string
 }) {
   const [newSection, setNewSection] = useState<string | null>(null)
   const newSectionId = useId()
@@ -142,13 +144,23 @@ export function ScheduleTemplateItemList({
         <span className="font-medium text-sm">
           {reordering ? m.settings_schedule_templates_reorder() : m.settings_schedule_templates_parts_label()}
         </span>
-        {onReorder != null && parts.length > 1 && (
+        {/* « Terminé » stays while on, even once the list is down to one part. */}
+        {onReorder != null && (reordering || parts.length > 1) && (
           <Button type="button" variant={reordering ? 'default' : 'ghost'} size="sm" onClick={onReorder}>
             {reordering ? m.settings_schedule_templates_reorder_done() : m.settings_schedule_templates_reorder()}
           </Button>
         )}
       </div>
       {reordering && <p className="text-faint text-xs">{m.settings_schedule_templates_reorder_hint()}</p>}
+      {refusal !== '' && (
+        <Callout tone="danger" role="alert">
+          {refusal}
+        </Callout>
+      )}
+      {/* What the last move did: read out, and shown while « Réorganiser » is on, above the list where the tap is. */}
+      <p aria-live="polite" className={reordering ? 'text-muted-foreground text-xs' : 'sr-only'}>
+        {announcement}
+      </p>
       {parts.length === 0 ? (
         <p className="rounded-md border border-border border-dashed px-3 py-3 text-muted-foreground text-sm">
           {m.settings_template_parts_empty()}
@@ -165,10 +177,6 @@ export function ScheduleTemplateItemList({
           onAdd={draft => onAdd('part', draft)}
         />
       )}
-      {/* What the last move did: read out, and shown while « Réorganiser » is on. */}
-      <p aria-live="polite" className={reordering ? 'text-muted-foreground text-xs' : 'sr-only'}>
-        {announcement}
-      </p>
       {reordering ? null : (
         <>
           {newSection != null && (

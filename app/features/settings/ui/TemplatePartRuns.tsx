@@ -13,6 +13,7 @@ import * as m from '~/i18n/paraglide/messages'
 import { getRoleDisplayName, type RoleOption } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { cn } from '~/shared/utils/utils'
+import { itemMark } from './item-mark'
 import { PartGroupHeader } from './PartGroupHeader'
 import type { ItemListPart } from './ScheduleTemplateItemList'
 import { GroupArea, inId, Movable, OrderArea, type OrderControls, topId } from './TemplateOrder'
@@ -20,9 +21,6 @@ import { GroupArea, inId, Movable, OrderArea, type OrderControls, topId } from '
 const rowClass =
   'flex min-w-0 flex-1 min-h-12 items-center gap-3 px-3 py-1.5 text-left text-sm outline-none transition-colors duration-(--u-duration-fast) hover:bg-hover focus-visible:bg-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset'
 const detailClass = 'block truncate text-faint text-xs'
-
-/** The `data-item` mark of a part's row, where focus goes back after its form closes. */
-const partMark = (id: number) => `part-${id}`
 
 /**
  * A programme template's parts as the list draws them: by section, a section's halls nested, with the times. Each
@@ -57,7 +55,7 @@ export function TemplatePartRuns({
 }) {
   const { runs, total } = groupTemplateParts(parts)
   const tops = topItems(parts)
-  const topKeys = tops.map(item => topId(item.kind === 'part' ? `part:${item.id}` : `section:${item.run}`))
+  const topKeys = tops.map(item => topId(item.kind === 'part' ? `part:${item.id}` : `section:${item.key}`))
   const reordering = controls?.mode === 'buttons'
   const names = new Map<string, string>()
   for (const [index, item] of tops.entries()) {
@@ -111,7 +109,12 @@ export function TemplatePartRuns({
         {reordering ? (
           <div className={rowClass}>{body}</div>
         ) : (
-          <button type="button" data-item={partMark(part.id)} onClick={() => onOpen(part.id)} className={rowClass}>
+          <button
+            type="button"
+            data-item={itemMark('part', part.id)}
+            onClick={() => onOpen(part.id)}
+            className={rowClass}
+          >
             {body}
           </button>
         )}
@@ -152,36 +155,54 @@ export function TemplatePartRuns({
       </div>
     )
 
+  // One flat list keyed by what each row is (a part by its id, a section by its smallest part id): a move reorders
+  // the rows, keeping their focus and an open rename with the section it belongs to.
   let top = 0
-  const content = runs.map((run, index) => {
+  const loosePart = (part: ItemListPart) => {
+    const at = top++
+    return (
+      <Movable
+        key={`part-${part.id}`}
+        id={topKeys[at] ?? ''}
+        index={at}
+        count={topKeys.length}
+        controls={controls}
+        labels={{
+          drag: m.settings_schedule_templates_move_part({ name: part.name }),
+          up: m.settings_schedule_templates_move_up({ name: part.name }),
+          down: m.settings_schedule_templates_move_down({ name: part.name }),
+        }}
+        onMove={to => controls?.top(at, to, part.name)}
+      >
+        {handle => partRow(part, '', handle)}
+      </Movable>
+    )
+  }
+  const content = runs.flatMap((run, index) => {
     if (run.section == null) {
-      return run.parts.map(part => {
-        const at = top++
-        return (
-          <Movable
-            key={part.id}
-            id={topKeys[at] ?? ''}
-            index={at}
-            count={topKeys.length}
-            controls={controls}
-            labels={{
-              drag: m.settings_schedule_templates_move_part({ name: part.name }),
-              up: m.settings_schedule_templates_move_up({ name: part.name }),
-              down: m.settings_schedule_templates_move_down({ name: part.name }),
-            }}
-            onMove={to => controls?.top(at, to, part.name)}
-          >
-            {handle => partRow(part, '', handle)}
-          </Movable>
-        )
-      })
+      // A hall outside any section (the meeting type's own form may still write one): its header, then its parts,
+      // each moving on its own like the other parts outside a section.
+      return [
+        ...run.parts.map(loosePart),
+        ...run.halls.flatMap(hall => [
+          <PartGroupHeader
+            key={`hall-${hall.parts[0]?.id ?? hall.name}`}
+            level="hall"
+            name={hall.name}
+            readOnly
+            taken={[]}
+            meta={m.programs_new_parts({ count: hall.parts.length })}
+          />,
+          ...hall.parts.map(loosePart),
+        ]),
+      ]
     }
     const at = top++
     const section = run.section
-    return (
+    const key = tops[at]?.kind === 'section' ? (tops[at] as { key: number }).key : index
+    return [
       <Movable
-        // biome-ignore lint/suspicious/noArrayIndexKey: by place, so a renamed section keeps its header (focus, refusal)
-        key={`section-${index}`}
+        key={`section-${key}`}
         id={topKeys[at] ?? ''}
         index={at}
         count={topKeys.length}
@@ -240,8 +261,8 @@ export function TemplatePartRuns({
             ))}
           </>
         )}
-      </Movable>
-    )
+      </Movable>,
+    ]
   })
 
   return (

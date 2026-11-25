@@ -1,21 +1,34 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-// React and the router stood in for: one render at a time, the fetcher's submissions and the setters recorded.
-const { fetcher, said, reordering } = vi.hoisted(() => ({
+// React and the router stood in for: state and refs kept per call order across renders, effects run after each
+// render, the fetcher's submissions recorded.
+const { slots, effects, fetcher } = vi.hoisted(() => ({
+  slots: [] as { current: unknown }[],
+  effects: [] as (() => void)[],
   fetcher: {
     state: 'idle',
     data: undefined as unknown,
     formData: undefined as FormData | undefined,
     sent: [] as unknown[],
   },
-  said: { current: '' },
-  reordering: { current: false },
 }))
+let slot = 0
+const next = (initial: unknown) => {
+  slots[slot] ??= { current: initial }
+  return slots[slot++] as { current: unknown }
+}
 vi.mock('react', () => ({
-  useState: (initial: unknown) =>
-    typeof initial === 'boolean'
-      ? [reordering.current, (next: (value: boolean) => boolean) => (reordering.current = next(reordering.current))]
-      : [said.current, (next: string) => (said.current = next)],
+  useRef: (initial: unknown) => next(initial),
+  useState: (initial: unknown) => {
+    const cell = next(initial)
+    return [
+      cell.current,
+      (value: unknown) => {
+        cell.current = typeof value === 'function' ? (value as (old: unknown) => unknown)(cell.current) : value
+      },
+    ]
+  },
+  useEffect: (run: () => void) => effects.push(run),
 }))
 vi.mock('react-router', () => ({
   useFetcher: () => ({ ...fetcher, submit: (data: unknown) => fetcher.sent.push(data) }),
@@ -34,50 +47,78 @@ const part = (id: number, order: number, section = '') => ({
 })
 // P1 · Joyaux (P2, P3) · P4
 const parts = [part(1, 0), part(2, 1, 'Joyaux'), part(3, 2, 'Joyaux'), part(4, 3)]
-const use = (docked: boolean, enabled = true) => useTemplateReorder({ templateId: 3, parts, enabled, docked })
+const render = (docked: boolean, enabled = true) => {
+  slot = 0
+  effects.length = 0
+  const result = useTemplateReorder({ templateId: 3, parts, enabled, docked })
+  for (const effect of effects) effect()
+  return result
+}
+// The answer comes in: one render runs its effect, which sets what the next render shows (React re-renders itself).
+const answer = (data: unknown, docked = false) => {
+  Object.assign(fetcher, { state: 'idle', formData: undefined, data })
+  render(docked)
+}
 
 beforeEach(() => {
+  slots.length = 0
   Object.assign(fetcher, { state: 'idle', data: undefined, formData: undefined, sent: [] })
-  said.current = ''
-  reordering.current = false
 })
 
 describe('useTemplateReorder', () => {
   it('drags on a wide screen; on a phone moves only while « Réorganiser » is on; never on a duties template', () => {
-    expect(use(true).controls?.mode).toBe('drag')
-    expect(use(true).toggle).toBeUndefined()
-    expect(use(false).controls).toBeNull()
-    use(false).toggle?.()
-    expect(use(false).controls?.mode).toBe('buttons')
-    expect(use(true, false).controls).toBeNull()
+    expect(render(true).controls?.mode).toBe('drag')
+    expect(render(true).toggle).toBeUndefined()
+    expect(render(false).controls).toBeNull()
+    render(false).toggle?.()
+    expect(render(false).controls?.mode).toBe('buttons')
+    slots.length = 0
+    expect(render(true, false).controls).toBeNull()
   })
 
-  it('saves every part’s new order, and says an up or down move on a phone', () => {
-    reordering.current = true
-    use(false).controls?.top(2, 1, 'P4')
-    use(false).controls?.group(3, 1, 0, 'P3')
+  it('saves every part’s new order', () => {
+    render(false).toggle?.()
+    render(false).controls?.top(2, 1, 'P4')
+    render(false).controls?.group(3, 1, 0, 'P3')
     expect(fetcher.sent).toEqual([
       { intent: 'reorder-parts', orderedIds: '[1,4,2,3]' },
       { intent: 'reorder-parts', orderedIds: '[1,3,2,4]' },
     ])
-    expect(said.current).toBe('« P3 » montée d’une place.')
-    use(false).controls?.top(0, 1, 'P1')
-    expect(said.current).toBe('« P1 » descendue d’une place.')
+  })
+
+  it('says an up or down move once it is saved, the refusal instead when refused, and the same words twice', () => {
+    render(false).toggle?.()
+    render(false).controls?.group(3, 1, 0, 'P3')
+    expect(render(false).announcement).toBe('')
+    answer({ ok: true })
+    expect(render(false).announcement.trim()).toBe('« P3 » montée d’une place.')
+    const first = render(false).announcement
+    render(false).controls?.group(3, 1, 0, 'P3')
+    answer({ ok: true })
+    const second = render(false).announcement
+    expect([second.trim(), second === first]).toEqual(['« P3 » montée d’une place.', false])
+    render(false).controls?.top(0, 1, 'P1')
+    answer({ ok: false, errors: ['La liste a changé'] })
+    const refused = render(false)
+    expect([refused.announcement.trim(), refused.refusal]).toEqual(['La liste a changé', 'La liste a changé'])
   })
 
   it('says nothing itself for a drag (the drag announces), and sends nothing for a move that moves nothing', () => {
-    use(true).controls?.top(1, 1, 'Joyaux')
+    render(true).controls?.top(1, 1, 'Joyaux')
     expect(fetcher.sent).toEqual([])
-    use(true).controls?.top(0, 2, 'P1')
-    expect(said.current).toBe('')
+    render(true).controls?.top(0, 2, 'P1')
+    answer({ ok: true }, true)
+    expect(render(true).announcement).toBe('')
   })
 
-  it('shows the order being saved, then any refusal', () => {
+  it('shows the order being saved, then a refusal in either shape', () => {
     const sending = new FormData()
     sending.set('orderedIds', '[4,1,2,3]')
     Object.assign(fetcher, { state: 'submitting', formData: sending })
-    expect(use(true).parts.map(each => each.id)).toEqual([4, 1, 2, 3])
-    Object.assign(fetcher, { state: 'idle', formData: undefined, data: { error: { '': ['L’ordre a changé'] } } })
-    expect(use(true).refusal).toBe('L’ordre a changé')
+    expect(render(true).parts.map(each => each.id)).toEqual([4, 1, 2, 3])
+    answer({ error: { '': ['La liste a changé'] } }, true)
+    expect(render(true).refusal).toBe('La liste a changé')
+    answer({ ok: false, templateId: 3, errors: ['Ce modèle n’existe plus'] }, true)
+    expect(render(true).refusal).toBe('Ce modèle n’existe plus')
   })
 })

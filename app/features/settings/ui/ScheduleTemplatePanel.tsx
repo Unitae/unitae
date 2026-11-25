@@ -158,12 +158,8 @@ export function ScheduleTemplatePanel({
           controls={order.controls}
           onReorder={order.toggle}
           announcement={order.announcement}
+          refusal={order.refusal}
         />
-      )}
-      {order.refusal !== '' && (
-        <Callout tone="danger" role="alert">
-          {order.refusal}
-        </Callout>
       )}
     </div>
   )

@@ -17,7 +17,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { ChevronDown, ChevronUp, GripVertical } from 'lucide-react'
-import { type ReactNode, useId } from 'react'
+import { type ReactNode, useEffect, useId, useRef } from 'react'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { cn } from '~/shared/utils/utils'
@@ -171,6 +171,20 @@ export function Movable({
     id,
     disabled: controls?.mode !== 'drag',
   })
+  // The button just pressed, so focus can follow the move: to the other one once it reaches an end and disables.
+  const pressed = useRef<'up' | 'down' | null>(null)
+  const up = useRef<HTMLButtonElement>(null)
+  const down = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (pressed.current == null) return
+    const target = index === 0 ? down : index === count - 1 ? up : pressed.current === 'up' ? up : down
+    pressed.current = null
+    target.current?.focus()
+  }, [index, count])
+  const press = (direction: 'up' | 'down') => {
+    pressed.current = direction
+    onMove(direction === 'up' ? index - 1 : index + 1)
+  }
   const handle =
     controls == null ? null : controls.mode === 'drag' ? (
       <button
@@ -189,9 +203,10 @@ export function Movable({
           variant="ghost"
           size="icon"
           className="size-11"
+          ref={up}
           aria-label={labels.up}
           disabled={index === 0}
-          onClick={() => onMove(index - 1)}
+          onClick={() => press('up')}
         >
           <ChevronUp aria-hidden="true" />
         </Button>
@@ -200,9 +215,10 @@ export function Movable({
           variant="ghost"
           size="icon"
           className="size-11"
+          ref={down}
           aria-label={labels.down}
           disabled={index === count - 1}
-          onClick={() => onMove(index + 1)}
+          onClick={() => press('down')}
         >
           <ChevronDown aria-hidden="true" />
         </Button>

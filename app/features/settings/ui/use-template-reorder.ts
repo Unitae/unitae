@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useFetcher } from 'react-router'
 import { idsAfterGroupMove, idsAfterTopMove, type ListedPart } from '~/features/settings/model/schedule-template-list'
 import * as m from '~/i18n/paraglide/messages'
@@ -33,11 +33,15 @@ export function useTemplateReorder<P extends ListedPart>({
   enabled: boolean
   docked: boolean
 }) {
-  const fetcher = useFetcher<{ ok?: boolean; error?: Record<string, string[] | null> }>({
+  const fetcher = useFetcher<{ ok?: boolean; errors?: string[]; error?: Record<string, string[] | null> }>({
     key: `schedule-template-${templateId}-order`,
   })
   const [reordering, setReordering] = useState(false)
-  const [announcement, setAnnouncement] = useState('')
+  // What the page says, with a count so the same words said twice are read twice.
+  const [announcement, setAnnouncement] = useState({ text: '', count: 0 })
+  const say = (text: string) => setAnnouncement(current => ({ text, count: current.count + 1 }))
+  // A move is said once it is saved; refused, the refusal is said instead.
+  const pendingSaid = useRef('')
   const pending = readIds(fetcher.formData?.get('orderedIds'))
   const shown =
     pending == null
@@ -48,15 +52,25 @@ export function useTemplateReorder<P extends ListedPart>({
         })
   const refusal =
     fetcher.state === 'idle' && fetcher.data != null && fetcher.data.ok !== true
-      ? Object.values(fetcher.data.error ?? {})
-          .flatMap(messages => messages ?? [])
-          .join(' ')
+      ? [
+          ...(fetcher.data.errors ?? []),
+          ...Object.values(fetcher.data.error ?? {}).flatMap(messages => messages ?? []),
+        ].join(' ')
       : ''
+  const seen = useRef(fetcher.data)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs on each new answer
+  useEffect(() => {
+    if (fetcher.state !== 'idle' || fetcher.data === seen.current) return
+    seen.current = fetcher.data
+    const said = fetcher.data?.ok === true ? pendingSaid.current : refusal
+    pendingSaid.current = ''
+    if (said !== '') say(said)
+  }, [fetcher.state, fetcher.data])
 
   const save = (ids: number[] | null, said: string) => {
     if (ids == null) return
+    pendingSaid.current = said
     fetcher.submit({ intent: 'reorder-parts', orderedIds: JSON.stringify(ids) }, { method: 'post' })
-    setAnnouncement(said)
   }
   const told = (from: number, to: number, name: string) =>
     !docked
@@ -80,7 +94,8 @@ export function useTemplateReorder<P extends ListedPart>({
   return {
     parts: shown,
     controls,
-    announcement,
+    // A no-break space every other time: the same words said again are a change the reader hears.
+    announcement: announcement.count % 2 === 0 ? announcement.text : `${announcement.text}\u00a0`,
     refusal,
     /** « Réorganiser les parties » / « Terminé », on a phone only. */
     toggle: enabled && !docked ? () => setReordering(current => !current) : undefined,

@@ -35,7 +35,7 @@ export function PartGroupHeader({
   taken: readonly string[]
   /** What moves the section (a grip, or « Monter » / « Descendre »), before its name. */
   handle?: ReactNode
-  /** While reordering: the name only, no « … » menu. */
+  /** While reordering: no « … » menu (the name, its time and the handle stay). */
   readOnly?: boolean
 }) {
   const fetcher = useFetcher<{ errors?: string[]; error?: Record<string, string[] | null> }>()
