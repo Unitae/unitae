@@ -281,12 +281,14 @@ describe('20261129090000_parallel_rooms', () => {
     expect(second).toEqual(first)
   })
 
-  it('ranks rooms by their room order, then their oldest part, in the backfill', async () => {
+  it('ranks rooms by their room order before their oldest part, in the backfill', async () => {
     const { template, schedule } = await inFixture(async f => {
+      // Room order 1 goes to the newer copy on each side, so only the room order can rank it first: on the template the
+      // main room's part is the older one, on the meeting the second room's copy was written first.
       await f.db.templatePart.update({ where: { id: f.templatePartIds.lectureMain }, data: { trackOrder: 2 } })
       await f.db.templatePart.update({ where: { id: f.templatePartIds.lectureSecond }, data: { trackOrder: 1 } })
-      await f.db.item.update({ where: { id: f.itemIds.lectureMain }, data: { trackOrder: 2 } })
-      await f.db.item.update({ where: { id: f.itemIds.lectureSecond }, data: { trackOrder: 1 } })
+      await f.db.item.update({ where: { id: f.itemIds.lectureMain }, data: { trackOrder: 1 } })
+      await f.db.item.update({ where: { id: f.itemIds.lectureSecond }, data: { trackOrder: 2 } })
       // A meeting with no template: its own room order decides, not the template's main room.
       await f.db.schedule.update({ where: { id: f.scheduleId }, data: { scheduleTemplateId: null } })
       await f.db.scheduleTemplateRoom.deleteMany({ where: { scheduleTemplateId: f.scheduleTemplateId } })
@@ -296,7 +298,7 @@ describe('20261129090000_parallel_rooms', () => {
       return { template: rooms.template, schedule: rooms.schedule }
     })
     expect(template).toEqual(['main:Deuxième école@0', '-:Salle principale@1'])
-    expect(schedule).toEqual(['main:Deuxième école@0', '-:Salle principale@1'])
+    expect(schedule).toEqual(['main:Salle principale@0', '-:Deuxième école@1'])
   })
 
   it('gives a services schedule no room, and its items no room row', async () => {
