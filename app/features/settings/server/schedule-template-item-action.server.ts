@@ -37,6 +37,9 @@ export const SCHEDULE_TEMPLATE_ITEM_INTENTS: readonly string[] = [
   ...SECTION_INTENTS,
 ]
 
+/** What an item intent did; a reorder shows itself in the list and is said by the page, so it carries no toast. */
+export type ScheduleTemplateItemResult = TemplateActionResult | { kind: 'reordered' }
+
 const refused = (formErrors: string[], status = 400): TemplateActionResult => ({
   kind: 'refused',
   response: data({ status: 'error', error: { '': formErrors } }, { status }),
@@ -52,7 +55,7 @@ export async function handleScheduleTemplateItem(
   scheduleTemplateId: number,
   formData: FormData,
   actor: { id: number; congregationId: number },
-): Promise<TemplateActionResult | null> {
+): Promise<ScheduleTemplateItemResult | null> {
   const items = await getScheduleTemplateItems(db, scheduleTemplateId, actor.congregationId)
   if (items == null) {
     logger.warn('handleScheduleTemplateItem: no such schedule template', { scheduleTemplateId, ...actor })
@@ -79,20 +82,27 @@ export async function handleScheduleTemplateItem(
   // A new order of every part (« Réorganiser », a drag): exactly the template's parts, or the list changed meanwhile.
   if (intent === 'reorder-parts') {
     const ids = readIds(formData.get('orderedIds'))
+    if (ids == null) {
+      logger.warn('handleScheduleTemplateItem: an unreadable order', { scheduleTemplateId, ...actor })
+      return refused([m.settings_schedule_templates_order_stale()])
+    }
     const expected = new Set(items.parts.map(part => part.id))
-    const complete = ids != null && ids.length === expected.size && new Set(ids).size === ids.length
-    if (!complete || !ids.every(id => expected.has(id))) {
+    const unknown = ids.filter(id => !expected.has(id)).length
+    if (ids.length !== expected.size || new Set(ids).size !== ids.length || unknown > 0) {
       logger.warn('handleScheduleTemplateItem: an order that is not the template’s parts', {
         scheduleTemplateId,
+        sent: ids.length,
+        parts: expected.size,
+        unknown,
         ...actor,
       })
       return refused([m.settings_schedule_templates_order_stale()], 409)
     }
     if (!(await reorderTemplateParts(db, congregationId, items.kindId, ids))) {
+      logger.warn('handleScheduleTemplateItem: the order refused at write', { scheduleTemplateId, ...actor })
       return refused([m.settings_schedule_templates_order_stale()], 409)
     }
-    // The list shows the new order at once, and the page says what moved: no toast.
-    return { kind: 'saved', message: '' }
+    return { kind: 'reordered' }
   }
 
   if (intent === 'rename-section' || intent === 'rename-hall') {

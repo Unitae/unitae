@@ -328,7 +328,7 @@ describe('handleScheduleTemplateItem', () => {
       form('reorder-parts', { orderedIds: '[3,1,2]' }),
       ACTOR,
     )
-    expect(result).toEqual({ kind: 'saved', message: '' })
+    expect(result).toEqual({ kind: 'reordered' })
     expect(calls).toEqual([['reorder', 270, [3, 1, 2]]])
   })
 
