@@ -52,9 +52,17 @@ vi.mock('~/features/events/index.server', () => ({
     calls.push(['merge', target.templateId, sections])
     return 0
   }),
-  // Part 11 sits in « Ministère », outside any hall; any other id is not the template's.
+  // Part 11 sits in « Ministère », outside any hall, at order 33; any other id is not the template's.
   templatePartPlace: vi.fn(async (_db: unknown, _kindId: number, partId: number) =>
-    partId === 11 ? { section: 'Ministère', track: '' } : null,
+    partId === 11 ? { section: 'Ministère', track: '', trackOrder: null, order: 33 } : null,
+  ),
+  // « Absente » and « Salle Z » were renamed or emptied elsewhere.
+  placeExists: vi.fn(
+    async (_db: unknown, _kindId: number, section: string, track: string) =>
+      section !== 'Absente' && track !== 'Salle Z',
+  ),
+  roomOrderFor: vi.fn(async (_db: unknown, _kindId: number, _section: string, track: string) =>
+    track === '' ? null : 5,
   ),
   orderAtEndOf: vi.fn(async (_db: unknown, kindId: number, section: string, track: string, partId: number | null) => {
     calls.push(['end', kindId, section, track, partId])
@@ -218,6 +226,53 @@ describe('handleScheduleTemplateItem', () => {
       [270, 'upsert-part'],
       ['merge', 270, ['Ministère', 'Joyaux']],
     ])
+  })
+
+  it('keeps the stored order of a part edited in place, whatever order the form sent', async () => {
+    items.current = { kind: 'programme', kindId: 270 }
+    const formData = form('upsert-part', {
+      partId: '11',
+      partName: 'X',
+      partSection: 'Ministère',
+      partTrack: '',
+      partOrder: '',
+      partTrackOrder: '9',
+    })
+    await handleScheduleTemplateItem({} as never, 3, formData, ACTOR)
+    expect([formData.get('partOrder'), formData.get('partTrackOrder')]).toEqual(['33', ''])
+  })
+
+  it('takes a new hall’s order from the halls, not from the form', async () => {
+    items.current = { kind: 'programme', kindId: 270 }
+    const formData = form('upsert-part', {
+      partName: 'Visite',
+      partSection: 'Joyaux',
+      partTrack: 'Deuxième salle',
+      partTrackOrder: '',
+      partOrder: '11',
+    })
+    await handleScheduleTemplateItem({} as never, 3, formData, ACTOR)
+    expect([formData.get('partOrder'), formData.get('partTrackOrder')]).toEqual(['11', '5'])
+  })
+
+  it('refuses to move a part to a section or hall no longer there, before writing anything', async () => {
+    items.current = { kind: 'programme', kindId: 270 }
+    const section = await handleScheduleTemplateItem(
+      {} as never,
+      3,
+      form('upsert-part', { partId: '11', partName: 'X', partSection: 'Absente' }),
+      ACTOR,
+    )
+    const hall = await handleScheduleTemplateItem(
+      {} as never,
+      3,
+      form('upsert-part', { partId: '11', partName: 'X', partSection: 'Ministère', partTrack: 'Salle Z' }),
+      ACTOR,
+    )
+    expect([section?.kind, hall?.kind]).toEqual(['refused', 'refused'])
+    expect(JSON.stringify(section)).toContain('Cette section n’existe plus')
+    expect(JSON.stringify(hall)).toContain('Cette salle n’existe plus')
+    expect(calls).toEqual([])
   })
 
   it('puts a new part sent without a place at the end of its section', async () => {

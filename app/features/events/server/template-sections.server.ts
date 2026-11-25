@@ -139,7 +139,7 @@ export async function mergeLoneHalls(
   return moved
 }
 
-/** A part's section and hall, before a write moves or deletes it; null when the part is not the template's. */
+/** A part's place (section, hall, hall order, order) before a write moves or deletes it; null when not the template's. */
 export async function templatePartPlace(
   db: TransactionClient,
   templateId: number,
@@ -148,8 +148,62 @@ export async function templatePartPlace(
 ) {
   return db.templatePart.findFirst({
     where: { id: partId, templateId, congregationId },
-    select: { section: true, track: true },
+    select: { section: true, track: true, trackOrder: true, order: true },
   })
+}
+
+/**
+ * A hall's place among its section's parallel halls: the hall's own when it exists, else the next after the section's
+ * halls (2 for a section's first, whose parts become the main hall, 1). Null for no hall. Never from the form: no
+ * field sets it, and a hall without one lists before the main hall here but after it on a meeting.
+ */
+export async function roomOrderFor(
+  db: TransactionClient,
+  templateId: number,
+  section: string,
+  track: string,
+  partId: number | null,
+  congregationId: number,
+) {
+  if (track === '') return null
+  const others = { templateId, congregationId, section, ...(partId != null && { NOT: { id: partId } }) }
+  const own = await db.templatePart.findFirst({
+    where: { ...others, track, trackOrder: { not: null } },
+    select: { trackOrder: true },
+  })
+  if (own?.trackOrder != null) return own.trackOrder
+  const { _max } = await db.templatePart.aggregate({
+    where: { AND: [others, { NOT: { track: '' } }] },
+    _max: { trackOrder: true },
+  })
+  return (_max.trackOrder ?? 1) + 1
+}
+
+/**
+ * Whether a section, and a hall in it, is carried by another part of the template: what a part edited may be moved
+ * to, picked among what exists. No section and no hall always exist. One renamed or emptied elsewhere since the form
+ * opened is not there any more.
+ */
+export async function placeExists(
+  db: TransactionClient,
+  templateId: number,
+  section: string,
+  track: string,
+  partId: number,
+  congregationId: number,
+) {
+  if (section === '' && track === '') return true
+  const found = await db.templatePart.findFirst({
+    where: {
+      templateId,
+      congregationId,
+      NOT: { id: partId },
+      ...(section !== '' && { section }),
+      ...(track !== '' && { section, track }),
+    },
+    select: { id: true },
+  })
+  return found != null
 }
 
 /**

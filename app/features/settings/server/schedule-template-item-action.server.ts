@@ -5,8 +5,10 @@ import {
   makeRoomAtTemplateOrder,
   mergeLoneHalls,
   orderAtEndOf,
+  placeExists,
   renameTemplateHall,
   renameTemplateSection,
+  roomOrderFor,
   splitSectionIntoHalls,
   templatePartPlace,
 } from '~/features/events/index.server'
@@ -126,29 +128,47 @@ export async function handleScheduleTemplateItem(
       const { partSection, partTrack } = submission.value
       touched.push(partSection)
       const isNew = !formData.get('partId')
+      const moved = was != null && (was.section !== partSection || was.track !== partTrack)
+      // An edited part is moved among what exists: a section or hall renamed or emptied elsewhere since its form
+      // opened is not there any more (a new part may bring its own, from « Ajouter une section » or a new hall).
+      if (moved && !(await placeExists(db, items.kindId, partSection, partTrack, partId, congregationId))) {
+        const sectionGone = !(await placeExists(db, items.kindId, partSection, '', partId, congregationId))
+        logger.warn('handleScheduleTemplateItem: a part moved to a place no longer there', {
+          scheduleTemplateId,
+          partId,
+          sectionGone,
+          ...actor,
+        })
+        return refused(
+          [sectionGone ? m.settings_schedule_templates_section_gone() : m.settings_schedule_templates_hall_gone()],
+          409,
+        )
+      }
       // A new part starting a section's first parallel hall turns its parts outside any hall into the main hall.
       if (isNew && partTrack !== '') {
         const mainHall = m.settings_schedule_templates_main_hall()
         await splitSectionIntoHalls(db, target, partSection, mainHall, congregationId, actorId)
       }
-      // Where it goes: a new part where it was added, or at the end of its section or hall when sent without a place;
-      // a part moved to another section or hall at the end of it. The parts from there on make room.
-      const moved = was != null && (was.section !== partSection || was.track !== partTrack)
+      // Where it goes, never taken from the form for a part that exists: one edited in place keeps its order, one
+      // moved to another section or hall goes to its end; a new part goes where it was added, or to the end of its
+      // section or hall when sent without a place. The parts from there on make room.
+      const self = was == null ? null : partId
       const sentOrder = String(formData.get('partOrder') ?? '')
-      if (moved || (isNew && sentOrder === '')) {
-        const order = await orderAtEndOf(
-          db,
-          items.kindId,
-          partSection,
-          partTrack,
-          was == null ? null : partId,
-          congregationId,
-        )
-        formData.set('partOrder', String(order))
-      }
-      if (isNew || moved) {
-        await makeRoomAtTemplateOrder(db, items.kindId, Number(formData.get('partOrder')), congregationId)
-      }
+      const order =
+        was != null && !moved
+          ? was.order
+          : moved || sentOrder === ''
+            ? await orderAtEndOf(db, items.kindId, partSection, partTrack, self, congregationId)
+            : Number(sentOrder)
+      formData.set('partOrder', String(order))
+      if (isNew || moved) await makeRoomAtTemplateOrder(db, items.kindId, order, congregationId)
+      // A hall's place among the section's halls, from the halls themselves (no field sets it); a part edited in place
+      // keeps its own, even alone in its hall.
+      const roomOrder =
+        was != null && !moved
+          ? was.trackOrder
+          : await roomOrderFor(db, items.kindId, partSection, partTrack, self, congregationId)
+      formData.set('partTrackOrder', roomOrder == null ? '' : String(roomOrder))
     }
   }
   const result = (await handleTemplateItemAction(db, items.kindId, formData, actor)) ?? null

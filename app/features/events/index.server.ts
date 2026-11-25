@@ -70,8 +70,10 @@ export {
   makeRoomAtTemplateOrder,
   mergeLoneHalls,
   orderAtEndOf,
+  placeExists,
   renameTemplateHall,
   renameTemplateSection,
+  roomOrderFor,
   splitSectionIntoHalls,
   templatePartPlace,
 } from './server/template-sections.server'

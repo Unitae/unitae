@@ -21,6 +21,8 @@ const {
   renameTemplateSection,
   splitSectionIntoHalls,
   orderAtEndOf,
+  placeExists,
+  roomOrderFor,
   templatePartPlace,
 } = await import('./template-sections.server')
 
@@ -411,6 +413,8 @@ describe('templatePartPlace', () => {
       expect(await templatePartPlace(db, templateId, own.id, congregationId)).toEqual({
         section: 'Ministère',
         track: 'Salle B',
+        trackOrder: 2,
+        order: 20,
       })
       expect(await templatePartPlace(db, templateId, other.id, congregationId)).toBeNull()
       expect(await templatePartPlace(db, templateId, 99_999_999, congregationId)).toBeNull()
@@ -442,6 +446,57 @@ describe('orderAtEndOf', () => {
     await inTemplate(async ({ db, congregationId, templateId, otherId }) => {
       await db.templatePart.updateMany({ where: { templateId: otherId }, data: { order: 500 } })
       expect(await orderAtEndOf(db, templateId, 'Joyaux', '', null, congregationId)).toBe(11)
+    })
+  })
+})
+
+describe('roomOrderFor', () => {
+  it('is the room’s own order when it exists, else the next after the section’s rooms', async () => {
+    await inTemplate(async ({ db, congregationId, templateId }) => {
+      expect(await roomOrderFor(db, templateId, 'Ministère', 'Salle B', null, congregationId)).toBe(2)
+      expect(await roomOrderFor(db, templateId, 'Ministère', 'Salle 3', null, congregationId)).toBe(3)
+      // A section without rooms: its parts are about to become the main room (1), so the new one is the second.
+      expect(await roomOrderFor(db, templateId, 'Joyaux', 'Deuxième salle', null, congregationId)).toBe(2)
+      expect(await roomOrderFor(db, templateId, 'Ministère', '', null, congregationId)).toBeNull()
+    })
+  })
+
+  it('does not take the order from the part being written, nor from another template', async () => {
+    await inTemplate(async ({ db, congregationId, templateId, otherId }) => {
+      const alone = await db.templatePart.findFirstOrThrow({ where: { templateId, name: 'Conversation B' } })
+      await db.templatePart.create({
+        data: {
+          name: 'Ailleurs',
+          section: 'Ministère',
+          track: 'Salle B',
+          trackOrder: 7,
+          order: 1,
+          templateId: otherId,
+          congregationId,
+        },
+      })
+      expect(await roomOrderFor(db, templateId, 'Ministère', 'Salle B', alone.id, congregationId)).toBe(2)
+    })
+  })
+})
+
+describe('placeExists', () => {
+  it('knows a section or room another part carries, and no section at all', async () => {
+    await inTemplate(async ({ db, congregationId, templateId }) => {
+      const part = await db.templatePart.findFirstOrThrow({ where: { templateId, name: 'Étude' } })
+      expect(await placeExists(db, templateId, '', '', part.id, congregationId)).toBe(true)
+      expect(await placeExists(db, templateId, 'Joyaux', '', part.id, congregationId)).toBe(true)
+      expect(await placeExists(db, templateId, 'Ministère', 'Salle B', part.id, congregationId)).toBe(true)
+    })
+  })
+
+  it('refuses a section or room no other part carries (renamed or emptied elsewhere)', async () => {
+    await inTemplate(async ({ db, congregationId, templateId }) => {
+      const part = await db.templatePart.findFirstOrThrow({ where: { templateId, name: 'Étude' } })
+      expect(await placeExists(db, templateId, 'Vie chrétienne', '', part.id, congregationId)).toBe(false)
+      expect(await placeExists(db, templateId, 'Renommée', '', part.id, congregationId)).toBe(false)
+      expect(await placeExists(db, templateId, 'Ministère', 'Salle Z', part.id, congregationId)).toBe(false)
+      expect(await placeExists(db, templateId, 'Joyaux', 'Salle B', part.id, congregationId)).toBe(false)
     })
   })
 })
