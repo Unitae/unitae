@@ -142,6 +142,26 @@ describe('20261130090000_template_rooms, applied as it ships over #648', () => {
           congregationId: f.congregationId,
         },
       })
+      // The #642 editor's halls: copies numbered apart, the main room's first.
+      for (const [track, trackOrder, order] of [
+        ['Salle principale', 1, 5],
+        ['Salle principale', 1, 6],
+        ['Salle B', 2, 8],
+        ['Salle B', 2, 9],
+      ] as const) {
+        await f.tx.templatePart.create({
+          data: {
+            name: 'Engage',
+            section: 'Ministère',
+            track,
+            trackOrder,
+            order,
+            templateId: f.kindId,
+            scheduleTemplateId: f.scheduleTemplateId,
+            congregationId: f.congregationId,
+          },
+        })
+      }
       for (const statement of statementsOf(shipped)) await f.tx.$executeRawUnsafe(statement)
       return (await partsOf(f)).map(({ name, track, rooms }) => ({ name, track, rooms }))
     })
@@ -150,6 +170,10 @@ describe('20261130090000_template_rooms, applied as it ships over #648', () => {
       { name: 'Lecture', track: '', rooms: ['Deuxième école', 'main'] },
       { name: 'Visite', track: '', rooms: ['Annexe', 'main'] },
       { name: 'Seule', track: '', rooms: ['Salle B', 'main'] },
+      // Paired by their place in their room: the first with the first, the second with the second, at the main
+      // room's orders.
+      { name: 'Engage', track: '', rooms: ['Salle B', 'main'] },
+      { name: 'Engage', track: '', rooms: ['Salle B', 'main'] },
     ])
   })
 })
@@ -157,6 +181,18 @@ describe('20261130090000_template_rooms, applied as it ships over #648', () => {
 describe('20261130090000_template_rooms', () => {
   it('runs the merge for every congregation, as it ships', () => {
     expect(shipped).toContain('SELECT "merge_template_part_copies"(NULL);')
+  })
+
+  it('never merges the parts of two kinds that share a schedule template', async () => {
+    const left = await inFixture(async f => {
+      const other = await f.tx.eventTemplate.create({
+        data: { name: 'autre', key: `autre-${f.congregationId}`, congregationId: f.congregationId },
+      })
+      await f.tx.templatePart.update({ where: { id: f.partIds.lectureSecond }, data: { templateId: other.id } })
+      await merge(f.tx, f.congregationId)
+      return f.tx.templatePart.count({ where: { id: { in: [f.partIds.lectureMain, f.partIds.lectureSecond] } } })
+    })
+    expect(left).toBe(2)
   })
 
   it('merges one congregation’s copies only, and says how many went', async () => {

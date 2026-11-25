@@ -117,6 +117,16 @@ describe('importTemplateRooms, from a 2.22 archive', () => {
 })
 
 describe('importTemplateRooms, from an older archive', () => {
+  it('keeps the rooms of copies that came without a schedule template (before 2.21)', async () => {
+    const restored = await restore(zip => {
+      writeNdjsonFile(zip, 'programme-template-parts', [
+        { ...part(51, 'Lecture', 'Salle principale', 1), scheduleTemplateId: undefined },
+        { ...part(52, 'Lecture', 'Deuxième école', 1), scheduleTemplateId: undefined },
+      ])
+    })
+    expect(restored.parts).toEqual([{ name: 'Lecture', track: '', rooms: ['Deuxième école', 'main:Salle principale'] }])
+  })
+
   it('makes a part’s copies one part held in their rooms, as the migration did live', async () => {
     const restored = await restore(zip => {
       writeNdjsonFile(zip, 'programme-template-parts', [

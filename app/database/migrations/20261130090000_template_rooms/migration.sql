@@ -2,9 +2,10 @@
 -- the template editor, rather than one copy per room. No change for meetings: they still receive one copy per room
 -- (sharing section and order), which the meeting page and the board already read.
 --
--- 1. A template's copies (same template, section, order and name, each in its room) become one part held in their
---    rooms: the copy in the main room is kept (else the oldest), the others' rooms join it, what pointed at them points
---    at it, and they go. A part held in a room other than the main one, alone, is held in the main room too.
+-- 1. A template's copies (same kind, template, section and name, each in its room, paired by their place among the
+--    parts of that name in their room, whatever their orders) become one part held in their rooms: the copy in the
+--    main room is kept with its order and settings (else the oldest), the others' rooms join it, what pointed at them
+--    points at it, and they go. A part held in a room other than the main one, alone, is held in the main room too.
 -- 2. Template parts no longer carry a room in `track`: their rooms are their TemplatePartRoom rows.
 --    Both are `merge_template_part_copies`, which restoring an older archive calls for its congregation.
 -- 3. The template part trigger only fills in a part's room when it has none (a writer that knows no rooms: an older
@@ -16,17 +17,28 @@ CREATE OR REPLACE FUNCTION "merge_template_part_copies"(congregation_id int) RET
 DECLARE merged int;
 BEGIN
   -- 1. Copies into one part (a table of this call's own: dropped below, or with its transaction).
+  -- Copies are told by their kind, schedule template, section and name, and their place among the parts of that name
+  -- in their room: the same order (the meeting page's copies) or not (the #642 editor's halls, numbered apart).
   CREATE TEMP TABLE "template_copies" ON COMMIT DROP AS
-    SELECT tp."id", tp."scheduleTemplateId" AS template_id, l."roomId" AS room_id, tp."congregationId",
-      first_value(tp."id") OVER (
-        PARTITION BY tp."scheduleTemplateId", tp."section", tp."order", tp."name"
-        ORDER BY (r."key" = 'main') IS TRUE DESC, tp."id"
+    WITH placed AS (
+      SELECT tp."id", tp."templateId", tp."scheduleTemplateId", tp."section", tp."name", tp."congregationId",
+        l."roomId", r."key",
+        row_number() OVER (
+          PARTITION BY tp."templateId", tp."scheduleTemplateId", tp."section", tp."name", l."roomId"
+          ORDER BY tp."order", tp."id"
+        ) AS rank
+      FROM "TemplatePart" tp
+      JOIN "ScheduleTemplate" st ON st."id" = tp."scheduleTemplateId" AND st."kind" = 'programme'
+      JOIN "TemplatePartRoom" l ON l."templatePartId" = tp."id"
+      JOIN "ScheduleTemplateRoom" r ON r."id" = l."roomId"
+      WHERE tp."track" <> '' AND (congregation_id IS NULL OR tp."congregationId" = congregation_id)
+    )
+    SELECT p."id", p."scheduleTemplateId" AS template_id, p."roomId" AS room_id, p."congregationId",
+      first_value(p."id") OVER (
+        PARTITION BY p."templateId", p."scheduleTemplateId", p."section", p."name", p.rank
+        ORDER BY (p."key" = 'main') IS TRUE DESC, p."id"
       ) AS kept
-    FROM "TemplatePart" tp
-    JOIN "ScheduleTemplate" st ON st."id" = tp."scheduleTemplateId" AND st."kind" = 'programme'
-    JOIN "TemplatePartRoom" l ON l."templatePartId" = tp."id"
-    JOIN "ScheduleTemplateRoom" r ON r."id" = l."roomId"
-    WHERE tp."track" <> '' AND (congregation_id IS NULL OR tp."congregationId" = congregation_id);
+    FROM placed p;
 
   -- The kept part is held in every room of its copies, and in the main room.
   INSERT INTO "TemplatePartRoom" ("templatePartId", "roomId", "congregationId")
@@ -75,8 +87,10 @@ BEGIN
   IF NEW."scheduleTemplateId" IS NULL
     OR NOT EXISTS (SELECT 1 FROM "ScheduleTemplate" WHERE "id" = NEW."scheduleTemplateId" AND "kind" = 'programme') THEN
     DELETE FROM "TemplatePartRoom" WHERE "templatePartId" = NEW."id";
-  ELSIF TG_OP = 'UPDATE' AND OLD."scheduleTemplateId" IS DISTINCT FROM NEW."scheduleTemplateId" THEN
-    -- Moved to another template: its rooms were the old template's; it starts in the new one's main room.
+  ELSIF TG_OP = 'UPDATE' AND OLD."scheduleTemplateId" IS NOT NULL
+    AND OLD."scheduleTemplateId" IS DISTINCT FROM NEW."scheduleTemplateId" THEN
+    -- Moved to another template: its rooms were the old template's; it starts in the new one's main room. A part
+    -- placed in its first one (a restore, then the sync) has none yet: it is filled in below, from its track.
     DELETE FROM "TemplatePartRoom" WHERE "templatePartId" = NEW."id";
     INSERT INTO "TemplatePartRoom" ("templatePartId", "roomId", "congregationId")
       VALUES (NEW."id", "schedule_template_main_room"(NEW."scheduleTemplateId", NEW."congregationId"), NEW."congregationId")
