@@ -3,7 +3,9 @@ import {
   setTemplateServicePartAllowedRoles,
 } from '~/features/events/server/allowed-roles.server'
 import { syncTemplateScheduleTemplates } from '~/features/events/server/schedule-templates.server'
+import { setTemplatePartRooms } from '~/features/events/server/template-rooms.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
+import { ConflictError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
 
@@ -30,6 +32,8 @@ export async function upsertTemplatePart(
     // slot, [] means it does and the selection is empty.
     allowedSpeakerRoleIds?: number[]
     allowedReaderRoleIds?: number[]
+    // The rooms it is held in, from « Où » (the main room always among them); undefined leaves its rooms as they are.
+    roomIds?: readonly number[]
   },
   congregationId: number,
   actorId: number,
@@ -56,6 +60,7 @@ export async function upsertTemplatePart(
         data: { ...baseData, templateId, congregationId },
       })
   await syncTemplateScheduleTemplates(db, templateId, congregationId)
+  if (partData.roomIds !== undefined) await holdInRooms(db, part.id, partData.roomIds, congregationId)
 
   const noChange = { added: [] as number[], removed: [] as number[] }
   const speakerDiff = partData.allowedSpeakerRoleIds
@@ -168,4 +173,15 @@ export async function reorderTemplateParts(
     })
   }
   return true
+}
+
+/** Holds a part in its rooms, in the schedule template it was just placed in; its caller checked the rooms first. */
+async function holdInRooms(db: TransactionClient, partId: number, roomIds: readonly number[], congregationId: number) {
+  const placed = await db.templatePart.findFirst({
+    where: { id: partId, congregationId },
+    select: { scheduleTemplateId: true },
+  })
+  if (placed?.scheduleTemplateId == null) throw new ConflictError('The part is in no schedule template')
+  const outcome = await setTemplatePartRooms(db, placed.scheduleTemplateId, partId, roomIds, congregationId)
+  if (outcome !== 'saved') throw new ConflictError(`The part's rooms were refused: ${outcome}`)
 }

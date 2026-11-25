@@ -7871,5 +7871,60 @@
     "settings_schedule_templates_service_moved_up": "« {name} » monté d’une place.",
     "settings_schedule_templates_service_moved_down": "« {name} » descendu d’une place.",
     "settings_schedule_templates_service_drag_picked": "« {name} » pris.",
-    "settings_schedule_templates_service_drag_dropped": "« {name} » déposé."
+    "settings_schedule_templates_service_drag_dropped": "« {name} » déposé.",
+    "settings_schedule_templates_room_added": "Salle ajoutée.",
+    "settings_schedule_templates_room_renamed": "Salle renommée.",
+    "settings_schedule_templates_room_deleted": "Salle supprimée.",
+    "settings_schedule_templates_room_taken": "Une autre salle de ce modèle porte déjà ce nom : choisissez-en un autre.",
+    "settings_schedule_templates_room_gone": "Cette salle n’existe plus : la liste vient d’être rechargée.",
+    "settings_schedule_templates_room_main_stays": "La salle principale reste toujours : renommez-la si besoin.",
+    "settings_schedule_templates_rooms_title": "Salles",
+    "settings_schedule_templates_rooms_hint": "Les salles où des parties ont lieu en même temps. Ajouter une salle demande son nom ; ses parties se choisissent ensuite, partie par partie.",
+    "settings_schedule_templates_room_whole": "toute l’assemblée",
+    "settings_schedule_templates_room_parts": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} partie",
+                "countPlural=*": "{count} parties"
+            }
+        }
+    ],
+    "settings_schedule_templates_room_name": "Nom de la salle",
+    "settings_schedule_templates_room_add": "Ajouter",
+    "settings_schedule_templates_room_actions": "Actions de la salle {name}",
+    "settings_schedule_templates_room_delete": "Supprimer",
+    "settings_schedule_templates_room_delete_title": "Supprimer la salle « {name} » ?",
+    "settings_schedule_templates_room_delete_body": "Les prochaines réunions créées avec ce modèle n’auront plus de partie dans cette salle ; ses parties restent dans les autres. Les réunions déjà préparées la gardent, avec qui y est assigné.",
+    "settings_schedule_templates_room_delete_confirm": "Supprimer la salle",
+    "settings_schedule_templates_part_rooms": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} salle",
+                "countPlural=*": "{count} salles"
+            }
+        }
+    ],
+    "programs_edit_part_where_label": "Où",
+    "programs_edit_part_where_whole": "Toute l’assemblée",
+    "programs_edit_part_where_whole_hint": "Dans la salle principale, une seule fois.",
+    "programs_edit_part_where_parallel": "En même temps dans plusieurs salles",
+    "programs_edit_part_where_parallel_hint": "La même partie, avec ses propres orateurs dans chaque salle.",
+    "programs_edit_part_where_always": "toujours",
+    "programs_edit_part_where_count": "Les salles se déclarent dans le modèle. Sur chaque réunion, cette partie aura {count} orateurs, un par salle.",
+    "programs_edit_part_where_single": "Toute l’assemblée, dans la salle principale.",
+    "programs_edit_part_where_single_hint": "Pour une partie en même temps dans plusieurs salles, ajoutez d’abord une salle au modèle.",
+    "programs_edit_part_where_remove_title": "Retirer « {part} » de {rooms} ?",
+    "programs_edit_part_where_remove_body": "Les prochaines réunions créées avec ce modèle n’auront plus cette partie dans ces salles. Les réunions déjà préparées la gardent, avec qui y est assigné.",
+    "programs_edit_part_where_remove_confirm": "Retirer",
+    "programs_edit_part_where_room_quoted": "« {name} »"
 }

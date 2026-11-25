@@ -7871,5 +7871,60 @@
     "settings_schedule_templates_service_moved_up": "« {name} » moved up one place.",
     "settings_schedule_templates_service_moved_down": "« {name} » moved down one place.",
     "settings_schedule_templates_service_drag_picked": "« {name} » picked up.",
-    "settings_schedule_templates_service_drag_dropped": "« {name} » dropped."
+    "settings_schedule_templates_service_drag_dropped": "« {name} » dropped.",
+    "settings_schedule_templates_room_added": "Room added.",
+    "settings_schedule_templates_room_renamed": "Room renamed.",
+    "settings_schedule_templates_room_deleted": "Room deleted.",
+    "settings_schedule_templates_room_taken": "Another room of this template already has this name: choose another.",
+    "settings_schedule_templates_room_gone": "This room no longer exists: the list has just been reloaded.",
+    "settings_schedule_templates_room_main_stays": "The main room always stays: rename it if needed.",
+    "settings_schedule_templates_rooms_title": "Rooms",
+    "settings_schedule_templates_rooms_hint": "The rooms where parts take place at the same time. Adding a room asks for its name; its parts are then chosen part by part.",
+    "settings_schedule_templates_room_whole": "the whole congregation",
+    "settings_schedule_templates_room_parts": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} part",
+                "countPlural=*": "{count} parts"
+            }
+        }
+    ],
+    "settings_schedule_templates_room_name": "Room name",
+    "settings_schedule_templates_room_add": "Add",
+    "settings_schedule_templates_room_actions": "Actions for room {name}",
+    "settings_schedule_templates_room_delete": "Delete",
+    "settings_schedule_templates_room_delete_title": "Delete the room “{name}”?",
+    "settings_schedule_templates_room_delete_body": "The next meetings created from this template will have no part in this room; its parts stay in the others. Meetings already prepared keep it, with whoever is assigned there.",
+    "settings_schedule_templates_room_delete_confirm": "Delete the room",
+    "settings_schedule_templates_part_rooms": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{count} room",
+                "countPlural=*": "{count} rooms"
+            }
+        }
+    ],
+    "programs_edit_part_where_label": "Where",
+    "programs_edit_part_where_whole": "The whole congregation",
+    "programs_edit_part_where_whole_hint": "In the main room, once.",
+    "programs_edit_part_where_parallel": "At the same time in several rooms",
+    "programs_edit_part_where_parallel_hint": "The same part, with its own speakers in each room.",
+    "programs_edit_part_where_always": "always",
+    "programs_edit_part_where_count": "Rooms are declared in the template. At each meeting, this part will have {count} speakers, one per room.",
+    "programs_edit_part_where_single": "The whole congregation, in the main room.",
+    "programs_edit_part_where_single_hint": "For a part at the same time in several rooms, first add a room to the template.",
+    "programs_edit_part_where_remove_title": "Remove “{part}” from {rooms}?",
+    "programs_edit_part_where_remove_body": "The next meetings created from this template will no longer have this part in these rooms. Meetings already prepared keep it, with whoever is assigned there.",
+    "programs_edit_part_where_remove_confirm": "Remove",
+    "programs_edit_part_where_room_quoted": "“{name}”"
 }

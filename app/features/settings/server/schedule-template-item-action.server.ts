@@ -3,32 +3,29 @@ import { data } from 'react-router'
 import { ScheduleKind } from '~/features/events'
 import {
   makeRoomAtTemplateOrder,
-  mergeLoneHalls,
   orderAtEndOf,
   placeExists,
-  renameTemplateHall,
   renameTemplateSection,
   reorderTemplateParts,
   reorderTemplateServices,
-  roomOrderFor,
-  splitSectionIntoHalls,
   templatePartPlace,
 } from '~/features/events/index.server'
-import { renameHallSchema, renameSectionSchema } from '~/features/settings/schemas/schedule-template.schema'
+import { renameSectionSchema } from '~/features/settings/schemas/schedule-template.schema'
 import { upsertPartSchema } from '~/features/settings/schemas/template.schema'
 import * as m from '~/i18n/paraglide/messages'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { getScheduleTemplateItems } from './schedule-template-items.queries'
+import { handleRoomIntent, ROOM_INTENTS } from './schedule-template-room-action.server'
 import {
   handleTemplateItemAction,
   TEMPLATE_ITEM_INTENTS,
   type TemplateActionResult,
 } from './template-item-action.server'
 
-/** A programme template's sections and halls, renamed across their parts, and its parts' order. */
-const SECTION_INTENTS = ['rename-section', 'rename-hall', 'reorder-parts'] as const
+/** A programme template's sections, renamed across their parts, its parts' order, and its rooms. */
+const SECTION_INTENTS = ['rename-section', 'reorder-parts', ...ROOM_INTENTS] as const
 /** A duties template's services' order. */
 const SERVICE_ORDER_INTENTS = ['reorder-services'] as const
 
@@ -84,7 +81,6 @@ export async function handleScheduleTemplateItem(
   }
   const { congregationId, id: actorId } = actor
 
-  // A new order of every part (« Réorganiser », a drag): exactly the template's parts, or the list changed meanwhile.
   // A new order of every part, or every service (« Réorganiser », a drag): exactly the template's, or the list changed
   // meanwhile.
   if (intent === 'reorder-parts' || intent === 'reorder-services') {
@@ -126,108 +122,73 @@ export async function handleScheduleTemplateItem(
     return { kind: 'reordered' }
   }
 
-  if (intent === 'rename-section' || intent === 'rename-hall') {
-    const submission = parseWithZod(formData, {
-      schema: intent === 'rename-section' ? renameSectionSchema : renameHallSchema,
-    })
+  if (ROOM_INTENTS.some(each => each === intent)) {
+    return handleRoomIntent(db, scheduleTemplateId, formData, actor)
+  }
+
+  if (intent === 'rename-section') {
+    const submission = parseWithZod(formData, { schema: renameSectionSchema })
     if (submission.status !== 'success') {
       logger.warn('handleScheduleTemplateItem: an invalid rename', { scheduleTemplateId, intent, ...actor })
       return { kind: 'refused', response: data(submission.reply(), { status: 400 }) }
     }
-    const value = submission.value
+    const { from, to } = submission.value
     const target = { templateId: items.kindId, scheduleTemplateId }
-    const isSection = value.intent === 'rename-section'
-    const outcome =
-      value.intent === 'rename-section'
-        ? await renameTemplateSection(db, target, value.from, value.to, congregationId, actorId)
-        : await renameTemplateHall(db, target, value.section, value.from, value.to, congregationId, actorId)
+    const outcome = await renameTemplateSection(db, target, from, to, congregationId, actorId)
     if (outcome !== 'renamed') {
       logger.warn('handleScheduleTemplateItem: a rename refused', { scheduleTemplateId, intent, outcome, ...actor })
       if (outcome === 'blank') return refused([m.settings_schedule_templates_name_blank()])
       if (outcome === 'unchanged') return refused([m.settings_schedule_templates_name_unchanged()])
-      if (outcome === 'taken') {
-        return refused([
-          isSection ? m.settings_schedule_templates_section_taken() : m.settings_schedule_templates_hall_taken(),
-        ])
-      }
-      return refused(
-        [isSection ? m.settings_schedule_templates_section_gone() : m.settings_schedule_templates_hall_gone()],
-        409,
-      )
+      if (outcome === 'taken') return refused([m.settings_schedule_templates_section_taken()])
+      return refused([m.settings_schedule_templates_section_gone()], 409)
     }
-    return {
-      kind: 'saved',
-      message:
-        value.intent === 'rename-section'
-          ? m.settings_schedule_templates_section_renamed()
-          : m.settings_schedule_templates_hall_renamed(),
-    }
+    return { kind: 'saved', message: m.settings_schedule_templates_section_renamed() }
   }
 
-  const target = { templateId: items.kindId, scheduleTemplateId }
-  // The sections a part write touches: where the part was (an edit, a delete) and where it goes.
-  const touched: string[] = []
   const partId = Number(formData.get('partId'))
   const was =
-    (intent === 'upsert-part' || intent === 'delete-part') && Number.isInteger(partId) && partId > 0
+    intent === 'upsert-part' && Number.isInteger(partId) && partId > 0
       ? await templatePartPlace(db, items.kindId, partId, congregationId)
       : null
-  if (was != null) touched.push(was.section)
   if (intent === 'upsert-part') {
+    // A template part's rooms are its room rows (« Où »), never a track.
+    formData.set('partTrack', '')
+    formData.delete('partTrackOrder')
     const submission = parseWithZod(formData, { schema: upsertPartSchema })
     if (submission.status === 'success') {
-      const { partSection, partTrack } = submission.value
-      touched.push(partSection)
+      const { partSection, partRooms, partRoomsManaged } = submission.value
+      if (partRoomsManaged && partRooms.some(id => !items.rooms.some(room => room.id === id))) {
+        logger.warn('handleScheduleTemplateItem: a room no longer there', { scheduleTemplateId, partId, ...actor })
+        return refused([m.settings_schedule_templates_room_gone()], 409)
+      }
       const isNew = !formData.get('partId')
-      const moved = was != null && (was.section !== partSection || was.track !== partTrack)
-      // An edited part is moved among what exists: a section or hall renamed or emptied elsewhere since its form
-      // opened is not there any more (a new part may bring its own, from « Ajouter une section » or a new hall).
-      if (moved && !(await placeExists(db, items.kindId, partSection, partTrack, partId, congregationId))) {
-        const sectionGone = !(await placeExists(db, items.kindId, partSection, '', partId, congregationId))
-        logger.warn('handleScheduleTemplateItem: a part moved to a place no longer there', {
+      const moved = was != null && was.section !== partSection
+      // An edited part is moved among what exists: a section renamed or emptied elsewhere since its form opened is
+      // not there any more (a new part may bring its own, from « Ajouter une section »).
+      if (moved && !(await placeExists(db, items.kindId, partSection, partId, congregationId))) {
+        logger.warn('handleScheduleTemplateItem: a part moved to a section no longer there', {
           scheduleTemplateId,
           partId,
-          sectionGone,
           ...actor,
         })
-        return refused(
-          [sectionGone ? m.settings_schedule_templates_section_gone() : m.settings_schedule_templates_hall_gone()],
-          409,
-        )
-      }
-      // A new part starting a section's first parallel hall turns its parts outside any hall into the main hall.
-      if (isNew && partTrack !== '') {
-        const mainHall = m.settings_schedule_templates_main_hall()
-        await splitSectionIntoHalls(db, target, partSection, mainHall, congregationId, actorId)
+        return refused([m.settings_schedule_templates_section_gone()], 409)
       }
       // Where it goes, never taken from the form for a part that exists: one edited in place keeps its order, one
-      // moved to another section or hall goes to its end; a new part goes where it was added, or to the end of its
-      // section or hall when sent without a place. The parts from there on make room.
+      // moved to another section goes to its end; a new part goes where it was added, or to the end of its section
+      // when sent without a place. The parts from there on make room.
       const self = was == null ? null : partId
       const sentOrder = String(formData.get('partOrder') ?? '')
       const order =
         was != null && !moved
           ? was.order
           : moved || sentOrder === ''
-            ? await orderAtEndOf(db, items.kindId, partSection, partTrack, self, congregationId)
+            ? await orderAtEndOf(db, items.kindId, partSection, self, congregationId)
             : Number(sentOrder)
       formData.set('partOrder', String(order))
       if (isNew || moved) await makeRoomAtTemplateOrder(db, items.kindId, order, congregationId)
-      // A hall's place among the section's halls, from the halls themselves (no field sets it); a part edited in place
-      // keeps its own, even alone in its hall.
-      const roomOrder =
-        was != null && !moved
-          ? was.trackOrder
-          : await roomOrderFor(db, items.kindId, partSection, partTrack, self, congregationId)
-      formData.set('partTrackOrder', roomOrder == null ? '' : String(roomOrder))
     }
   }
-  const result = (await handleTemplateItemAction(db, items.kindId, formData, actor)) ?? null
-  // A section left with one hall is no longer in parallel: its parts go back outside any hall.
-  if (result?.kind === 'saved' && touched.length > 0) {
-    await mergeLoneHalls(db, target, touched, congregationId, actorId)
-  }
-  return result
+  return (await handleTemplateItemAction(db, items.kindId, formData, actor)) ?? null
 }
 
 /** The ids a reorder sends, as JSON; null for anything else. */

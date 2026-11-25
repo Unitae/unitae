@@ -6,7 +6,13 @@ const { getTemplatePage } = await import('./template-page.queries')
 const { getScheduleTemplateItems } = await import('./schedule-template-items.queries')
 
 const findFirst = vi.fn()
-const db = { scheduleTemplate: { findFirst } }
+const rooms = vi.fn()
+const partRooms = vi.fn()
+const db = {
+  scheduleTemplate: { findFirst },
+  scheduleTemplateRoom: { findMany: rooms },
+  templatePartRoom: { findMany: partRooms },
+}
 
 const page = {
   template: {
@@ -27,6 +33,15 @@ const page = {
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(getTemplatePage).mockResolvedValue(page as never)
+  rooms.mockResolvedValue([
+    { id: 50, name: null, key: 'main' },
+    { id: 51, name: 'Salle B', key: null },
+  ])
+  partRooms.mockResolvedValue([
+    { templatePartId: 1, roomId: 50 },
+    { templatePartId: 2, roomId: 50 },
+    { templatePartId: 2, roomId: 51 },
+  ])
 })
 
 describe('getScheduleTemplateItems', () => {
@@ -40,7 +55,21 @@ describe('getScheduleTemplateItems', () => {
     expect(items?.parts.map(part => part.id)).toEqual([1, 2])
     expect(items?.services).toEqual([])
     expect(items?.sectionSuggestions).toEqual(['Joyaux', 'Vie chrétienne'])
-    expect(items?.trackSuggestions).toEqual(['Salle B'])
+  })
+
+  it('gives a programme template’s rooms, the main room’s name unset, and each part’s rooms', async () => {
+    findFirst.mockResolvedValue({ kind: 'programme', eventKinds: [{ eventKindId: 270 }] })
+
+    const items = await getScheduleTemplateItems(db as never, 30, 3)
+
+    expect(items?.rooms).toEqual([
+      { id: 50, name: null, isMain: true, partCount: 2 },
+      { id: 51, name: 'Salle B', isMain: false, partCount: 1 },
+    ])
+    expect(items?.parts.map(part => [part.id, part.roomIds])).toEqual([
+      [1, [50]],
+      [2, [50, 51]],
+    ])
   })
 
   it('reads a duties template’s services only', async () => {
@@ -50,6 +79,8 @@ describe('getScheduleTemplateItems', () => {
 
     expect(items?.services.map(service => service.id)).toEqual([7])
     expect(items?.parts).toEqual([])
+    expect(items?.rooms).toEqual([])
+    expect(rooms).not.toHaveBeenCalled()
   })
 
   it('has no kind to write through for a template no kind uses, and nothing for one not there', async () => {

@@ -30,11 +30,3 @@ export const renameSectionSchema = z.object({
   from: z.string().min(1),
   to: z.string().trim().min(1).max(80),
 })
-
-/** « Renommer » on a hall's header, within its section. */
-export const renameHallSchema = z.object({
-  intent: z.literal('rename-hall'),
-  section: z.string().optional().default(''),
-  from: z.string().min(1),
-  to: z.string().trim().min(1).max(80),
-})

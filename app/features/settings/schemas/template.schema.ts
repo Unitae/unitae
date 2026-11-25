@@ -83,6 +83,16 @@ export const upsertPartSchema = z.object({
   partSection: z.string().optional().default(''),
   partTrack: z.string().optional().default(''),
   partTrackOrder: z.coerce.number().optional(),
+  // « Où » on « Modèles de planning »: the rooms ticked (one field per room, so one value or several), sent with
+  // `partRoomsManaged` so none ticked tells « toute l’assemblée » from a form without the field (the meeting type's).
+  partRooms: z.preprocess(
+    value => (value == null ? [] : Array.isArray(value) ? value : [value]),
+    z.array(z.coerce.number().int().positive()),
+  ),
+  partRoomsManaged: z
+    .string()
+    .optional()
+    .transform(v => v === 'on'),
   partOrder: z.coerce.number().default(0),
   partDuration: z.coerce.number().optional(),
   partAllowExternalSpeaker: z

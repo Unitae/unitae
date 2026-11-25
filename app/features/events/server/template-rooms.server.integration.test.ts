@@ -17,6 +17,7 @@ const testDb = new PrismaClient({
 const { addTemplateRoom, deleteTemplateRoom, renameTemplateRoom, setTemplatePartRooms } = await import(
   './template-rooms.server'
 )
+const { upsertTemplatePart } = await import('./template-items.server')
 
 class Rollback extends Error {}
 
@@ -200,5 +201,42 @@ describe('setTemplatePartRooms', () => {
         expect(await partRooms(partId)).toEqual(['main'])
       },
     )
+  })
+})
+
+describe('upsertTemplatePart, with « Où »', () => {
+  it('holds a new part in the rooms it is saved with, and an edited one in its new rooms', async () => {
+    await inTemplate(async ({ db, congregationId, actorId, scheduleTemplateId, partId, partRooms }) => {
+      const b = await addTemplateRoom(db, scheduleTemplateId, 'Salle B', congregationId, actorId)
+      const bId = b.outcome === 'added' ? b.id : 0
+      const kindId = (await db.templatePart.findFirstOrThrow({ where: { id: partId } })).templateId
+      // The kind uses the template, so the part stays in it when the kind's templates are synced.
+      await db.eventKindScheduleTemplate.create({ data: { scheduleTemplateId, eventKindId: kindId, congregationId } })
+      const write = (id: number | undefined, roomIds?: number[]) =>
+        upsertTemplatePart(
+          db,
+          kindId,
+          {
+            id,
+            name: 'Lecture',
+            section: 'Joyaux',
+            track: '',
+            order: 1,
+            durationMin: 4,
+            allowExternalSpeaker: false,
+            roomIds,
+          },
+          congregationId,
+          actorId,
+        )
+      const created = await write(undefined, [bId])
+      expect(await partRooms(created.id)).toEqual(['Salle B', 'main'])
+      await write(created.id, [])
+      expect(await partRooms(created.id)).toEqual(['main'])
+      // Without « Où » (the meeting type's own form) its rooms stay.
+      await setTemplatePartRooms(db, scheduleTemplateId, created.id, [bId], congregationId)
+      await write(created.id)
+      expect(await partRooms(created.id)).toEqual(['Salle B', 'main'])
+    })
   })
 })

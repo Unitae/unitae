@@ -73,6 +73,8 @@ export async function handleTemplateItemAction(
         speakerLabel: value.partSpeakerLabel ?? null,
         readerLabel: value.partReaderLabel ?? null,
         presetId: value.partPresetId,
+        // « Où » on « Modèles de planning »; the meeting type's form has no such field and leaves the rooms be.
+        roomIds: value.partRoomsManaged ? value.partRooms : undefined,
         ...partAllowedRolesToWrite({
           managedSlots: value.managedRoleSlots,
           allowedSpeakerRoleIds: value.allowedSpeakerRoleIds,

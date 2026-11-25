@@ -7,7 +7,8 @@ import { getTemplatePage } from './template-page.queries'
  * A schedule template's items as « Modèles de planning » edits them: a programme template's parts, or a duties
  * template's services, with what their forms offer. Until its items stop belonging to a kind (6a-1c-2) they are read,
  * and written, through the first kind that uses the template; a template no kind uses has none to show. A kind's item
- * not placed in a schedule template yet counts as its template's of that kind. Null when the template is not the
+ * not placed in a schedule template yet counts as its template's of that kind. A programme template's rooms come
+ * with it, the main room first, and each part with the rooms it is held in. Null when the template is not the
  * congregation's.
  */
 export async function getScheduleTemplateItems(
@@ -29,14 +30,35 @@ export async function getScheduleTemplateItems(
     (item.scheduleTemplateId ?? scheduleTemplateId) === scheduleTemplateId
   const parts = template.kind === ScheduleKind.Programme ? (page?.template.parts ?? []).filter(own) : []
   const services = template.kind === ScheduleKind.Duty ? (page?.template.serviceParts ?? []).filter(own) : []
+  const [rooms, held] =
+    template.kind === ScheduleKind.Programme
+      ? await Promise.all([
+          db.scheduleTemplateRoom.findMany({
+            where: { scheduleTemplateId, congregationId },
+            orderBy: [{ order: 'asc' }, { id: 'asc' }],
+            select: { id: true, name: true, key: true },
+          }),
+          db.templatePartRoom.findMany({
+            where: { templatePartId: { in: parts.map(part => part.id) }, congregationId },
+            select: { templatePartId: true, roomId: true },
+          }),
+        ])
+      : [[], []]
+  const roomIdsOf = (partId: number) => held.filter(row => row.templatePartId === partId).map(row => row.roomId)
   return {
     kind: template.kind,
     kindId: page == null ? null : kindId,
-    parts,
+    parts: parts.map(part => ({ ...part, roomIds: roomIdsOf(part.id) })),
+    /** Its rooms, the main room first: its name null until someone names it (read « Salle principale »). */
+    rooms: rooms.map(room => ({
+      id: room.id,
+      name: room.name,
+      isMain: room.key === 'main',
+      partCount: held.filter(row => row.roomId === room.id).length,
+    })),
     services,
     roles: page?.roles ?? [],
     presets: page?.presets ?? [],
     sectionSuggestions: distinct(parts.map(part => part.section)).filter(Boolean),
-    trackSuggestions: distinct(parts.map(part => part.track)).filter(Boolean),
   }
 }
