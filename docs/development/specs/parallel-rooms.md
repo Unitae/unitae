@@ -1,6 +1,6 @@
 # Spec: Parallel rooms — one part, held in several rooms
 
-**Status:** Draft — storage proposed for review; nothing built
+**Status:** Agreed 2026-11-25 — phase R1 in #648
 **Feature area:** `events` (items, meetings, assignments), `settings` (schedule templates), `display-board`, `notifications`
 **Related:** the event schedules spec (draft PR #533), canvas page `plannings`, row « Tour A — salles en parallèle »
 
@@ -33,7 +33,8 @@
   with a line per room (`groupPartsBySlot`); the meeting page and the template editor group by
   `track` into one list per room. The template editor (PRs #642–#645) gives copies different orders,
   so the board shows them as unlabelled separate rows. The demo and the reference fixtures hold no
-  copies; production is believed to hold none (to confirm, read-only, with the user's go).
+  copies; real data does (checked read-only with the user's go), all in the original shape: copies
+  sharing section and order, without a room order.
 
 ## 3. The model
 
@@ -64,7 +65,7 @@ attaches to `TemplatePart`; when 6a-1c-2 moves template items off kinds, it move
 |---|---|
 | `id`, `itemId`, `scheduleRoomId`, `congregationId` | which part, which room |
 | `assigneeId`, `assistantId`, `externalSpeakerId` | the room's speaker, second speaker, outside speaker |
-| `topic`, `note`, `hasConflict` | what is per student and per room today |
+| `hasConflict` | an assignee's conflict (absence), so per room |
 
 Unique `[itemId, scheduleRoomId]`. A part for everyone has **one** row, for the main room, so every
 assignment lives in `ItemRoom` and readers have one shape to read. `Item` keeps what is per part:
@@ -114,25 +115,26 @@ fixtures with copies sharing an order, copies with different orders, a lone trac
 Each phase is one or more PRs, deployed in order; the main app's code may run against a newer
 schema for a while, so every step is backward-compatible.
 
-1. **Expand.** The four tables; template rooms and « Où » in the template editor (the boards);
-   meeting creation writes `ScheduleRoom` and `ItemRoom` beside today's columns (dual write: the
-   main room's row mirrors `Item.assigneeId`/`assistantId`/…). Nothing reads them yet.
-2. **Backfill.** The migration of §4, plus a catch-up for rows written before phase 1 deployed.
-3. **Readers, one surface at a time:** meeting page and assignment dialog; conflicts and absences;
-   notifications, calendar feed, « mes attributions », dashboard; board and PDF; programme list and
-   counts; cadence and history.
-4. **Writers to `ItemRoom` only;** export/import (archive version bump, older archives translated);
-   the control plane's GDPR export and congregation deletion (same deploy PR as the pin).
-5. **Contract.** `track`, `trackOrder` and the per-room columns on `Item` and `EventPart` go, with
-   the triggers that mirror them. Reference files that print those keys change here (user approval).
+1. **R1 — schema, filled and kept in step** (#648). The four tables; a backfill from today's
+   copies (each copy its own part, in its track's room); triggers so today's writers keep the rows
+   in step. Nothing reads them.
+2. **R2 — the template side.** Rooms declared in the template panel and « Où » on a part (the
+   boards). Until the meeting pages move, a meeting still receives one copy per room, sharing
+   section and order, which the board already draws as one part in several rooms.
+3. **R3 — readers, one surface at a time:** meeting page and assignment dialog; conflicts and
+   absences; notifications, calendar feed, « mes attributions », dashboard; board and PDF; programme
+   list and counts; cadence and history. Each reads assignees from `ItemRoom`.
+4. **R4 — writers:** meeting creation writes one `Item` and one `ItemRoom` per room; assignment
+   writes `ItemRoom`; both reorders move a part with its rooms; export/import (archive version bump,
+   older archives translated); the control plane's export and congregation deletion.
+5. **R5 — contract.** Copies merged into one part; `track`, `trackOrder` and the per-room columns
+   on part items go, with the triggers. Reference files that print those keys change here (user
+   approval). Services keep their assignee on `Item`.
 
-## 6. Open questions
+## 6. Decided
 
-1. **Per room or per part:** `topic` and `note` per room (proposed: a student's study point differs
-   per room), `durationMin` per part (proposed: the same part, the same time). Agreed?
-2. **The main room's name:** « Salle principale » by default, renamable. Agreed?
-3. **Production check:** may I run a read-only count of tracked parts in production before writing
-   the migration, so its rules are tested on what exists?
-4. **Phase 1 order:** build the template side first (rooms, « Où », the boards) while meetings keep
-   writing today's copies until phase 3? It ships something visible sooner, but meetings created in
-   between would then need the backfill too.
+1. **Per part:** name, duration, part type, roles, topic and note. **Per room:** who does the part
+   (speaker, second speaker, outside speaker) and the conflict flag that goes with them.
+2. **The main room** reads « Salle principale » by default and can be renamed.
+3. **Real data** was checked read-only before the migration; its shape is the one tested.
+4. **The template side comes first** (R2), on top of R1.
