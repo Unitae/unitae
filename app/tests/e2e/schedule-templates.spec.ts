@@ -11,6 +11,9 @@ const SEVERAL_SERVICES_RE = /(?:[2-9]|\d{2,}) services/
 const DOWN_RE = /^Descendre /
 const IN_SECTION_RE = /section=[^&]+/
 const DELETE_RE = /Supprimer/
+const PARALLEL_RE = /En même temps dans plusieurs salles/
+const WHOLE_RE = /Toute l’assemblée/
+const ROOMS_TAG_RE = /\d salles/
 
 // The answer to a reorder posted from the page (not any other request).
 const orderSaved = (page: Page) =>
@@ -234,7 +237,11 @@ test.describe('Schedule templates: a part in the template panel', () => {
       const freshTop = async () => {
         await page.reload()
         await page.getByRole('button', { name: 'Réorganiser les parties' }).click()
-        // The phone's sheet slides in after a reload: read once it has stopped moving.
+        // The phone's sheet slides in after a reload: read once its animation is over (two equal reads alone can both
+        // come before it starts), and has stopped moving.
+        await page
+          .locator('[data-slot="sheet-content"]')
+          .evaluate(sheet => Promise.all(sheet.getAnimations().map(animation => animation.finished)))
         let last = Number.NaN
         await expect
           .poll(async () => {
@@ -309,6 +316,71 @@ test.describe('Schedule templates: a part in the template panel', () => {
       await page.reload()
       await page.getByRole('button', { name: 'Réorganiser les services' }).click()
       expect(await names()).toEqual(before)
+    }
+  })
+
+  test('adds a room, holds a part in it, takes it out after a confirmation, and deletes the room', async ({ page }) => {
+    const room = `Salle e2e ${Date.now()}`
+    const part = `Partie e2e ${Date.now()}`
+    await page.goto('/settings/schedule-templates')
+    const programme = page.locator('[data-row-primary]').filter({ hasText: 'Spirituel' }).first()
+    if ((await programme.count()) === 0) test.skip()
+    await programme.click()
+    await expect(page).toHaveURL(TEMPLATE_RE)
+    const templateUrl = page.url()
+    const form = page.locator('form#part-edit-form')
+    const row = page.getByRole('button', { name: new RegExp(`^${part}`) })
+    const roomRow = page.getByText(room, { exact: true })
+    try {
+      await page.getByPlaceholder('Nom de la salle').fill(room)
+      await page.getByRole('button', { name: 'Ajouter', exact: true }).click()
+      await expect(roomRow).toBeVisible()
+
+      // A new part in the whole congregation, then in the room too: the list says « N salles ».
+      await page.getByRole('button', { name: 'Ajouter une partie hors section', exact: true }).click()
+      await form.getByLabel('Nom', { exact: true }).fill(part)
+      await page.getByRole('button', { name: 'Enregistrer la partie' }).click()
+      await expect(page).not.toHaveURL(ANY_ITEM_RE)
+      await row.click()
+      await expect(page).toHaveURL(PART_RE)
+      await form.getByRole('radio', { name: PARALLEL_RE }).click()
+      await form.getByRole('checkbox', { name: room }).click()
+      await page.getByRole('button', { name: 'Enregistrer la partie' }).click()
+      await expect(page).not.toHaveURL(ANY_ITEM_RE)
+      await expect(row).toContainText(ROOMS_TAG_RE)
+
+      // Taken out of the room: the save asks first.
+      await row.click()
+      await expect(page).toHaveURL(PART_RE)
+      await form.getByRole('radio', { name: WHOLE_RE }).click()
+      await page.getByRole('button', { name: 'Enregistrer la partie' }).click()
+      const confirm = page.getByRole('alertdialog')
+      await expect(confirm).toContainText(room)
+      await confirm.getByRole('button', { name: 'Retirer', exact: true }).click()
+      await expect(page).not.toHaveURL(ANY_ITEM_RE)
+      await expect(row).not.toContainText(ROOMS_TAG_RE)
+
+      await page.getByRole('button', { name: `Actions de la salle ${room}`, exact: true }).click()
+      await page.getByRole('menuitem', { name: 'Supprimer' }).click()
+      await page.getByRole('alertdialog').getByRole('button', { name: 'Supprimer la salle' }).click()
+      await expect(roomRow).toHaveCount(0)
+    } finally {
+      // Whatever failed: the template as it was, without the room or the part.
+      await page.goto(templateUrl)
+      const actions = page.getByRole('button', { name: `Actions de la salle ${room}`, exact: true })
+      if ((await actions.count()) > 0) {
+        await actions.click()
+        await page.getByRole('menuitem', { name: 'Supprimer' }).click()
+        await page.getByRole('alertdialog').getByRole('button', { name: 'Supprimer la salle' }).click()
+        await expect(roomRow).toHaveCount(0)
+      }
+      if ((await row.count()) > 0) {
+        await row.click()
+        await page.getByRole('button', { name: 'Plus d’actions' }).click()
+        await page.getByRole('menuitem', { name: 'Supprimer' }).click()
+        await page.getByRole('alertdialog').getByRole('button', { name: DELETE_RE }).click()
+        await expect(row).toHaveCount(0)
+      }
     }
   })
 })
