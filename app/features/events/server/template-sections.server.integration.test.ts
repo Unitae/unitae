@@ -357,6 +357,26 @@ describe('mergeLoneHalls', () => {
     })
   })
 
+  it('clears the lone hall of its section only, never the same hall name in a section still in two halls', async () => {
+    await inTemplate(async ({ db, congregationId, actorId, templateId, parts }) => {
+      // « Joyaux » holds one hall named as one of Ministère's two.
+      await db.templatePart.updateMany({
+        where: { templateId, section: 'Joyaux' },
+        data: { track: 'Salle principale', trackOrder: 1 },
+      })
+      await mergeLoneHalls(
+        db,
+        { templateId, scheduleTemplateId: SCHEDULE_TEMPLATE_ID },
+        ['Joyaux'],
+        congregationId,
+        actorId,
+      )
+      const tracks = Object.fromEntries((await parts()).map(each => [each.name, each.track]))
+      expect([tracks.Discours, tracks.Lecture]).toEqual(['', ''])
+      expect([tracks.Conversation, tracks['Conversation B']]).toEqual(['Salle principale', 'Salle B'])
+    })
+  })
+
   it('never touches another template', async () => {
     await inTemplate(async ({ db, congregationId, actorId, templateId, otherId }) => {
       await db.templatePart.create({
