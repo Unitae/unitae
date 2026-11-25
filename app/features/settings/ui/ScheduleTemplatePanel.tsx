@@ -253,6 +253,7 @@ export function ScheduleTemplatePanel({
       ) : (
         <Sheet open onOpenChange={next => !next && onClose()}>
           <SheetContent
+            data-schedule-template-sheet=""
             className="sm:max-w-md"
             onEscapeKeyDown={event => {
               if (item == null) return
@@ -292,9 +293,12 @@ export function ScheduleTemplatePanel({
   )
 }
 
-/** The docked panel open beside the list (a phone's sheet keeps focus in itself). */
+/** The panel open beside the list, or its sheet under 1280 px: where focus goes back once a dialog over it closes. */
 export function openPanel(): HTMLElement | null {
-  return document.querySelector<HTMLElement>('aside[tabindex="-1"]')
+  return (
+    document.querySelector<HTMLElement>('aside[tabindex="-1"]') ??
+    document.querySelector<HTMLElement>('[data-schedule-template-sheet]')
+  )
 }
 
 function rowOf(mark: string | null): HTMLElement | null {
