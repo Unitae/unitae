@@ -7,6 +7,7 @@ const TEMPLATE_RE = /template=\d+/
 const NEW_PART_RE = /item=new-part/
 const PART_RE = /item=part-\d+/
 const ANY_ITEM_RE = /item=/
+const ITEM_PARAM_RE = /&item=[^&]*/
 const IN_SECTION_RE = /section=[^&]+/
 const DELETE_RE = /Supprimer/
 
@@ -171,60 +172,71 @@ test.describe('Schedule templates: a part in the template panel', () => {
       return a != null && b != null && a.y < b.y
     }
 
-    // By keyboard: Space lifts the part, the arrow moves it, Space drops it, and the order is saved.
-    await page.getByRole('button', { name: `Déplacer Beta e2e ${stamp}`, exact: true }).focus()
-    await page.keyboard.press('Space')
-    await expect(page.getByText(`« Beta e2e ${stamp} » prise.`)).toBeAttached()
-    // The list is measured just after the lift, and an arrow pressed before that moves nothing: press it again
-    // until the lifted part is drawn on top (two parts: a second press cannot take it further), then drop.
-    await expect
-      .poll(async () => {
-        await page.keyboard.press('ArrowUp')
-        return above(beta, alpha)
-      })
-      .toBe(true)
-    // The drop saves the new order: wait for its answer before reading the page again.
-    const saved = orderSaved(page)
-    await page.keyboard.press('Space')
-    expect((await saved).ok()).toBe(true)
-    await page.reload()
-    await expect.poll(() => above(beta, alpha)).toBe(true)
+    // A failed run deletes its parts too, so a retry starts from the same template.
+    try {
+      // By keyboard: Space lifts the part, the arrow moves it, Space drops it, and the order is saved.
+      await page.getByRole('button', { name: `Déplacer Beta e2e ${stamp}`, exact: true }).focus()
+      await page.keyboard.press('Space')
+      await expect(page.getByText(`« Beta e2e ${stamp} » prise.`)).toBeAttached()
+      // The list is measured just after the lift, and an arrow pressed before that moves nothing: press it again
+      // until the lifted part is drawn on top (two parts: a second press cannot take it further), then drop.
+      await expect
+        .poll(async () => {
+          await page.keyboard.press('ArrowUp')
+          return above(beta, alpha)
+        })
+        .toBe(true)
+      // The drop saves the new order: wait for its answer before reading the page again.
+      const saved = orderSaved(page)
+      await page.keyboard.press('Space')
+      expect((await saved).ok()).toBe(true)
+      await page.reload()
+      await expect.poll(() => above(beta, alpha)).toBe(true)
 
-    // On a phone: « Réorganiser les parties » (rows only move: nothing opens, nothing is added), « Descendre »,
-    // the move said once saved, « Terminé », and the order kept on a reload.
-    await page.setViewportSize({ width: 390, height: 844 })
-    await page.getByRole('button', { name: 'Réorganiser les parties' }).click()
-    await expect(page.locator('[data-item^="part-"]')).toHaveCount(0)
-    await expect(page.getByRole('button', { name: 'Ajouter une partie hors section' })).toHaveCount(0)
-    const down = orderSaved(page)
-    await page.getByRole('button', { name: `Descendre Beta e2e ${stamp}`, exact: true }).click()
-    expect((await down).ok()).toBe(true)
-    await expect(page.getByText(`« Beta e2e ${stamp} » descendue d’une place.`)).toBeVisible()
+      // On a phone: « Réorganiser les parties » (rows only move: nothing opens, nothing is added), « Descendre »,
+      // the move said once saved, « Terminé », and the order kept on a reload.
+      await page.setViewportSize({ width: 390, height: 844 })
+      await page.getByRole('button', { name: 'Réorganiser les parties' }).click()
+      await expect(page.locator('[data-item^="part-"]')).toHaveCount(0)
+      await expect(page.getByRole('button', { name: 'Ajouter une partie hors section' })).toHaveCount(0)
+      const down = orderSaved(page)
+      await page.getByRole('button', { name: `Descendre Beta e2e ${stamp}`, exact: true }).click()
+      expect((await down).ok()).toBe(true)
+      await expect(page.getByText(`« Beta e2e ${stamp} » descendue d’une place.`)).toBeVisible()
 
-    // A whole section up one place, then back: each move saved and kept on a reload.
-    const header = page.getByRole('button', { name: `Monter la section ${section}`, exact: true })
-    const before = (await header.boundingBox())?.y ?? 0
-    const up = orderSaved(page)
-    await header.click()
-    expect((await up).ok()).toBe(true)
-    await page.reload()
-    await page.getByRole('button', { name: 'Réorganiser les parties' }).click()
-    await expect.poll(async () => (await header.boundingBox())?.y ?? 0).toBeLessThan(before)
-    const back = orderSaved(page)
-    await page.getByRole('button', { name: `Descendre la section ${section}`, exact: true }).click()
-    expect((await back).ok()).toBe(true)
-    await page.getByRole('button', { name: 'Terminé' }).click()
-    await page.reload()
-    await expect.poll(() => above(alpha, beta)).toBe(true)
-
-    await page.setViewportSize({ width: 1440, height: 1000 })
-    for (const row of [beta, alpha]) {
-      await row.click()
-      await page.getByRole('button', { name: 'Plus d’actions' }).click()
-      await page.getByRole('menuitem', { name: 'Supprimer' }).click()
-      await page.getByRole('alertdialog').getByRole('button', { name: DELETE_RE }).click()
-      await expect(page).not.toHaveURL(ANY_ITEM_RE)
-      await expect(row).toHaveCount(0)
+      // A whole section up one place, then back: each move saved and kept on a reload.
+      // Where the section sits, read after a reload each time: the sheet then starts at its top, so the two
+      // positions are measured from the same scroll.
+      const header = page.getByRole('button', { name: `Monter la section ${section}`, exact: true })
+      const freshTop = async () => {
+        await page.reload()
+        await page.getByRole('button', { name: 'Réorganiser les parties' }).click()
+        return (await header.boundingBox())?.y ?? 0
+      }
+      const before = await freshTop()
+      const up = orderSaved(page)
+      await header.click()
+      expect((await up).ok()).toBe(true)
+      expect(await freshTop()).toBeLessThan(before)
+      const back = orderSaved(page)
+      await page.getByRole('button', { name: `Descendre la section ${section}`, exact: true }).click()
+      expect((await back).ok()).toBe(true)
+      await page.getByRole('button', { name: 'Terminé' }).click()
+      await page.reload()
+      await expect.poll(() => above(alpha, beta)).toBe(true)
+    } finally {
+      await page.setViewportSize({ width: 1440, height: 1000 })
+      await page.goto(page.url().replace(ITEM_PARAM_RE, ''))
+      await page.locator('[data-item^="part-"]').first().waitFor()
+      for (const row of [beta, alpha]) {
+        if ((await row.count()) === 0) continue
+        await row.click()
+        await page.getByRole('button', { name: 'Plus d’actions' }).click()
+        await page.getByRole('menuitem', { name: 'Supprimer' }).click()
+        await page.getByRole('alertdialog').getByRole('button', { name: DELETE_RE }).click()
+        await expect(page).not.toHaveURL(ANY_ITEM_RE)
+        await expect(row).toHaveCount(0)
+      }
     }
   })
 })
