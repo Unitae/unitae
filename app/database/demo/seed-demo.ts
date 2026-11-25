@@ -40,13 +40,10 @@ import {
 } from './meetings'
 import { type Congregation, generateCongregation } from './people'
 import { generateArea } from './places'
-import { CUSTOM_ROLES, DEMO_RESPONSIBLES, MEETINGS, SERVICE_ROLES, SETTINGS } from './profile'
+import { CUSTOM_ROLES, DEMO_RESPONSIBLES, MEETINGS, SEED, SERVICE_ROLES, SETTINGS } from './profile'
 import { Random } from './random'
-import { assignRoleHolders } from './roles'
+import { assignRoleHolders, demoRolePersons } from './roles'
 import { loginEmail, writeArea, writeAttributions, writeHistory, writePeople } from './write'
-
-/** The demo's random seed: change it for another congregation of the same shape. */
-const SEED = 20261110
 
 // Hand-mirrors app/shared/auth/crypto.server.ts so seeded demo logins verify through the shared
 // `compare`: current scrypt parameters (N=2^17), raised maxmem, self-describing storage format.
@@ -859,19 +856,7 @@ async function writeDemoLogins(
 ): Promise<Record<DemoRole, number>> {
   const { people, holders } = demo
   const publisher = await busiestPublisher(prisma, congregationId, demo, login.now)
-  const programmes = holders.get('responsable-vcm')?.[0]
-  const territories = holders.get('territoires')?.[0]
-  // Elders with another role often lead a group too: the first group led by none of them, so each role is its own login.
-  const taken = new Set([people.admin, people.secretary, people.serviceOverseer, programmes, territories])
-  const overseer = people.groups.find(group => !taken.has(group.responsible))?.responsible
-  const persons: Record<DemoRole, number | undefined> = {
-    coordinator: people.admin,
-    secretary: people.secretary,
-    programmes,
-    territories,
-    'group-overseer': overseer,
-    publisher,
-  }
+  const persons: Record<DemoRole, number | undefined> = { ...demoRolePersons(people, holders), publisher }
   const logins = {} as Record<DemoRole, number>
   for (const role of DEMO_ROLES) {
     const person = persons[role]
