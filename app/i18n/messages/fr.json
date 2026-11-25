@@ -7848,5 +7848,22 @@
     "programs_edit_part_section_none": "Aucune section",
     "programs_edit_part_section_pick_hint": "Les sections du modèle, ou « Aucune section ». La partie va à la fin de la section choisie. Une section se crée depuis la liste.",
     "programs_edit_part_track_none": "Aucune : toute l’assemblée",
-    "programs_edit_part_track_pick_hint": "Une salle en parallèle : choisissez-en une. Une salle s’ajoute depuis le menu de sa section."
+    "programs_edit_part_track_pick_hint": "Une salle en parallèle : choisissez-en une. Une salle s’ajoute depuis le menu de sa section.",
+    "settings_schedule_templates_order_stale": "La liste a changé entre-temps : elle vient d’être rechargée, recommencez.",
+    "settings_schedule_templates_move_part": "Déplacer {name}",
+    "settings_schedule_templates_move_section": "Déplacer la section {name}",
+    "settings_schedule_templates_move_up": "Monter {name}",
+    "settings_schedule_templates_move_down": "Descendre {name}",
+    "settings_schedule_templates_move_section_up": "Monter la section {name}",
+    "settings_schedule_templates_move_section_down": "Descendre la section {name}",
+    "settings_schedule_templates_part_in_hall": "{name}, {hall}",
+    "settings_schedule_templates_reorder": "Réorganiser les parties",
+    "settings_schedule_templates_reorder_done": "Terminé",
+    "settings_schedule_templates_reorder_hint": "Une partie monte ou descend dans sa section ou sa salle ; une section se déplace avec toutes ses parties. Pour changer de section ou de salle, ouvrez la partie.",
+    "settings_schedule_templates_moved_up": "« {name} » montée d’une place.",
+    "settings_schedule_templates_moved_down": "« {name} » descendue d’une place.",
+    "settings_schedule_templates_drag_instructions": "Pour déplacer, appuyez sur Espace, puis sur les flèches ; Espace dépose, Échap annule.",
+    "settings_schedule_templates_drag_picked": "« {name} » prise.",
+    "settings_schedule_templates_drag_dropped": "« {name} » déposée.",
+    "settings_schedule_templates_drag_cancelled": "Déplacement de « {name} » annulé."
 }

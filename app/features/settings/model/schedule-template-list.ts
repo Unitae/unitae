@@ -130,3 +130,60 @@ export function templatePlaces(parts: readonly ListedPart[]): PartPlaces {
   for (const list of halls.values()) list.sort((a, b) => (a.trackOrder ?? 0) - (b.trackOrder ?? 0))
   return { sections, halls }
 }
+
+/**
+ * What moves at the top of the list: a part outside any section on its own (one carrying a hall too, as the meeting
+ * type's own form may still write), or a section with all its parts (design round A: « une section se déplace avec
+ * toutes ses parties »). A section's `run` is its place among the runs; its `key`, its smallest part id, is what a
+ * move or a rename leaves as it is, to keep its header and focus.
+ */
+export type TopItem = { kind: 'part'; id: number } | { kind: 'section'; section: string; run: number; key: number }
+
+const runIds = <P extends ListedPart>(run: PartRun<P>) => [
+  ...run.parts.map(part => part.id),
+  ...run.halls.flatMap(hall => hall.parts.map(part => part.id)),
+]
+
+/** The top of the list, in order. */
+export function topItems<P extends ListedPart>(parts: P[]): TopItem[] {
+  return groupTemplateParts(parts).runs.flatMap((run, index): TopItem[] =>
+    run.section == null
+      ? runIds(run).map(id => ({ kind: 'part', id }))
+      : [{ kind: 'section', section: run.section, run: index, key: Math.min(...runIds(run)) }],
+  )
+}
+
+const moved = <T>(list: readonly T[], from: number, to: number) => {
+  const next = [...list]
+  const [item] = next.splice(from, 1)
+  if (item !== undefined) next.splice(Math.max(0, Math.min(to, next.length)), 0, item)
+  return next
+}
+
+/** Every part's id in the new order once the top item at `from` is moved to `to`; null when nothing moves. */
+export function idsAfterTopMove<P extends ListedPart>(parts: P[], from: number, to: number): number[] | null {
+  const { runs } = groupTemplateParts(parts)
+  const blocks = runs.flatMap(run => (run.section == null ? runIds(run).map(id => [id]) : [runIds(run)]))
+  if (from === to || blocks[from] == null || to < 0 || to >= blocks.length) return null
+  return moved(blocks, from, to).flat()
+}
+
+/**
+ * Every part's id in the new order once a part is moved within its group (its section's parts outside any hall, or
+ * its hall) to `to`, its place in that group; null when nothing moves. A part outside any section moves at the top.
+ */
+export function idsAfterGroupMove<P extends ListedPart>(parts: P[], partId: number, to: number): number[] | null {
+  const { runs } = groupTemplateParts(parts)
+  for (const run of runs) {
+    if (run.section == null) continue
+    for (const group of [run.parts, ...run.halls.map(hall => hall.parts)]) {
+      const from = group.findIndex(part => part.id === partId)
+      if (from < 0) continue
+      if (from === to || to < 0 || to >= group.length) return null
+      const reordered = moved(group, from, to)
+      group.splice(0, group.length, ...reordered)
+      return runs.flatMap(runIds)
+    }
+  }
+  return null
+}

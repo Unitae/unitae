@@ -7848,5 +7848,22 @@
     "programs_edit_part_section_none": "No section",
     "programs_edit_part_section_pick_hint": "The template’s sections, or « No section ». The part goes to the end of the section chosen. A section is created from the list.",
     "programs_edit_part_track_none": "None: the whole congregation",
-    "programs_edit_part_track_pick_hint": "A room in parallel: choose one. A room is added from its section’s menu."
+    "programs_edit_part_track_pick_hint": "A room in parallel: choose one. A room is added from its section’s menu.",
+    "settings_schedule_templates_order_stale": "The list changed in the meantime: it has just been reloaded, try again.",
+    "settings_schedule_templates_move_part": "Move {name}",
+    "settings_schedule_templates_move_section": "Move the section {name}",
+    "settings_schedule_templates_move_up": "Move {name} up",
+    "settings_schedule_templates_move_down": "Move {name} down",
+    "settings_schedule_templates_move_section_up": "Move the section {name} up",
+    "settings_schedule_templates_move_section_down": "Move the section {name} down",
+    "settings_schedule_templates_part_in_hall": "{name}, {hall}",
+    "settings_schedule_templates_reorder": "Reorder the parts",
+    "settings_schedule_templates_reorder_done": "Done",
+    "settings_schedule_templates_reorder_hint": "A part moves up or down within its section or room; a section moves with all its parts. To change a part’s section or room, open the part.",
+    "settings_schedule_templates_moved_up": "« {name} » moved up one place.",
+    "settings_schedule_templates_moved_down": "« {name} » moved down one place.",
+    "settings_schedule_templates_drag_instructions": "To move it, press Space, then the arrow keys; Space drops it, Escape cancels.",
+    "settings_schedule_templates_drag_picked": "« {name} » picked up.",
+    "settings_schedule_templates_drag_dropped": "« {name} » dropped.",
+    "settings_schedule_templates_drag_cancelled": "Moving « {name} » cancelled."
 }

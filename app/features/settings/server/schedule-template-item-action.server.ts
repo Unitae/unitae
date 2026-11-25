@@ -8,6 +8,7 @@ import {
   placeExists,
   renameTemplateHall,
   renameTemplateSection,
+  reorderTemplateParts,
   roomOrderFor,
   splitSectionIntoHalls,
   templatePartPlace,
@@ -24,8 +25,8 @@ import {
   type TemplateActionResult,
 } from './template-item-action.server'
 
-/** A programme template's sections and halls, renamed across their parts. */
-const SECTION_INTENTS = ['rename-section', 'rename-hall'] as const
+/** A programme template's sections and halls, renamed across their parts, and its parts' order. */
+const SECTION_INTENTS = ['rename-section', 'rename-hall', 'reorder-parts'] as const
 
 const logger = createLogger('schedule-template-items')
 
@@ -35,6 +36,9 @@ export const SCHEDULE_TEMPLATE_ITEM_INTENTS: readonly string[] = [
   ...TEMPLATE_ITEM_INTENTS.service,
   ...SECTION_INTENTS,
 ]
+
+/** What an item intent did; a reorder shows itself in the list and is said by the page, so it carries no toast. */
+export type ScheduleTemplateItemResult = TemplateActionResult | { kind: 'reordered' }
 
 const refused = (formErrors: string[], status = 400): TemplateActionResult => ({
   kind: 'refused',
@@ -51,7 +55,7 @@ export async function handleScheduleTemplateItem(
   scheduleTemplateId: number,
   formData: FormData,
   actor: { id: number; congregationId: number },
-): Promise<TemplateActionResult | null> {
+): Promise<ScheduleTemplateItemResult | null> {
   const items = await getScheduleTemplateItems(db, scheduleTemplateId, actor.congregationId)
   if (items == null) {
     logger.warn('handleScheduleTemplateItem: no such schedule template', { scheduleTemplateId, ...actor })
@@ -74,6 +78,32 @@ export async function handleScheduleTemplateItem(
     return refused([m.settings_template_item_not_in_template()])
   }
   const { congregationId, id: actorId } = actor
+
+  // A new order of every part (« Réorganiser », a drag): exactly the template's parts, or the list changed meanwhile.
+  if (intent === 'reorder-parts') {
+    const ids = readIds(formData.get('orderedIds'))
+    if (ids == null) {
+      logger.warn('handleScheduleTemplateItem: an unreadable order', { scheduleTemplateId, ...actor })
+      return refused([m.settings_schedule_templates_order_stale()])
+    }
+    const expected = new Set(items.parts.map(part => part.id))
+    const unknown = ids.filter(id => !expected.has(id)).length
+    if (ids.length !== expected.size || new Set(ids).size !== ids.length || unknown > 0) {
+      logger.warn('handleScheduleTemplateItem: an order that is not the template’s parts', {
+        scheduleTemplateId,
+        sent: ids.length,
+        parts: expected.size,
+        unknown,
+        ...actor,
+      })
+      return refused([m.settings_schedule_templates_order_stale()], 409)
+    }
+    if (!(await reorderTemplateParts(db, congregationId, items.kindId, ids))) {
+      logger.warn('handleScheduleTemplateItem: the order refused at write', { scheduleTemplateId, ...actor })
+      return refused([m.settings_schedule_templates_order_stale()], 409)
+    }
+    return { kind: 'reordered' }
+  }
 
   if (intent === 'rename-section' || intent === 'rename-hall') {
     const submission = parseWithZod(formData, {
@@ -177,4 +207,14 @@ export async function handleScheduleTemplateItem(
     await mergeLoneHalls(db, target, touched, congregationId, actorId)
   }
   return result
+}
+
+/** The ids a reorder sends, as JSON; null for anything else. */
+function readIds(value: FormDataEntryValue | null): number[] | null {
+  try {
+    const parsed: unknown = JSON.parse(String(value ?? ''))
+    return Array.isArray(parsed) && parsed.every(id => Number.isInteger(id) && id > 0) ? parsed : null
+  } catch {
+    return null
+  }
 }

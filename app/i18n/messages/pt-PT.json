@@ -7848,5 +7848,22 @@
     "programs_edit_part_section_none": "Nenhuma secção",
     "programs_edit_part_section_pick_hint": "As secções do modelo, ou « Nenhuma secção ». A parte vai para o fim da secção escolhida. Uma secção cria-se a partir da lista.",
     "programs_edit_part_track_none": "Nenhuma: toda a congregação",
-    "programs_edit_part_track_pick_hint": "Uma sala em paralelo: escolha uma. Uma sala adiciona-se a partir do menu da sua secção."
+    "programs_edit_part_track_pick_hint": "Uma sala em paralelo: escolha uma. Uma sala adiciona-se a partir do menu da sua secção.",
+    "settings_schedule_templates_order_stale": "A lista mudou entretanto: acabou de ser recarregada, tente de novo.",
+    "settings_schedule_templates_move_part": "Mover {name}",
+    "settings_schedule_templates_move_section": "Mover a secção {name}",
+    "settings_schedule_templates_move_up": "Subir {name}",
+    "settings_schedule_templates_move_down": "Descer {name}",
+    "settings_schedule_templates_move_section_up": "Subir a secção {name}",
+    "settings_schedule_templates_move_section_down": "Descer a secção {name}",
+    "settings_schedule_templates_part_in_hall": "{name}, {hall}",
+    "settings_schedule_templates_reorder": "Reorganizar as partes",
+    "settings_schedule_templates_reorder_done": "Concluído",
+    "settings_schedule_templates_reorder_hint": "Uma parte sobe ou desce dentro da sua secção ou sala; uma secção move-se com todas as suas partes. Para mudar de secção ou de sala, abra a parte.",
+    "settings_schedule_templates_moved_up": "« {name} » subiu uma posição.",
+    "settings_schedule_templates_moved_down": "« {name} » desceu uma posição.",
+    "settings_schedule_templates_drag_instructions": "Para mover, carregue em Espaço e depois nas setas; Espaço coloca, Esc cancela.",
+    "settings_schedule_templates_drag_picked": "« {name} » selecionada.",
+    "settings_schedule_templates_drag_dropped": "« {name} » colocada.",
+    "settings_schedule_templates_drag_cancelled": "Movimento de « {name} » cancelado."
 }

@@ -2,11 +2,14 @@ import { describe, expect, it } from 'vitest'
 import {
   groupTemplateParts,
   hallPartDraft,
+  idsAfterGroupMove,
+  idsAfterTopMove,
   type ListedPart,
   newHallDraft,
   partsInListOrder,
   sectionPartDraft,
   templatePlaces,
+  topItems,
 } from './schedule-template-list'
 
 const part = (id: number, section: string, durationMin: number | null, track = '', trackOrder = 0): ListedPart => ({
@@ -182,5 +185,93 @@ describe('the list’s order and places', () => {
       undefined,
       [{ name: 'Salle B', trackOrder: 2 }],
     ])
+  })
+})
+
+describe('reordering', () => {
+  const at = (id: number, order: number, section: string, track = '', trackOrder: number | null = null) => ({
+    ...part(id, section, 5, track, trackOrder ?? 0),
+    trackOrder,
+    order,
+  })
+  // Cantique · Joyaux (Discours, Lecture) · Ministère (Salle principale: A1, A2; Salle B: B1) · Conclusion
+  const parts = [
+    at(1, 0, ''),
+    at(2, 1, 'Joyaux'),
+    at(3, 2, 'Joyaux'),
+    at(4, 3, 'Ministère', 'Salle principale', 1),
+    at(5, 4, 'Ministère', 'Salle B', 2),
+    at(6, 5, 'Ministère', 'Salle principale', 1),
+    at(7, 6, ''),
+  ]
+
+  it('lists the parts outside any section one by one, and each section as one item', () => {
+    expect(topItems(parts)).toEqual([
+      { kind: 'part', id: 1 },
+      { kind: 'section', section: 'Joyaux', run: 1, key: 2 },
+      { kind: 'section', section: 'Ministère', run: 2, key: 4 },
+      { kind: 'part', id: 7 },
+    ])
+  })
+
+  it('names a section by its smallest part id, which a move or a rename leaves as it is', () => {
+    const moved = idsAfterTopMove(parts, 2, 1) ?? []
+    const reordered = moved.map((id, order) => ({ ...(parts.find(each => each.id === id) ?? parts[0]), order }))
+    expect(topItems(reordered).filter(item => item.kind === 'section')).toEqual([
+      { kind: 'section', section: 'Ministère', run: 1, key: 4 },
+      { kind: 'section', section: 'Joyaux', run: 2, key: 2 },
+    ])
+  })
+
+  it('keeps every part in a top move, whatever the shapes: a section run twice, a section with loose parts and halls', () => {
+    const mixed = [
+      at(1, 0, 'Joyaux'),
+      at(2, 1, ''),
+      at(3, 2, 'Joyaux'),
+      at(4, 3, 'Ministère'),
+      at(5, 4, 'Ministère', 'Salle B', 2),
+      at(6, 5, '', 'Annexe', 1),
+    ]
+    for (let from = 0; from < topItems(mixed).length; from++) {
+      for (let to = 0; to < topItems(mixed).length; to++) {
+        const ids = idsAfterTopMove(mixed, from, to)
+        if (ids != null) expect([...ids].sort()).toEqual([1, 2, 3, 4, 5, 6])
+      }
+    }
+  })
+
+  it('moves a part outside any section that carries a room on its own, never leaving it out', () => {
+    // Written by the meeting type's own form, which still takes any room: « Annexe » outside any section.
+    const withRoom = [at(1, 0, ''), at(8, 1, '', 'Annexe', 1), at(2, 2, 'Joyaux'), at(3, 3, 'Joyaux')]
+    expect(topItems(withRoom)).toEqual([
+      { kind: 'part', id: 1 },
+      { kind: 'part', id: 8 },
+      { kind: 'section', section: 'Joyaux', run: 1, key: 2 },
+    ])
+    expect(idsAfterTopMove(withRoom, 2, 0)).toEqual([2, 3, 1, 8])
+    expect(idsAfterTopMove(withRoom, 1, 2)).toEqual([1, 2, 3, 8])
+  })
+
+  it('moves a section with all its parts, its halls kept together', () => {
+    expect(idsAfterTopMove(parts, 2, 1)).toEqual([1, 4, 6, 5, 2, 3, 7])
+    expect(idsAfterTopMove(parts, 0, 3)).toEqual([2, 3, 4, 6, 5, 7, 1])
+  })
+
+  it('moves nothing to the same place or out of the list', () => {
+    expect(idsAfterTopMove(parts, 1, 1)).toBeNull()
+    expect(idsAfterTopMove(parts, 0, -1)).toBeNull()
+    expect(idsAfterTopMove(parts, 3, 4)).toBeNull()
+  })
+
+  it('moves a part within its group only: its section’s parts, or its hall', () => {
+    expect(idsAfterGroupMove(parts, 3, 0)).toEqual([1, 3, 2, 4, 6, 5, 7])
+    expect(idsAfterGroupMove(parts, 6, 0)).toEqual([1, 2, 3, 6, 4, 5, 7])
+    // Alone in its hall, or past its group's end: nowhere to go.
+    expect(idsAfterGroupMove(parts, 5, 1)).toBeNull()
+    expect(idsAfterGroupMove(parts, 2, 2)).toBeNull()
+    // A part outside any section moves at the top, not here, even beside another one.
+    expect(idsAfterGroupMove(parts, 1, 0)).toBeNull()
+    const twoLoose = [at(1, 0, ''), at(9, 1, ''), at(2, 2, 'Joyaux')]
+    expect(idsAfterGroupMove(twoLoose, 9, 0)).toBeNull()
   })
 })

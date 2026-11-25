@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { saved, outcome, itemsAsked } = vi.hoisted(() => ({
   saved: [] as unknown[],
-  outcome: { current: 'saved' as 'saved' | 'refused' | 'none' },
+  outcome: { current: 'saved' as 'saved' | 'refused' | 'none' | 'reordered' },
   itemsAsked: [] as number[],
 }))
 
@@ -46,6 +46,7 @@ vi.mock('~/features/settings/server/schedule-template-item-action.server', async
   handleScheduleTemplateItem: vi.fn(async (_db: unknown, id: number, formData: FormData) => {
     saved.push(['item', id, formData.get('intent')])
     if (outcome.current === 'none') return null
+    if (outcome.current === 'reordered') return { kind: 'reordered' }
     if (outcome.current === 'refused') {
       const { data } = await import('react-router')
       return { kind: 'refused', response: data({ status: 'error' }, { status: 400 }) }
@@ -152,6 +153,7 @@ describe('schedule-templates action', () => {
     'delete-service-role',
     'rename-section',
     'rename-hall',
+    'reorder-parts',
   ])('sends the item intent %s to the item handler, a duties template’s too', async intent => {
     await action({
       request: formRequest(`${URL}?template=8`, { intent }),
@@ -202,6 +204,21 @@ describe('schedule-templates action', () => {
     } as never)
     expect(result).toMatchObject({ init: { status: 409 } })
     expect(saved).toEqual([])
+  })
+})
+
+describe('schedule-templates action, a reorder', () => {
+  it('answers ok without a toast: the list shows the move and the page says it', async () => {
+    outcome.current = 'reordered'
+    const { okWithToast } = await import('./_toast.server')
+    vi.mocked(okWithToast).mockClear()
+    const result = await action({
+      request: formRequest(`${URL}?template=3`, { intent: 'reorder-parts', orderedIds: '[1]' }),
+      params: {},
+      context: routeContext([Permission.CanManageProgramTemplates]),
+    } as never)
+    expect(result).toMatchObject({ data: { ok: true } })
+    expect(okWithToast).not.toHaveBeenCalled()
   })
 })
 
