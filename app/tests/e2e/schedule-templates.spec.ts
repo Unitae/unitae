@@ -7,6 +7,8 @@ const TEMPLATE_RE = /template=\d+/
 const NEW_PART_RE = /item=new-part/
 const PART_RE = /item=part-\d+/
 const ANY_ITEM_RE = /item=/
+const SERVICES_RE = /\d+ services?/
+const DOWN_RE = /^Descendre /
 const ITEM_PARAM_RE = /&item=[^&]*/
 const IN_SECTION_RE = /section=[^&]+/
 const DELETE_RE = /Supprimer/
@@ -238,5 +240,36 @@ test.describe('Schedule templates: a part in the template panel', () => {
         await expect(row).toHaveCount(0)
       }
     }
+  })
+
+  test('reorders a duties template’s services on a phone, and puts them back', async ({ page }) => {
+    await page.goto('/settings/schedule-templates')
+    const duties = page.locator('[data-row-primary]').filter({ hasText: SERVICES_RE }).first()
+    if ((await duties.count()) === 0) test.skip()
+    await duties.click()
+    await expect(page).toHaveURL(TEMPLATE_RE)
+    await page.setViewportSize({ width: 390, height: 844 })
+    const reorder = page.getByRole('button', { name: 'Réorganiser les services' })
+    await reorder.waitFor()
+    const names = () =>
+      page
+        .getByRole('button', { name: DOWN_RE })
+        .evaluateAll(buttons => buttons.map(button => button.getAttribute('aria-label')?.replace('Descendre ', '')))
+    await reorder.click()
+    const before = await names()
+    const [first, second] = before
+    const down = orderSaved(page)
+    await page.getByRole('button', { name: `Descendre ${first}`, exact: true }).click()
+    expect((await down).ok()).toBe(true)
+    await expect(page.getByText(`« ${first} » descendue d’une place.`)).toBeVisible()
+    await page.reload()
+    await page.getByRole('button', { name: 'Réorganiser les services' }).click()
+    expect((await names()).slice(0, 2)).toEqual([second, first])
+    const up = orderSaved(page)
+    await page.getByRole('button', { name: `Monter ${first}`, exact: true }).click()
+    expect((await up).ok()).toBe(true)
+    await page.reload()
+    await page.getByRole('button', { name: 'Réorganiser les services' }).click()
+    expect(await names()).toEqual(before)
   })
 })
