@@ -19,6 +19,32 @@ afterAll(async () => {
 })
 
 const shipped = readFileSync(join(__dirname, '20261130090000_template_rooms', 'migration.sql'), 'utf8')
+/** Top-level statements of a migration file, a `$$` function body kept whole. */
+function statementsOf(sql: string): string[] {
+  const statements: string[] = []
+  let current = ''
+  let inBody = false
+  for (const line of sql.split('\n')) {
+    if (!inBody && line.trimStart().startsWith('--')) continue
+    current += `${line}\n`
+    if ((line.match(/\$\$/g) ?? []).length % 2 === 1) inBody = !inBody
+    if (!inBody && line.trimEnd().endsWith(';')) {
+      statements.push(current.trim())
+      current = ''
+    }
+  }
+  return statements.filter(statement => statement !== '')
+}
+
+/** #648's own trigger function and prune, as a database still runs them when this migration starts. */
+const previous = statementsOf(
+  readFileSync(join(__dirname, '20261129090000_parallel_rooms', 'migration.sql'), 'utf8'),
+).filter(
+  statement =>
+    statement.startsWith('CREATE OR REPLACE FUNCTION "template_part_room"()') ||
+    statement.startsWith('CREATE OR REPLACE FUNCTION "prune_schedule_template_rooms"('),
+)
+
 /** The merge, for one congregation as a restore runs it, or for all as the migration did. */
 const merge = (tx: PrismaClient, congregationId: number | null) =>
   tx.$queryRawUnsafe<{ merged: number }[]>('SELECT "merge_template_part_copies"($1) AS merged', congregationId)
@@ -95,6 +121,38 @@ async function partsOf(f: Fixture) {
     rooms: part.rooms.map(row => (row.room.key === 'main' ? 'main' : (row.room.name ?? '?'))).sort(),
   }))
 }
+
+describe('20261130090000_template_rooms, applied as it ships over #648', () => {
+  // The whole file, in its order, on a database still running #648's trigger: what `migrate deploy` does. Two shapes
+  // that once failed it: copies of a part (production's), and a part alone in another room (the #642 editor's).
+  it('merges the copies and holds a part alone in another room in the main room too', async () => {
+    expect(previous).toHaveLength(2)
+    const parts = await inFixture(async f => {
+      for (const statement of previous) await f.tx.$executeRawUnsafe(statement)
+      // Written under #648's trigger, as the editor wrote them: a hall with its room order.
+      await f.tx.templatePart.create({
+        data: {
+          name: 'Seule',
+          section: 'Joyaux',
+          track: 'Salle B',
+          trackOrder: 2,
+          order: 4,
+          templateId: f.kindId,
+          scheduleTemplateId: f.scheduleTemplateId,
+          congregationId: f.congregationId,
+        },
+      })
+      for (const statement of statementsOf(shipped)) await f.tx.$executeRawUnsafe(statement)
+      return (await partsOf(f)).map(({ name, track, rooms }) => ({ name, track, rooms }))
+    })
+    expect(parts).toEqual([
+      { name: 'Discours', track: '', rooms: ['main'] },
+      { name: 'Lecture', track: '', rooms: ['Deuxième école', 'main'] },
+      { name: 'Visite', track: '', rooms: ['Annexe', 'main'] },
+      { name: 'Seule', track: '', rooms: ['Salle B', 'main'] },
+    ])
+  })
+})
 
 describe('20261130090000_template_rooms', () => {
   it('runs the merge for every congregation, as it ships', () => {

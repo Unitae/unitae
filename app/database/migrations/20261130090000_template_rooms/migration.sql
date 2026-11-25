@@ -60,8 +60,6 @@ BEGIN
 END
 $$;
 
-SELECT "merge_template_part_copies"(NULL);
-
 -- 3. The trigger fills in, never overrides.
 CREATE OR REPLACE FUNCTION "template_part_room"() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE room_id int;
@@ -106,3 +104,7 @@ BEGIN
   NULL;
 END
 $$;
+
+-- Last, once the trigger fills in only: under the previous one, the merge's own writes (a kept part's second room,
+-- the tracks cleared) would move every room row of a kept part to one room.
+SELECT "merge_template_part_copies"(NULL);
