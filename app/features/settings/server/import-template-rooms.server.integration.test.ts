@@ -117,6 +117,26 @@ describe('importTemplateRooms, from a 2.22 archive', () => {
 })
 
 describe('importTemplateRooms, from an older archive', () => {
+  it('merges the editor’s copies when the second room’s comes first in the order, or in the file', async () => {
+    // Its second hall's copy first in the order (the main hall written first), then first in the file too.
+    for (const [main, second] of [
+      [51, 52],
+      [52, 51],
+    ]) {
+      const restored = await restore(zip => {
+        writeNdjsonFile(
+          zip,
+          'programme-template-parts',
+          [
+            { ...part(second, '1re partie', 'Salle B', 24), trackOrder: 2 },
+            { ...part(main, '1re partie', 'Salle principale', 29), trackOrder: 1 },
+          ].sort((a, b) => a.id - b.id),
+        )
+      })
+      expect(restored.parts).toEqual([{ name: '1re partie', track: '', rooms: ['Salle B', 'main:Salle principale'] }])
+    }
+  })
+
   it('keeps the rooms of copies that came without a schedule template (before 2.21)', async () => {
     const restored = await restore(zip => {
       writeNdjsonFile(zip, 'programme-template-parts', [

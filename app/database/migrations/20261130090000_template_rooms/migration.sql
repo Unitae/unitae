@@ -20,18 +20,24 @@ BEGIN
   -- Copies are told by their kind, schedule template, section and name, and their place among the parts of that name
   -- in their room: the same order (the meeting page's copies) or not (the #642 editor's halls, numbered apart).
   CREATE TEMP TABLE "template_copies" ON COMMIT DROP AS
-    WITH placed AS (
-      SELECT tp."id", tp."templateId", tp."scheduleTemplateId", tp."section", tp."name", tp."congregationId",
-        l."roomId", r."key",
-        row_number() OVER (
-          PARTITION BY tp."templateId", tp."scheduleTemplateId", tp."section", tp."name", l."roomId"
-          ORDER BY tp."order", tp."id"
-        ) AS rank
+    -- Each copy in its own room: its other room when it has one too (a restored copy is also held in the main room).
+    WITH own AS (
+      SELECT DISTINCT ON (tp."id") tp."id", tp."templateId", tp."scheduleTemplateId", tp."section", tp."name",
+        tp."order", tp."congregationId", l."roomId", r."key"
       FROM "TemplatePart" tp
       JOIN "ScheduleTemplate" st ON st."id" = tp."scheduleTemplateId" AND st."kind" = 'programme'
       JOIN "TemplatePartRoom" l ON l."templatePartId" = tp."id"
       JOIN "ScheduleTemplateRoom" r ON r."id" = l."roomId"
       WHERE tp."track" <> '' AND (congregation_id IS NULL OR tp."congregationId" = congregation_id)
+      ORDER BY tp."id", (r."key" = 'main') IS TRUE, r."order"
+    ),
+    placed AS (
+      SELECT o.*,
+        row_number() OVER (
+          PARTITION BY o."templateId", o."scheduleTemplateId", o."section", o."name", o."roomId"
+          ORDER BY o."order", o."id"
+        ) AS rank
+      FROM own o
     )
     SELECT p."id", p."scheduleTemplateId" AS template_id, p."roomId" AS room_id, p."congregationId",
       first_value(p."id") OVER (
@@ -116,6 +122,47 @@ $$;
 CREATE OR REPLACE FUNCTION "prune_schedule_template_rooms"(template_id int) RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
   NULL;
+END
+$$;
+
+-- The room a track names, for the fill-in above: as #648 wrote it, but a part with a room order other than 1 never
+-- names the main room.
+CREATE OR REPLACE FUNCTION "schedule_template_room_for"(template_id int, track text, track_order int, congregation_id int,
+  rename_main boolean DEFAULT false)
+RETURNS int LANGUAGE plpgsql AS $$
+DECLARE main_id int; main_name text; room_id int;
+BEGIN
+  main_id := "schedule_template_main_room"(template_id, congregation_id);
+  IF track = '' THEN RETURN main_id; END IF;
+  SELECT "id" INTO room_id FROM "ScheduleTemplateRoom" WHERE "scheduleTemplateId" = template_id AND "name" = track;
+  IF room_id = main_id THEN RETURN main_id; END IF;
+  SELECT "name" INTO main_name FROM "ScheduleTemplateRoom" WHERE "id" = main_id;
+  -- The main room: the editor's main hall (room order 1), or its parts all renamed at once (`rename_main`), renamed
+  -- with it; or the first room named while it has none, for a part without a room order (a room order other than 1
+  -- says it is not the main room: an older archive restores an editor's second hall before its main one).
+  IF track_order = 1 OR rename_main OR (track_order IS NULL AND main_name IS NULL AND NOT EXISTS (SELECT 1 FROM "ScheduleTemplateRoom" WHERE "scheduleTemplateId" = template_id AND "id" <> main_id)) THEN
+    IF room_id IS NOT NULL THEN
+      -- Another room carries the name: its parts join the main room, and it goes.
+      UPDATE "TemplatePartRoom" l SET "roomId" = main_id WHERE l."roomId" = room_id
+        AND NOT EXISTS (SELECT 1 FROM "TemplatePartRoom" o WHERE o."roomId" = main_id AND o."templatePartId" = l."templatePartId");
+      DELETE FROM "ScheduleTemplateRoom" WHERE "id" = room_id;
+    END IF;
+    BEGIN
+      UPDATE "ScheduleTemplateRoom" SET "name" = track, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = main_id AND "name" IS DISTINCT FROM track;
+    EXCEPTION WHEN unique_violation THEN
+      -- Another writer gave that name to another room at the same moment: the part is in the main room all the
+      -- same, which keeps its name rather than failing the write.
+      NULL;
+    END;
+    RETURN main_id;
+  END IF;
+  IF room_id IS NOT NULL THEN RETURN room_id; END IF;
+  -- A new room, last in order; a second writer creating it at the same moment finds it instead of failing.
+  INSERT INTO "ScheduleTemplateRoom" ("name", "order", "scheduleTemplateId", "congregationId", "updatedAt")
+    VALUES (track, (SELECT COALESCE(MAX("order"), 0) + 1 FROM "ScheduleTemplateRoom" WHERE "scheduleTemplateId" = template_id), template_id, congregation_id, CURRENT_TIMESTAMP)
+    ON CONFLICT ("scheduleTemplateId", "name") DO NOTHING;
+  SELECT "id" INTO room_id FROM "ScheduleTemplateRoom" WHERE "scheduleTemplateId" = template_id AND "name" = track;
+  RETURN room_id;
 END
 $$;
 
