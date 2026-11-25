@@ -132,10 +132,12 @@ export function templatePlaces(parts: readonly ListedPart[]): PartPlaces {
 }
 
 /**
- * What moves at the top of the list: a part outside any section on its own, or a section with all its parts (design
- * round A: « une section se déplace avec toutes ses parties »). A section's run is named by its place among the runs.
+ * What moves at the top of the list: a part outside any section on its own (one carrying a hall too, as the meeting
+ * type's own form may still write), or a section with all its parts (design round A: « une section se déplace avec
+ * toutes ses parties »). A section's `run` is its place among the runs; its `key`, its smallest part id, is what a
+ * move or a rename leaves as it is, to keep its header and focus.
  */
-export type TopItem = { kind: 'part'; id: number } | { kind: 'section'; section: string; run: number }
+export type TopItem = { kind: 'part'; id: number } | { kind: 'section'; section: string; run: number; key: number }
 
 const runIds = <P extends ListedPart>(run: PartRun<P>) => [
   ...run.parts.map(part => part.id),
@@ -146,8 +148,8 @@ const runIds = <P extends ListedPart>(run: PartRun<P>) => [
 export function topItems<P extends ListedPart>(parts: P[]): TopItem[] {
   return groupTemplateParts(parts).runs.flatMap((run, index): TopItem[] =>
     run.section == null
-      ? run.parts.map(part => ({ kind: 'part', id: part.id }))
-      : [{ kind: 'section', section: run.section, run: index }],
+      ? runIds(run).map(id => ({ kind: 'part', id }))
+      : [{ kind: 'section', section: run.section, run: index, key: Math.min(...runIds(run)) }],
   )
 }
 
@@ -161,7 +163,7 @@ const moved = <T>(list: readonly T[], from: number, to: number) => {
 /** Every part's id in the new order once the top item at `from` is moved to `to`; null when nothing moves. */
 export function idsAfterTopMove<P extends ListedPart>(parts: P[], from: number, to: number): number[] | null {
   const { runs } = groupTemplateParts(parts)
-  const blocks = runs.flatMap(run => (run.section == null ? run.parts.map(part => [part.id]) : [runIds(run)]))
+  const blocks = runs.flatMap(run => (run.section == null ? runIds(run).map(id => [id]) : [runIds(run)]))
   if (from === to || blocks[from] == null || to < 0 || to >= blocks.length) return null
   return moved(blocks, from, to).flat()
 }

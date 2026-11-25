@@ -208,10 +208,31 @@ describe('reordering', () => {
   it('lists the parts outside any section one by one, and each section as one item', () => {
     expect(topItems(parts)).toEqual([
       { kind: 'part', id: 1 },
-      { kind: 'section', section: 'Joyaux', run: 1 },
-      { kind: 'section', section: 'Ministère', run: 2 },
+      { kind: 'section', section: 'Joyaux', run: 1, key: 2 },
+      { kind: 'section', section: 'Ministère', run: 2, key: 4 },
       { kind: 'part', id: 7 },
     ])
+  })
+
+  it('names a section by its smallest part id, which a move or a rename leaves as it is', () => {
+    const moved = idsAfterTopMove(parts, 2, 1) ?? []
+    const reordered = moved.map((id, order) => ({ ...(parts.find(each => each.id === id) ?? parts[0]), order }))
+    expect(topItems(reordered).filter(item => item.kind === 'section')).toEqual([
+      { kind: 'section', section: 'Ministère', run: 1, key: 4 },
+      { kind: 'section', section: 'Joyaux', run: 2, key: 2 },
+    ])
+  })
+
+  it('moves a part outside any section that carries a room on its own, never leaving it out', () => {
+    // Written by the meeting type's own form, which still takes any room: « Annexe » outside any section.
+    const withRoom = [at(1, 0, ''), at(8, 1, '', 'Annexe', 1), at(2, 2, 'Joyaux'), at(3, 3, 'Joyaux')]
+    expect(topItems(withRoom)).toEqual([
+      { kind: 'part', id: 1 },
+      { kind: 'part', id: 8 },
+      { kind: 'section', section: 'Joyaux', run: 1, key: 2 },
+    ])
+    expect(idsAfterTopMove(withRoom, 2, 0)).toEqual([2, 3, 1, 8])
+    expect(idsAfterTopMove(withRoom, 1, 2)).toEqual([1, 2, 3, 8])
   })
 
   it('moves a section with all its parts, its halls kept together', () => {
