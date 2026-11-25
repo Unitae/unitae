@@ -9,6 +9,7 @@ import {
   renameTemplateHall,
   renameTemplateSection,
   reorderTemplateParts,
+  reorderTemplateServices,
   roomOrderFor,
   splitSectionIntoHalls,
   templatePartPlace,
@@ -16,6 +17,7 @@ import {
 import { renameHallSchema, renameSectionSchema } from '~/features/settings/schemas/schedule-template.schema'
 import { upsertPartSchema } from '~/features/settings/schemas/template.schema'
 import * as m from '~/i18n/paraglide/messages'
+import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { getScheduleTemplateItems } from './schedule-template-items.queries'
@@ -27,6 +29,8 @@ import {
 
 /** A programme template's sections and halls, renamed across their parts, and its parts' order. */
 const SECTION_INTENTS = ['rename-section', 'rename-hall', 'reorder-parts'] as const
+/** A duties template's services' order. */
+const SERVICE_ORDER_INTENTS = ['reorder-services'] as const
 
 const logger = createLogger('schedule-template-items')
 
@@ -35,6 +39,7 @@ export const SCHEDULE_TEMPLATE_ITEM_INTENTS: readonly string[] = [
   ...TEMPLATE_ITEM_INTENTS.part,
   ...TEMPLATE_ITEM_INTENTS.service,
   ...SECTION_INTENTS,
+  ...SERVICE_ORDER_INTENTS,
 ]
 
 /** What an item intent did; a reorder shows itself in the list and is said by the page, so it carries no toast. */
@@ -72,7 +77,7 @@ export async function handleScheduleTemplateItem(
   const own: readonly string[] =
     items.kind === ScheduleKind.Programme
       ? [...TEMPLATE_ITEM_INTENTS.part, ...SECTION_INTENTS]
-      : TEMPLATE_ITEM_INTENTS.service
+      : [...TEMPLATE_ITEM_INTENTS.service, ...SERVICE_ORDER_INTENTS]
   if (!own.includes(intent)) {
     logger.warn('handleScheduleTemplateItem: an intent of the other sort', { scheduleTemplateId, intent, ...actor })
     return refused([m.settings_template_item_not_in_template()])
@@ -80,28 +85,44 @@ export async function handleScheduleTemplateItem(
   const { congregationId, id: actorId } = actor
 
   // A new order of every part (« Réorganiser », a drag): exactly the template's parts, or the list changed meanwhile.
-  if (intent === 'reorder-parts') {
+  // A new order of every part, or every service (« Réorganiser », a drag): exactly the template's, or the list changed
+  // meanwhile.
+  if (intent === 'reorder-parts' || intent === 'reorder-services') {
+    const of = intent === 'reorder-parts' ? 'parts' : 'services'
     const ids = readIds(formData.get('orderedIds'))
     if (ids == null) {
-      logger.warn('handleScheduleTemplateItem: an unreadable order', { scheduleTemplateId, ...actor })
+      logger.warn('handleScheduleTemplateItem: an unreadable order', { scheduleTemplateId, of, ...actor })
       return refused([m.settings_schedule_templates_order_stale()])
     }
-    const expected = new Set(items.parts.map(part => part.id))
+    const expected = new Set((of === 'parts' ? items.parts : items.services).map(item => item.id))
     const unknown = ids.filter(id => !expected.has(id)).length
     if (ids.length !== expected.size || new Set(ids).size !== ids.length || unknown > 0) {
-      logger.warn('handleScheduleTemplateItem: an order that is not the template’s parts', {
+      logger.warn('handleScheduleTemplateItem: an order that is not the template’s', {
         scheduleTemplateId,
+        of,
         sent: ids.length,
-        parts: expected.size,
+        items: expected.size,
         unknown,
         ...actor,
       })
       return refused([m.settings_schedule_templates_order_stale()], 409)
     }
-    if (!(await reorderTemplateParts(db, congregationId, items.kindId, ids))) {
-      logger.warn('handleScheduleTemplateItem: the order refused at write', { scheduleTemplateId, ...actor })
+    const written =
+      of === 'parts'
+        ? await reorderTemplateParts(db, congregationId, items.kindId, ids)
+        : await reorderTemplateServices(db, congregationId, items.kindId, ids)
+    if (!written) {
+      logger.warn('handleScheduleTemplateItem: the order refused at write', { scheduleTemplateId, of, ...actor })
       return refused([m.settings_schedule_templates_order_stale()], 409)
     }
+    await auditInTransaction(db, {
+      action: AuditAction.ScheduleTemplateUpdated,
+      congregationId,
+      actorId,
+      entityType: 'ScheduleTemplate',
+      entityId: scheduleTemplateId,
+      metadata: { reordered: of, count: ids.length },
+    })
     return { kind: 'reordered' }
   }
 

@@ -154,6 +154,7 @@ describe('schedule-templates action', () => {
     'rename-section',
     'rename-hall',
     'reorder-parts',
+    'reorder-services',
   ])('sends the item intent %s to the item handler, a duties template’s too', async intent => {
     await action({
       request: formRequest(`${URL}?template=8`, { intent }),

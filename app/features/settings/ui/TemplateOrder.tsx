@@ -52,7 +52,18 @@ const closestEdge: CollisionDetection = ({ collisionRect, droppableRects, droppa
     })
     .sort((a, b) => a.data.value - b.data.value)
 
-function useOrderDrag(names: ReadonlyMap<string, string>) {
+/** What a drag says of what it moves: a part or a section by default (feminine in French), a service otherwise. */
+export interface DragWords {
+  picked: (name: string) => string
+  dropped: (name: string) => string
+}
+
+const PART_WORDS: DragWords = {
+  picked: name => m.settings_schedule_templates_drag_picked({ name }),
+  dropped: name => m.settings_schedule_templates_drag_dropped({ name }),
+}
+
+function useOrderDrag(names: ReadonlyMap<string, string>, words: DragWords = PART_WORDS) {
   // Stable across server and client render, or the handles' descriptions fail hydration.
   const id = useId()
   const sensors = useSensors(
@@ -61,9 +72,9 @@ function useOrderDrag(names: ReadonlyMap<string, string>) {
   )
   const nameOf = (item: UniqueIdentifier) => names.get(String(item)) ?? ''
   const announcements: Announcements = {
-    onDragStart: ({ active }) => m.settings_schedule_templates_drag_picked({ name: nameOf(active.id) }),
+    onDragStart: ({ active }) => words.picked(nameOf(active.id)),
     onDragOver: () => undefined,
-    onDragEnd: ({ active }) => m.settings_schedule_templates_drag_dropped({ name: nameOf(active.id) }),
+    onDragEnd: ({ active }) => words.dropped(nameOf(active.id)),
     onDragCancel: ({ active }) => m.settings_schedule_templates_drag_cancelled({ name: nameOf(active.id) }),
   }
   return {
@@ -85,6 +96,7 @@ export function OrderArea({
   controls,
   topIds,
   names,
+  words,
   children,
 }: {
   /** Nothing moves without them (the drag is off); the rows' sortables still need the area around them. */
@@ -92,9 +104,11 @@ export function OrderArea({
   topIds: string[]
   /** What each id is called, for the announcements and the moves. */
   names: ReadonlyMap<string, string>
+  /** What the drag says (a service's words, masculine in French); a part's by default. */
+  words?: DragWords
   children: ReactNode
 }) {
-  const { id, sensors, nameOf, accessibility } = useOrderDrag(names)
+  const { id, sensors, nameOf, accessibility } = useOrderDrag(names, words)
   return (
     <DndContext
       id={id}
@@ -193,6 +207,12 @@ export function Movable({
         className="flex w-8 flex-none cursor-grab touch-none items-center justify-center text-faint outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
         {...attributes}
         {...listeners}
+        onKeyDown={event => {
+          // Escape cancels the drag (dnd-kit hears it after the page): marked as handled, the panel around keeps
+          // its own Escape (close, or back up a level) for when nothing is being dragged.
+          if (event.key === 'Escape' && isDragging) event.preventDefault()
+          listeners?.onKeyDown?.(event)
+        }}
       >
         <GripVertical aria-hidden="true" className="size-4" />
       </button>

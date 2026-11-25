@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import * as m from '~/i18n/paraglide/messages'
 
-/** Posted for « Aucun : ceux qui gèrent les programmes ». A role left out of the post is left as it is. */
+/** Posted for « Aucun responsable désigné ». A role left out of the post is left as it is. */
 export const NO_RESPONSIBLE = 'none'
 
 /**

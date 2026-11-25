@@ -7,7 +7,8 @@ const TEMPLATE_RE = /template=\d+/
 const NEW_PART_RE = /item=new-part/
 const PART_RE = /item=part-\d+/
 const ANY_ITEM_RE = /item=/
-const ITEM_PARAM_RE = /&item=[^&]*/
+const SEVERAL_SERVICES_RE = /(?:[2-9]|\d{2,}) services/
+const DOWN_RE = /^Descendre /
 const IN_SECTION_RE = /section=[^&]+/
 const DELETE_RE = /Supprimer/
 
@@ -18,6 +19,10 @@ const orderSaved = (page: Page) =>
   )
 
 test.describe('Schedule templates: a part in the template panel', () => {
+  // An action waiting for something that never comes (a panel closed by a regression) fails here rather than at the
+  // end of the test, so the cleanups in `finally` still have a page to work on.
+  test.use({ actionTimeout: 10_000 })
+
   test.beforeEach(async ({ page }) => {
     const loggedIn = await login(page, E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD)
     if (!loggedIn) test.skip()
@@ -146,6 +151,8 @@ test.describe('Schedule templates: a part in the template panel', () => {
   })
 
   test('reorders a section’s parts: dragged by keyboard, then up and down on a phone', async ({ page }) => {
+    // A long walk through the page: room for its cleanup to run after a failure, before the page is closed.
+    test.setTimeout(90_000)
     const stamp = Date.now()
     const section = `Ordre e2e ${stamp}`
     await page.goto('/settings/schedule-templates')
@@ -153,6 +160,8 @@ test.describe('Schedule templates: a part in the template panel', () => {
     if ((await programme.count()) === 0) test.skip()
     await programme.click()
     await expect(page).toHaveURL(TEMPLATE_RE)
+    // Where the cleanup comes back to, whatever the test left open.
+    const templateUrl = page.url()
     const form = page.locator('form#part-edit-form')
     const save = async (name: string) => {
       await form.getByLabel('Nom', { exact: true }).fill(name)
@@ -193,6 +202,20 @@ test.describe('Schedule templates: a part in the template panel', () => {
       await page.reload()
       await expect.poll(() => above(beta, alpha)).toBe(true)
 
+      // Escape while a part is lifted cancels the drag only: the panel stays open, on the same template.
+      await page.getByRole('button', { name: `Déplacer Alpha e2e ${stamp}`, exact: true }).focus()
+      await page.keyboard.press('Space')
+      await expect(page.getByText(`« Alpha e2e ${stamp} » prise.`)).toBeAttached()
+      // dnd-kit starts listening to the keyboard on the tick after the lift (a setTimeout in its KeyboardSensor);
+      // an Escape sent within it goes unheard. A second one would close the panel, so wait the tick out once.
+      await page.waitForTimeout(100)
+      await page.keyboard.press('Escape')
+      await expect(page.getByText(`Déplacement de « Alpha e2e ${stamp} » annulé.`)).toBeAttached()
+      // A panel closing reloads the page's data: let that settle, or the address is read before it changes.
+      await page.waitForLoadState('networkidle')
+      await expect(page).toHaveURL(TEMPLATE_RE)
+      await expect(page.getByRole('button', { name: `Déplacer Alpha e2e ${stamp}`, exact: true })).toBeFocused()
+
       // On a phone: « Réorganiser les parties » (rows only move: nothing opens, nothing is added), « Descendre »,
       // the move said once saved, « Terminé », and the order kept on a reload.
       await page.setViewportSize({ width: 390, height: 844 })
@@ -211,7 +234,17 @@ test.describe('Schedule templates: a part in the template panel', () => {
       const freshTop = async () => {
         await page.reload()
         await page.getByRole('button', { name: 'Réorganiser les parties' }).click()
-        return (await header.boundingBox())?.y ?? 0
+        // The phone's sheet slides in after a reload: read once it has stopped moving.
+        let last = Number.NaN
+        await expect
+          .poll(async () => {
+            const y = (await header.boundingBox())?.y ?? Number.NaN
+            const settled = y === last
+            last = y
+            return settled
+          })
+          .toBe(true)
+        return last
       }
       const before = await freshTop()
       const up = orderSaved(page)
@@ -226,8 +259,8 @@ test.describe('Schedule templates: a part in the template panel', () => {
       await expect.poll(() => above(alpha, beta)).toBe(true)
     } finally {
       await page.setViewportSize({ width: 1440, height: 1000 })
-      await page.goto(page.url().replace(ITEM_PARAM_RE, ''))
-      await page.locator('[data-item^="part-"]').first().waitFor()
+      await page.goto(templateUrl)
+      await page.locator('[data-item^="part-"]').first().waitFor({ timeout: 10_000 })
       for (const row of [beta, alpha]) {
         if ((await row.count()) === 0) continue
         await row.click()
@@ -237,6 +270,45 @@ test.describe('Schedule templates: a part in the template panel', () => {
         await expect(page).not.toHaveURL(ANY_ITEM_RE)
         await expect(row).toHaveCount(0)
       }
+    }
+  })
+
+  test('reorders a duties template’s services on a phone, and puts them back', async ({ page }) => {
+    await page.goto('/settings/schedule-templates')
+    // A duties template with two services or more: one with fewer has nothing to reorder.
+    const duties = page.locator('[data-row-primary]').filter({ hasText: SEVERAL_SERVICES_RE }).first()
+    if ((await duties.count()) === 0) test.skip()
+    await duties.click()
+    await expect(page).toHaveURL(TEMPLATE_RE)
+    await page.setViewportSize({ width: 390, height: 844 })
+    const reorder = page.getByRole('button', { name: 'Réorganiser les services' })
+    const names = () =>
+      page
+        .getByRole('button', { name: DOWN_RE })
+        .evaluateAll(buttons => buttons.map(button => button.getAttribute('aria-label')?.replace('Descendre ', '')))
+    await reorder.click()
+    const before = await names()
+    const [first, second] = before
+    // A failed run puts the order back too, so the next one starts from the same template.
+    try {
+      const down = orderSaved(page)
+      await page.getByRole('button', { name: `Descendre ${first}`, exact: true }).click()
+      expect((await down).ok()).toBe(true)
+      await expect(page.getByText(`« ${first} » descendu d’une place.`)).toBeVisible()
+      await page.reload()
+      await page.getByRole('button', { name: 'Réorganiser les services' }).click()
+      expect((await names()).slice(0, 2)).toEqual([second, first])
+    } finally {
+      await page.reload()
+      await page.getByRole('button', { name: 'Réorganiser les services' }).click()
+      if ((await names())[0] !== first) {
+        const up = orderSaved(page)
+        await page.getByRole('button', { name: `Monter ${first}`, exact: true }).click()
+        expect((await up).ok()).toBe(true)
+      }
+      await page.reload()
+      await page.getByRole('button', { name: 'Réorganiser les services' }).click()
+      expect(await names()).toEqual(before)
     }
   })
 })

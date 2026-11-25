@@ -88,8 +88,10 @@ export function ScheduleTemplatePanel({
   const deleteFetcher = useFetcher({ key: `schedule-template-${template.id}-delete` })
   const order = useTemplateReorder({
     templateId: template.id,
+    of: template.kind === 'duty' ? 'services' : 'parts',
     parts: items?.parts ?? [],
-    enabled: template.kind !== 'duty' && items?.kindId != null,
+    services: items?.services ?? [],
+    enabled: items?.kindId != null,
     docked,
   })
   const [version, setVersion] = useState(0)
@@ -150,7 +152,7 @@ export function ScheduleTemplatePanel({
         <ScheduleTemplateItemList
           kind={template.kind === 'duty' ? 'service' : 'part'}
           parts={order.parts}
-          services={items.services}
+          services={order.services}
           roles={items.roles}
           presets={items.presets}
           onOpen={(kind, id) => onOpenItem({ kind, id })}

@@ -6,7 +6,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { calls, items, outcome } = vi.hoisted(() => ({
   calls: [] as unknown[],
   outcome: { current: 'saved' as 'saved' | 'refused' },
-  items: { current: null as { kind: string; kindId: number | null; parts?: { id: number }[] } | null },
+  items: {
+    current: null as {
+      kind: string
+      kindId: number | null
+      parts?: { id: number }[]
+      services?: { id: number }[]
+    } | null,
+  },
 }))
 
 vi.mock('./schedule-template-items.queries', () => ({
@@ -20,7 +27,20 @@ vi.mock('./template-item-action.server', async importOriginal => ({
   }),
 }))
 
+vi.mock('~/shared/domain/audit.server', async importOriginal => ({
+  ...(await importOriginal<typeof import('~/shared/domain/audit.server')>()),
+  auditInTransaction: vi.fn(
+    async (_db: unknown, entry: { entityType: string; entityId: number; metadata: unknown }) => {
+      calls.push(['audit', entry.entityType, entry.entityId, entry.metadata])
+    },
+  ),
+}))
+
 vi.mock('~/features/events/index.server', () => ({
+  reorderTemplateServices: vi.fn(async (_db: unknown, _congregationId: number, kindId: number, ids: number[]) => {
+    calls.push(['reorder-services', kindId, ids])
+    return true
+  }),
   renameTemplateSection: vi.fn(
     async (_db: unknown, target: { templateId: number; scheduleTemplateId: number }, from: string, to: string) => {
       calls.push(['rename-section', target.templateId, target.scheduleTemplateId, from, to])
@@ -330,7 +350,10 @@ describe('handleScheduleTemplateItem', () => {
       ACTOR,
     )
     expect(result).toEqual({ kind: 'reordered' })
-    expect(calls).toEqual([['reorder', 270, [3, 1, 2]]])
+    expect(calls).toEqual([
+      ['reorder', 270, [3, 1, 2]],
+      ['audit', 'ScheduleTemplate', 3, { reordered: 'parts', count: 3 }],
+    ])
   })
 
   it('refuses an order that is not exactly the programme’s parts (one added or gone meanwhile), and a duties one', async () => {
@@ -376,6 +399,40 @@ describe('handleScheduleTemplateItem', () => {
       ACTOR,
     )
     expect([result?.kind, statusOf(result)]).toEqual(['refused', 409])
+  })
+
+  it('writes a duties template’s new services order through its first kind, and audits it', async () => {
+    items.current = { kind: 'duty', kindId: 270, services: [{ id: 5 }, { id: 6 }] }
+    const result = await handleScheduleTemplateItem(
+      {} as never,
+      4,
+      form('reorder-services', { orderedIds: '[6,5]' }),
+      ACTOR,
+    )
+    expect(result).toEqual({ kind: 'reordered' })
+    expect(calls).toEqual([
+      ['reorder-services', 270, [6, 5]],
+      ['audit', 'ScheduleTemplate', 4, { reordered: 'services', count: 2 }],
+    ])
+  })
+
+  it('refuses a services order that is not exactly the template’s services, and one on a programme', async () => {
+    items.current = { kind: 'duty', kindId: 270, services: [{ id: 5 }, { id: 6 }] }
+    const incomplete = await handleScheduleTemplateItem(
+      {} as never,
+      4,
+      form('reorder-services', { orderedIds: '[6]' }),
+      ACTOR,
+    )
+    items.current = { kind: 'programme', kindId: 270, parts: [{ id: 1 }] }
+    const onProgramme = await handleScheduleTemplateItem(
+      {} as never,
+      3,
+      form('reorder-services', { orderedIds: '[1]' }),
+      ACTOR,
+    )
+    expect([incomplete?.kind, statusOf(incomplete), onProgramme?.kind]).toEqual(['refused', 409, 'refused'])
+    expect(calls).toEqual([])
   })
 })
 
