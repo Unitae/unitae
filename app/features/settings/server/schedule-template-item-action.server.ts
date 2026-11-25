@@ -4,10 +4,11 @@ import { ScheduleKind } from '~/features/events'
 import {
   makeRoomAtTemplateOrder,
   mergeLoneHalls,
+  orderAtEndOf,
   renameTemplateHall,
   renameTemplateSection,
   splitSectionIntoHalls,
-  templatePartSection,
+  templatePartPlace,
 } from '~/features/events/index.server'
 import { renameHallSchema, renameSectionSchema } from '~/features/settings/schemas/schedule-template.schema'
 import { upsertPartSchema } from '~/features/settings/schemas/template.schema'
@@ -114,23 +115,39 @@ export async function handleScheduleTemplateItem(
   // The sections a part write touches: where the part was (an edit, a delete) and where it goes.
   const touched: string[] = []
   const partId = Number(formData.get('partId'))
-  if ((intent === 'upsert-part' || intent === 'delete-part') && Number.isInteger(partId) && partId > 0) {
-    const was = await templatePartSection(db, items.kindId, partId, congregationId)
-    if (was != null) touched.push(was)
-  }
+  const was =
+    (intent === 'upsert-part' || intent === 'delete-part') && Number.isInteger(partId) && partId > 0
+      ? await templatePartPlace(db, items.kindId, partId, congregationId)
+      : null
+  if (was != null) touched.push(was.section)
   if (intent === 'upsert-part') {
     const submission = parseWithZod(formData, { schema: upsertPartSchema })
     if (submission.status === 'success') {
-      const { partOrder, partSection, partTrack } = submission.value
+      const { partSection, partTrack } = submission.value
       touched.push(partSection)
-      // A new part goes where it was added (the end of its section or hall): the parts after it make room. One
-      // starting a section's first parallel hall turns its parts outside any hall into the main hall first.
-      if (!formData.get('partId')) {
-        if (partTrack !== '') {
-          const mainHall = m.settings_schedule_templates_main_hall()
-          await splitSectionIntoHalls(db, target, partSection, mainHall, congregationId, actorId)
-        }
-        await makeRoomAtTemplateOrder(db, items.kindId, partOrder, congregationId)
+      const isNew = !formData.get('partId')
+      // A new part starting a section's first parallel hall turns its parts outside any hall into the main hall.
+      if (isNew && partTrack !== '') {
+        const mainHall = m.settings_schedule_templates_main_hall()
+        await splitSectionIntoHalls(db, target, partSection, mainHall, congregationId, actorId)
+      }
+      // Where it goes: a new part where it was added, or at the end of its section or hall when sent without a place;
+      // a part moved to another section or hall at the end of it. The parts from there on make room.
+      const moved = was != null && (was.section !== partSection || was.track !== partTrack)
+      const sentOrder = String(formData.get('partOrder') ?? '')
+      if (moved || (isNew && sentOrder === '')) {
+        const order = await orderAtEndOf(
+          db,
+          items.kindId,
+          partSection,
+          partTrack,
+          was == null ? null : partId,
+          congregationId,
+        )
+        formData.set('partOrder', String(order))
+      }
+      if (isNew || moved) {
+        await makeRoomAtTemplateOrder(db, items.kindId, Number(formData.get('partOrder')), congregationId)
       }
     }
   }

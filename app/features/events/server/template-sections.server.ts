@@ -139,18 +139,40 @@ export async function mergeLoneHalls(
   return moved
 }
 
-/** A part's section, before a write moves or deletes it; null when the part is not the template's. */
-export async function templatePartSection(
+/** A part's section and hall, before a write moves or deletes it; null when the part is not the template's. */
+export async function templatePartPlace(
   db: TransactionClient,
   templateId: number,
   partId: number,
   congregationId: number,
 ) {
-  const part = await db.templatePart.findFirst({
+  return db.templatePart.findFirst({
     where: { id: partId, templateId, congregationId },
-    select: { section: true },
+    select: { section: true, track: true },
   })
-  return part?.section ?? null
+}
+
+/**
+ * Where a part goes at the end of a hall or a section (« La partie va à la fin de la section choisie »): after the
+ * group's last part, or after its section's when the group has none, or at the end of the template. A part out of
+ * any section goes to the end of the template, as « Ajouter une partie hors section » adds one: the parts outside a
+ * section are spread over the programme. The part being moved (`partId`) does not count.
+ */
+export async function orderAtEndOf(
+  db: TransactionClient,
+  templateId: number,
+  section: string,
+  track: string,
+  partId: number | null,
+  congregationId: number,
+) {
+  const others = { templateId, congregationId, ...(partId != null && { NOT: { id: partId } }) }
+  const groups = section === '' ? [others] : [{ ...others, section, track }, { ...others, section }, others]
+  for (const where of groups) {
+    const { _max } = await db.templatePart.aggregate({ where, _max: { order: true } })
+    if (_max.order != null) return _max.order + 1
+  }
+  return 0
 }
 
 function recordOnScheduleTemplate(

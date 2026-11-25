@@ -20,7 +20,8 @@ const {
   renameTemplateHall,
   renameTemplateSection,
   splitSectionIntoHalls,
-  templatePartSection,
+  orderAtEndOf,
+  templatePartPlace,
 } = await import('./template-sections.server')
 
 class Rollback extends Error {}
@@ -402,14 +403,45 @@ describe('mergeLoneHalls', () => {
   })
 })
 
-describe('templatePartSection', () => {
-  it('reads a part’s section, null for a part of another template or not there', async () => {
+describe('templatePartPlace', () => {
+  it('reads a part’s section and hall, null for a part of another template or not there', async () => {
     await inTemplate(async ({ db, congregationId, templateId, otherId }) => {
-      const own = await db.templatePart.findFirstOrThrow({ where: { templateId, name: 'Conversation' } })
+      const own = await db.templatePart.findFirstOrThrow({ where: { templateId, name: 'Conversation B' } })
       const other = await db.templatePart.findFirstOrThrow({ where: { templateId: otherId } })
-      expect(await templatePartSection(db, templateId, own.id, congregationId)).toBe('Ministère')
-      expect(await templatePartSection(db, templateId, other.id, congregationId)).toBeNull()
-      expect(await templatePartSection(db, templateId, 99_999_999, congregationId)).toBeNull()
+      expect(await templatePartPlace(db, templateId, own.id, congregationId)).toEqual({
+        section: 'Ministère',
+        track: 'Salle B',
+      })
+      expect(await templatePartPlace(db, templateId, other.id, congregationId)).toBeNull()
+      expect(await templatePartPlace(db, templateId, 99_999_999, congregationId)).toBeNull()
+    })
+  })
+})
+
+describe('orderAtEndOf', () => {
+  it('is after the last part of the hall or section the part goes to, not counting the part itself', async () => {
+    await inTemplate(async ({ db, congregationId, templateId }) => {
+      const moving = await db.templatePart.findFirstOrThrow({ where: { templateId, name: 'Étude' } })
+      expect(await orderAtEndOf(db, templateId, 'Joyaux', '', moving.id, congregationId)).toBe(11)
+      expect(await orderAtEndOf(db, templateId, 'Ministère', 'Salle principale', moving.id, congregationId)).toBe(16)
+      // No part outside a hall in « Ministère »: after the section's last part.
+      expect(await orderAtEndOf(db, templateId, 'Ministère', '', moving.id, congregationId)).toBe(21)
+      // Alone in its section: it stays at the end of the template, after the others.
+      expect(await orderAtEndOf(db, templateId, 'Vie chrétienne', '', moving.id, congregationId)).toBe(21)
+    })
+  })
+
+  it('puts a part out of any section at the end of the template, not after the last part outside a section', async () => {
+    await inTemplate(async ({ db, congregationId, templateId }) => {
+      const moving = await db.templatePart.findFirstOrThrow({ where: { templateId, name: 'Discours' } })
+      expect(await orderAtEndOf(db, templateId, '', '', moving.id, congregationId)).toBe(26)
+    })
+  })
+
+  it('never reads another template’s parts', async () => {
+    await inTemplate(async ({ db, congregationId, templateId, otherId }) => {
+      await db.templatePart.updateMany({ where: { templateId: otherId }, data: { order: 500 } })
+      expect(await orderAtEndOf(db, templateId, 'Joyaux', '', null, congregationId)).toBe(11)
     })
   })
 })
