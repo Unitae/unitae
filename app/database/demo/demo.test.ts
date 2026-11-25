@@ -14,9 +14,9 @@ import {
 import { FEMALE_FIRST_NAMES, MALE_FIRST_NAMES } from './names'
 import { generateCongregation } from './people'
 import { generateArea } from './places'
-import { CUSTOM_ROLES, DEMO_RESPONSIBLES, PEOPLE, TERRITORIES } from './profile'
+import { CUSTOM_ROLES, DEMO_RESPONSIBLES, PEOPLE, SEED, TERRITORIES } from './profile'
 import { Random } from './random'
-import { assignRoleHolders } from './roles'
+import { assignRoleHolders, demoRolePersons } from './roles'
 import { loginEmail } from './write'
 
 const NOW = new Date(2026, 10, 10, 12)
@@ -568,5 +568,38 @@ describe('a copy’s logins', () => {
 
   it('keep their address when there is no suffix: the marketing seed’s congregation', () => {
     expect(loginEmail('marc.dupont@demo.unitae.app')).toBe('marc.dupont@demo.unitae.app')
+  })
+})
+
+describe('the demo roles, whatever the day it is seeded', () => {
+  // The seed's own draws, in its order (seed-demo.ts): the congregation follows the day, and so do its role holders.
+  const personsOn = (now: Date) => {
+    const random = new Random(SEED)
+    const area = generateArea(random, now)
+    const people = generateCongregation(random, now, area.addresses)
+    const stints = generatePioneers(random, people.people, now)
+    generateReports(random, people.people, stints, now)
+    generateAttributions(random, area.territories, people.people, stints, now)
+    const groupOverseers = people.groups.map(group => group.responsible)
+    const holders = assignRoleHolders(
+      random,
+      people.people,
+      now,
+      [people.admin, people.secretary, people.serviceOverseer],
+      groupOverseers,
+    )
+    return demoRolePersons(people, holders)
+  }
+
+  it('gives each of the committee’s demo roles a person of its own, every day of a year', () => {
+    const clashes: string[] = []
+    for (let day = 0; day < 366; day++) {
+      const now = new Date(Date.UTC(2026, 10, 10, 10) + day * 86_400_000)
+      const persons = Object.values(personsOn(now))
+      if (persons.includes(undefined) || new Set(persons).size !== persons.length) {
+        clashes.push(now.toISOString().slice(0, 10))
+      }
+    }
+    expect(clashes).toEqual([])
   })
 })

@@ -1,5 +1,8 @@
 import type { Percentiles } from './random'
 
+/** The demo's random seed: change it for another congregation of the same shape. */
+export const SEED = 20261110
+
 /**
  * The shape of the demo congregation: proportions and distributions measured on a real congregation of about 110
  * publishers (November 2026), so the demo looks and behaves like one. Only aggregates live here — counts, ratios,

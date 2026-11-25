@@ -1,4 +1,4 @@
-import type { PersonSeed } from './people'
+import type { Congregation, PersonSeed } from './people'
 import { CUSTOM_ROLES, type Eligibility } from './profile'
 import type { Random } from './random'
 
@@ -46,7 +46,9 @@ export function assignRoleHolders(
     // Filtered after the shuffle, which then takes as many draws as before: the rest of the congregation keeps its.
     const brothers = role.single || role.holders === 1 ? shuffled.filter(person => person.isMale) : shuffled
     const pool = role.notGroupOverseer ? brothers.filter(person => !overseers.has(person.key)) : brothers
-    if (role.single) {
+    // One person runs it, as a single post: someone without another post while anyone is left (a demo login signs in
+    // as its holder, and two roles on one login would read as one).
+    if (role.single || role.holders === 1) {
       const holder = pool.find(person => !posted.has(person.key)) ?? pool[0]
       if (holder) {
         posted.add(holder.key)
@@ -60,4 +62,24 @@ export function assignRoleHolders(
     )
   }
   return holders
+}
+
+/** Who each demo role signs in as, but the publisher (chosen from the database, among those holding no role). */
+export type DemoRolePersons = Record<
+  'coordinator' | 'secretary' | 'programmes' | 'territories' | 'group-overseer',
+  number | undefined
+>
+
+/**
+ * The persons the committee's demo roles sign in as: the coordinator and the secretary, the elder in charge of the
+ * midweek meeting, the territory servant, and a group overseer who holds none of those roles. The banner names a
+ * visitor's role from their login: each must be someone else.
+ */
+export function demoRolePersons(people: Congregation, holders: Map<string, number[]>): DemoRolePersons {
+  const programmes = holders.get('responsable-vcm')?.[0]
+  const territories = holders.get('territoires')?.[0]
+  // Elders with another role often lead a group too: the first group led by none of them, so each role is its own login.
+  const taken = new Set([people.admin, people.secretary, people.serviceOverseer, programmes, territories])
+  const overseer = people.groups.find(group => !taken.has(group.responsible))?.responsible
+  return { coordinator: people.admin, secretary: people.secretary, programmes, territories, 'group-overseer': overseer }
 }
