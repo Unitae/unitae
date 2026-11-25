@@ -8,7 +8,8 @@
 --    « Salle principale » in the reader's language), and the room a `track` names.
 -- 4. The backfill: rooms in the order their tracks first appear (`trackOrder`, then the oldest part), the first one
 --    the main room; one room row per template part and per meeting part.
--- 5. The triggers, written so the code already deployed never fails on them: a room missing is created.
+-- 5. The triggers, written so the code already deployed never fails on them: a room missing is created, two writers
+--    making the same room find one, and a room left without parts goes.
 
 -- CreateTable
 CREATE TABLE "ScheduleTemplateRoom" (
@@ -73,6 +74,9 @@ CREATE UNIQUE INDEX "ScheduleTemplateRoom_id_congregationId_key" ON "ScheduleTem
 CREATE UNIQUE INDEX "ScheduleTemplateRoom_scheduleTemplateId_key_key" ON "ScheduleTemplateRoom"("scheduleTemplateId", "key");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "ScheduleTemplateRoom_scheduleTemplateId_name_key" ON "ScheduleTemplateRoom"("scheduleTemplateId", "name");
+
+-- CreateIndex
 CREATE INDEX "ScheduleRoom_scheduleId_idx" ON "ScheduleRoom"("scheduleId");
 
 -- CreateIndex
@@ -80,6 +84,9 @@ CREATE UNIQUE INDEX "ScheduleRoom_id_congregationId_key" ON "ScheduleRoom"("id",
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ScheduleRoom_scheduleId_key_key" ON "ScheduleRoom"("scheduleId", "key");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ScheduleRoom_scheduleId_name_key" ON "ScheduleRoom"("scheduleId", "name");
 
 -- CreateIndex
 CREATE INDEX "TemplatePartRoom_roomId_idx" ON "TemplatePartRoom"("roomId");
@@ -161,11 +168,16 @@ BEGIN
 END
 $$;
 
--- 3. The room helpers.
+-- 3. The room helpers. A container's rooms follow its parts' tracks while today's code writes copies: a track names a
+-- room (made if missing), the editor's main hall (room order 1) is the main room, and a room left without parts goes.
+
 CREATE OR REPLACE FUNCTION "schedule_template_main_room"(template_id int, congregation_id int) RETURNS int
 LANGUAGE plpgsql AS $$
 DECLARE room_id int;
 BEGIN
+  -- Looked up first: an insert on every write would use up a room id each time.
+  SELECT "id" INTO room_id FROM "ScheduleTemplateRoom" WHERE "scheduleTemplateId" = template_id AND "key" = 'main';
+  IF room_id IS NOT NULL THEN RETURN room_id; END IF;
   INSERT INTO "ScheduleTemplateRoom" ("key", "order", "scheduleTemplateId", "congregationId", "updatedAt")
     VALUES ('main', 0, template_id, congregation_id, CURRENT_TIMESTAMP)
     ON CONFLICT ("scheduleTemplateId", "key") DO NOTHING;
@@ -174,10 +186,58 @@ BEGIN
 END
 $$;
 
+CREATE OR REPLACE FUNCTION "schedule_template_room_for"(template_id int, track text, track_order int, congregation_id int)
+RETURNS int LANGUAGE plpgsql AS $$
+DECLARE main_id int; main_name text; room_id int;
+BEGIN
+  main_id := "schedule_template_main_room"(template_id, congregation_id);
+  IF track = '' THEN RETURN main_id; END IF;
+  SELECT "id" INTO room_id FROM "ScheduleTemplateRoom" WHERE "scheduleTemplateId" = template_id AND "name" = track;
+  IF room_id = main_id THEN RETURN main_id; END IF;
+  SELECT "name" INTO main_name FROM "ScheduleTemplateRoom" WHERE "id" = main_id;
+  -- The main room: the editor's main hall (room order 1), renamed with it, or the first room named while it has none.
+  IF track_order = 1 OR (main_name IS NULL AND NOT EXISTS (SELECT 1 FROM "ScheduleTemplateRoom" WHERE "scheduleTemplateId" = template_id AND "id" <> main_id)) THEN
+    IF room_id IS NOT NULL THEN
+      -- Another room carries the name: its parts join the main room, and it goes.
+      UPDATE "TemplatePartRoom" l SET "roomId" = main_id WHERE l."roomId" = room_id
+        AND NOT EXISTS (SELECT 1 FROM "TemplatePartRoom" o WHERE o."roomId" = main_id AND o."templatePartId" = l."templatePartId");
+      DELETE FROM "ScheduleTemplateRoom" WHERE "id" = room_id;
+    END IF;
+    UPDATE "ScheduleTemplateRoom" SET "name" = track, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = main_id AND "name" IS DISTINCT FROM track;
+    RETURN main_id;
+  END IF;
+  IF room_id IS NOT NULL THEN RETURN room_id; END IF;
+  -- A new room, last in order; a second writer creating it at the same moment finds it instead of failing.
+  INSERT INTO "ScheduleTemplateRoom" ("name", "order", "scheduleTemplateId", "congregationId", "updatedAt")
+    VALUES (track, (SELECT COALESCE(MAX("order"), 0) + 1 FROM "ScheduleTemplateRoom" WHERE "scheduleTemplateId" = template_id), template_id, congregation_id, CURRENT_TIMESTAMP)
+    ON CONFLICT ("scheduleTemplateId", "name") DO NOTHING;
+  SELECT "id" INTO room_id FROM "ScheduleTemplateRoom" WHERE "scheduleTemplateId" = template_id AND "name" = track;
+  RETURN room_id;
+END
+$$;
+
+-- A room no part is in any more (renamed away, emptied) goes; the main room stays, and the others keep their places
+-- without gaps (0 for the main room, then 1, 2… as the backfill numbers them).
+CREATE OR REPLACE FUNCTION "prune_schedule_template_rooms"(template_id int) RETURNS void LANGUAGE plpgsql AS $$
+BEGIN
+  DELETE FROM "ScheduleTemplateRoom" r WHERE r."scheduleTemplateId" = template_id AND r."key" IS DISTINCT FROM 'main'
+    AND NOT EXISTS (SELECT 1 FROM "TemplatePartRoom" l WHERE l."roomId" = r."id");
+  UPDATE "ScheduleTemplateRoom" r SET "order" = n.place, "updatedAt" = CURRENT_TIMESTAMP
+  FROM (
+    SELECT "id", row_number() OVER (ORDER BY ("key" = 'main') IS TRUE DESC, "order", "id") - 1 AS place
+    FROM "ScheduleTemplateRoom" WHERE "scheduleTemplateId" = template_id
+  ) n
+  WHERE r."id" = n."id" AND r."order" <> n.place;
+END
+$$;
+
 CREATE OR REPLACE FUNCTION "schedule_main_room"(schedule_id int, congregation_id int) RETURNS int
 LANGUAGE plpgsql AS $$
 DECLARE room_id int;
 BEGIN
+  -- Looked up first: an insert on every write would use up a room id each time.
+  SELECT "id" INTO room_id FROM "ScheduleRoom" WHERE "scheduleId" = schedule_id AND "key" = 'main';
+  IF room_id IS NOT NULL THEN RETURN room_id; END IF;
   INSERT INTO "ScheduleRoom" ("key", "order", "scheduleId", "congregationId", "updatedAt")
     VALUES ('main', 0, schedule_id, congregation_id, CURRENT_TIMESTAMP)
     ON CONFLICT ("scheduleId", "key") DO NOTHING;
@@ -186,50 +246,52 @@ BEGIN
 END
 $$;
 
--- The room a template part's `track` names: none is the main room; a name already carried is its room; the first
--- room named in a container (or the editor's first hall, `trackOrder` 1) names the main room while it has no name, as
--- the backfill does (the parts for everyone happen in the main room too); any other is a new room.
-CREATE OR REPLACE FUNCTION "schedule_template_room_for"(template_id int, track text, track_order int, congregation_id int)
+CREATE OR REPLACE FUNCTION "schedule_room_for"(schedule_id int, track text, track_order int, congregation_id int)
 RETURNS int LANGUAGE plpgsql AS $$
-DECLARE main_id int; room_id int;
+DECLARE main_id int; main_name text; template_main text; room_id int;
 BEGIN
-  main_id := "schedule_template_main_room"(template_id, congregation_id);
+  main_id := "schedule_main_room"(schedule_id, congregation_id);
   IF track = '' THEN RETURN main_id; END IF;
-  SELECT "id" INTO room_id FROM "ScheduleTemplateRoom" WHERE "scheduleTemplateId" = template_id AND "name" = track
-    ORDER BY "order" LIMIT 1;
-  IF room_id IS NOT NULL THEN RETURN room_id; END IF;
-  IF track_order = 1 OR NOT EXISTS (SELECT 1 FROM "ScheduleTemplateRoom" WHERE "scheduleTemplateId" = template_id AND "id" <> main_id) THEN
-    UPDATE "ScheduleTemplateRoom" SET "name" = track, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = main_id AND "name" IS NULL;
-    IF FOUND THEN RETURN main_id; END IF;
+  SELECT "id" INTO room_id FROM "ScheduleRoom" WHERE "scheduleId" = schedule_id AND "name" = track;
+  IF room_id = main_id THEN RETURN main_id; END IF;
+  SELECT "name" INTO main_name FROM "ScheduleRoom" WHERE "id" = main_id;
+  -- The template's main room names the meeting's: which copy is written first must not decide it.
+  SELECT r."name" INTO template_main FROM "Schedule" s JOIN "ScheduleTemplateRoom" r
+    ON r."scheduleTemplateId" = s."scheduleTemplateId" AND r."key" = 'main' WHERE s."id" = schedule_id;
+  -- The main room: the editor's main hall (room order 1), renamed with it, or the first room named while it has none.
+  IF track_order = 1 OR track = template_main OR (template_main IS NULL AND main_name IS NULL
+      AND NOT EXISTS (SELECT 1 FROM "ScheduleRoom" WHERE "scheduleId" = schedule_id AND "id" <> main_id)) THEN
+    IF room_id IS NOT NULL THEN
+      -- Another room carries the name: its parts join the main room, and it goes.
+      UPDATE "ItemRoom" l SET "roomId" = main_id WHERE l."roomId" = room_id
+        AND NOT EXISTS (SELECT 1 FROM "ItemRoom" o WHERE o."roomId" = main_id AND o."itemId" = l."itemId");
+      DELETE FROM "ScheduleRoom" WHERE "id" = room_id;
+    END IF;
+    UPDATE "ScheduleRoom" SET "name" = track, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = main_id AND "name" IS DISTINCT FROM track;
+    RETURN main_id;
   END IF;
-  INSERT INTO "ScheduleTemplateRoom" ("name", "order", "scheduleTemplateId", "congregationId", "updatedAt")
-    VALUES (track, COALESCE(track_order,
-      (SELECT COALESCE(MAX("order"), 0) + 1 FROM "ScheduleTemplateRoom" WHERE "scheduleTemplateId" = template_id)),
-      template_id, congregation_id, CURRENT_TIMESTAMP)
-    RETURNING "id" INTO room_id;
+  IF room_id IS NOT NULL THEN RETURN room_id; END IF;
+  -- A new room, last in order; a second writer creating it at the same moment finds it instead of failing.
+  INSERT INTO "ScheduleRoom" ("name", "order", "scheduleId", "congregationId", "updatedAt")
+    VALUES (track, (SELECT COALESCE(MAX("order"), 0) + 1 FROM "ScheduleRoom" WHERE "scheduleId" = schedule_id), schedule_id, congregation_id, CURRENT_TIMESTAMP)
+    ON CONFLICT ("scheduleId", "name") DO NOTHING;
+  SELECT "id" INTO room_id FROM "ScheduleRoom" WHERE "scheduleId" = schedule_id AND "name" = track;
   RETURN room_id;
 END
 $$;
 
-CREATE OR REPLACE FUNCTION "schedule_room_for"(schedule_id int, track text, track_order int, congregation_id int)
-RETURNS int LANGUAGE plpgsql AS $$
-DECLARE main_id int; room_id int;
+-- A room no part is in any more (renamed away, emptied) goes; the main room stays, and the others keep their places
+-- without gaps (0 for the main room, then 1, 2… as the backfill numbers them).
+CREATE OR REPLACE FUNCTION "prune_schedule_rooms"(schedule_id int) RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
-  main_id := "schedule_main_room"(schedule_id, congregation_id);
-  IF track = '' THEN RETURN main_id; END IF;
-  SELECT "id" INTO room_id FROM "ScheduleRoom" WHERE "scheduleId" = schedule_id AND "name" = track
-    ORDER BY "order" LIMIT 1;
-  IF room_id IS NOT NULL THEN RETURN room_id; END IF;
-  IF track_order = 1 OR NOT EXISTS (SELECT 1 FROM "ScheduleRoom" WHERE "scheduleId" = schedule_id AND "id" <> main_id) THEN
-    UPDATE "ScheduleRoom" SET "name" = track, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = main_id AND "name" IS NULL;
-    IF FOUND THEN RETURN main_id; END IF;
-  END IF;
-  INSERT INTO "ScheduleRoom" ("name", "order", "scheduleId", "congregationId", "updatedAt")
-    VALUES (track, COALESCE(track_order,
-      (SELECT COALESCE(MAX("order"), 0) + 1 FROM "ScheduleRoom" WHERE "scheduleId" = schedule_id)),
-      schedule_id, congregation_id, CURRENT_TIMESTAMP)
-    RETURNING "id" INTO room_id;
-  RETURN room_id;
+  DELETE FROM "ScheduleRoom" r WHERE r."scheduleId" = schedule_id AND r."key" IS DISTINCT FROM 'main'
+    AND NOT EXISTS (SELECT 1 FROM "ItemRoom" l WHERE l."roomId" = r."id");
+  UPDATE "ScheduleRoom" r SET "order" = n.place, "updatedAt" = CURRENT_TIMESTAMP
+  FROM (
+    SELECT "id", row_number() OVER (ORDER BY ("key" = 'main') IS TRUE DESC, "order", "id") - 1 AS place
+    FROM "ScheduleRoom" WHERE "scheduleId" = schedule_id
+  ) n
+  WHERE r."id" = n."id" AND r."order" <> n.place;
 END
 $$;
 
@@ -263,8 +325,11 @@ INSERT INTO "ScheduleTemplateRoom" ("name", "order", "scheduleTemplateId", "cong
 
 WITH tracks AS (
   SELECT i."scheduleId" AS container, i."track", i."congregationId",
-    row_number() OVER (PARTITION BY i."scheduleId" ORDER BY MIN(i."trackOrder") NULLS LAST, MIN(i."id")) AS rank
+    -- The template's main room names the meeting's first, as the triggers do; then room order, then the oldest copy.
+    row_number() OVER (PARTITION BY i."scheduleId"
+      ORDER BY (i."track" = MIN(tr."name")) IS TRUE DESC, MIN(i."trackOrder") NULLS LAST, MIN(i."id")) AS rank
   FROM "Item" i JOIN "Schedule" s ON s."id" = i."scheduleId" AND s."kind" = 'programme'
+  LEFT JOIN "ScheduleTemplateRoom" tr ON tr."scheduleTemplateId" = s."scheduleTemplateId" AND tr."key" = 'main'
   WHERE i."track" <> ''
   GROUP BY i."scheduleId", i."track", i."congregationId"
 ), named AS (
@@ -312,42 +377,67 @@ BEGIN
 END
 $$;
 
--- A template part written by today's code: its room row follows its track.
+-- A template part written by today's code: its one room row follows its track; a room it leaves empty goes.
 CREATE OR REPLACE FUNCTION "template_part_room"() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE room_id int;
 BEGIN
+  IF TG_OP <> 'INSERT' AND OLD."scheduleTemplateId" IS NOT NULL THEN
+    IF TG_OP = 'DELETE' THEN
+      PERFORM "prune_schedule_template_rooms"(OLD."scheduleTemplateId");
+      RETURN OLD;
+    END IF;
+  END IF;
   IF NEW."scheduleTemplateId" IS NULL
     OR NOT EXISTS (SELECT 1 FROM "ScheduleTemplate" WHERE "id" = NEW."scheduleTemplateId" AND "kind" = 'programme') THEN
     DELETE FROM "TemplatePartRoom" WHERE "templatePartId" = NEW."id";
-    RETURN NEW;
+  ELSE
+    room_id := "schedule_template_room_for"(NEW."scheduleTemplateId", NEW."track", NEW."trackOrder", NEW."congregationId");
+    UPDATE "TemplatePartRoom" SET "roomId" = room_id WHERE "templatePartId" = NEW."id";
+    IF NOT FOUND THEN
+      INSERT INTO "TemplatePartRoom" ("templatePartId", "roomId", "congregationId")
+        VALUES (NEW."id", room_id, NEW."congregationId") ON CONFLICT DO NOTHING;
+    END IF;
+    PERFORM "prune_schedule_template_rooms"(NEW."scheduleTemplateId");
   END IF;
-  room_id := "schedule_template_room_for"(NEW."scheduleTemplateId", NEW."track", NEW."trackOrder", NEW."congregationId");
-  DELETE FROM "TemplatePartRoom" WHERE "templatePartId" = NEW."id" AND "roomId" <> room_id;
-  INSERT INTO "TemplatePartRoom" ("templatePartId", "roomId", "congregationId")
-    VALUES (NEW."id", room_id, NEW."congregationId") ON CONFLICT DO NOTHING;
+  IF TG_OP = 'UPDATE' AND OLD."scheduleTemplateId" IS DISTINCT FROM NEW."scheduleTemplateId" AND OLD."scheduleTemplateId" IS NOT NULL THEN
+    PERFORM "prune_schedule_template_rooms"(OLD."scheduleTemplateId");
+  END IF;
   RETURN NEW;
 END
 $$;
 
--- A meeting part written by today's code: its room row follows its track and carries its assignees.
+-- A meeting part written by today's code: its one room row follows its track and carries its assignees, keeping its id
+-- when it changes room; a room it leaves empty goes.
 CREATE OR REPLACE FUNCTION "item_room"() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE room_id int;
 BEGIN
+  IF TG_OP = 'DELETE' THEN
+    IF OLD."scheduleId" IS NOT NULL THEN PERFORM "prune_schedule_rooms"(OLD."scheduleId"); END IF;
+    RETURN OLD;
+  END IF;
   IF NEW."scheduleId" IS NULL
     OR NOT EXISTS (SELECT 1 FROM "Schedule" WHERE "id" = NEW."scheduleId" AND "kind" = 'programme') THEN
     DELETE FROM "ItemRoom" WHERE "itemId" = NEW."id";
-    RETURN NEW;
+  ELSE
+    room_id := "schedule_room_for"(NEW."scheduleId", NEW."track", NEW."trackOrder", NEW."congregationId");
+    UPDATE "ItemRoom" SET
+      "roomId" = room_id,
+      "assigneeId" = NEW."assigneeId",
+      "assistantId" = NEW."assistantId",
+      "externalSpeakerId" = NEW."externalSpeakerId",
+      "hasConflict" = NEW."hasConflict",
+      "updatedAt" = CURRENT_TIMESTAMP
+    WHERE "itemId" = NEW."id";
+    IF NOT FOUND THEN
+      INSERT INTO "ItemRoom" ("itemId", "roomId", "assigneeId", "assistantId", "externalSpeakerId", "hasConflict", "congregationId", "updatedAt")
+        VALUES (NEW."id", room_id, NEW."assigneeId", NEW."assistantId", NEW."externalSpeakerId", NEW."hasConflict", NEW."congregationId", CURRENT_TIMESTAMP)
+        ON CONFLICT ("itemId", "roomId") DO NOTHING;
+    END IF;
+    PERFORM "prune_schedule_rooms"(NEW."scheduleId");
   END IF;
-  room_id := "schedule_room_for"(NEW."scheduleId", NEW."track", NEW."trackOrder", NEW."congregationId");
-  DELETE FROM "ItemRoom" WHERE "itemId" = NEW."id" AND "roomId" <> room_id;
-  INSERT INTO "ItemRoom" ("itemId", "roomId", "assigneeId", "assistantId", "externalSpeakerId", "hasConflict", "congregationId", "updatedAt")
-    VALUES (NEW."id", room_id, NEW."assigneeId", NEW."assistantId", NEW."externalSpeakerId", NEW."hasConflict", NEW."congregationId", CURRENT_TIMESTAMP)
-    ON CONFLICT ("itemId", "roomId") DO UPDATE SET
-      "assigneeId" = EXCLUDED."assigneeId",
-      "assistantId" = EXCLUDED."assistantId",
-      "externalSpeakerId" = EXCLUDED."externalSpeakerId",
-      "hasConflict" = EXCLUDED."hasConflict",
-      "updatedAt" = CURRENT_TIMESTAMP;
+  IF TG_OP = 'UPDATE' AND OLD."scheduleId" IS DISTINCT FROM NEW."scheduleId" AND OLD."scheduleId" IS NOT NULL THEN
+    PERFORM "prune_schedule_rooms"(OLD."scheduleId");
+  END IF;
   RETURN NEW;
 END
 $$;
@@ -359,8 +449,8 @@ DROP TRIGGER IF EXISTS "Schedule_rooms" ON "Schedule";
 CREATE TRIGGER "Schedule_rooms" AFTER INSERT ON "Schedule"
   FOR EACH ROW EXECUTE FUNCTION "schedule_rooms_on_insert"();
 DROP TRIGGER IF EXISTS "TemplatePart_room" ON "TemplatePart";
-CREATE TRIGGER "TemplatePart_room" AFTER INSERT OR UPDATE OF "track", "trackOrder", "scheduleTemplateId" ON "TemplatePart"
+CREATE TRIGGER "TemplatePart_room" AFTER INSERT OR DELETE OR UPDATE OF "track", "trackOrder", "scheduleTemplateId" ON "TemplatePart"
   FOR EACH ROW EXECUTE FUNCTION "template_part_room"();
 DROP TRIGGER IF EXISTS "Item_room" ON "Item";
-CREATE TRIGGER "Item_room" AFTER INSERT OR UPDATE OF "track", "trackOrder", "scheduleId", "assigneeId", "assistantId", "externalSpeakerId", "hasConflict" ON "Item"
+CREATE TRIGGER "Item_room" AFTER INSERT OR DELETE OR UPDATE OF "track", "trackOrder", "scheduleId", "assigneeId", "assistantId", "externalSpeakerId", "hasConflict" ON "Item"
   FOR EACH ROW EXECUTE FUNCTION "item_room"();

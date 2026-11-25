@@ -1776,6 +1776,7 @@ model ScheduleTemplateRoom {
 
   @@unique([id, congregationId])
   @@unique([scheduleTemplateId, key])
+  @@unique([scheduleTemplateId, name])
   @@index([scheduleTemplateId])
 }
 
@@ -1798,6 +1799,7 @@ model ScheduleRoom {
 
   @@unique([id, congregationId])
   @@unique([scheduleId, key])
+  @@unique([scheduleId, name])
   @@index([scheduleId])
 }
 
