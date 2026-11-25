@@ -8,6 +8,7 @@ import {
   placeExists,
   renameTemplateHall,
   renameTemplateSection,
+  reorderTemplateParts,
   roomOrderFor,
   splitSectionIntoHalls,
   templatePartPlace,
@@ -24,8 +25,8 @@ import {
   type TemplateActionResult,
 } from './template-item-action.server'
 
-/** A programme template's sections and halls, renamed across their parts. */
-const SECTION_INTENTS = ['rename-section', 'rename-hall'] as const
+/** A programme template's sections and halls, renamed across their parts, and its parts' order. */
+const SECTION_INTENTS = ['rename-section', 'rename-hall', 'reorder-parts'] as const
 
 const logger = createLogger('schedule-template-items')
 
@@ -74,6 +75,25 @@ export async function handleScheduleTemplateItem(
     return refused([m.settings_template_item_not_in_template()])
   }
   const { congregationId, id: actorId } = actor
+
+  // A new order of every part (« Réorganiser », a drag): exactly the template's parts, or the list changed meanwhile.
+  if (intent === 'reorder-parts') {
+    const ids = readIds(formData.get('orderedIds'))
+    const expected = new Set(items.parts.map(part => part.id))
+    const complete = ids != null && ids.length === expected.size && new Set(ids).size === ids.length
+    if (!complete || !ids.every(id => expected.has(id))) {
+      logger.warn('handleScheduleTemplateItem: an order that is not the template’s parts', {
+        scheduleTemplateId,
+        ...actor,
+      })
+      return refused([m.settings_schedule_templates_order_stale()], 409)
+    }
+    if (!(await reorderTemplateParts(db, congregationId, items.kindId, ids))) {
+      return refused([m.settings_schedule_templates_order_stale()], 409)
+    }
+    // The list shows the new order at once, and the page says what moved: no toast.
+    return { kind: 'saved', message: '' }
+  }
 
   if (intent === 'rename-section' || intent === 'rename-hall') {
     const submission = parseWithZod(formData, {
@@ -177,4 +197,14 @@ export async function handleScheduleTemplateItem(
     await mergeLoneHalls(db, target, touched, congregationId, actorId)
   }
   return result
+}
+
+/** The ids a reorder sends, as JSON; null for anything else. */
+function readIds(value: FormDataEntryValue | null): number[] | null {
+  try {
+    const parsed: unknown = JSON.parse(String(value ?? ''))
+    return Array.isArray(parsed) && parsed.every(id => Number.isInteger(id) && id > 0) ? parsed : null
+  } catch {
+    return null
+  }
 }

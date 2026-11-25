@@ -77,6 +77,8 @@ export async function action({ request, context }: Route.ActionArgs) {
       const result = await handleScheduleTemplateItem(db, scheduleTemplateId, formData, actor)
       if (result == null) return refusal(scheduleTemplateId, [m.settings_schedule_templates_error_vanished()], 409)
       if (result.kind === 'refused') return result.response
+      // A reorder shows itself in the list, and the page announces it: no toast.
+      if (result.message === '') return data({ ok: true as const })
       return okWithToast(request, result.message)
     })
   }

@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { calls, items, outcome } = vi.hoisted(() => ({
   calls: [] as unknown[],
   outcome: { current: 'saved' as 'saved' | 'refused' },
-  items: { current: null as { kind: string; kindId: number | null } | null },
+  items: { current: null as { kind: string; kindId: number | null; parts?: { id: number }[] } | null },
 }))
 
 vi.mock('./schedule-template-items.queries', () => ({
@@ -45,6 +45,10 @@ vi.mock('~/features/events/index.server', () => ({
       return 2
     },
   ),
+  reorderTemplateParts: vi.fn(async (_db: unknown, _congregationId: number, kindId: number, ids: number[]) => {
+    calls.push(['reorder', kindId, ids])
+    return true
+  }),
   makeRoomAtTemplateOrder: vi.fn(async (_db: unknown, kindId: number, order: number) => {
     calls.push(['room', kindId, order])
   }),
@@ -314,5 +318,33 @@ describe('handleScheduleTemplateItem', () => {
       ['merge', 270, ['Ministère']],
       [270, 'delete-part'],
     ])
+  })
+
+  it('writes a new order of the programme’s parts through its first kind, without a toast', async () => {
+    items.current = { kind: 'programme', kindId: 270, parts: [{ id: 1 }, { id: 2 }, { id: 3 }] }
+    const result = await handleScheduleTemplateItem(
+      {} as never,
+      3,
+      form('reorder-parts', { orderedIds: '[3,1,2]' }),
+      ACTOR,
+    )
+    expect(result).toEqual({ kind: 'saved', message: '' })
+    expect(calls).toEqual([['reorder', 270, [3, 1, 2]]])
+  })
+
+  it('refuses an order that is not exactly the programme’s parts (one added or gone meanwhile), and a duties one', async () => {
+    items.current = { kind: 'programme', kindId: 270, parts: [{ id: 1 }, { id: 2 }, { id: 3 }] }
+    const outcomes = []
+    for (const orderedIds of ['[3,1]', '[3,1,2,9]', '[3,1,1]', '[3,1,9]', 'not json', '']) {
+      outcomes.push(
+        (await handleScheduleTemplateItem({} as never, 3, form('reorder-parts', { orderedIds }), ACTOR))?.kind,
+      )
+    }
+    items.current = { kind: 'duty', kindId: 270, parts: [] }
+    outcomes.push(
+      (await handleScheduleTemplateItem({} as never, 4, form('reorder-parts', { orderedIds: '[]' }), ACTOR))?.kind,
+    )
+    expect(outcomes).toEqual(Array(7).fill('refused'))
+    expect(calls).toEqual([])
   })
 })
