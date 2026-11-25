@@ -208,4 +208,99 @@ describe('makeRoomAtTemplateOrder', () => {
       ])
     })
   })
+
+  it('moves exactly the parts at and after that order, by one, in this template only (orders one apart)', async () => {
+    await inTemplate(async ({ db, congregationId, templateId, otherId, parts }) => {
+      await db.templatePart.updateMany({ where: { templateId }, data: { order: { increment: 100 } } })
+      for (const [name, order] of [
+        ['Un', 1],
+        ['Deux', 2],
+        ['Trois', 3],
+        ['Quatre', 4],
+      ] as const) {
+        await db.templatePart.create({ data: { name, section: 'Suite', track: '', order, templateId, congregationId } })
+      }
+      await db.templatePart.updateMany({ where: { templateId: otherId }, data: { order: 3 } })
+
+      await makeRoomAtTemplateOrder(db, templateId, 3, congregationId)
+
+      const orders = Object.fromEntries((await parts()).map(each => [each.name, each.order]))
+      expect([orders.Un, orders.Deux, orders.Trois, orders.Quatre]).toEqual([1, 2, 4, 5])
+      expect(orders.Cantique).toBe(101)
+      expect((await db.templatePart.findFirstOrThrow({ where: { templateId: otherId } })).order).toBe(3)
+    })
+  })
+})
+
+describe('renameTemplateHall, scoped', () => {
+  it('renames the hall of its section only, never the same name in another section or template', async () => {
+    await inTemplate(async ({ db, congregationId, actorId, templateId, otherId, parts }) => {
+      await db.templatePart.create({
+        data: {
+          name: 'Vie B',
+          section: 'Vie chrétienne',
+          track: 'Salle B',
+          trackOrder: 2,
+          order: 26,
+          templateId,
+          congregationId,
+        },
+      })
+      await db.templatePart.create({
+        data: {
+          name: 'Autre B',
+          section: 'Ministère',
+          track: 'Salle B',
+          trackOrder: 2,
+          order: 5,
+          templateId: otherId,
+          congregationId,
+        },
+      })
+
+      expect(
+        await renameTemplateHall(
+          db,
+          { templateId, scheduleTemplateId: SCHEDULE_TEMPLATE_ID },
+          'Ministère',
+          ' Salle 2 ',
+          'Salle 2',
+          congregationId,
+          actorId,
+        ),
+      ).toBe('gone')
+      expect(
+        await renameTemplateHall(
+          db,
+          { templateId, scheduleTemplateId: SCHEDULE_TEMPLATE_ID },
+          'Ministère',
+          'Salle B',
+          '  Salle 2  ',
+          congregationId,
+          actorId,
+        ),
+      ).toBe('renamed')
+
+      const tracks = Object.fromEntries((await parts()).map(each => [each.name, each.track]))
+      expect([tracks['Conversation B'], tracks['Vie B']]).toEqual(['Salle 2', 'Salle B'])
+      expect((await db.templatePart.findFirstOrThrow({ where: { name: 'Autre B', templateId: otherId } })).track).toBe(
+        'Salle B',
+      )
+      const rows = await db.auditLog.findMany({ where: { congregationId, entityId: SCHEDULE_TEMPLATE_ID } })
+      expect(rows.map(row => [row.action, row.actorId, row.entityType])).toEqual([
+        ['schedule_template.updated', actorId, 'ScheduleTemplate'],
+      ])
+    })
+  })
+
+  it('writes no audit row for a rename it refuses', async () => {
+    await inTemplate(async ({ db, congregationId, actorId, templateId }) => {
+      const ids = { templateId, scheduleTemplateId: SCHEDULE_TEMPLATE_ID }
+      await renameTemplateSection(db, ids, 'Joyaux', 'Joyaux', congregationId, actorId)
+      await renameTemplateSection(db, ids, 'Joyaux', 'Ministère', congregationId, actorId)
+      await renameTemplateSection(db, ids, 'Absente', 'Nouvelle', congregationId, actorId)
+      await renameTemplateHall(db, ids, 'Ministère', 'Salle B', 'Salle principale', congregationId, actorId)
+      expect(await db.auditLog.count({ where: { congregationId, entityId: SCHEDULE_TEMPLATE_ID } })).toBe(0)
+    })
+  })
 })

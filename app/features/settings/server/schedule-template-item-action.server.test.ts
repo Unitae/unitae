@@ -155,12 +155,26 @@ describe('handleScheduleTemplateItem', () => {
     ])
   })
 
-  it('moves nothing for a part that is edited, or a new one the form refuses', async () => {
+  it('splits nothing for a new part outside any hall: it only makes room', async () => {
     items.current = { kind: 'programme', kindId: 270 }
     await handleScheduleTemplateItem(
       {} as never,
       3,
-      form('upsert-part', { partId: '11', partName: 'X', partOrder: '4' }),
+      form('upsert-part', { partName: 'Visite', partSection: 'Joyaux', partOrder: '7' }),
+      ACTOR,
+    )
+    expect(calls).toEqual([
+      ['room', 270, 7],
+      [270, 'upsert-part'],
+    ])
+  })
+
+  it('moves nothing for a part that is edited (a hall included), or a new one the form refuses', async () => {
+    items.current = { kind: 'programme', kindId: 270 }
+    await handleScheduleTemplateItem(
+      {} as never,
+      3,
+      form('upsert-part', { partId: '11', partName: 'X', partSection: 'Joyaux', partTrack: 'Salle B', partOrder: '4' }),
       ACTOR,
     )
     await handleScheduleTemplateItem({} as never, 3, form('upsert-part', { partOrder: '4' }), ACTOR)
