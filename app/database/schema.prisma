@@ -160,6 +160,10 @@ model Congregation {
   templateItemAllowedRoles        TemplateItemAllowedRole[]
   items                           Item[]
   itemAllowedRoles                ItemAllowedRole[]
+  scheduleTemplateRooms           ScheduleTemplateRoom[]
+  scheduleRooms                   ScheduleRoom[]
+  templatePartRooms               TemplatePartRoom[]
+  itemRooms                       ItemRoom[]
   partPresets                     PartPreset[]
   externalSpeakers                ExternalSpeaker[]
   speakerCongregations            SpeakerCongregation[]
@@ -264,6 +268,8 @@ model Member {
   eventServicePartsAsAssignee EventServicePart[]  @relation("servicePartAssignee")
   itemsAsAssignee             Item[]              @relation("itemAssignee")
   itemsAsAssistant            Item[]              @relation("itemAssistant")
+  itemRoomsAsAssignee         ItemRoom[]          @relation("itemRoomAssignee")
+  itemRoomsAsAssistant        ItemRoom[]          @relation("itemRoomAssistant")
 
   // Identity-role assignments (built-in roles like brother/elder/pioneer plus
   // any custom role the user may add later that expresses identity)
@@ -1138,6 +1144,7 @@ model TemplatePart {
 
   eventParts   EventPart[]
   allowedRoles TemplatePartAllowedRole[]
+  rooms        TemplatePartRoom[]
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
@@ -1265,6 +1272,7 @@ model ExternalSpeaker {
 
   eventParts EventPart[]
   items      Item[]
+  itemRooms  ItemRoom[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1619,6 +1627,7 @@ model Item {
   legacyServiceId Int? @unique
 
   allowedRoles ItemAllowedRole[]
+  rooms        ItemRoom[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1672,6 +1681,7 @@ model ScheduleTemplate {
   items        TemplateItem[]
   eventKinds   EventKindScheduleTemplate[]
   schedules    Schedule[]
+  rooms        ScheduleTemplateRoom[]
 
   congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
   congregationId Int
@@ -1728,6 +1738,7 @@ model Schedule {
   parts        EventPart[]
   serviceParts EventServicePart[]
   items        Item[]
+  rooms        ScheduleRoom[]
 
   congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
   congregationId Int
@@ -1742,6 +1753,97 @@ model Schedule {
   @@unique([eventId], map: "Schedule_programme_eventId_key", where: raw("kind = 'programme'"))
   @@index([eventId])
   @@index([scheduleTemplateId])
+}
+
+/// A programme schedule template's rooms (parallel rooms spec, docs/development/specs/parallel-rooms.md): places where
+/// parts can happen at the same time. `key: 'main'` is the main room, created with the template; its name stays null
+/// until someone names it, and reads « Salle principale » in the reader's language.
+model ScheduleTemplateRoom {
+  id    Int     @id @default(autoincrement())
+  name  String?
+  key   String?
+  order Int     @default(0)
+
+  scheduleTemplate   ScheduleTemplate   @relation(fields: [scheduleTemplateId], references: [id], onDelete: Cascade)
+  scheduleTemplateId Int
+  parts              TemplatePartRoom[]
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
+  congregationId Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([id, congregationId])
+  @@unique([scheduleTemplateId, key])
+  @@index([scheduleTemplateId])
+}
+
+/// A meeting's programme rooms, copied from its template's when the schedule is created, then its own.
+model ScheduleRoom {
+  id    Int     @id @default(autoincrement())
+  name  String?
+  key   String?
+  order Int     @default(0)
+
+  schedule   Schedule   @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  scheduleId Int
+  items      ItemRoom[]
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
+  congregationId Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([id, congregationId])
+  @@unique([scheduleId, key])
+  @@index([scheduleId])
+}
+
+/// The rooms a template part is held in: the main room alone for the whole congregation, several in parallel.
+model TemplatePartRoom {
+  templatePart   TemplatePart         @relation(fields: [templatePartId], references: [id], onDelete: Cascade)
+  templatePartId Int
+  room           ScheduleTemplateRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId         Int
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
+  congregationId Int
+
+  @@id([templatePartId, roomId])
+  @@index([roomId])
+}
+
+/// A meeting part in one room: who does it there. The part itself (name, duration, topic, note) is the item's.
+model ItemRoom {
+  id          Int     @id @default(autoincrement())
+  hasConflict Boolean @default(false)
+
+  item   Item         @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId Int
+  room   ScheduleRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId Int
+
+  assignee          Member?          @relation("itemRoomAssignee", fields: [assigneeId], references: [id])
+  assigneeId        Int?
+  assistant         Member?          @relation("itemRoomAssistant", fields: [assistantId], references: [id])
+  assistantId       Int?
+  externalSpeaker   ExternalSpeaker? @relation(fields: [externalSpeakerId], references: [id], onDelete: SetNull)
+  externalSpeakerId Int?
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
+  congregationId Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([id, congregationId])
+  @@unique([itemId, roomId])
+  @@index([roomId])
+  @@index([assigneeId])
+  @@index([assistantId])
+  @@index([externalSpeakerId])
 }
 
 // Delegation of a template's events to a role, so its holders can run the
