@@ -51,7 +51,7 @@ describe('walkItem', () => {
   })
 
   it('drops a new part’s draft from the address', () => {
-    router.search = 'template=3&item=new-part&section=Joyaux&hall=&order=4'
+    router.search = 'template=3&item=new-part&section=Joyaux&order=4'
     page(false).walkItem({ kind: 'part', id: 13 })
     const [[fn] = []] = router.setParams
     expect(fn?.(new URLSearchParams(router.search)).toString()).toBe('template=3&item=part-13')

@@ -15,6 +15,8 @@ export interface ScheduleTemplateSetting {
   kinds: { id: number; name: string }[]
   /** The schedules made from it. */
   schedules: number
+  /** Its rooms, the main room included (a programme's; none for duties). */
+  rooms: number
 }
 
 /** Every schedule template of the congregation, for its page in Réglages. */
@@ -35,7 +37,7 @@ export async function listScheduleTemplatesForSettings(
         orderBy: [{ order: 'asc' }, { id: 'asc' }],
       },
       // biome-ignore lint/style/useNamingConvention: Prisma's relation count key
-      _count: { select: { parts: true, serviceParts: true, schedules: true } },
+      _count: { select: { parts: true, serviceParts: true, schedules: true, rooms: true } },
     },
     orderBy: [{ kind: 'desc' }, { id: 'asc' }],
   })
@@ -48,5 +50,6 @@ export async function listScheduleTemplatesForSettings(
     responsibleRole: row.responsibleRole,
     kinds: row.eventKinds.map(link => link.eventKind),
     schedules: row._count.schedules,
+    rooms: row._count.rooms,
   }))
 }

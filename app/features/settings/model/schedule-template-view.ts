@@ -12,6 +12,8 @@ export interface ListedScheduleTemplate {
   responsibleRole: { id: number; key: string; name: string | null } | null
   kinds: { id: number; name: string }[]
   schedules: number
+  /** Its rooms, the main room included. */
+  rooms: number
 }
 
 /** What its row and its side panel show. */
@@ -20,7 +22,7 @@ export interface ScheduleTemplateView {
   /** Programme (parts) or duty (services). */
   kind: string
   title: string
-  /** « Spirituel · 15 parties », or « 4 services » where the title already says the kind. */
+  /** « Spirituel · 15 parties · 3 salles », or « 4 services » where the title already says the kind. */
   detail: string
   responsible: string | null
   /** The kind suggesting it by name, how many when several, or none. */
@@ -67,7 +69,12 @@ export function scheduleTemplateView(
     kind: template.kind,
     title,
     // The tag goes where the title already says the kind (« Services »), as on the meeting's page.
-    detail: [...(tag === title ? [] : [tag]), content(template.kind, template.items)].join(' · '),
+    detail: [
+      ...(tag === title ? [] : [tag]),
+      content(template.kind, template.items),
+      // Rooms in parallel only: one room is the whole congregation, nothing to say.
+      ...(template.rooms > 1 ? [m.settings_schedule_templates_part_rooms({ count: template.rooms })] : []),
+    ].join(' · '),
     responsible: label,
     suggestedBy: suggestedBy(template.kinds),
     name: template.name ?? '',

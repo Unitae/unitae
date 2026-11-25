@@ -1,60 +1,60 @@
 import { describe, expect, it } from 'vitest'
-import { type PartPlaces, pickSection, placeChoices } from './part-places'
+import { type PartPlaces, placeChoices, roomLabel, roomsAfterWhere, roomsTakenAway } from './part-places'
 
 const places: PartPlaces = {
   sections: ['Joyaux', 'Ministère', 'Vie chrétienne'],
-  halls: new Map([
-    [
-      'Ministère',
-      [
-        { name: 'Salle principale', trackOrder: 1 },
-        { name: 'Salle B', trackOrder: 2 },
-      ],
-    ],
-    ['Vie chrétienne', [{ name: 'Salle annexe', trackOrder: 1 }]],
-  ]),
+  rooms: [
+    { id: 50, name: null, isMain: true },
+    { id: 51, name: 'Salle B', isMain: false },
+    { id: 52, name: 'Salle C', isMain: false },
+  ],
 }
 
 describe('placeChoices', () => {
-  it('offers the chosen section’s halls only, none for a section without any', () => {
-    const opened = { section: 'Joyaux', track: '', order: 3 }
-    expect(placeChoices(places, opened, { section: 'Ministère', track: '' }).halls.map(each => each.name)).toEqual([
-      'Salle principale',
-      'Salle B',
-    ])
-    expect(placeChoices(places, opened, { section: 'Joyaux', track: '' }).halls).toEqual([])
+  it('sends the order only while the part stays in the section it was opened in', () => {
+    const opened = { section: 'Ministère', order: 7 }
+    expect(placeChoices(places, opened, 'Ministère').order).toBe('7')
+    expect(placeChoices(places, opened, 'Joyaux').order).toBe('')
+    expect(placeChoices(places, { ...opened, order: null }, 'Ministère').order).toBe('')
   })
 
-  it('sends the order only while the part stays where it was opened', () => {
-    const opened = { section: 'Ministère', track: 'Salle B', order: 7 }
-    expect(placeChoices(places, opened, { section: 'Ministère', track: 'Salle B' }).order).toBe('7')
-    expect(placeChoices(places, opened, { section: 'Ministère', track: 'Salle principale' }).order).toBe('')
-    expect(placeChoices(places, opened, { section: 'Joyaux', track: '' }).order).toBe('')
-    expect(placeChoices(places, { ...opened, order: null }, { section: 'Ministère', track: 'Salle B' }).order).toBe('')
-  })
-
-  it('offers a drafted section and hall while they are the ones chosen', () => {
-    const newSection = placeChoices(
-      places,
-      { section: 'Perles', track: '', order: 20 },
-      { section: 'Perles', track: '' },
-    )
-    expect(newSection.sections).toEqual(['Joyaux', 'Ministère', 'Vie chrétienne', 'Perles'])
-    const newHall = { section: 'Ministère', track: 'Salle 3', order: 9 }
-    expect(placeChoices(places, newHall, newHall).halls.map(each => each.name)).toEqual([
-      'Salle principale',
-      'Salle B',
-      'Salle 3',
+  it('offers a drafted section with the others', () => {
+    expect(placeChoices(places, { section: 'Perles', order: 20 }, 'Perles').sections).toEqual([
+      'Joyaux',
+      'Ministère',
+      'Vie chrétienne',
+      'Perles',
     ])
-    // Another section picked: the drafted hall is not offered there.
-    expect(
-      placeChoices(places, newHall, { section: 'Vie chrétienne', track: '' }).halls.map(each => each.name),
-    ).toEqual(['Salle annexe'])
+    expect(placeChoices(places, { section: 'Joyaux', order: 2 }, 'Joyaux').sections).toEqual(places.sections)
   })
 })
 
-describe('pickSection', () => {
-  it('starts the hall at none in the section picked', () => {
-    expect(pickSection('Vie chrétienne')).toEqual({ section: 'Vie chrétienne', track: '' })
+describe('roomsAfterWhere', () => {
+  it('holds a part for the whole congregation in the main room alone, whatever was ticked', () => {
+    expect(roomsAfterWhere(places.rooms, false, [51, 52])).toEqual([50])
+  })
+
+  it('holds a part in parallel in the main room and the rooms ticked, in the rooms’ order', () => {
+    expect(roomsAfterWhere(places.rooms, true, [52])).toEqual([50, 52])
+    expect(roomsAfterWhere(places.rooms, true, [52, 51, 50])).toEqual([50, 51, 52])
+    // A room gone meanwhile is left out.
+    expect(roomsAfterWhere(places.rooms, true, [51, 99])).toEqual([50, 51])
+  })
+})
+
+describe('roomsTakenAway', () => {
+  it('names the rooms a save takes the part out of, none for a room added or a new part', () => {
+    expect(roomsTakenAway(places.rooms, [50, 51, 52], [50, 52]).map(room => room.id)).toEqual([51])
+    expect(roomsTakenAway(places.rooms, [50, 51, 52], [50]).map(room => room.id)).toEqual([51, 52])
+    expect(roomsTakenAway(places.rooms, [50], [50, 51])).toEqual([])
+    expect(roomsTakenAway(places.rooms, null, [50])).toEqual([])
+  })
+})
+
+describe('roomLabel', () => {
+  it('reads an unnamed main room « Salle principale », any other by its name', () => {
+    expect(roomLabel(places.rooms[0] as PartPlaces['rooms'][number])).toBe('Salle principale')
+    expect(roomLabel({ id: 50, name: 'Auditorium', isMain: true })).toBe('Auditorium')
+    expect(roomLabel(places.rooms[1] as PartPlaces['rooms'][number])).toBe('Salle B')
   })
 })

@@ -1,10 +1,9 @@
+import { Tag } from '@unitae/ui'
 import { Plus } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { resolvePartCapability } from '~/features/events'
 import {
   groupTemplateParts,
-  hallPartDraft,
-  newHallDraft,
   type PartDraft,
   sectionPartDraft,
   topItems,
@@ -23,8 +22,9 @@ const rowClass =
 const detailClass = 'block truncate text-faint text-xs'
 
 /**
- * A programme template's parts as the list draws them: by section, a section's halls nested, with the times. Each
- * part outside any section and each section moves at the top, each part within its group, by `controls`; with
+ * A programme template's parts as the list draws them: by section, with the times, and « N salles » on a part held in
+ * several rooms. Each part outside any section and each section moves at the top, each part within its section, by
+ * `controls`; with
  * « Réorganiser » (`controls.mode === 'buttons'`) the rows only move, nothing opens or is added.
  */
 export function TemplatePartRuns({
@@ -64,8 +64,7 @@ export function TemplatePartRuns({
       item.kind === 'part' ? (parts.find(p => p.id === item.id)?.name ?? '') : item.section,
     )
   }
-  const partName = (part: ItemListPart) =>
-    part.track === '' ? part.name : m.settings_schedule_templates_part_in_hall({ name: part.name, hall: part.track })
+  const partName = (part: ItemListPart) => part.name
   for (const part of parts) names.set(inId(part.id), partName(part))
 
   const roleNames = (ids: number[]) =>
@@ -95,7 +94,14 @@ export function TemplatePartRuns({
     const body = (
       <>
         <span className="min-w-0 flex-1">
-          <span className="block truncate">{part.name}</span>
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="truncate">{part.name}</span>
+            {part.roomIds.length > 1 && (
+              <Tag className="flex-none">
+                {m.settings_schedule_templates_part_rooms({ count: part.roomIds.length })}
+              </Tag>
+            )}
+          </span>
           <span className={detailClass}>{partDetail(part)}</span>
         </span>
         <span className={cn('w-14 flex-none text-right tabular-nums', part.durationMin == null && 'text-faint')}>
@@ -179,24 +185,7 @@ export function TemplatePartRuns({
     )
   }
   const content = runs.flatMap((run, index) => {
-    if (run.section == null) {
-      // A hall outside any section (the meeting type's own form may still write one): its header, then its parts,
-      // each moving on its own like the other parts outside a section.
-      return [
-        ...run.parts.map(loosePart),
-        ...run.halls.flatMap(hall => [
-          <PartGroupHeader
-            key={`hall-${hall.parts[0]?.id ?? hall.name}`}
-            level="hall"
-            name={hall.name}
-            readOnly
-            taken={[]}
-            meta={m.programs_new_parts({ count: hall.parts.length })}
-          />,
-          ...hall.parts.map(loosePart),
-        ]),
-      ]
-    }
+    if (run.section == null) return run.parts.map(loosePart)
     const at = top++
     const section = run.section
     const key = tops[at]?.kind === 'section' ? (tops[at] as { key: number }).key : index
@@ -217,48 +206,16 @@ export function TemplatePartRuns({
         {handle => (
           <>
             <PartGroupHeader
-              level="section"
               name={section}
               handle={handle}
               readOnly={reordering}
               taken={sections.filter(each => each !== section)}
-              meta={[
-                ...(run.minutes > 0 ? [m.settings_schedule_templates_minutes({ minutes: run.minutes })] : []),
-                ...(run.halls.length > 1 ? [m.settings_schedule_templates_parallel({ count: run.halls.length })] : []),
-              ].join(' · ')}
-              onAddHall={() =>
-                onAdd(
-                  newHallDraft(run, lastOrder, {
-                    second: m.settings_schedule_templates_second_hall(),
-                    nth: number => m.settings_schedule_templates_nth_hall({ number }),
-                  }),
-                )
-              }
+              meta={run.minutes > 0 ? m.settings_schedule_templates_minutes({ minutes: run.minutes }) : ''}
             />
             <GroupArea controls={controls} names={names} partIds={run.parts.map(part => part.id)}>
               {run.parts.map((part, partIndex) => movablePart(part, run.parts, partIndex, 'pl-6'))}
             </GroupArea>
-            {run.halls.length === 0 && addPart(section, sectionPartDraft(run, lastOrder))}
-            {run.halls.map((hall, hallIndex) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: by place, so a renamed hall keeps its header
-              <div key={hallIndex}>
-                <PartGroupHeader
-                  level="hall"
-                  name={hall.name}
-                  readOnly={reordering}
-                  taken={run.halls.map(each => each.name).filter(each => each !== hall.name)}
-                  section={section}
-                  meta={[
-                    m.programs_new_parts({ count: hall.parts.length }),
-                    ...(hall.minutes > 0 ? [m.settings_schedule_templates_minutes({ minutes: hall.minutes })] : []),
-                  ].join(' · ')}
-                />
-                <GroupArea controls={controls} names={names} partIds={hall.parts.map(part => part.id)}>
-                  {hall.parts.map((part, partIndex) => movablePart(part, hall.parts, partIndex, 'pl-9'))}
-                </GroupArea>
-                {addPart(hall.name, hallPartDraft(run, hall, lastOrder))}
-              </div>
-            ))}
+            {addPart(section, sectionPartDraft(run, lastOrder))}
           </>
         )}
       </Movable>,

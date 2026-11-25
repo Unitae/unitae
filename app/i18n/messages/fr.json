@@ -4453,19 +4453,6 @@
     "settings_schedule_templates_anyone": "Tous les proclamateurs",
     "settings_schedule_templates_with_reader": "avec deuxième orateur",
     "settings_schedule_templates_minutes": "{minutes} min",
-    "settings_schedule_templates_parallel": [
-        {
-            "declarations": [
-                "input count",
-                "local countPlural = count: plural"
-            ],
-            "selectors": ["countPlural"],
-            "match": {
-                "countPlural=one": "{count} salle en parallèle",
-                "countPlural=*": "{count} salles en parallèle"
-            }
-        }
-    ],
     "settings_schedule_templates_total": [
         {
             "declarations": [
@@ -4497,22 +4484,17 @@
     "settings_schedule_templates_save_part": "Enregistrer la partie",
     "settings_schedule_templates_save_service": "Enregistrer le service",
     "settings_schedule_templates_section_renamed": "Section renommée.",
-    "settings_schedule_templates_hall_renamed": "Salle renommée.",
     "settings_schedule_templates_main_hall": "Salle principale",
     "settings_schedule_templates_rename": "Renommer",
-    "settings_schedule_templates_add_hall": "Ajouter une salle en parallèle",
     "settings_schedule_templates_delete_when_empty": "Supprimer : retirez d’abord ses parties.",
     "settings_schedule_templates_section_actions": "Actions de la section {name}",
-    "settings_schedule_templates_hall_actions": "Actions de la salle {name}",
     "settings_schedule_templates_add_part_to": "Ajouter une partie à {name}",
     "settings_schedule_templates_part_short": "Partie",
     "settings_schedule_templates_section_name": "Nom de la section",
-    "settings_schedule_templates_hall_name": "Nom de la salle",
     "settings_schedule_templates_new_section_hint": "Une section sans partie n’est pas gardée : ajoutez sa première partie. Si vous fermez le panneau avant, elle est abandonnée.",
     "settings_schedule_templates_first_part": "Première partie",
     "settings_schedule_templates_add_section": "Ajouter une section",
     "settings_schedule_templates_add_part_loose": "Ajouter une partie hors section",
-    "settings_schedule_templates_second_hall": "Deuxième salle",
     "settings_schedule_templates_services_empty": "Aucun service. Ajoutez le premier.",
     "settings_schedule_templates_used": [
         {
@@ -7840,15 +7822,10 @@
     "settings_schedule_templates_item_gone": "Cet élément a été supprimé entre-temps ; vos modifications n’ont pas été enregistrées.",
     "settings_schedule_templates_name_unchanged": "Le nom n’a pas changé.",
     "settings_schedule_templates_section_taken": "Une autre section porte déjà ce nom : choisissez-en un autre.",
-    "settings_schedule_templates_hall_taken": "Une autre salle de cette section porte déjà ce nom : choisissez-en un autre.",
     "settings_schedule_templates_section_gone": "Cette section n’existe plus : la liste vient d’être rechargée.",
-    "settings_schedule_templates_hall_gone": "Cette salle n’existe plus : la liste vient d’être rechargée.",
-    "settings_schedule_templates_nth_hall": "Salle {number}",
     "settings_schedule_templates_name_blank": "Donnez-lui un nom.",
     "programs_edit_part_section_none": "Aucune section",
     "programs_edit_part_section_pick_hint": "Les sections du modèle, ou « Aucune section ». La partie va à la fin de la section choisie. Une section se crée depuis la liste.",
-    "programs_edit_part_track_none": "Aucune : toute l’assemblée",
-    "programs_edit_part_track_pick_hint": "Une salle en parallèle : choisissez-en une. Une salle s’ajoute depuis le menu de sa section.",
     "settings_schedule_templates_order_stale": "La liste a changé entre-temps : elle vient d’être rechargée, recommencez.",
     "settings_schedule_templates_move_part": "Déplacer {name}",
     "settings_schedule_templates_move_section": "Déplacer la section {name}",
@@ -7856,7 +7833,6 @@
     "settings_schedule_templates_move_down": "Descendre {name}",
     "settings_schedule_templates_move_section_up": "Monter la section {name}",
     "settings_schedule_templates_move_section_down": "Descendre la section {name}",
-    "settings_schedule_templates_part_in_hall": "{name}, {hall}",
     "settings_schedule_templates_reorder": "Réorganiser les parties",
     "settings_schedule_templates_reorder_done": "Terminé",
     "settings_schedule_templates_reorder_hint": "Une partie monte ou descend dans sa section ou sa salle ; une section se déplace avec toutes ses parties. Pour changer de section ou de salle, ouvrez la partie.",

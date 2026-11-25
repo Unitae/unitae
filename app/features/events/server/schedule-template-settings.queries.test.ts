@@ -15,7 +15,7 @@ describe('listScheduleTemplatesForSettings', () => {
         kind: 'programme',
         responsibleRole: { id: 7, key: 'vcm', name: null },
         eventKinds: [{ eventKind: { id: 270, name: 'Réunion de semaine' } }],
-        _count: { parts: 15, serviceParts: 3, schedules: 99 },
+        _count: { parts: 15, serviceParts: 3, schedules: 99, rooms: 3 },
       },
       {
         id: 2,
@@ -24,7 +24,7 @@ describe('listScheduleTemplatesForSettings', () => {
         kind: 'duty',
         responsibleRole: null,
         eventKinds: [],
-        _count: { parts: 2, serviceParts: 4, schedules: 0 },
+        _count: { parts: 2, serviceParts: 4, schedules: 0, rooms: 0 },
       },
     ] as never)
 
@@ -38,8 +38,19 @@ describe('listScheduleTemplatesForSettings', () => {
         responsibleRole: { id: 7, key: 'vcm', name: null },
         kinds: [{ id: 270, name: 'Réunion de semaine' }],
         schedules: 99,
+        rooms: 3,
       },
-      { id: 2, name: null, key: 'services', kind: 'duty', items: 4, responsibleRole: null, kinds: [], schedules: 0 },
+      {
+        id: 2,
+        name: null,
+        key: 'services',
+        kind: 'duty',
+        items: 4,
+        responsibleRole: null,
+        kinds: [],
+        schedules: 0,
+        rooms: 0,
+      },
     ])
   })
 })

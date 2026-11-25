@@ -3,9 +3,11 @@ import type { useFetcher } from 'react-router'
 import { MANAGED_ROLE_SLOTS_FIELD } from '~/features/events/model/allowed-roles-write'
 import { resolvePartCapability } from '~/features/events/model/part-capability'
 import { partReaderLabel, partSpeakerLabel } from '~/features/events/model/part-labels'
+import { type PartRoom, roomsTakenAway } from '~/features/events/model/part-places'
 import { NO_PRESET_VALUE } from '~/features/events/schemas/program-edit.schema'
 import { PartPlaceFields, type PartPlaces } from '~/features/events/ui/PartPlaceFields'
 import { PartPresetSummary } from '~/features/events/ui/PartPresetSummary'
+import { RoomRemovalDialog } from '~/features/events/ui/RoomRemovalDialog'
 import * as m from '~/i18n/paraglide/messages'
 import type { RoleOption } from '~/shared/types/role'
 import { Combobox } from '~/shared/ui/Combobox'
@@ -32,6 +34,8 @@ export type PartData = {
   presetId: number | null
   allowedSpeakerRoleIds: number[]
   allowedReaderRoleIds: number[]
+  /** A schedule template part's rooms (« Où »). */
+  roomIds?: number[]
 }
 
 export type PartPresetOption = {
@@ -111,6 +115,8 @@ export function PartEditor({
 }: PartEditorProps) {
   const [trackValue, setTrackValue] = useState(part?.track ?? '')
   const [presetValue, setPresetValue] = useState(part?.presetId ? String(part.presetId) : NO_PRESET_VALUE)
+  // A save that takes the part out of rooms waits for « Retirer » (design « TourA-Salles-Partie »).
+  const [takenAway, setTakenAway] = useState<{ rooms: PartRoom[]; form: HTMLFormElement } | null>(null)
   const speakerRolesId = useId()
   const readerRolesId = useId()
 
@@ -129,7 +135,29 @@ export function PartEditor({
   const defaultChipLabel = m.programs_edit_publisher_default_chip()
 
   return (
-    <fetcher.Form id={PART_FORM_ID} ref={formRef} method="post" className={cn('flex flex-col gap-4', className)}>
+    <fetcher.Form
+      id={PART_FORM_ID}
+      ref={formRef}
+      method="post"
+      className={cn('flex flex-col gap-4', className)}
+      onSubmit={event => {
+        if (places == null || part?.id == null) return
+        const after = new FormData(event.currentTarget).getAll('partRooms').map(Number)
+        const rooms = roomsTakenAway(places.rooms, part.roomIds ?? [], after)
+        if (rooms.length === 0) return
+        event.preventDefault()
+        setTakenAway({ rooms, form: event.currentTarget })
+      }}
+    >
+      <RoomRemovalDialog
+        part={part?.name ?? ''}
+        rooms={takenAway?.rooms ?? []}
+        onCancel={() => setTakenAway(null)}
+        onConfirm={() => {
+          if (takenAway != null) fetcher.submit(takenAway.form, { method: 'post' })
+          setTakenAway(null)
+        }}
+      />
       <input type="hidden" name="intent" value={intent} />
       {mode === 'template' && part?.id && <input type="hidden" name="partId" value={part.id} />}
       {mode === 'event' && part?.id && <input type="hidden" name="partItemId" value={part.id} />}
@@ -161,11 +189,12 @@ export function PartEditor({
           <PartPlaceFields
             places={places}
             section={part?.section ?? ''}
-            track={part?.track ?? ''}
+            roomIds={part?.roomIds ?? []}
             order={part?.order ?? null}
           />
         ) : (
-          <div className="grid grid-cols-2 gap-2.5">
+          // A template part's rooms are set on « Modèles de planning » only: the meeting type's page shows no room field.
+          <div className={cn('grid gap-2.5', mode === 'event' && 'grid-cols-2')}>
             <Field>
               <Label htmlFor="partSection">{m.programs_edit_part_section_label()}</Label>
               <Combobox
@@ -175,19 +204,21 @@ export function PartEditor({
                 suggestions={sectionSuggestions}
               />
             </Field>
-            <Field>
-              <Label htmlFor="partTrack">{m.programs_edit_part_track_label()}</Label>
-              <Combobox
-                id="partTrack"
-                name="partTrack"
-                value={trackValue}
-                onValueChange={setTrackValue}
-                suggestions={trackSuggestions}
-              />
-            </Field>
+            {mode === 'event' && (
+              <Field>
+                <Label htmlFor="partTrack">{m.programs_edit_part_track_label()}</Label>
+                <Combobox
+                  id="partTrack"
+                  name="partTrack"
+                  value={trackValue}
+                  onValueChange={setTrackValue}
+                  suggestions={trackSuggestions}
+                />
+              </Field>
+            )}
           </div>
         )}
-        {places == null && trackValue !== '' && (
+        {places == null && mode === 'event' && trackValue !== '' && (
           <Field>
             <Label htmlFor="partTrackOrder">{m.programs_edit_part_track_order_label()}</Label>
             <Input id="partTrackOrder" name="partTrackOrder" type="number" defaultValue={part?.trackOrder ?? ''} />
