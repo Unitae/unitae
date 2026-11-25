@@ -591,7 +591,9 @@ describe('the demo roles, whatever the day it is seeded', () => {
     return demoRolePersons(people, holders)
   }
 
-  it('gives each of the committee’s demo roles a person of its own, every day of a year', () => {
+  // A congregation per day of a year: about 2 s, ten times that under CI's coverage. The days a role clashed were few
+  // and scattered (ten in the first two months), so every day is seeded rather than a sample.
+  it('gives each of the committee’s demo roles a person of its own, every day of a year', { timeout: 120_000 }, () => {
     const clashes: string[] = []
     for (let day = 0; day < 366; day++) {
       const now = new Date(Date.UTC(2026, 10, 10, 10) + day * 86_400_000)
