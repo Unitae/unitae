@@ -94,8 +94,10 @@ export function ScheduleTemplateItemList({
   const partDetail = (part: ItemListPart) =>
     [
       roleNames(part.allowedSpeakerRoleIds) || m.settings_schedule_templates_anyone(),
-      // The second slot as the part's type gives it (always without a type), as the meeting's form does.
-      ...(resolvePartCapability(
+      // The second slot as the part's type gives it. Without a type the form always offers one, so saying it would
+      // not tell the parts apart.
+      ...(part.presetId != null &&
+      resolvePartCapability(
         {
           speakerLabel: part.speakerLabel,
           readerLabel: part.readerLabel,

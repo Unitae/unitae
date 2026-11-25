@@ -14,9 +14,14 @@ const adapter = new PrismaPg({
 })
 const testDb = new PrismaClient({ adapter })
 
-const { makeRoomAtTemplateOrder, renameTemplateHall, renameTemplateSection, splitSectionIntoHalls } = await import(
-  './template-sections.server'
-)
+const {
+  makeRoomAtTemplateOrder,
+  mergeLoneHalls,
+  renameTemplateHall,
+  renameTemplateSection,
+  splitSectionIntoHalls,
+  templatePartSection,
+} = await import('./template-sections.server')
 
 class Rollback extends Error {}
 
@@ -313,6 +318,78 @@ describe('renameTemplateHall, scoped', () => {
       await renameTemplateSection(db, ids, 'Absente', 'Nouvelle', congregationId, actorId)
       await renameTemplateHall(db, ids, 'Ministère', 'Salle B', 'Salle principale', congregationId, actorId)
       expect(await db.auditLog.count({ where: { congregationId, entityId: SCHEDULE_TEMPLATE_ID } })).toBe(0)
+    })
+  })
+})
+
+describe('mergeLoneHalls', () => {
+  it('takes the parts of a section left with one hall out of it, and audits it', async () => {
+    await inTemplate(async ({ db, congregationId, actorId, templateId, parts }) => {
+      await db.templatePart.deleteMany({ where: { templateId, name: 'Conversation B' } })
+      const ids = { templateId, scheduleTemplateId: SCHEDULE_TEMPLATE_ID }
+      expect(await mergeLoneHalls(db, ids, ['Ministère'], congregationId, actorId)).toBe(1)
+      expect((await parts()).find(each => each.name === 'Conversation')).toMatchObject({ track: '', trackOrder: null })
+      const audited = await db.auditLog.findFirst({ where: { congregationId, entityId: SCHEDULE_TEMPLATE_ID } })
+      expect(JSON.parse(audited?.metadata ?? '{}')).toEqual({
+        hall: { section: 'Ministère', merged: 'Salle principale', parts: 1 },
+      })
+    })
+  })
+
+  it('leaves a section in two halls, a section without any, and the sections it is not given', async () => {
+    await inTemplate(async ({ db, congregationId, actorId, templateId, parts }) => {
+      await db.templatePart.create({
+        data: {
+          name: 'Seule',
+          section: 'Vie chrétienne',
+          track: 'Salle B',
+          trackOrder: 2,
+          order: 26,
+          templateId,
+          congregationId,
+        },
+      })
+      const ids = { templateId, scheduleTemplateId: SCHEDULE_TEMPLATE_ID }
+      expect(await mergeLoneHalls(db, ids, ['Ministère', 'Joyaux'], congregationId, actorId)).toBe(0)
+      expect((await parts()).find(each => each.name === 'Seule')?.track).toBe('Salle B')
+      expect((await parts()).find(each => each.name === 'Conversation B')?.track).toBe('Salle B')
+      expect(await db.auditLog.count({ where: { congregationId, entityId: SCHEDULE_TEMPLATE_ID } })).toBe(0)
+    })
+  })
+
+  it('never touches another template', async () => {
+    await inTemplate(async ({ db, congregationId, actorId, templateId, otherId }) => {
+      await db.templatePart.create({
+        data: {
+          name: 'Ailleurs B',
+          section: 'Ministère',
+          track: 'Salle B',
+          trackOrder: 2,
+          order: 9,
+          templateId: otherId,
+          congregationId,
+        },
+      })
+      await mergeLoneHalls(
+        db,
+        { templateId, scheduleTemplateId: SCHEDULE_TEMPLATE_ID },
+        ['Ministère'],
+        congregationId,
+        actorId,
+      )
+      expect((await db.templatePart.findFirstOrThrow({ where: { name: 'Ailleurs B' } })).track).toBe('Salle B')
+    })
+  })
+})
+
+describe('templatePartSection', () => {
+  it('reads a part’s section, null for a part of another template or not there', async () => {
+    await inTemplate(async ({ db, congregationId, templateId, otherId }) => {
+      const own = await db.templatePart.findFirstOrThrow({ where: { templateId, name: 'Conversation' } })
+      const other = await db.templatePart.findFirstOrThrow({ where: { templateId: otherId } })
+      expect(await templatePartSection(db, templateId, own.id, congregationId)).toBe('Ministère')
+      expect(await templatePartSection(db, templateId, other.id, congregationId)).toBeNull()
+      expect(await templatePartSection(db, templateId, 99_999_999, congregationId)).toBeNull()
     })
   })
 })

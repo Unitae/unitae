@@ -68,7 +68,9 @@ export {
 } from './server/template-items.server'
 export {
   makeRoomAtTemplateOrder,
+  mergeLoneHalls,
   renameTemplateHall,
   renameTemplateSection,
   splitSectionIntoHalls,
+  templatePartSection,
 } from './server/template-sections.server'

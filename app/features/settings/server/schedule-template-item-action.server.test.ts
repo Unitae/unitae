@@ -3,8 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 // « Modèles de planning » writes a template's items through its first kind, the parts of a programme template and the
 // services of a duties one only; a template no kind uses, or not there, has nothing to write through.
 
-const { calls, items } = vi.hoisted(() => ({
+const { calls, items, outcome } = vi.hoisted(() => ({
   calls: [] as unknown[],
+  outcome: { current: 'saved' as 'saved' | 'refused' },
   items: { current: null as { kind: string; kindId: number | null } | null },
 }))
 
@@ -15,7 +16,7 @@ vi.mock('./template-item-action.server', async importOriginal => ({
   ...(await importOriginal<typeof import('./template-item-action.server')>()),
   handleTemplateItemAction: vi.fn(async (_db: unknown, templateId: number, formData: FormData) => {
     calls.push([templateId, formData.get('intent')])
-    return { kind: 'saved', message: 'ok' }
+    return outcome.current === 'saved' ? { kind: 'saved', message: 'ok' } : { kind: 'refused', response: null }
   }),
 }))
 
@@ -47,6 +48,14 @@ vi.mock('~/features/events/index.server', () => ({
   makeRoomAtTemplateOrder: vi.fn(async (_db: unknown, kindId: number, order: number) => {
     calls.push(['room', kindId, order])
   }),
+  mergeLoneHalls: vi.fn(async (_db: unknown, target: { templateId: number }, sections: string[]) => {
+    calls.push(['merge', target.templateId, sections])
+    return 0
+  }),
+  // Part 11 sits in « Ministère »; any other id is not the template's.
+  templatePartSection: vi.fn(async (_db: unknown, _kindId: number, partId: number) =>
+    partId === 11 ? 'Ministère' : null,
+  ),
 }))
 
 const { handleScheduleTemplateItem } = await import('./schedule-template-item-action.server')
@@ -61,6 +70,7 @@ const form = (intent: string, fields: Record<string, string> = {}) => {
 
 beforeEach(() => {
   calls.length = 0
+  outcome.current = 'saved'
 })
 
 describe('handleScheduleTemplateItem', () => {
@@ -152,6 +162,7 @@ describe('handleScheduleTemplateItem', () => {
       ['split', 270, 'Joyaux', 'Salle principale'],
       ['room', 270, 11],
       [270, 'upsert-part'],
+      ['merge', 270, ['Joyaux']],
     ])
   })
 
@@ -166,6 +177,7 @@ describe('handleScheduleTemplateItem', () => {
     expect(calls).toEqual([
       ['room', 270, 7],
       [270, 'upsert-part'],
+      ['merge', 270, ['Joyaux']],
     ])
   })
 
@@ -180,7 +192,20 @@ describe('handleScheduleTemplateItem', () => {
     await handleScheduleTemplateItem({} as never, 3, form('upsert-part', { partOrder: '4' }), ACTOR)
     expect(calls).toEqual([
       [270, 'upsert-part'],
+      ['merge', 270, ['Ministère', 'Joyaux']],
       [270, 'upsert-part'],
+    ])
+  })
+
+  it('checks the section a deleted part leaves for a lone hall, and nothing after a refusal', async () => {
+    items.current = { kind: 'programme', kindId: 270 }
+    await handleScheduleTemplateItem({} as never, 3, form('delete-part', { partId: '11' }), ACTOR)
+    outcome.current = 'refused'
+    await handleScheduleTemplateItem({} as never, 3, form('delete-part', { partId: '11' }), ACTOR)
+    expect(calls).toEqual([
+      [270, 'delete-part'],
+      ['merge', 270, ['Ministère']],
+      [270, 'delete-part'],
     ])
   })
 })

@@ -106,6 +106,53 @@ export async function splitSectionIntoHalls(
   return count
 }
 
+/**
+ * A section left with one hall (its other hall's last part deleted, or moved away) is no longer in parallel: that
+ * hall's parts go back to the section, outside any hall. Only the sections given, those the write touched. How many
+ * parts it moved.
+ */
+export async function mergeLoneHalls(
+  db: TransactionClient,
+  { templateId, scheduleTemplateId }: TemplateSectionTarget,
+  sections: readonly string[],
+  congregationId: number,
+  actorId: number,
+) {
+  let moved = 0
+  for (const section of new Set(sections)) {
+    const halls = await db.templatePart.findMany({
+      where: { templateId, congregationId, section, NOT: { track: '' } },
+      select: { track: true },
+      distinct: ['track'],
+    })
+    const [lone] = halls
+    if (halls.length !== 1 || lone == null) continue
+    const { count } = await db.templatePart.updateMany({
+      where: { templateId, congregationId, section, track: lone.track },
+      data: { track: '', trackOrder: null },
+    })
+    moved += count
+    await recordOnScheduleTemplate(db, scheduleTemplateId, congregationId, actorId, {
+      hall: { section, merged: lone.track, parts: count },
+    })
+  }
+  return moved
+}
+
+/** A part's section, before a write moves or deletes it; null when the part is not the template's. */
+export async function templatePartSection(
+  db: TransactionClient,
+  templateId: number,
+  partId: number,
+  congregationId: number,
+) {
+  const part = await db.templatePart.findFirst({
+    where: { id: partId, templateId, congregationId },
+    select: { section: true },
+  })
+  return part?.section ?? null
+}
+
 function recordOnScheduleTemplate(
   db: TransactionClient,
   scheduleTemplateId: number,

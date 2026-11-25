@@ -3,9 +3,11 @@ import { data } from 'react-router'
 import { ScheduleKind } from '~/features/events'
 import {
   makeRoomAtTemplateOrder,
+  mergeLoneHalls,
   renameTemplateHall,
   renameTemplateSection,
   splitSectionIntoHalls,
+  templatePartSection,
 } from '~/features/events/index.server'
 import { renameHallSchema, renameSectionSchema } from '~/features/settings/schemas/schedule-template.schema'
 import { upsertPartSchema } from '~/features/settings/schemas/template.schema'
@@ -108,19 +110,34 @@ export async function handleScheduleTemplateItem(
     }
   }
 
-  // A new part goes where it was added (the end of its section or hall): the parts after it make room. One starting a
-  // parallel hall turns its section's parts outside any hall into the main hall first.
-  if (intent === 'upsert-part' && !formData.get('partId')) {
+  const target = { templateId: items.kindId, scheduleTemplateId }
+  // The sections a part write touches: where the part was (an edit, a delete) and where it goes.
+  const touched: string[] = []
+  const partId = Number(formData.get('partId'))
+  if ((intent === 'upsert-part' || intent === 'delete-part') && Number.isInteger(partId) && partId > 0) {
+    const was = await templatePartSection(db, items.kindId, partId, congregationId)
+    if (was != null) touched.push(was)
+  }
+  if (intent === 'upsert-part') {
     const submission = parseWithZod(formData, { schema: upsertPartSchema })
     if (submission.status === 'success') {
       const { partOrder, partSection, partTrack } = submission.value
-      if (partTrack !== '') {
-        const target = { templateId: items.kindId, scheduleTemplateId }
-        const mainHall = m.settings_schedule_templates_main_hall()
-        await splitSectionIntoHalls(db, target, partSection, mainHall, congregationId, actorId)
+      touched.push(partSection)
+      // A new part goes where it was added (the end of its section or hall): the parts after it make room. One
+      // starting a section's first parallel hall turns its parts outside any hall into the main hall first.
+      if (!formData.get('partId')) {
+        if (partTrack !== '') {
+          const mainHall = m.settings_schedule_templates_main_hall()
+          await splitSectionIntoHalls(db, target, partSection, mainHall, congregationId, actorId)
+        }
+        await makeRoomAtTemplateOrder(db, items.kindId, partOrder, congregationId)
       }
-      await makeRoomAtTemplateOrder(db, items.kindId, partOrder, congregationId)
     }
   }
-  return (await handleTemplateItemAction(db, items.kindId, formData, actor)) ?? null
+  const result = (await handleTemplateItemAction(db, items.kindId, formData, actor)) ?? null
+  // A section left with one hall is no longer in parallel: its parts go back outside any hall.
+  if (result?.kind === 'saved' && touched.length > 0) {
+    await mergeLoneHalls(db, target, touched, congregationId, actorId)
+  }
+  return result
 }
