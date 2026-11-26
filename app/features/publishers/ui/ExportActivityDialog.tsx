@@ -35,7 +35,8 @@ interface ExportActivityDialogProps {
   // When set, the dialog exports this one publisher's S-21: only the year is asked, and
   // publisherGroups / members are not needed.
   publisherId?: number
-  // The month the page shows: its S-1 is offered. No S-1 without it.
+  // The month the page shows: when set, the S-1 is offered and starts on it (any month the list offers can be picked).
+  // No S-1 without it. The page keys the dialog by it, so a new month starts the dialog over.
   month?: ExportMonth
 }
 

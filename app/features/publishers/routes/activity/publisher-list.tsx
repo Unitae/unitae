@@ -262,7 +262,9 @@ export default function ActivityReports({ loaderData }: Route.ComponentProps) {
         description={m.common_discard_changes_description()}
         discardLabel={m.common_discard_changes_confirm()}
       />
+      {/* Keyed by the month shown: the arrows only change the URL, and the S-1 must start on the page's month. */}
       <ExportActivityDialog
+        key={`${selectedMonth.year}-${selectedMonth.month}`}
         open={exportOpen}
         onOpenChange={setExportOpen}
         availableYears={exportOptions.availableYears}

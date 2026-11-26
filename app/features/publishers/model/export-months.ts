@@ -3,7 +3,7 @@
 /** A month as the activity page shows it; `month` is 0-indexed. */
 export type ExportMonth = { month: number; year: number }
 
-/** The month under way, in the reader's clock: the dialog only renders once opened, on the client. */
+/** The month under way, by the clock of whoever renders: the server too, but the list only shows once the dialog opens. */
 export function currentMonth(): ExportMonth {
   const now = new Date()
   return { month: now.getMonth(), year: now.getFullYear() }

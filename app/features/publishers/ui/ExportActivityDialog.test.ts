@@ -46,7 +46,7 @@ describe('buildExportUrl', () => {
     ).toBe('/publishers/7/activity/pdf?year=2024')
   })
 
-  it('points the S-1 at the month shown, whatever the year and scope say', () => {
+  it('points the S-1 at the chosen month, whatever the year and scope say', () => {
     expect(
       buildExportUrl({
         format: 's1',
