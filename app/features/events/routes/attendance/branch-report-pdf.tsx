@@ -67,6 +67,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       regular={report.branch.regular}
       activePublishers={report.activePublishers}
       weekendAverage={weekendAverage}
+      secretary={report.secretary}
     />,
     m.branch_report_filename_pdf({ period: `${period.year}-${String(period.month + 1).padStart(2, '0')}` }),
     { demo: isDemoCongregation(congregation) },

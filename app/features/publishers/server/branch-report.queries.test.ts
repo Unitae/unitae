@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PublisherType } from '~/shared/types/publisher-type'
 
-const mockDb = { member: { findMany: vi.fn(), count: vi.fn() } }
+const mockDb = {
+  member: { findMany: vi.fn(), count: vi.fn() },
+  memberRoleAssignment: { findFirst: vi.fn() },
+  userRoleAssignment: { findFirst: vi.fn() },
+}
 
 const { getBranchReport } = await import('./branch-report.queries')
 
@@ -23,6 +27,8 @@ beforeEach(() => {
     member(PublisherType.Normal, null),
   ])
   mockDb.member.count.mockResolvedValue(41)
+  mockDb.memberRoleAssignment.findFirst.mockResolvedValue(null)
+  mockDb.userRoleAssignment.findFirst.mockResolvedValue(null)
 })
 
 describe('getBranchReport', () => {
@@ -53,5 +59,34 @@ describe('getBranchReport', () => {
 
     const [[{ where }]] = mockDb.member.count.mock.calls
     expect(where.OR).toEqual([{ leftAt: null }, { leftAt: { gte: new Date(2026, 9, 1) } }])
+  })
+
+  // The S-1 is signed by the secretary: the one holding the post, never the deputy.
+  it("names the secretary from the organigram's lead seat", async () => {
+    mockDb.memberRoleAssignment.findFirst.mockResolvedValue({ member: { firstname: 'Paul', lastname: 'MARTIN' } })
+
+    const report = await getBranchReport(mockDb as never, { congregationId: 3, month: 9, year: 2026 })
+
+    expect(report.secretary).toBe('Paul MARTIN')
+    const [[{ where }]] = mockDb.memberRoleAssignment.findFirst.mock.calls
+    expect(where).toMatchObject({ congregationId: 3, kind: 'leader', role: { key: 'secretary' } })
+  })
+
+  it('reads a seat an older version left on the login', async () => {
+    mockDb.userRoleAssignment.findFirst.mockResolvedValue({
+      user: { firstname: null, lastname: null, member: { firstname: 'Paul', lastname: 'MARTIN' } },
+    })
+
+    const report = await getBranchReport(mockDb as never, { congregationId: 3, month: 9, year: 2026 })
+
+    expect(report.secretary).toBe('Paul MARTIN')
+    const [[{ where }]] = mockDb.userRoleAssignment.findFirst.mock.calls
+    expect(where).toMatchObject({ congregationId: 3, kind: 'leader', role: { key: 'secretary' } })
+  })
+
+  it('leaves the secretary blank when nobody holds the post', async () => {
+    const report = await getBranchReport(mockDb as never, { congregationId: 3, month: 9, year: 2026 })
+
+    expect(report.secretary).toBeNull()
   })
 })

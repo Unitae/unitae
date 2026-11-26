@@ -59,7 +59,7 @@ const weekend = (iso: string, inPerson: number) => ({
 
 beforeEach(() => {
   vi.resetAllMocks()
-  getBranchReport.mockResolvedValue({ branch: BRANCH, activePublishers: 44 })
+  getBranchReport.mockResolvedValue({ branch: BRANCH, activePublishers: 44, secretary: 'Paul MARTIN' })
   listServiceYearAttendance.mockResolvedValue([
     weekend('2026-10-11T08:00:00Z', 90),
     weekend('2026-09-13T08:00:00Z', 50),
@@ -101,6 +101,7 @@ describe('the S-1 PDF', () => {
       regular: BRANCH.regular,
       activePublishers: 44,
       weekendAverage: 100,
+      secretary: 'Paul MARTIN',
     })
   })
 

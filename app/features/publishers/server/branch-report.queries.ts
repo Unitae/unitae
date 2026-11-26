@@ -2,12 +2,36 @@ import { activeWindow } from '~/features/publishers/model/active-publishers'
 import { wasInactiveDuring } from '~/features/publishers/model/inactive'
 import { type BranchFigures, summarizeReportMonth } from '~/features/publishers/model/report-month'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { formatPersonName, resolveAccountName } from '~/shared/utils/format-person-name'
 import { getPublisherWithActivities } from './get-publisher-with-activities.server'
 
 export interface BranchReport {
   branch: BranchFigures
   /** Publishers who reported preaching in the month or the five before it, and had not left before it began. */
   activePublishers: number
+  /** « Prénom NOM » of whoever holds the secretary's post in the organigram, never the deputy; null when nobody does. */
+  secretary: string | null
+}
+
+// The organigram's seat for the one holding a post, as opposed to its deputy.
+const LEAD_SEAT = 'leader'
+const SECRETARY_ROLE = 'secretary'
+
+/** The secretary who signs the S-1: the lead seat of the role, on the record or, from older versions, on the login. */
+async function findSecretary(db: TransactionClient, congregationId: number): Promise<string | null> {
+  const where = { congregationId, kind: LEAD_SEAT, role: { key: SECRETARY_ROLE } }
+  const onRecord = await db.memberRoleAssignment.findFirst({
+    where,
+    select: { member: { select: { firstname: true, lastname: true } } },
+  })
+  if (onRecord) return formatPersonName(onRecord.member, '') || null
+  const onLogin = await db.userRoleAssignment.findFirst({
+    where,
+    select: {
+      user: { select: { firstname: true, lastname: true, member: { select: { firstname: true, lastname: true } } } },
+    },
+  })
+  return onLogin ? formatPersonName(resolveAccountName(onLogin.user), '') || null : null
 }
 
 /**
@@ -18,7 +42,7 @@ export async function getBranchReport(
   db: TransactionClient,
   { congregationId, month, year }: { congregationId: number; month: number; year: number },
 ): Promise<BranchReport> {
-  const [members, activePublishers] = await Promise.all([
+  const [members, activePublishers, secretary] = await Promise.all([
     getPublisherWithActivities(db, congregationId, month, year),
     db.member.count({
       where: {
@@ -33,6 +57,7 @@ export async function getBranchReport(
         },
       },
     }),
+    findSecretary(db, congregationId),
   ])
 
   const rows = members.map(({ activities, publisherGroup, inactiveAt }) => {
@@ -51,5 +76,5 @@ export async function getBranchReport(
 
   // The groups' order plays no part in the branch figures.
   const { branch } = summarizeReportMonth(rows, () => 0)
-  return { branch, activePublishers }
+  return { branch, activePublishers, secretary }
 }

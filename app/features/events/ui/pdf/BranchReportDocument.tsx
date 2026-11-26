@@ -28,6 +28,8 @@ export interface BranchReportDocumentProps {
   activePublishers: number
   /** Null when the reader may not see attendance, or no weekend meeting of the month is complete: left blank. */
   weekendAverage: number | null
+  /** The organigram's secretary, who signs; null leaves the line blank. */
+  secretary: string | null
 }
 
 // Headings wrap between words, never inside one.
@@ -138,7 +140,9 @@ export function BranchReportDocument(props: BranchReportDocumentProps) {
         </View>
 
         <View style={styles.signature}>
-          <View style={styles.signatureDots} />
+          <View style={styles.signatureDots}>
+            {props.secretary != null && <Text style={styles.filled}>{sanitizeText(props.secretary)}</Text>}
+          </View>
           <Text style={styles.caption}>{m.branch_report_pdf_secretary()}</Text>
         </View>
 
@@ -187,6 +191,12 @@ const styles = StyleSheet.create({
   boxText: { fontSize: 10.5 },
   boxValue: { flexGrow: 1, justifyContent: 'center', alignItems: 'center' },
   signature: { marginTop: 34, marginLeft: '40%' },
-  signatureDots: { borderBottomWidth: 0.8, borderBottomColor: DOTS, borderBottomStyle: 'dotted', height: 18 },
+  signatureDots: {
+    borderBottomWidth: 0.8,
+    borderBottomColor: DOTS,
+    borderBottomStyle: 'dotted',
+    minHeight: 18,
+    alignItems: 'center',
+  },
   formName: { fontSize: 10, marginTop: 8 },
 })
