@@ -17,3 +17,13 @@ export const ITEM_ROOMS = {
     },
   },
 } satisfies Prisma.ItemInclude
+
+/** A part one of whose rooms has `who` as its speaker or second speaker: how a person's parts are found. */
+export const PART_HELD_BY = (who: number | { in: number[] }) =>
+  ({ rooms: { some: { OR: [{ assigneeId: who }, { assistantId: who }] } } }) satisfies Prisma.ItemWhereInput
+
+/** The same, in a room whose people are flagged for a conflict (an absence): a person's conflicts. */
+export const PART_CONFLICT_OF = (who: number | { in: number[] }) =>
+  ({
+    rooms: { some: { hasConflict: true, OR: [{ assigneeId: who }, { assistantId: who }] } },
+  }) satisfies Prisma.ItemWhereInput

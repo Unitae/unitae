@@ -128,3 +128,31 @@ export function partsInRooms<T extends ItemWithRooms>(items: readonly T[]): Part
   }
   return parts
 }
+
+/**
+ * A part as one of its people holds it: the item, with the room row that holds `who` (speaker or second speaker) in
+ * the place of the item's own people and conflict, and without its rows. A copy reads as it is (its row is its
+ * columns); an item with a row per room reads as its holder's room. An item none of whose rows holds `who` reads as is.
+ */
+export function heldBy<T extends ItemWithRooms & RowPeople>(
+  item: T,
+  who: number | readonly number[],
+): Omit<T, 'rooms'> {
+  const people = typeof who === 'number' ? [who] : who
+  const holds = (id: number | null) => id != null && people.includes(id)
+  const row = item.rooms?.find(each => holds(each.assigneeId) || holds(each.assistantId)) as
+    | (ItemRoomRow & RowPeople)
+    | undefined
+  const { rooms, ...rest } = item
+  if (row == null) return rest
+  return {
+    ...rest,
+    assigneeId: row.assigneeId,
+    assistantId: row.assistantId,
+    externalSpeakerId: row.externalSpeakerId,
+    hasConflict: row.hasConflict,
+    ...('assignee' in row && { assignee: row.assignee }),
+    ...('assistant' in row && { assistant: row.assistant }),
+    ...('externalSpeaker' in row && { externalSpeaker: row.externalSpeaker }),
+  }
+}

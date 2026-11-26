@@ -1,4 +1,5 @@
 import type { Absence, Event, EventPart, EventServicePart } from '~/database/generated/client'
+import { heldBy } from '~/features/events/model/part-rooms'
 import { VISIBLE_ITEM } from '~/features/events/model/visibility'
 import { absencesOf } from '~/features/events/server/absences.queries'
 import {
@@ -8,6 +9,7 @@ import {
   PART_ITEMS,
   SERVICE_ITEMS,
 } from '~/features/events/server/item-projection.server'
+import { ITEM_ROOMS, PART_HELD_BY } from '~/features/events/server/item-rooms.queries'
 import * as m from '~/i18n/paraglide/messages'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -48,10 +50,11 @@ export async function getPersonalAssignments(
             ...PART_ITEMS,
             // Drafts stay off the publisher's calendar and ICS feed.
             ...VISIBLE_ITEM,
-            OR: [{ assigneeId: memberId }, { assistantId: memberId }],
+            // Found by the room that holds them (parallel rooms): their slot is that room's.
+            ...PART_HELD_BY(memberId),
             event: { startDate: { gte: since } },
           },
-          include: { ...ITEM_ORIGIN_INCLUDE, event: true },
+          include: { ...ITEM_ORIGIN_INCLUDE, ...ITEM_ROOMS, event: true },
         })
       : Promise.resolve([]),
     memberId != null
@@ -72,7 +75,7 @@ export async function getPersonalAssignments(
   ])
 
   return [
-    ...parts.map(p => partAssignmentToItem(asEventPart(p), memberId ?? userId)),
+    ...parts.map(p => partAssignmentToItem(asEventPart(heldBy(p, memberId ?? userId)), memberId ?? userId)),
     ...serviceParts.map(s => servicePartAssignmentToItem(asEventServicePart(s))),
     ...daysOff.map(dayOffToItem),
   ]
