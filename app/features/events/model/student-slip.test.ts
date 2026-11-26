@@ -14,7 +14,7 @@ const member = { firstname: 'Marc', lastname: 'Dupont' }
 function part(overrides: Partial<SlipPart> & { id: number }): SlipPart {
   return {
     name: 'Partie',
-    section: 'Vie chrétienne et ministère',
+    section: 'Appliquons-nous au ministère',
     order: overrides.id,
     track: '',
     trackOrder: null,
@@ -66,6 +66,31 @@ describe('isStudentSlipPart', () => {
     ]) {
       expect(isStudentSlipPart(part({ id: 1, preset: { key } }), event())).toBe(false)
     }
+  })
+
+  // The ministry parts have no kind on purpose (it changes every week), but neither do other parts: a part without a
+  // kind is a student's only in the ministry section, whatever language its title is in.
+  it('takes a part without a kind for a student’s only in the ministry section', () => {
+    for (const section of [
+      'Appliquons-nous au ministère',
+      'Apply Yourself to the Field Ministry',
+      'Empenhe-se no Ministério',
+    ]) {
+      expect(isStudentSlipPart(part({ id: 1, section }), event())).toBe(true)
+    }
+    for (const section of [
+      'Joyaux de la parole de Dieu',
+      'Joyaux spirituels',
+      'Vie chrétienne',
+      'Living as Christians',
+    ]) {
+      expect(isStudentSlipPart(part({ id: 1, section }), event())).toBe(false)
+    }
+  })
+
+  it('keeps the Bible reading, whose kind says it, in the treasures section', () => {
+    const reading = part({ id: 1, section: 'Joyaux spirituels', preset: { key: PartPresetKey.BibleReading } })
+    expect(isStudentSlipPart(reading, event())).toBe(true)
   })
 })
 

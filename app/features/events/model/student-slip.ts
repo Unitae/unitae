@@ -5,6 +5,7 @@ import { formatEventDate } from '~/shared/utils/event-time'
 import { AttendanceKind } from './attendance-kind.type'
 import { PartPresetKey } from './part-preset.type'
 import { ScheduleKind, ScheduleStatus } from './schedule.type'
+import { isMinistrySection } from './section-style'
 
 interface SlipPerson {
   firstname: string | null
@@ -33,7 +34,10 @@ export interface SlipEvent {
   eventParts: SlipPart[]
 }
 
-/** The student kinds. A part with no kind at all (the ministry parts of the seeded programme) is a student's too. */
+/**
+ * The student kinds. A part with no kind is a student's only in the ministry section: those parts have none on purpose,
+ * their kind changing every week, but other parts may have none too (the « Vie chrétienne » ones, older talks).
+ */
 const STUDENT_PRESETS: ReadonlySet<string> = new Set([
   PartPresetKey.BibleReading,
   PartPresetKey.SchoolDemonstration,
@@ -54,7 +58,8 @@ export function isStudentSlipPart(part: SlipPart, event: SlipEvent): boolean {
   if (part.assigneeId == null || part.assignee == null || part.externalSpeaker != null) return false
   // Without a section the part has no number on the slip, and the programme does not print it either.
   if (part.section === '') return false
-  return part.preset == null || STUDENT_PRESETS.has(part.preset.key)
+  if (part.preset == null) return isMinistrySection(part.section)
+  return STUDENT_PRESETS.has(part.preset.key)
 }
 
 const numberingKey = (part: SlipPart) => JSON.stringify([part.section, part.order, part.name])

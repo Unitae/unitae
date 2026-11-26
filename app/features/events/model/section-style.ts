@@ -32,3 +32,8 @@ export function sectionIcon(section: string): LucideIcon | undefined {
   }
   return undefined
 }
+
+/** Whether a section is the workbook's ministry section (« Appliquons-nous au ministère »), by the same keyword. */
+export function isMinistrySection(section: string): boolean {
+  return section.toLowerCase().includes('minist')
+}
