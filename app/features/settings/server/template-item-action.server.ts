@@ -4,6 +4,7 @@ import { partAllowedRolesToWrite } from '~/features/events'
 import {
   deleteTemplatePart,
   deleteTemplateServicePart,
+  type ItemOwner,
   templateItemBelongsToTemplate,
   upsertTemplatePart,
   upsertTemplateServicePart,
@@ -35,13 +36,13 @@ const refused = (reply: unknown, status = 400): TemplateActionResult => ({
 })
 
 /**
- * A template's parts and services, written from its page or from « Modèles de planning »: a part or a service id must
- * belong to the template, since the writers find a row by its id alone. Undefined for an intent that is not an
- * item's: the caller handles it.
+ * A template's parts and services, written for a kind (its page) or a schedule template (« Modèles de planning »): a
+ * part or a service id must belong to the owner, since the writers find a row by its id alone. Undefined for an intent
+ * that is not an item's: the caller handles it.
  */
 export async function handleTemplateItemAction(
   db: TransactionClient,
-  templateId: number,
+  owner: ItemOwner,
   formData: FormData,
   actor: { id: number; congregationId: number },
 ): Promise<TemplateActionResult | undefined> {
@@ -54,13 +55,13 @@ export async function handleTemplateItemAction(
     const value = submission.value
     if (
       value.partId != null &&
-      !(await templateItemBelongsToTemplate(db, 'part', value.partId, templateId, congregationId))
+      !(await templateItemBelongsToTemplate(db, 'part', value.partId, owner, congregationId))
     ) {
       return refused(submission.reply({ formErrors: [m.settings_template_item_not_in_template()] }))
     }
     await upsertTemplatePart(
       db,
-      templateId,
+      owner,
       {
         id: value.partId,
         name: value.partName,
@@ -91,7 +92,7 @@ export async function handleTemplateItemAction(
   if (intent === 'delete-part') {
     const submission = parseWithZod(formData, { schema: deletePartSchema })
     if (submission.status !== 'success') return refused(submission.reply())
-    if (!(await templateItemBelongsToTemplate(db, 'part', submission.value.partId, templateId, congregationId))) {
+    if (!(await templateItemBelongsToTemplate(db, 'part', submission.value.partId, owner, congregationId))) {
       return refused(submission.reply({ formErrors: [m.settings_template_item_not_in_template()] }))
     }
     await deleteTemplatePart(db, submission.value.partId, congregationId)
@@ -102,13 +103,13 @@ export async function handleTemplateItemAction(
     const submission = parseWithZod(formData, { schema: upsertServicePartSchema })
     if (submission.status !== 'success') return refused(submission.reply())
     const { roleId, roleName, roleKey, allowedRoleIds } = submission.value
-    if (roleId != null && !(await templateItemBelongsToTemplate(db, 'service', roleId, templateId, congregationId))) {
+    if (roleId != null && !(await templateItemBelongsToTemplate(db, 'service', roleId, owner, congregationId))) {
       return refused(submission.reply({ formErrors: [m.settings_template_item_not_in_template()] }))
     }
     const key = roleKey || slug(roleName)
     await upsertTemplateServicePart(
       db,
-      templateId,
+      owner,
       { id: roleId, name: roleName, key, allowedRoleIds },
       congregationId,
       actorId,
@@ -122,7 +123,7 @@ export async function handleTemplateItemAction(
   if (intent === 'delete-service-role') {
     const submission = parseWithZod(formData, { schema: deleteServicePartSchema })
     if (submission.status !== 'success') return refused(submission.reply())
-    if (!(await templateItemBelongsToTemplate(db, 'service', submission.value.roleId, templateId, congregationId))) {
+    if (!(await templateItemBelongsToTemplate(db, 'service', submission.value.roleId, owner, congregationId))) {
       return refused(submission.reply({ formErrors: [m.settings_template_item_not_in_template()] }))
     }
     await deleteTemplateServicePart(db, submission.value.roleId, congregationId)

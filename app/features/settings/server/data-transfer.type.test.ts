@@ -79,8 +79,12 @@ describe('ARCHIVE_VERSION', () => {
     expect(SUPPORTED_ARCHIVE_VERSIONS).toContain(ARCHIVE_VERSION)
   })
 
-  it('is the current 2.22 schema version', () => {
-    expect(ARCHIVE_VERSION).toBe('2.22')
+  it('is the current 2.23 schema version', () => {
+    expect(ARCHIVE_VERSION).toBe('2.23')
+  })
+
+  it('still imports 2.22 archives, whose template items all belong to a kind', () => {
+    expect(SUPPORTED_ARCHIVE_VERSIONS).toContain('2.22')
   })
 
   it('still imports 2.21 archives, whose template parts are copies per room', () => {

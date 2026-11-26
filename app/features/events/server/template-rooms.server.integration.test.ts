@@ -275,6 +275,7 @@ describe('upsertTemplatePart, with « Où »', () => {
       const b = await addTemplateRoom(db, scheduleTemplateId, 'Salle B', congregationId, actorId)
       const bId = b.outcome === 'added' ? b.id : 0
       const kindId = (await db.templatePart.findFirstOrThrow({ where: { id: partId } })).templateId
+      if (kindId == null) throw new Error('a kind’s part')
       // The kind uses the template, so the part stays in it when the kind's templates are synced.
       await db.eventKindScheduleTemplate.create({ data: { scheduleTemplateId, eventKindId: kindId, congregationId } })
       const write = (id: number | undefined, roomIds?: number[]) =>

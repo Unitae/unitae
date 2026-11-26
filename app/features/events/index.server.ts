@@ -67,6 +67,7 @@ export {
   upsertTemplatePart,
   upsertTemplateServicePart,
 } from './server/template-items.server'
+export { type ItemOwner, ownerWhere } from './server/template-owner'
 export {
   addTemplateRoom,
   deleteTemplateRoom,

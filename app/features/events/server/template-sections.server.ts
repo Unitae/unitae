@@ -1,4 +1,5 @@
 import { syncTemplateScheduleTemplates } from '~/features/events/server/schedule-templates.server'
+import { type ItemOwner, ownerWhere } from '~/features/events/server/template-owner'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
@@ -6,9 +7,12 @@ import { sanitizeText } from '~/shared/utils/sanitize-text'
 // A template's sections exist by its parts: each part carries its section's name. These write them across the parts
 // that carry them; a part's rooms are its room rows (template-rooms.server.ts).
 
-/** The kind whose parts are written, and the schedule template the page edits, on which the change is recorded. */
+/**
+ * The schedule template the page edits, whose parts are written and on which the change is recorded, with the kind
+ * they are filed under (null when no kind uses it).
+ */
 export interface TemplateSectionTarget {
-  templateId: number
+  templateId: number | null
   scheduleTemplateId: number
 }
 
@@ -21,7 +25,7 @@ export type SectionRename = 'renamed' | 'blank' | 'unchanged' | 'taken' | 'gone'
 /** Renames a section on every part of the template in it; never to a name another section carries (that would merge). */
 export async function renameTemplateSection(
   db: TransactionClient,
-  { templateId, scheduleTemplateId }: TemplateSectionTarget,
+  target: TemplateSectionTarget,
   from: string,
   to: string,
   congregationId: number,
@@ -30,27 +34,26 @@ export async function renameTemplateSection(
   const name = sanitizeText(to).trim()
   if (name === '') return 'blank'
   if (name === from) return 'unchanged'
-  if (await db.templatePart.findFirst({ where: { templateId, congregationId, section: name }, select: { id: true } }))
-    return 'taken'
-  const { count } = await db.templatePart.updateMany({
-    where: { templateId, congregationId, section: from },
-    data: { section: name },
-  })
+  const own = { ...ownerWhere(target), congregationId }
+  if (await db.templatePart.findFirst({ where: { ...own, section: name }, select: { id: true } })) return 'taken'
+  const { count } = await db.templatePart.updateMany({ where: { ...own, section: from }, data: { section: name } })
   if (count === 0) return 'gone'
-  await syncTemplateScheduleTemplates(db, templateId, congregationId)
-  await recordOnScheduleTemplate(db, scheduleTemplateId, congregationId, actorId, { section: { from, to: name } })
+  if (target.templateId != null) await syncTemplateScheduleTemplates(db, target.templateId, congregationId)
+  await recordOnScheduleTemplate(db, target.scheduleTemplateId, congregationId, actorId, {
+    section: { from, to: name },
+  })
   return 'renamed'
 }
 
 /** A part's place (section, order) before a write moves it; null when not the template's. */
 export async function templatePartPlace(
   db: TransactionClient,
-  templateId: number,
+  owner: ItemOwner,
   partId: number,
   congregationId: number,
 ) {
   return db.templatePart.findFirst({
-    where: { id: partId, templateId, congregationId },
+    where: { id: partId, ...ownerWhere(owner), congregationId },
     select: { section: true, order: true },
   })
 }
@@ -61,14 +64,14 @@ export async function templatePartPlace(
  */
 export async function placeExists(
   db: TransactionClient,
-  templateId: number,
+  owner: ItemOwner,
   section: string,
   partId: number,
   congregationId: number,
 ) {
   if (section === '') return true
   const found = await db.templatePart.findFirst({
-    where: { templateId, congregationId, section, NOT: { id: partId } },
+    where: { ...ownerWhere(owner), congregationId, section, NOT: { id: partId } },
     select: { id: true },
   })
   return found != null
@@ -82,12 +85,12 @@ export async function placeExists(
  */
 export async function orderAtEndOf(
   db: TransactionClient,
-  templateId: number,
+  owner: ItemOwner,
   section: string,
   partId: number | null,
   congregationId: number,
 ) {
-  const others = { templateId, congregationId, ...(partId != null && { NOT: { id: partId } }) }
+  const others = { ...ownerWhere(owner), congregationId, ...(partId != null && { NOT: { id: partId } }) }
   const groups = section === '' ? [others] : [{ ...others, section }, others]
   for (const where of groups) {
     const { _max } = await db.templatePart.aggregate({ where, _max: { order: true } })
@@ -116,12 +119,12 @@ function recordOnScheduleTemplate(
 /** Moves the template's parts from `order` on by one, so a part written at `order` sits in its place. */
 export async function makeRoomAtTemplateOrder(
   db: TransactionClient,
-  templateId: number,
+  owner: ItemOwner,
   order: number,
   congregationId: number,
 ) {
   await db.templatePart.updateMany({
-    where: { templateId, congregationId, order: { gte: order } },
+    where: { ...ownerWhere(owner), congregationId, order: { gte: order } },
     data: { order: { increment: 1 } },
   })
 }

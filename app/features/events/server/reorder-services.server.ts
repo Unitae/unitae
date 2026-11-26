@@ -1,4 +1,5 @@
 import { SERVICE_ITEMS } from '~/features/events/server/item-projection.server'
+import { type ItemOwner, ownerWhere } from '~/features/events/server/template-owner'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 // Dragging services: an event's (that meeting only) and a template's (the order its new programmes start with).
@@ -35,13 +36,13 @@ export async function reorderServiceAssignments(
 export async function reorderTemplateServices(
   db: TransactionClient,
   congregationId: number,
-  templateId: number,
+  owner: ItemOwner,
   orderedIds: number[],
 ): Promise<boolean> {
   // Two reorders of the congregation's template services at once would interleave their writes.
   await db.$executeRawUnsafe('SELECT pg_advisory_xact_lock($1, $2)', 1_000_006, congregationId)
   const services = await db.templateServicePart.findMany({
-    where: { templateId, congregationId },
+    where: { ...ownerWhere(owner), congregationId },
     select: { id: true },
   })
   if (!isTheWholeList(orderedIds, services)) return false

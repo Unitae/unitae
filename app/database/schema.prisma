@@ -1129,8 +1129,9 @@ model TemplatePart {
   speakerLabel         String?
   readerLabel          String?
 
-  template   EventTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  templateId Int
+  // The kind it is filed under: null for an item of a schedule template no kind uses (6a-1c-2), its own then.
+  template   EventTemplate? @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  templateId Int?
 
   // What kind of part this is. The preset owns capability (reader slot, slot
   // labels, external-speaker eligibility, share message); this row owns the
@@ -1162,8 +1163,9 @@ model TemplateServicePart {
   // Where it sits in the template's services: a new one goes last; new programmes copy it.
   order Int    @default(0)
 
-  template   EventTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  templateId Int
+  // The kind it is filed under: null for an item of a schedule template no kind uses (6a-1c-2), its own then.
+  template   EventTemplate? @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  templateId Int?
 
   preset   PartPreset? @relation(fields: [presetId], references: [id], onDelete: SetNull)
   presetId Int?
