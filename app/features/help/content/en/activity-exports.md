@@ -2,7 +2,7 @@
 
 slug: activity-exports
 title: How do I export the S-21 records, the S-1 and the summary?
-summary: The service year’s S-21 records as PDFs, for the congregation, a group or one publisher, and the monthly summary as a spreadsheet.
+summary: The service year’s S-21 records as PDFs, for the congregation, a group or one publisher, the month’s S-1 report to the branch, and the monthly summary as a spreadsheet.
 module: activity
 permission: CanViewActivity, CanRecordActivity
 keywords: export, S-21, record, card, PDF, ZIP, summary, spreadsheet, Excel, XLSX, service year, download, S-1, branch, monthly report, active publishers
@@ -23,7 +23,7 @@ With the right to view activity, on a computer or tablet:
 4. For S-21 records, choose the **Scope**: **The whole congregation**, **One group**, or **Chosen publishers**.
 5. Click **Export**: the file downloads.
 
-![The activity export window: format, service year and scope](capture:activity-export)
+![The activity export window: the format and the period](capture:activity-export)
 
 The ZIP file only holds publishers with at least one report in the year. The credit of hours granted to pioneers appears in no export.
 

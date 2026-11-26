@@ -1446,7 +1446,7 @@
     "activity_filters_no_results_title": "No publisher matches these filters",
     "activity_filters_no_results_description": "Adjust or clear the filters to see more results.",
     "activity_export_dialog_title": "Export activity",
-    "activity_export_dialog_description": "Choose the format, service year and scope of the export.",
+    "activity_export_dialog_description": "Choose the format and the period of the export.",
     "activity_export_dialog_single_description": "Choose the service year of the S-21 to download.",
     "activity_export_dialog_format_label": "Format",
     "activity_export_dialog_format_pdfs": "S-21 (PDF ZIP)",

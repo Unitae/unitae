@@ -2,7 +2,7 @@
 
 slug: activity-exports
 title: Como exporto os registos S-21, o S-1 e o resumo?
-summary: Os registos S-21 do ano de serviço em PDF, para a congregação, um grupo ou um publicador, e o resumo mensal numa folha de cálculo.
+summary: Os registos S-21 do ano de serviço em PDF, para a congregação, um grupo ou um publicador, o S-1 do mês para a filial, e o resumo mensal numa folha de cálculo.
 module: activity
 permission: CanViewActivity, CanRecordActivity
 keywords: exportar, S-21, registo, cartão, PDF, ZIP, resumo, folha de cálculo, Excel, XLSX, ano de serviço, transferir, S-1, filial, relatório do mês, publicadores ativos
@@ -23,7 +23,7 @@ Com o direito de ver a atividade, num computador ou tablet:
 4. Para os registos S-21, escolha o **Âmbito**: **A congregação inteira**, **Um grupo** ou **Publicadores selecionados**.
 5. Clique em **Exportar**: o ficheiro é transferido.
 
-![A janela de exportação da atividade: formato, ano de serviço e âmbito](capture:activity-export)
+![A janela de exportação da atividade: o formato e o período](capture:activity-export)
 
 O ficheiro ZIP só inclui os publicadores com pelo menos um relatório no ano. O crédito de horas concedido aos pioneiros não aparece em nenhuma exportação.
 

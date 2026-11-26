@@ -1446,7 +1446,7 @@
     "activity_filters_no_results_title": "Nenhum publicador corresponde a estes filtros",
     "activity_filters_no_results_description": "Ajuste ou limpe os filtros para ver mais resultados.",
     "activity_export_dialog_title": "Exportar atividade",
-    "activity_export_dialog_description": "Escolha o formato, o ano de serviço e o âmbito da exportação.",
+    "activity_export_dialog_description": "Escolha o formato e o período da exportação.",
     "activity_export_dialog_single_description": "Escolha o ano de serviço do S-21 que quer transferir.",
     "activity_export_dialog_format_label": "Formato",
     "activity_export_dialog_format_pdfs": "S-21 (PDF ZIP)",

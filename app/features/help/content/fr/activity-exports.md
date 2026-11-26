@@ -2,7 +2,7 @@
 
 slug: activity-exports
 title: Comment exporter les fiches S-21, le S-1 et le récapitulatif ?
-summary: Les fiches S-21 de l’année de service en PDF, pour l’assemblée, un groupe ou un proclamateur, et le récapitulatif mensuel en tableur.
+summary: Les fiches S-21 de l’année de service en PDF, pour l’assemblée, un groupe ou un proclamateur, le S-1 du mois pour la filiale, et le récapitulatif mensuel en tableur.
 module: activity
 permission: CanViewActivity, CanRecordActivity
 keywords: export, exporter, S-21, fiche, carte, PDF, ZIP, récapitulatif, tableur, Excel, XLSX, année de service, télécharger, S-1, filiale, rapport du mois, proclamateurs actifs
@@ -23,7 +23,7 @@ Avec le droit de voir l’activité, sur un ordinateur ou une tablette :
 4. Pour les fiches S-21, choisissez la **Portée** : **Toute l’assemblée**, **Un groupe**, ou **Des proclamateurs**.
 5. Cliquez sur **Exporter** : le fichier se télécharge.
 
-![La fenêtre d’export des activités : le format, l’année de service et la portée](capture:activity-export)
+![La fenêtre d’export des activités : le format et la période](capture:activity-export)
 
 Le fichier ZIP ne contient que les proclamateurs qui ont au moins un rapport dans l’année. Le crédit d’heures accordé aux pionniers n’apparaît dans aucun export.
 
