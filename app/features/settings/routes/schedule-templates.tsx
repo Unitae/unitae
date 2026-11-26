@@ -1,4 +1,5 @@
 import { parseWithZod } from '@conform-to/zod/v4'
+import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { data, redirect, type ShouldRevalidateFunctionArgs, useFetcher } from 'react-router'
 import { listScheduleTemplatesForSettings, updateScheduleTemplate } from '~/features/events/index.server'
@@ -6,11 +7,13 @@ import { onlyHelpPanelChanged } from '~/features/help'
 import { scheduleTemplateView } from '~/features/settings/model/schedule-template-view'
 import { scheduleTemplateSchema } from '~/features/settings/schemas/schedule-template.schema'
 import { holdersOfRoles } from '~/features/settings/server/role-holders.queries'
+import { handleCreateScheduleTemplate } from '~/features/settings/server/schedule-template-create-action.server'
 import {
   handleScheduleTemplateItem,
   SCHEDULE_TEMPLATE_ITEM_INTENTS,
 } from '~/features/settings/server/schedule-template-item-action.server'
 import { getScheduleTemplateItems } from '~/features/settings/server/schedule-template-items.queries'
+import { NewScheduleTemplateDialog } from '~/features/settings/ui/NewScheduleTemplateDialog'
 import { openPanel, ScheduleTemplatePanel } from '~/features/settings/ui/ScheduleTemplatePanel'
 import { ScheduleTemplateTable } from '~/features/settings/ui/ScheduleTemplateTable'
 import { SettingsHeader } from '~/features/settings/ui/SettingsHeader'
@@ -20,9 +23,10 @@ import { currentAccountContext, permissionsContext, withScopeFromContext } from 
 import { listDelegatableRoles } from '~/shared/domain/roles.server'
 import { Permission } from '~/shared/types/permission'
 import { getRoleDisplayName } from '~/shared/types/role'
+import { Button } from '~/shared/ui/button'
 import { useMediaQuery } from '~/shared/ui/hooks/use-media-query'
 import { DiscardChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
-import { okWithToast } from './_toast.server'
+import { okWithToast, redirectWithToast } from './_toast.server'
 import type { Route } from './+types/schedule-templates'
 
 export const meta: Route.MetaFunction = () => [{ title: m.settings_schedule_templates_meta_title() }]
@@ -66,6 +70,15 @@ export async function action({ request, context }: Route.ActionArgs) {
   if (!context.get(permissionsContext).has(Permission.CanManageProgramTemplates)) throw redirect('/settings')
   const currentUser = context.get(currentAccountContext)
   const formData = await request.formData()
+  // « Nouveau modèle »: once created, it opens in the panel.
+  if (formData.get('intent') === 'create-template') {
+    return withScopeFromContext(context, async (db, congregationId) => {
+      const result = await handleCreateScheduleTemplate(db, formData, { id: currentUser.id, congregationId })
+      if (!result.ok) return data(result, { status: 400 })
+      const to = `/settings/schedule-templates?template=${result.id}`
+      return redirectWithToast(request, to, m.settings_schedule_templates_created())
+    })
+  }
   if (SCHEDULE_TEMPLATE_ITEM_INTENTS.includes(String(formData.get('intent')))) {
     // An item's form posts to the address it is open at: `?template=` names its template.
     const scheduleTemplateId = Number(new URL(request.url).searchParams.get('template'))
@@ -109,6 +122,7 @@ export default function ScheduleTemplatesPage({ loaderData }: Route.ComponentPro
   const fetcher = useFetcher<typeof action>()
   const docked = useMediaQuery('(min-width: 1280px)') === true
   const [dirty, setDirty] = useState(false)
+  const [creating, setCreating] = useState(false)
   const page = useScheduleTemplatePage({
     templateIds: templates.map(template => template.id),
     // An item of the other sort (a part asked of a duties template) is not this template's.
@@ -135,7 +149,14 @@ export default function ScheduleTemplatesPage({ loaderData }: Route.ComponentPro
       <SettingsHeader
         title={m.settings_entry_schedule_templates()}
         subtitle={m.settings_schedule_templates_subtitle()}
+        actions={
+          <Button size="sm" onClick={() => setCreating(true)}>
+            <Plus />
+            {m.settings_schedule_templates_new()}
+          </Button>
+        }
       />
+      <NewScheduleTemplateDialog open={creating} onOpenChange={setCreating} roles={roles} />
       {templates.length === 0 ? (
         <p className="text-muted-foreground text-sm">{m.settings_schedule_templates_empty()}</p>
       ) : (
