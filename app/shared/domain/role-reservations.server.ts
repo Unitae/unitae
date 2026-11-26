@@ -1,3 +1,4 @@
+import * as m from '~/i18n/paraglide/messages'
 import { ConflictError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -126,14 +127,23 @@ export async function findSoleReservations(
   }
 }
 
-/** Where a template item is named from: its kind, or its schedule template when no kind uses it (6a-1c-2). */
+/**
+ * Where a template item is named from: its kind, or the schedule template it belongs to when no kind uses it
+ * (6a-1c-2), by its name or, unnamed, by its kind's label (as « Modèles de planning » shows it).
+ */
 const FILED_UNDER = {
   template: { select: { name: true } },
-  scheduleTemplate: { select: { name: true } },
+  scheduleTemplate: { select: { name: true, kind: true } },
 } as const
 
-function filedUnder(item: { template: { name: string } | null; scheduleTemplate: { name: string | null } | null }) {
-  return item.template?.name ?? item.scheduleTemplate?.name ?? ''
+function filedUnder(item: {
+  template: { name: string } | null
+  scheduleTemplate: { name: string | null; kind: string } | null
+}) {
+  if (item.template != null) return item.template.name
+  const scheduleTemplate = item.scheduleTemplate
+  if (scheduleTemplate?.name != null) return scheduleTemplate.name
+  return scheduleTemplate?.kind === 'duty' ? m.programs_schedule_kind_duty() : m.programs_schedule_kind_programme()
 }
 
 /** Raised when a role still alone reserves something: deleting it would open those places to everyone. */

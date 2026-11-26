@@ -37,6 +37,10 @@ interface Read {
   afterRename: string[]
   afterReorder: string[]
   afterDelete: string[]
+  placed: string[]
+  foreign: string | undefined
+  foreignKept: boolean
+  adopted: string[]
   services: { name: string; templateId: number | null; mirrored: boolean }[]
   deleteRefused: boolean
 }
@@ -118,7 +122,58 @@ describe('a schedule template no kind uses', () => {
             actor,
           )
           const afterDelete = (await names()).map(each => each.name)
-          const services = await tx.templateServicePart.findMany({ where: { scheduleTemplateId: duties.id } })
+
+          // Edited in place, then moved to a section another part carries; another template's part is not its own.
+          await part({ partId: String(ids[1]), partName: 'Prière finale', partSection: 'Après-midi', partOrder: '' })
+          await part({ partName: 'Cantique', partSection: 'Soir', partOrder: '' })
+          await part({ partId: String(ids[1]), partName: 'Prière finale', partSection: 'Soir', partOrder: '' })
+          const placed = (await names()).map(each => `${each.section}:${each.name}`)
+          const elsewhere = await tx.templatePart.findFirstOrThrow({ where: { scheduleTemplateId: other.id } })
+          const foreign = await handleScheduleTemplateItem(
+            db,
+            programme.id,
+            form({ intent: 'delete-part', partId: String(elsewhere.id) }),
+            actor,
+          )
+          const foreignKept = (await tx.templatePart.count({ where: { id: elsewhere.id } })) === 1
+
+          // A second service, then the two in the other order.
+          await handleScheduleTemplateItem(
+            db,
+            duties.id,
+            form({ intent: 'upsert-service-role', roleName: 'Son', roleKey: '' }),
+            actor,
+          )
+          const serviceIds = (
+            await tx.templateServicePart.findMany({
+              where: { scheduleTemplateId: duties.id },
+              orderBy: { order: 'asc' },
+            })
+          ).map(row => row.id)
+          await handleScheduleTemplateItem(
+            db,
+            duties.id,
+            form({ intent: 'reorder-services', orderedIds: JSON.stringify([...serviceIds].reverse()) }),
+            actor,
+          )
+          const services = await tx.templateServicePart.findMany({
+            where: { scheduleTemplateId: duties.id },
+            orderBy: { order: 'asc' },
+          })
+          const serviceMirrors = await tx.templateItem.findMany({
+            where: { congregationId, legacyServiceId: { not: null } },
+            select: { legacyServiceId: true },
+          })
+
+          // A kind coming to use it hides none of its parts, and a part added then goes after them, under the kind.
+          const kind = await tx.eventTemplate.create({
+            data: { name: 'Visite du responsable', key: stamp, congregationId },
+          })
+          await tx.eventKindScheduleTemplate.create({
+            data: { eventKindId: kind.id, scheduleTemplateId: programme.id, congregationId },
+          })
+          await part({ partName: 'Conclusion', partSection: '', partOrder: '' })
+          const adopted = (await names()).map(each => `${each.name}:${each.templateId === kind.id ? 'kind' : 'own'}`)
 
           let deleteRefused = false
           try {
@@ -142,10 +197,14 @@ describe('a schedule template no kind uses', () => {
             afterRename,
             afterReorder,
             afterDelete,
+            placed,
+            foreign: foreign?.kind,
+            foreignKept,
+            adopted,
             services: services.map(row => ({
               name: row.name,
               templateId: row.templateId,
-              mirrored: mirrors.some(mirror => mirror.legacyServiceId === row.id),
+              mirrored: serviceMirrors.some(mirror => mirror.legacyServiceId === row.id),
             })),
             deleteRefused,
           }
@@ -166,7 +225,13 @@ describe('a schedule template no kind uses', () => {
     expect(read.afterRename).toEqual(['Après-midi', 'Après-midi'])
     expect(read.afterReorder).toEqual(['Prière', 'Discours'])
     expect(read.afterDelete).toEqual(['Prière'])
-    expect(read.services).toEqual([{ name: 'Zoom', templateId: null, mirrored: true }])
+    expect(read.placed).toEqual(['Soir:Cantique', 'Soir:Prière finale'])
+    expect([read.foreign, read.foreignKept]).toEqual(['refused', true])
+    expect(read.adopted).toEqual(['Cantique:own', 'Prière finale:own', 'Conclusion:kind'])
+    expect(read.services).toEqual([
+      { name: 'Son', templateId: null, mirrored: true },
+      { name: 'Zoom', templateId: null, mirrored: true },
+    ])
     expect(read.deleteRefused).toBe(true)
   })
 })

@@ -37,8 +37,8 @@ const refused = (reply: unknown, status = 400): TemplateActionResult => ({
 
 /**
  * A template's parts and services, written for a kind (its page) or a schedule template (« Modèles de planning »): a
- * part or a service id must belong to the owner, since the writers find a row by its id alone. Undefined for an intent that is not an
- * item's: the caller handles it.
+ * part or a service id must belong to the owner, since the writers find a row by its id alone. Undefined for an intent
+ * that is not an item's: the caller handles it.
  */
 export async function handleTemplateItemAction(
   db: TransactionClient,

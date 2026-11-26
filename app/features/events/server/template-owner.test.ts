@@ -8,10 +8,13 @@ describe('a template item’s owner', () => {
     expect(ownerKind(4)).toBe(4)
   })
 
-  it('reads a schedule template’s items as its kind’s in it, and a row its kind has not placed yet', () => {
+  it('reads a schedule template’s items as its kind’s in it, its kind’s not placed yet, and its own under no kind', () => {
     expect(ownerWhere({ scheduleTemplateId: 9, templateId: 4 })).toEqual({
-      templateId: 4,
-      OR: [{ scheduleTemplateId: 9 }, { scheduleTemplateId: null }],
+      OR: [
+        { templateId: 4, scheduleTemplateId: 9 },
+        { templateId: 4, scheduleTemplateId: null },
+        { templateId: null, scheduleTemplateId: 9 },
+      ],
     })
     expect(ownerData({ scheduleTemplateId: 9, templateId: 4 })).toEqual({ templateId: 4, scheduleTemplateId: 9 })
     expect(ownerKind({ scheduleTemplateId: 9, templateId: 4 })).toBe(4)

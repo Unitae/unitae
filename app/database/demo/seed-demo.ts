@@ -70,9 +70,10 @@ export async function cleanCongregationData(prisma: PrismaClient, congregationId
   await prisma.templateServicePartAllowedRole.deleteMany({ where })
   await prisma.templatePartAllowedRole.deleteMany({ where })
   await prisma.templateResponsible.deleteMany({ where })
-  await prisma.scheduleTemplate.deleteMany({ where })
+  // The items before their schedule templates: one no kind uses owns its items, which cannot be left with no owner.
   await prisma.templateServicePart.deleteMany({ where })
   await prisma.templatePart.deleteMany({ where })
+  await prisma.scheduleTemplate.deleteMany({ where })
   // Before the events and the accounts: an Absence row names its account (Restrict), not its event.
   await prisma.absence.deleteMany({ where })
   await prisma.event.deleteMany({ where })

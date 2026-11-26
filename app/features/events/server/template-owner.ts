@@ -6,15 +6,22 @@
 export type ItemOwner = number | { scheduleTemplateId: number; templateId: number | null }
 
 /**
- * The rows an owner's items are: a kind's by the kind. A schedule template's are its kind's rows in it, and its kind's
- * not placed in one yet (the kind's writers leave that to syncTemplateScheduleTemplates): several kinds may use one
- * schedule template, each with rows of its own. A schedule template no kind uses has its own, by it alone.
+ * The rows an owner's items are: a kind's by the kind. A schedule template's are its kind's rows in it, its kind's not
+ * placed in one yet (the kind's writers leave that to syncTemplateScheduleTemplates), and the rows it holds under no
+ * kind, made while no kind used it: a kind coming to use it does not hide them. Several kinds may use one schedule
+ * template, each with rows of its own. A schedule template no kind uses has its own, by it alone.
  */
 export function ownerWhere(owner: ItemOwner) {
   if (typeof owner === 'number') return { templateId: owner }
   const { scheduleTemplateId, templateId } = owner
   if (templateId == null) return { scheduleTemplateId }
-  return { templateId, OR: [{ scheduleTemplateId }, { scheduleTemplateId: null }] }
+  return {
+    OR: [
+      { templateId, scheduleTemplateId },
+      { templateId, scheduleTemplateId: null },
+      { templateId: null, scheduleTemplateId },
+    ],
+  }
 }
 
 /** What a new item of the owner carries. */

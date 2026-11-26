@@ -113,14 +113,14 @@ export async function importTemplateParts(
     order: number
     durationMin: number | null
     allowExternalSpeaker: boolean
-    templateId: number
+    templateId: number | null
     presetId?: number | null
     scheduleTemplateId?: number | null
   }>(zip, 'programme-template-parts')
 
   for (const record of records) {
-    const templateId = idMap.getOptional('programme-templates', record.templateId)
-    if (!templateId) continue
+    const owner = ownerOf(idMap, record)
+    if (owner == null) continue
 
     const created = await db.templatePart.create({
       data: {
@@ -131,11 +131,10 @@ export async function importTemplateParts(
         order: record.order,
         durationMin: record.durationMin,
         allowExternalSpeaker: record.allowExternalSpeaker,
-        templateId,
         // Absent in pre-2.5 archives, which resolves to null.
         presetId: idMap.getOptional('part-presets', record.presetId),
-        // Null before 2.21, or when its schedule template did not come: settleImportedSchedules gives it one.
-        scheduleTemplateId: idMap.getOptional('schedule-templates', record.scheduleTemplateId),
+        // Its schedule template: null before 2.21, or when it did not come (settleImportedSchedules gives it one).
+        ...owner,
         congregationId,
       },
     })
@@ -153,25 +152,25 @@ export async function importTemplateServiceParts(
     id: number
     name: string
     key: string
-    templateId: number
+    templateId: number | null
     presetId?: number | null
     order?: number
     scheduleTemplateId?: number | null
   }>(zip, 'programme-template-service-roles')
 
-  const fallback = fallbackServiceOrders(records, record => record.templateId)
+  // Only pre-2.5 archives lack an order, and none of them has an item without a kind.
+  const fallback = fallbackServiceOrders(records, record => record.templateId ?? 0)
   for (const record of records) {
-    const templateId = idMap.getOptional('programme-templates', record.templateId)
-    if (!templateId) continue
+    const owner = ownerOf(idMap, record)
+    if (owner == null) continue
 
     const created = await db.templateServicePart.create({
       data: {
         name: record.name,
         key: record.key,
         order: record.order ?? fallback.get(record.id) ?? 0,
-        templateId,
         presetId: idMap.getOptional('part-presets', record.presetId),
-        scheduleTemplateId: idMap.getOptional('schedule-templates', record.scheduleTemplateId),
+        ...owner,
         congregationId,
       },
     })
@@ -274,4 +273,19 @@ export async function importTemplateServicePartAllowedRoles(
   if (data.length > 0) {
     await db.templateServicePartAllowedRole.createMany({ data, skipDuplicates: true })
   }
+}
+
+/**
+ * Whose a template item is once restored: its kind's, with its schedule template when that came too; or, for an item
+ * of a schedule template no kind uses (2.23, `templateId` null), that schedule template's alone. Null when its owner
+ * did not come: the item is left out, as before.
+ */
+function ownerOf(
+  idMap: EntityIdMap,
+  record: { templateId: number | null; scheduleTemplateId?: number | null },
+): { templateId: number | null; scheduleTemplateId: number | null } | null {
+  const scheduleTemplateId = idMap.getOptional('schedule-templates', record.scheduleTemplateId) ?? null
+  if (record.templateId == null) return scheduleTemplateId == null ? null : { templateId: null, scheduleTemplateId }
+  const templateId = idMap.getOptional('programme-templates', record.templateId)
+  return templateId ? { templateId, scheduleTemplateId } : null
 }

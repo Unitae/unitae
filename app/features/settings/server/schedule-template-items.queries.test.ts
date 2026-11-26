@@ -49,14 +49,21 @@ beforeEach(() => {
 })
 
 describe('getScheduleTemplateItems', () => {
-  it('reads a programme template’s parts as its first kind’s in it and not yet placed, with who may take each', async () => {
+  it('reads a programme template’s parts: its first kind’s in it or not yet placed, and its own, with who may take each', async () => {
     findFirst.mockResolvedValue({ kind: 'programme', eventKinds: [{ eventKindId: 270 }] })
 
     const items = await getScheduleTemplateItems(db as never, 30, 3)
 
     expect(parts).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { templateId: 270, OR: [{ scheduleTemplateId: 30 }, { scheduleTemplateId: null }], congregationId: 3 },
+        where: {
+          OR: [
+            { templateId: 270, scheduleTemplateId: 30 },
+            { templateId: 270, scheduleTemplateId: null },
+            { templateId: null, scheduleTemplateId: 30 },
+          ],
+          congregationId: 3,
+        },
       }),
     )
     expect(services).not.toHaveBeenCalled()
