@@ -14,7 +14,8 @@ export interface PartPlaces {
 }
 
 /** A room as the page writes it: an unnamed main room is « Salle principale », in the reader's language. */
-export const roomLabel = (room: PartRoom) => room.name ?? (room.isMain ? m.settings_schedule_templates_main_hall() : '')
+export const roomLabel = (room: { name: string | null; isMain: boolean }) =>
+  room.name ?? (room.isMain ? m.settings_schedule_templates_main_hall() : '')
 
 /**
  * What a schedule template part's section picker offers, and the order the form sends. The sections, plus the one a

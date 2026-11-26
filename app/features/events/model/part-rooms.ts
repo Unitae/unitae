@@ -1,11 +1,11 @@
-import * as m from '~/i18n/paraglide/messages'
+import { roomLabel } from '~/features/events/model/part-places'
 
 // Parallel rooms (docs/development/specs/parallel-rooms.md), phase R3: the one reading of a programme's parts in
 // their rooms, whatever the shape the writers left. Today a part held in several rooms is a copy per room (same
 // schedule, section, order and name), each copy with its one room row; from R4 it is one item with a row per room.
 // Both read as one part with a line per room, and so does a part for everyone (its one row, in the main room).
 
-/** A room row of a meeting part, as the readers include it (`ITEM_ROOMS_INCLUDE`). */
+/** A room row of a meeting part, as the readers include it (`ITEM_ROOMS`). */
 export interface ItemRoomRow {
   id: number
   roomId: number
@@ -33,7 +33,7 @@ export interface ItemWithRooms {
 }
 
 /** One room of a part: where, who, and the item it is written on. */
-export interface PartRoom {
+export interface RoomLine {
   /** Its name as the page writes it: an unnamed main room is « Salle principale », in the reader's language. */
   room: string
   roomId: number | null
@@ -54,16 +54,16 @@ export interface PartRoom {
 export interface PartInRooms<T extends ItemWithRooms> {
   part: T
   items: T[]
-  rooms: PartRoom[]
+  rooms: RoomLine[]
   /** Held in several rooms at the same time. */
   parallel: boolean
 }
 
 const label = (room: { name: string | null; key: string | null }) =>
-  room.name ?? (room.key === 'main' ? m.settings_schedule_templates_main_hall() : '')
+  roomLabel({ name: room.name, isMain: room.key === 'main' })
 
 /** An item's rooms: its rows when read, else what the item itself carries (its track, or the main room). */
-function roomsOf<T extends ItemWithRooms>(item: T): PartRoom[] {
+function roomsOf<T extends ItemWithRooms>(item: T): RoomLine[] {
   if (item.rooms != null && item.rooms.length > 0) {
     return item.rooms.map(row => ({
       room: label(row.room),
@@ -81,7 +81,7 @@ function roomsOf<T extends ItemWithRooms>(item: T): PartRoom[] {
   const main = item.track === '' || item.trackOrder === 1
   return [
     {
-      room: item.track === '' ? m.settings_schedule_templates_main_hall() : item.track,
+      room: item.track === '' ? roomLabel({ name: null, isMain: true }) : item.track,
       roomId: null,
       roomOrder: main ? 0 : (item.trackOrder ?? Number.MAX_SAFE_INTEGER),
       isMain: main,

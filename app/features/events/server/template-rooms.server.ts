@@ -1,4 +1,4 @@
-import * as m from '~/i18n/paraglide/messages'
+import { roomLabel } from '~/features/events/model/part-places'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
@@ -15,7 +15,7 @@ const MAX_ROOM_NAME = 80
 
 /** A room as the page reads it: an unnamed main room is « Salle principale », in the reader's language. */
 const labelOf = (room: { name: string | null; key: string | null }) =>
-  room.name ?? (room.key === 'main' ? m.settings_schedule_templates_main_hall() : '')
+  roomLabel({ name: room.name, isMain: room.key === 'main' })
 
 /**
  * Whether another of the template's rooms reads `name`: a room carrying it, or the unnamed main room, which reads

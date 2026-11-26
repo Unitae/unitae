@@ -87,6 +87,24 @@ describe('partsInRooms', () => {
     expect(read(one)).toEqual([{ name: 'Lecture', parallel: true, rooms: ['Salle principale:7', 'Salle B:8'] }])
   })
 
+  it('reads the part as its main room’s copy, even listed after another room’s', () => {
+    const [part] = partsInRooms([
+      item(2, { name: 'Lecture', order: 5, track: 'Salle B', rooms: [{ room: SALLE_B }] }),
+      item(1, { name: 'Lecture', order: 5, track: 'Salle principale', rooms: [{ room: MAIN }] }),
+    ])
+    expect(part?.part.id).toBe(1)
+    expect(part?.rooms.map(each => each.isMain)).toEqual([true, false])
+  })
+
+  it('takes a room’s second speaker, outside speaker and conflict from its row, not the item', () => {
+    const copy = item(1, { name: 'Lecture', order: 5, rooms: [{ room: MAIN }] })
+    copy.rooms = copy.rooms?.map(row => ({ ...row, assistantId: 11, externalSpeakerId: 12, hasConflict: true }))
+    const [part] = partsInRooms([copy])
+    expect(part?.rooms.map(each => [each.assistantId, each.externalSpeakerId, each.hasConflict])).toEqual([
+      [11, 12, true],
+    ])
+  })
+
   it('keeps each room’s row: the item it comes from, its people and its conflict', () => {
     const [part] = partsInRooms([
       item(1, { name: 'Lecture', order: 5, track: 'Salle principale', rooms: [{ room: MAIN, assigneeId: 7 }] }),
@@ -127,6 +145,11 @@ describe('partsInRooms', () => {
     ])
   })
 
+  it('never joins two parts for everyone, even sharing section, order and name', () => {
+    const items = [item(1, { name: 'Cantique', order: 5 }), item(2, { name: 'Cantique', order: 5 })]
+    expect(partsInRooms(items)).toHaveLength(2)
+  })
+
   it('never joins items of two schedules, two sections, two names or two orders', () => {
     const items = [
       item(1, { name: 'Lecture', order: 5, track: 'Salle principale', rooms: [{ room: MAIN }] }),
@@ -136,6 +159,19 @@ describe('partsInRooms', () => {
       item(5, { name: 'Lecture', order: 6, track: 'Salle B', rooms: [{ room: SALLE_B }] }),
     ]
     expect(partsInRooms(items)).toHaveLength(5)
+  })
+
+  it('reads bare copies from their tracks: room order 1 is the main room, first', () => {
+    const bare = (id: number, track: string, trackOrder: number) => ({
+      ...item(id, { name: 'Lecture', order: 5, track, trackOrder, assigneeId: id }),
+      rooms: undefined,
+    })
+    const [part] = partsInRooms([bare(2, 'Salle B', 2), bare(1, 'Salle principale', 1)])
+    expect(part?.rooms.map(each => [each.room, each.isMain, each.roomOrder])).toEqual([
+      ['Salle principale', true, 0],
+      ['Salle B', false, 2],
+    ])
+    expect(part?.part.id).toBe(1)
   })
 
   it('reads an item without its rows (a reader not including them yet) from the item itself', () => {
