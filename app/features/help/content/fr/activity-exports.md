@@ -16,10 +16,10 @@ Avec le droit de voir l’activité, sur un ordinateur ou une tablette :
 
 1. Ouvrez **Assemblée › Activité**, puis cliquez sur **Exporter**.
 2. Choisissez le **Format** :
+   - **S-1 (PDF)** : le rapport du mois à la filiale ;
    - **S-21 (ZIP de PDF)** : le formulaire officiel, un PDF par proclamateur, réunis dans un fichier ZIP ;
-   - **Récapitulatif (XLSX)** : une feuille par mois, de septembre à août, avec les heures, le statut, les cours bibliques et le service de pionnier de chacun ;
-   - **S-1 (PDF)** : le rapport du mois à la filiale, pour le mois affiché sur la page. L’année de service ne se choisit pas.
-3. Choisissez l’**Année de service**.
+   - **Récapitulatif (XLSX)** : une feuille par mois, de septembre à août, avec les heures, le statut, les cours bibliques et le service de pionnier de chacun.
+3. Choisissez l’**Année de service**, ou le **Mois** pour le S-1.
 4. Pour les fiches S-21, choisissez la **Portée** : **Toute l’assemblée**, **Un groupe**, ou **Des proclamateurs**.
 5. Cliquez sur **Exporter** : le fichier se télécharge.
 
@@ -29,7 +29,7 @@ Le fichier ZIP ne contient que les proclamateurs qui ont au moins un rapport dan
 
 ## Le rapport du mois à la filiale (S-1)
 
-Le S-1 reprend les chiffres au-dessus de la liste : les rapports, cours bibliques et heures des proclamateurs, des pionniers auxiliaires et des pionniers permanents qui ont prêché. Il y ajoute les **proclamateurs actifs**, ceux qui ont dit avoir prêché ce mois-là ou dans les cinq mois d’avant, et l’**assistance moyenne à la réunion de week-end** du mois, si vous avez le droit de consulter l’assistance. Une réunion n’entre dans la moyenne que si ses deux nombres sont saisis. La ville, la région et le numéro de l’assemblée restent à remplir à la main.
+Le S-1 reprend les chiffres au-dessus de la liste : les rapports, cours bibliques et heures des proclamateurs, des pionniers auxiliaires et des pionniers permanents qui ont prêché. Il y ajoute les **proclamateurs actifs**, ceux qui ont dit avoir prêché ce mois-là ou dans les cinq mois d’avant, et l’**assistance moyenne à la réunion de week-end** du mois, si vous avez le droit de consulter l’assistance. Une réunion n’entre dans la moyenne que si ses deux nombres sont saisis. Le nom du secrétaire, celui qui tient ce poste dans l’**Organigramme** et non son adjoint, est inscrit sur la ligne de signature. La ville, la région et le numéro de l’assemblée restent à remplir à la main.
 
 ## La fiche d’un proclamateur
 

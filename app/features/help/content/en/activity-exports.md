@@ -16,10 +16,10 @@ With the right to view activity, on a computer or tablet:
 
 1. Open **Congregation › Activity**, then click **Export**.
 2. Choose the **Format**:
+   - **S-1 (PDF)**: the month’s report to the branch;
    - **S-21 (PDF ZIP)**: the official form, one PDF per publisher, gathered in a ZIP file;
-   - **Summary (XLSX)**: one sheet per month, from September to August, with each publisher’s hours, status, Bible studies and pioneer service;
-   - **S-1 (PDF)**: the month’s report to the branch, for the month shown on the page. No service year to choose.
-3. Choose the **Service year**.
+   - **Summary (XLSX)**: one sheet per month, from September to August, with each publisher’s hours, status, Bible studies and pioneer service.
+3. Choose the **Service year**, or the **Month** for the S-1.
 4. For S-21 records, choose the **Scope**: **The whole congregation**, **One group**, or **Chosen publishers**.
 5. Click **Export**: the file downloads.
 
@@ -29,7 +29,7 @@ The ZIP file only holds publishers with at least one report in the year. The cre
 
 ## The month’s report to the branch (S-1)
 
-The S-1 takes the figures above the list: the reports, Bible studies and hours of the publishers, auxiliary pioneers and regular pioneers who preached. It adds the **active publishers**, those who reported preaching that month or in the five months before it, and the month’s **average weekend meeting attendance**, if you may view attendance. A meeting counts in the average only once both its numbers are entered. The city, the region and the congregation number are left to fill in by hand.
+The S-1 takes the figures above the list: the reports, Bible studies and hours of the publishers, auxiliary pioneers and regular pioneers who preached. It adds the **active publishers**, those who reported preaching that month or in the five months before it, and the month’s **average weekend meeting attendance**, if you may view attendance. A meeting counts in the average only once both its numbers are entered. The secretary’s name, the one holding the post in the **Organization chart** and not their deputy, is written on the signature line. The city, the region and the congregation number are left to fill in by hand.
 
 ## One publisher’s record
 
