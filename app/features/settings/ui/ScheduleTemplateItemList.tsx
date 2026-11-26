@@ -1,5 +1,5 @@
 import { Callout } from '@unitae/ui'
-import { Plus } from 'lucide-react'
+import { ChevronRight, Plus } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import type { ListedPart, PartDraft } from '~/features/settings/model/schedule-template-list'
 import * as m from '~/i18n/paraglide/messages'
@@ -187,6 +187,10 @@ export function ScheduleTemplateItemList({
                               className={serviceRowClass}
                             >
                               {body}
+                              <ChevronRight
+                                aria-hidden="true"
+                                className="size-4 shrink-0 self-center text-faint xl:hidden"
+                              />
                             </button>
                           )}
                         </div>

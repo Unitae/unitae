@@ -45,7 +45,7 @@ In a part, **Where** says where it takes place:
 
 ## The person in charge
 
-The holder and the deputies of the chosen role can fill in and publish the schedules created from this template, on every meeting. Who holds the role is changed in the organization chart.
+The holder and the deputies of the chosen role can fill in and publish the schedules created from this template, on every meeting. Who holds the role is changed in the organization chart. The name and the person in charge are changed at the top of the template's panel; on a phone, first tap **Edit the name and the person in charge**.
 
 ## Delete a template
 

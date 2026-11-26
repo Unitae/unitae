@@ -5,7 +5,7 @@ title: How do I enter field service reports?
 summary: Each publisher’s monthly report, from the group page or the Activity page, and corrections afterwards.
 module: activity
 permission: CanRecordActivity, CanCorrectActivity, CanManagePublishers, GroupLeader
-keywords: report, reports, field service, enter, month, group, group overseer, assistant, secretary, hours, Bible studies, preached, auxiliary pioneer, credit, no report, correct, delete
+keywords: report, reports, field service, enter, month, group, group overseer, assistant, secretary, hours, Bible studies, preached, auxiliary pioneer, credit, no report, correct, delete, branch, totals, irregular
 related: pioneers, activity-exports
 order: 1
 ---
@@ -34,6 +34,8 @@ A pioneer spent time at school, on a construction project or on a mission? Write
 ## From the Activity page
 
 With the right to view activity, **Congregation › Activity** lists the whole congregation’s reports, month by month. It opens on the current month, or on the month just ended while none of this month’s reports has arrived; **Previous month** and **Next month** change the month. The **Report › No report** filter keeps the missing ones: click **Enter** on a row, then save as from the group.
+
+The figures above the list are the ones the branch asks for: the congregation’s total, then the reports of the publishers, auxiliary pioneers and regular pioneers who preached, with their hours and Bible studies. A report counts under the service of its month. Special pioneers and missionaries are in no line, but their Bible studies count for the congregation. Hour credit never counts. Under **Congregation**, the irregular are those who handed in a report without having preached, the inactive set apart.
 
 ## Correcting or deleting a report
 

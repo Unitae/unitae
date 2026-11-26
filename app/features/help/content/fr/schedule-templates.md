@@ -45,7 +45,7 @@ Dans une partie, **Où** dit où elle a lieu :
 
 ## Le responsable
 
-Le titulaire et les adjoints du rôle choisi peuvent remplir et publier les plannings créés à partir de ce modèle, sur toutes les réunions. Qui tient le rôle se change dans l’organigramme.
+Le titulaire et les adjoints du rôle choisi peuvent remplir et publier les plannings créés à partir de ce modèle, sur toutes les réunions. Qui tient le rôle se change dans l’organigramme. Le nom et le responsable se changent en haut du panneau du modèle ; sur un téléphone, touchez d’abord **Modifier le nom et le responsable**.
 
 ## Supprimer un modèle
 

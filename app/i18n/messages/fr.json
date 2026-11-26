@@ -1342,11 +1342,13 @@
     "activity_export_button": "Exporter",
     "activity_previous_month": "Mois précédent",
     "activity_next_month": "Mois suivant",
-    "activity_hours_unit": "h",
     "activity_hours_value": "{hours} h",
     "activity_summary_label": "Le mois en chiffres",
-    "activity_summary_filed_label": "Rapports rendus",
-    "activity_summary_filed_unit": [
+    "activity_summary_publishers_label": "Proclamateurs",
+    "activity_summary_auxiliary_label": "Pionniers auxiliaires",
+    "activity_summary_regular_label": "Pionniers permanents",
+    "activity_summary_congregation_label": "Assemblée",
+    "activity_summary_reports_unit": [
         {
             "declarations": [
                 "input count",
@@ -1354,15 +1356,12 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "sur {count} attendu",
-                "countPlural=*": "sur {count} attendus"
+                "countPlural=one": "rapport",
+                "countPlural=*": "rapports"
             }
         }
     ],
-    "activity_summary_missing": "{count} à relancer",
-    "activity_summary_all_filed": "Tous les rapports sont rendus",
-    "activity_summary_preached_label": "Ont prêché",
-    "activity_summary_not_preached": [
+    "activity_summary_irregular": [
         {
             "declarations": [
                 "input count",
@@ -1370,15 +1369,12 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "{count} n’a pas prêché ce mois",
-                "countPlural=*": "{count} n’ont pas prêché ce mois"
+                "countPlural=one": "dont {count} irrégulier",
+                "countPlural=*": "dont {count} irréguliers"
             }
         }
     ],
-    "activity_summary_everyone_preached": "Tous ont prêché ce mois",
-    "activity_summary_pioneer_hours_label": "Heures des pionniers",
-    "activity_summary_pioneers_none": "Aucun pionnier ce mois",
-    "activity_summary_pioneers_count": [
+    "activity_summary_studies_count": [
         {
             "declarations": [
                 "input count",
@@ -1386,65 +1382,12 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "{count} pionnier",
-                "countPlural=*": "{count} pionniers"
-            }
-        }
-    ],
-    "activity_summary_pioneers_permanent": [
-        {
-            "declarations": [
-                "input count",
-                "local countPlural = count: plural"
-            ],
-            "selectors": ["countPlural"],
-            "match": {
-                "countPlural=one": "{count} permanent",
-                "countPlural=*": "{count} permanents"
-            }
-        }
-    ],
-    "activity_summary_pioneers_auxiliary": [
-        {
-            "declarations": [
-                "input count",
-                "local countPlural = count: plural"
-            ],
-            "selectors": ["countPlural"],
-            "match": {
-                "countPlural=one": "{count} auxiliaire",
-                "countPlural=*": "{count} auxiliaires"
-            }
-        }
-    ],
-    "activity_summary_pioneers_special": [
-        {
-            "declarations": [
-                "input count",
-                "local countPlural = count: plural"
-            ],
-            "selectors": ["countPlural"],
-            "match": {
-                "countPlural=one": "{count} spécial",
-                "countPlural=*": "{count} spéciaux"
-            }
-        }
-    ],
-    "activity_summary_pioneers_missionary": [
-        {
-            "declarations": [
-                "input count",
-                "local countPlural = count: plural"
-            ],
-            "selectors": ["countPlural"],
-            "match": {
-                "countPlural=one": "{count} missionnaire",
-                "countPlural=*": "{count} missionnaires"
+                "countPlural=one": "{count} cours biblique",
+                "countPlural=*": "{count} cours bibliques"
             }
         }
     ],
     "activity_summary_studies_label": "Cours bibliques",
-    "activity_summary_pioneer_studies": "dont {count} par les pionniers",
     "activity_groups_title": "Par groupe",
     "activity_groups_hint": "choisir un groupe filtre la liste",
     "activity_filter_status_label": "Rapport",
@@ -4445,6 +4388,7 @@
     "settings_schedule_templates_responsible_none": "Aucun responsable désigné",
     "settings_schedule_templates_responsible_none_short": "Aucun",
     "settings_schedule_templates_responsible_hint": "Le titulaire et les adjoints de ce rôle peuvent remplir et publier les plannings créés à partir de ce modèle, sur toutes les réunions.",
+    "settings_schedule_templates_edit_fields": "Modifier le nom et le responsable",
     "settings_schedule_templates_holders": "Aujourd’hui : {names}.",
     "settings_schedule_templates_holders_none": "Personne n’a ce rôle aujourd’hui.",
     "settings_schedule_templates_suggested_by": "Utilisé dans",

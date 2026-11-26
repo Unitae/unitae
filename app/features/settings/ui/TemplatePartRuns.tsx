@@ -1,5 +1,5 @@
 import { Tag } from '@unitae/ui'
-import { Plus } from 'lucide-react'
+import { ChevronRight, Plus } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { resolvePartCapability } from '~/features/events'
 import {
@@ -122,6 +122,8 @@ export function TemplatePartRuns({
             className={rowClass}
           >
             {body}
+            {/* A row opens its part: a phone's rows say so (« TourA-Modeles-Mobile »). */}
+            <ChevronRight aria-hidden="true" className="size-4 shrink-0 self-center text-faint xl:hidden" />
           </button>
         )}
       </div>
