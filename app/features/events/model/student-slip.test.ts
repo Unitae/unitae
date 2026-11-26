@@ -52,6 +52,10 @@ describe('isStudentSlipPart', () => {
     expect(isStudentSlipPart(part({ id: 1, assigneeId: null, assignee: null }), event())).toBe(false)
   })
 
+  it('refuses a part outside every named section, which the programme does not number', () => {
+    expect(isStudentSlipPart(part({ id: 1, section: '' }), event())).toBe(false)
+  })
+
   it('refuses an external speaker and the kinds that are not a student’s', () => {
     expect(isStudentSlipPart(part({ id: 1, externalSpeaker: { id: 4 } }), event())).toBe(false)
     for (const key of [

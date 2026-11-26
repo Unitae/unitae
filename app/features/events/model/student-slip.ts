@@ -52,6 +52,8 @@ export function isStudentSlipPart(part: SlipPart, event: SlipEvent): boolean {
   const programme = event.schedules.find(schedule => schedule.kind === ScheduleKind.Programme)
   if (programme?.status !== ScheduleStatus.Published) return false
   if (part.assigneeId == null || part.assignee == null || part.externalSpeaker != null) return false
+  // Without a section the part has no number on the slip, and the programme does not print it either.
+  if (part.section === '') return false
   return part.preset == null || STUDENT_PRESETS.has(part.preset.key)
 }
 
