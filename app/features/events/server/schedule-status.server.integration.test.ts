@@ -16,7 +16,9 @@ const adapter = new PrismaPg({
 })
 const testDb = new PrismaClient({ adapter })
 
-const { seedDefaultTemplates, syncTemplateScheduleTemplates } = await import('~/features/events/index.server')
+const { seedDefaultTemplates, syncTemplateScheduleTemplates, setTemplateResponsible } = await import(
+  '~/features/events/index.server'
+)
 const { createProgrammeOnDay } = await import('./programme-creation.server')
 const { canPublishSchedule, publishSchedule, settleEventStatus, unpublishSchedule } = await import(
   './schedule-status.server'
@@ -67,7 +69,7 @@ async function withMeeting(fn: (fixture: Fixture) => Promise<void>) {
           [programmeLead.roleId, 'programme'],
           [dutyLead.roleId, 'service'],
         ] as const) {
-          await tx.templateResponsible.create({ data: { templateId: midweekId, roleId, scope, congregationId } })
+          await setTemplateResponsible(db, midweekId, roleId, congregationId, scope as never)
         }
         await syncTemplateScheduleTemplates(db, midweekId, congregationId)
         const meetingOn = async (day: string) =>

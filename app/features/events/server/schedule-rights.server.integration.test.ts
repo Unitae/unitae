@@ -1,6 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+import { removeTemplateResponsible, setTemplateResponsible } from '~/features/events/index.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { Permission } from '~/shared/types/permission'
 
@@ -84,16 +85,14 @@ async function inCongregation(fn: (fixture: Fixture) => Promise<void>) {
           [programmeRole.id, 'programme'],
           [dutyRole.id, 'service'],
         ] as const) {
-          await tx.templateResponsible.create({ data: { templateId: midweekId, roleId, scope, congregationId } })
+          await setTemplateResponsible(db, midweekId, roleId, congregationId, scope as never)
         }
         await syncTemplateScheduleTemplates(db, midweekId, congregationId)
         const weekendId = (await tx.eventTemplate.findFirstOrThrow({ where: { key: 'weekend-meeting' } })).id
         const weekendRole = await tx.role.create({ data: { key: `w-${stamp}`, name: 'w', congregationId } })
         // The weekend's lead answers for both its schedules.
         for (const scope of ['programme', 'service'] as const) {
-          await tx.templateResponsible.create({
-            data: { templateId: weekendId, roleId: weekendRole.id, scope, congregationId },
-          })
+          await setTemplateResponsible(db, weekendId, weekendRole.id, congregationId, scope as never)
         }
         await syncTemplateScheduleTemplates(db, weekendId, congregationId)
         const meeting = await createProgrammeOnDay(
@@ -176,8 +175,7 @@ describe('Fill a schedule (items, assignees): « Attribuer », « Gérer », or 
   it('leaves the duties of a kind naming a programme responsible alone to the managers', async () => {
     await inCongregation(async fixture => {
       const { db, congregationId, weekendLead, weekendId } = fixture
-      await db.templateResponsible.deleteMany({ where: { templateId: weekendId, scope: 'service' } })
-      await syncTemplateScheduleTemplates(db, weekendId, congregationId)
+      await removeTemplateResponsible(db, weekendId, congregationId, 'service' as never)
       const event = await weekendMeeting(fixture)
 
       expect(await canFillSchedule(db, nothing, weekendLead, event, 'part', congregationId)).toBe(true)

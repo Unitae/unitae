@@ -58,7 +58,7 @@ export {
   type ScheduleTemplateSetting,
 } from './server/schedule-template-settings.queries'
 export { updateScheduleTemplate } from './server/schedule-template-settings.server'
-export { syncTemplateScheduleTemplates } from './server/schedule-templates.server'
+export { applyKindResponsibles, syncTemplateScheduleTemplates } from './server/schedule-templates.server'
 export { attachEventItems } from './server/schedules.server'
 export { PART_PRESET_COUNT, seedDefaultPartPresets } from './server/seed-part-presets.server'
 export { seedDefaultTemplates } from './server/seed-templates.server'

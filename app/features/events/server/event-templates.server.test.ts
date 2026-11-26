@@ -20,6 +20,9 @@ vi.mock('~/shared/infra/db.server', () => ({
     templatePart: { create: vi.fn(), update: vi.fn(), delete: vi.fn() },
     templateServicePart: { aggregate: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
     templateResponsible: { upsert: vi.fn(), deleteMany: vi.fn() },
+    // The responsible goes on the kind's schedule template of its scope (6b-1b).
+    eventKindScheduleTemplate: { findFirst: vi.fn() },
+    scheduleTemplate: { update: vi.fn() },
     role: { findMany: vi.fn() },
     templatePartAllowedRole: { createMany: vi.fn() },
     templateServicePartAllowedRole: { createMany: vi.fn() },

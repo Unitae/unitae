@@ -6,7 +6,7 @@ import {
   ScheduleStatus,
   UNNAMED_SCHEDULE_KEY,
 } from '~/features/events'
-import { attachEventItems, syncTemplateScheduleTemplates } from '~/features/events/index.server'
+import { applyKindResponsibles, attachEventItems, syncTemplateScheduleTemplates } from '~/features/events/index.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import type { EntityIdMap } from './data-transfer.type'
@@ -300,7 +300,11 @@ export async function settleImportedSchedules(
   if (carriesSchedules && repaired > 0) {
     logger.info(`Gave ${repaired} restored template(s) the schedule templates their items lacked`, { congregationId })
   }
-  for (const template of templates) await syncTemplateScheduleTemplates(db, template.id, congregationId)
+  for (const template of templates) {
+    await syncTemplateScheduleTemplates(db, template.id, congregationId)
+    // The sync gives a responsible on creation only (6b-1b): an existing schedule template takes the archive's here.
+    await applyKindResponsibles(db, template.id, congregationId)
+  }
 
   const withoutSchedule = carriesSchedules ? { scheduleId: null } : {}
   const events = await db.event.findMany({

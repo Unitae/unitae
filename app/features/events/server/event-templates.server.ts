@@ -1,6 +1,7 @@
 import type { AttendanceKind } from '~/features/events/model/attendance-kind.type'
 import { isSystemTemplate } from '~/features/events/model/event-template.type'
 import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
+import { ScheduleKind } from '~/features/events/model/schedule.type'
 import { TEMPLATE_PROGRAMME_COUNT } from '~/features/events/server/give-programme.server'
 import { syncTemplateScheduleTemplates } from '~/features/events/server/schedule-templates.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
@@ -135,8 +136,9 @@ export async function setTemplateResponsible(
       congregationId,
     },
   })
-  // Its schedule templates name their responsible role too.
+  // The schedule template of that scope holds the responsible (6b-1b): the row is only what a new one starts from.
   await syncTemplateScheduleTemplates(db, templateId, congregationId)
+  await setScopeTemplateRole(db, templateId, scope, roleId, congregationId)
   return responsible
 }
 
@@ -150,5 +152,27 @@ export async function removeTemplateResponsible(
     where: { templateId, scope, congregationId },
   })
   await syncTemplateScheduleTemplates(db, templateId, congregationId)
+  await setScopeTemplateRole(db, templateId, scope, null, congregationId)
   return removed
+}
+
+/** The role of the kind's first schedule template of a scope's sort: its programme's, or its duties'. */
+async function setScopeTemplateRole(
+  db: TransactionClient,
+  templateId: number,
+  scope: ResponsibilityScope,
+  roleId: number | null,
+  congregationId: number,
+) {
+  const kind = scope === ResponsibilityScope.Service ? ScheduleKind.Duty : ScheduleKind.Programme
+  const link = await db.eventKindScheduleTemplate.findFirst({
+    where: { eventKindId: templateId, congregationId, scheduleTemplate: { kind } },
+    orderBy: [{ order: 'asc' }, { scheduleTemplateId: 'asc' }],
+    select: { scheduleTemplateId: true },
+  })
+  if (link == null) return
+  await db.scheduleTemplate.update({
+    where: { id_congregationId: { id: link.scheduleTemplateId, congregationId } },
+    data: { responsibleRoleId: roleId },
+  })
 }

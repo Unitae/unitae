@@ -145,20 +145,22 @@ describe('updateScheduleTemplate', () => {
       expect(JSON.parse(audited?.metadata ?? '{}')).toEqual({
         name: { from: programme.name, to: 'Vie et ministère' },
         responsibleRoleId: { from: null, to: roleId },
-        eventKindIds: [midweekId],
       })
     })
   })
 
-  it('writes a programme template’s responsible to its kind’s programme scope, never to the duties', async () => {
+  // The template holds its responsible (6b-1b): the kinds using it get no TemplateResponsible row for it.
+  it('stores a programme template’s responsible on it alone, never on its kind nor the duties', async () => {
     await inCongregation(async ({ db, congregationId, actorId, role, midweekId, templateOf, roleOf }) => {
       const programme = await templateOf(midweekId, 'programme')
       const duties = await templateOf(midweekId, 'duty')
       const roleId = await role('Coordinateur')
 
       await updateScheduleTemplate(db, programme.id, { responsibleRoleId: roleId }, congregationId, actorId)
+      await syncTemplateScheduleTemplates(db, midweekId, congregationId)
 
-      expect(await rowsOf(db, midweekId)).toEqual([{ scope: 'programme', roleId }])
+      expect(await rowsOf(db, midweekId)).toEqual([])
+      expect(await roleOf(programme.id)).toBe(roleId)
       // A duties template answers for itself: without its own responsible it is the managers' (user, 2026-11-24).
       expect(await roleOf(duties.id)).toBeNull()
 
@@ -169,7 +171,7 @@ describe('updateScheduleTemplate', () => {
     })
   })
 
-  it('writes a duties template’s responsible to the services scope, leaving the programme template without one', async () => {
+  it('stores a duties template’s responsible on it alone, leaving the programme template without one', async () => {
     await inCongregation(async ({ db, congregationId, actorId, role, midweekId, templateOf, roleOf }) => {
       const programme = await templateOf(midweekId, 'programme')
       const duties = await templateOf(midweekId, 'duty')
@@ -180,7 +182,7 @@ describe('updateScheduleTemplate', () => {
       ).toEqual({ ok: true })
       await syncTemplateScheduleTemplates(db, midweekId, congregationId)
 
-      expect(await rowsOf(db, midweekId)).toEqual([{ scope: 'service', roleId }])
+      expect(await rowsOf(db, midweekId)).toEqual([])
       expect(await roleOf(duties.id)).toBe(roleId)
       expect(await roleOf(programme.id)).toBeNull()
 
@@ -206,7 +208,8 @@ describe('updateScheduleTemplate', () => {
         congregationId,
         actorId,
       )
-      expect(await rowsOf(db, midweekId)).toEqual([{ scope: 'programme', roleId: first }])
+      expect(await roleOf(programme.id)).toBe(first)
+      expect(await roleOf(duties.id)).toBeNull()
 
       await updateScheduleTemplate(db, programme.id, { responsibleRoleId: second }, congregationId, actorId)
       expect(await roleOf(duties.id)).toBeNull()
@@ -295,7 +298,7 @@ describe('updateScheduleTemplate', () => {
     })
   })
 
-  it('stores the role on a template no kind suggests, and writes it to every kind suggesting one', async () => {
+  it('stores the role on a template, whether no kind or several suggest it, and on no kind', async () => {
     await inCongregation(async ({ db, congregationId, actorId, role, midweekId, weekendId, templateOf, roleOf }) => {
       const roleId = await role('Coordinateur')
       const loose = await db.scheduleTemplate.create({ data: { name: 'Libre', kind: 'programme', congregationId } })
@@ -308,8 +311,9 @@ describe('updateScheduleTemplate', () => {
         data: { eventKindId: weekendId, scheduleTemplateId: shared.id, order: 9, congregationId },
       })
       await updateScheduleTemplate(db, shared.id, { responsibleRoleId: roleId }, congregationId, actorId)
-      expect(await rowsOf(db, midweekId)).toEqual([{ scope: 'programme', roleId }])
-      expect(await rowsOf(db, weekendId)).toEqual([{ scope: 'programme', roleId }])
+      await syncTemplateScheduleTemplates(db, weekendId, congregationId)
+      expect(await roleOf(shared.id)).toBe(roleId)
+      expect([...(await rowsOf(db, midweekId)), ...(await rowsOf(db, weekendId))]).toEqual([])
     })
   })
 

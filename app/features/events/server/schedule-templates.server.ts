@@ -77,14 +77,8 @@ async function syncScheduleTemplate(
   let scheduleTemplateId: number
   if (existing) {
     scheduleTemplateId = existing.id
-    // Its name belongs to Réglages › « Modèles de planning » since 6a: the kind gives it one on creation only. Its
-    // responsible still follows the kind's TemplateResponsible rows, which that page writes too until 6a-2.
-    if (existing.responsibleRoleId !== responsibleRoleId) {
-      await db.scheduleTemplate.update({
-        where: { id_congregationId: { id: existing.id, congregationId } },
-        data: { responsibleRoleId },
-      })
-    }
+    // Its name and responsible belong to Réglages › « Modèles de planning » (6a, 6b-1b): the kind gives them on
+    // creation only.
   } else if (hasItems) {
     const created = await db.scheduleTemplate.create({
       data: {
@@ -108,6 +102,39 @@ async function syncScheduleTemplate(
     await db.templatePart.updateMany({ where: elsewhere, data: { scheduleTemplateId } })
   } else {
     await db.templateServicePart.updateMany({ where: elsewhere, data: { scheduleTemplateId } })
+  }
+}
+
+/**
+ * Writes a kind's TemplateResponsible rows onto its first schedule template of each sort, none when a scope has no row:
+ * what the sync did on every pass until 6b-1b, kept for restoring an archive whose kinds hold their responsibles there
+ * (2.20 and older, or merged into a kind the congregation had), so restoring gives what migrating live data gave.
+ */
+export async function applyKindResponsibles(db: TransactionClient, templateId: number, congregationId: number) {
+  const kind = await db.eventTemplate.findFirst({
+    where: { id: templateId, congregationId },
+    select: {
+      responsibles: { select: { roleId: true, scope: true } },
+      scheduleTemplates: {
+        orderBy: [{ order: 'asc' }, { scheduleTemplateId: 'asc' }],
+        select: { scheduleTemplate: { select: { id: true, kind: true, responsibleRoleId: true } } },
+      },
+    },
+  })
+  if (kind == null) return
+  const scopeOf = {
+    [ScheduleKind.Programme]: ResponsibilityScope.Programme,
+    [ScheduleKind.Duty]: ResponsibilityScope.Service,
+  }
+  for (const sort of SCHEDULE_KINDS) {
+    const first = kind.scheduleTemplates.find(link => link.scheduleTemplate.kind === sort)?.scheduleTemplate
+    if (first == null) continue
+    const roleId = kind.responsibles.find(row => row.scope === scopeOf[sort])?.roleId ?? null
+    if (first.responsibleRoleId === roleId) continue
+    await db.scheduleTemplate.update({
+      where: { id_congregationId: { id: first.id, congregationId } },
+      data: { responsibleRoleId: roleId },
+    })
   }
 }
 

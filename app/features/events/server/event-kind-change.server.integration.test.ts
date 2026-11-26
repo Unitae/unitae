@@ -17,7 +17,9 @@ const adapter = new PrismaPg({
 })
 const testDb = new PrismaClient({ adapter })
 
-const { seedDefaultTemplates, syncTemplateScheduleTemplates } = await import('~/features/events/index.server')
+const { seedDefaultTemplates, syncTemplateScheduleTemplates, setTemplateResponsible } = await import(
+  '~/features/events/index.server'
+)
 const { createProgrammeOnDay } = await import('./programme-creation.server')
 const { publishSchedule } = await import('./schedule-status.server')
 const { changeEventKind, kindChangeOptions } = await import('./event-kind-change.server')
@@ -70,7 +72,7 @@ async function withMeeting(fn: (fixture: Fixture) => Promise<void>) {
           [programmeLead.roleId, 'programme'],
           [dutyLead.roleId, 'service'],
         ] as const) {
-          await tx.templateResponsible.create({ data: { templateId: midweekId, roleId, scope, congregationId } })
+          await setTemplateResponsible(db, midweekId, roleId, congregationId, scope as never)
         }
         await syncTemplateScheduleTemplates(db, midweekId, congregationId)
         const meeting = await createProgrammeOnDay(
@@ -280,7 +282,7 @@ const dutiesOfBothKinds = async (
     where: { userId: dutyLead },
     select: { roleId: true },
   })
-  await db.templateResponsible.create({ data: { templateId: weekendId, roleId, scope: 'service', congregationId } })
+  await setTemplateResponsible(db, weekendId, roleId, congregationId, 'service' as never)
   await syncTemplateScheduleTemplates(db, weekendId, congregationId)
 }
 

@@ -285,6 +285,27 @@ describe('settling the schedules of an archive that carries none (2.20 and older
       expect((await db.scheduleTemplate.findFirstOrThrow({ where: { kind: 'duty' } })).responsibleRoleId).toBe(roleId)
     })
   })
+
+  // A kind merged into one the congregation had keeps that one's schedule templates, which the sync no longer gives a
+  // responsible past their creation (6b-1b): the settle step writes the archive's onto them, as the sync did before.
+  it('puts the archive’s responsibles on schedule templates the kind already had', async () => {
+    await restored(async ({ db, congregationId, roleId, templateId }) => {
+      const rows = await db.templateResponsible.findMany({ where: { templateId } })
+      await db.templateResponsible.deleteMany({ where: { templateId } })
+      await syncTemplateScheduleTemplates(db, templateId, congregationId)
+      await db.templateResponsible.createMany({ data: rows.map(({ id: _, ...row }) => row) })
+
+      await settleImportedSchedules(new JsZip(), db, congregationId, [templateId])
+
+      expect(
+        await db.scheduleTemplate.findMany({ select: { kind: true, responsibleRoleId: true }, orderBy: { id: 'asc' } }),
+      ).toEqual([
+        { kind: 'programme', responsibleRoleId: roleId },
+        // As before 6b-1b: the inherited services row reads the duties template the kind has, which names none.
+        { kind: 'duty', responsibleRoleId: null },
+      ])
+    })
+  })
 })
 
 describe('restoring a 2.21 archive exported before the duties had their own responsible', () => {
