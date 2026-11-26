@@ -16,7 +16,8 @@ describe('a template item’s owner', () => {
         { templateId: null, scheduleTemplateId: 9 },
       ],
     })
-    expect(ownerData({ scheduleTemplateId: 9, templateId: 4 })).toEqual({ templateId: 4, scheduleTemplateId: 9 })
+    // Written as the template's alone, whatever kind uses it (6b-1).
+    expect(ownerData({ scheduleTemplateId: 9, templateId: 4 })).toEqual({ templateId: null, scheduleTemplateId: 9 })
     expect(ownerKind({ scheduleTemplateId: 9, templateId: 4 })).toBe(4)
   })
 
