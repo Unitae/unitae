@@ -49,8 +49,8 @@ export async function createScheduleTemplate(
 }
 
 /**
- * Whether another schedule template reads as `name`: one carrying it, whatever the case or accents, or an unnamed one whose label
- * is it (« Spirituel », « Services », in the reader's language). Two templates of one name could not be told apart in
+ * Whether another schedule template reads as `name`: one carrying it, whatever the case or accents, or an unnamed one
+ * whose label is it (« Spirituel », « Services », in the reader's language). Two templates of one name could not be told apart in
  * the list or in « Ajouter un planning » (user, 2026-11-26). `except` is the template being renamed.
  */
 export async function scheduleTemplateNameTaken(
