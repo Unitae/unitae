@@ -51,7 +51,8 @@ export async function getProgrammeCreationData(
             select: { name: true, kind: true, _count: { select: { parts: true, serviceParts: true } } },
           },
         },
-        orderBy: [{ order: 'asc' }, { id: 'asc' }],
+        // The same « first » as the copy and the counts (TEMPLATE_INCLUDE, TEMPLATE_PROGRAMME_COUNT).
+        orderBy: [{ order: 'asc' }, { scheduleTemplateId: 'asc' }],
       },
     },
   })
