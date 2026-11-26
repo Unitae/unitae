@@ -45,6 +45,7 @@ const SHIPPED_SLUGS = [
   'prospection',
   'publisher-arrivals-departures',
   'reset-two-step',
+  'schedule-templates',
   'schedules',
   'split-territory',
   'territories-settings',

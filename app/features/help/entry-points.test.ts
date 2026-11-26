@@ -58,6 +58,7 @@ const PINS: Record<string, string | string[]> = {
   'features/settings/routes/roles.tsx': 'give-rights',
   'features/settings/routes/data/settings.tsx': 'congregation-data',
   'features/settings/routes/audit-log.tsx': 'audit-log',
+  'features/settings/routes/schedule-templates.tsx': 'schedule-templates',
   // The organigram's screens draw their own heading: the « ? » goes in the top bar, and beside the title on a phone.
   'features/congregation/routes/roles/organigram.tsx': 'organigram',
   'features/congregation/routes/roles/role-list.tsx': 'organigram',
