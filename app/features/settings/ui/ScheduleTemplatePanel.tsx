@@ -110,7 +110,11 @@ export function ScheduleTemplatePanel({
   useOnSettled(itemFetcher, onLeaveItem)
   useOnSettled(deleteFetcher, onLeaveItem)
   // Saved: the form starts again from what is stored, and its footer goes.
-  useOnSettled(fetcher, () => setVersion(current => current + 1))
+  // On a phone, the read view comes back.
+  useOnSettled(fetcher, () => {
+    setVersion(current => current + 1)
+    setEditingFields(false)
+  })
   const refusal = replyMessages(itemFetcher) ?? (deletedMark === mark ? replyMessages(deleteFetcher) : null)
 
   const part = item?.kind === 'part' && item.id != null ? items?.parts.find(each => each.id === item.id) : undefined
@@ -146,7 +150,16 @@ export function ScheduleTemplatePanel({
     <div className="flex flex-col gap-6">
       {/* On a phone the name and responsible read first, their form a tap away; changes or a refusal keep it open. */}
       {!docked && !editingFields && fields.changes === 0 && errors == null ? (
-        <ScheduleTemplateSummary template={template} onEdit={() => setEditingFields(true)} />
+        <ScheduleTemplateSummary
+          template={template}
+          onEdit={() => {
+            setEditingFields(true)
+            // The button goes with the read view: focus goes to the name.
+            requestAnimationFrame(() =>
+              document.querySelector<HTMLInputElement>('[data-schedule-template-sheet] input[name="name"]')?.focus(),
+            )
+          }}
+        />
       ) : (
         <ScheduleTemplateForm
           key={`${template.id}-${version}`}
@@ -215,9 +228,12 @@ export function ScheduleTemplatePanel({
           form={item.kind === 'part' ? PART_FORM_ID : SERVICE_FORM_ID}
           disabled={itemFetcher.state !== 'idle' || deleteFetcher.state !== 'idle'}
         >
-          {item.kind === 'part'
-            ? m.settings_schedule_templates_save_part()
-            : m.settings_schedule_templates_save_service()}
+          {/* A phone's footer also holds « Supprimer »: « Enregistrer » alone, as its board, so the three fit. */}
+          {!docked
+            ? m.common_save()
+            : item.kind === 'part'
+              ? m.settings_schedule_templates_save_part()
+              : m.settings_schedule_templates_save_service()}
         </SubmitButton>
       </>
     ) : fields.changes > 0 ? (
@@ -326,7 +342,7 @@ export function ScheduleTemplatePanel({
             </SheetHeader>
             <div className="flex-1 overflow-y-auto px-4 pb-4">{item == null ? levelOne : levelTwo}</div>
             {footer != null && (
-              <SheetFooter className="flex-row justify-end border-border border-t">{footer}</SheetFooter>
+              <SheetFooter className="flex-row flex-wrap justify-end border-border border-t">{footer}</SheetFooter>
             )}
           </SheetContent>
         </Sheet>
