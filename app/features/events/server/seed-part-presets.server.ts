@@ -16,6 +16,8 @@ interface PresetCapability {
   key: PartPresetKey
   hasReaderSlot: boolean
   allowExternalSpeaker: boolean
+  /** The student kinds offer the S-89 slip. */
+  printsStudentSlip?: boolean
 }
 
 const PRESETS: PresetCapability[] = [
@@ -25,10 +27,10 @@ const PRESETS: PresetCapability[] = [
   // One kind for every midweek-meeting talk (Joyaux, Perles, Vie chrétienne).
   // External speakers stay possible: a visiting brother may take a talk.
   { key: PartPresetKey.MidweekTalk, hasReaderSlot: false, allowExternalSpeaker: true },
-  { key: PartPresetKey.BibleReading, hasReaderSlot: false, allowExternalSpeaker: false },
+  { key: PartPresetKey.BibleReading, hasReaderSlot: false, allowExternalSpeaker: false, printsStudentSlip: true },
   // The only school part with two people on stage.
-  { key: PartPresetKey.SchoolDemonstration, hasReaderSlot: true, allowExternalSpeaker: false },
-  { key: PartPresetKey.SchoolTalk, hasReaderSlot: false, allowExternalSpeaker: false },
+  { key: PartPresetKey.SchoolDemonstration, hasReaderSlot: true, allowExternalSpeaker: false, printsStudentSlip: true },
+  { key: PartPresetKey.SchoolTalk, hasReaderSlot: false, allowExternalSpeaker: false, printsStudentSlip: true },
   { key: PartPresetKey.PublicTalk, hasReaderSlot: false, allowExternalSpeaker: true },
   { key: PartPresetKey.WatchtowerStudy, hasReaderSlot: true, allowExternalSpeaker: false },
   { key: PartPresetKey.CongregationBibleStudy, hasReaderSlot: true, allowExternalSpeaker: false },
@@ -64,6 +66,7 @@ export async function seedDefaultPartPresets(db: any, congregationId: number, _l
         scope: PartPresetScope.Part,
         hasReaderSlot: preset.hasReaderSlot,
         allowExternalSpeaker: preset.allowExternalSpeaker,
+        printsStudentSlip: preset.printsStudentSlip ?? false,
         isSystem: true,
         congregationId,
       },
