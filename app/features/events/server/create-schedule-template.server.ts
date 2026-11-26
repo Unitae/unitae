@@ -13,10 +13,11 @@ export interface NewScheduleTemplate {
 }
 
 /**
- * Creates a schedule template from « Modèles de planning » (6a-1c-2): named, of parts or of services, with a responsible
- * the congregation may hand a template to, or none. No kind uses it yet: « Ajouter un planning » offers it on the
- * meetings, and its items are its own (template-owner.ts). Its main room comes with it (the ScheduleTemplate_rooms
- * trigger). Refused without a name, with one another template carries, or with a role it may not have.
+ * Creates a schedule template from « Modèles de planning » (6a-1c-2): named, of parts or of services, with a
+ * responsible the congregation may hand a template to, or none. No kind uses it yet: « Ajouter un planning » offers
+ * it on the meetings, and its items are its own (template-owner.ts). Its main room comes with it (the
+ * ScheduleTemplate_rooms trigger). Refused without a name, with one another template carries, or with a role it may
+ * not have.
  */
 export async function createScheduleTemplate(
   db: TransactionClient,
@@ -50,8 +51,8 @@ export async function createScheduleTemplate(
 
 /**
  * Whether another schedule template reads as `name`: one carrying it, whatever the case or accents, or an unnamed one
- * whose label is it (« Spirituel », « Services », in the reader's language). Two templates of one name could not be told apart in
- * the list or in « Ajouter un planning » (user, 2026-11-26). `except` is the template being renamed.
+ * whose label is it (« Spirituel », « Services », in the reader's language). Two templates of one name could not be
+ * told apart in the list or in « Ajouter un planning » (user, 2026-11-26). `except` is the template being renamed.
  */
 export async function scheduleTemplateNameTaken(
   db: TransactionClient,
