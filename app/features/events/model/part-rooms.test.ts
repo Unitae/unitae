@@ -4,6 +4,8 @@ import { type ItemWithRooms, itemsPerRoom, partsInRooms } from './part-rooms'
 // The one reading of a programme's parts in their rooms: today's copies (a part in two rooms is two items, each in
 // its room) and R4's shape (one item, a row per room) read the same.
 
+const WITHOUT_ROOMS_RE = /without its rooms/
+
 const room = (id: number, name: string | null, order: number) => ({ id, name, key: order === 0 ? 'main' : null, order })
 const MAIN = room(1, null, 0)
 const SALLE_B = room(2, 'Salle B', 1)
@@ -212,16 +214,40 @@ describe('itemsPerRoom', () => {
     ])
   })
 
-  it('carries each room’s people as read with the row (the assignee’s record), not the item’s', () => {
+  it('carries each room’s people as read with the row (the three records), not the item’s', () => {
+    const person = (id: number, firstname: string) => ({ id, firstname })
+    const one = {
+      ...item(5, { name: 'Lecture', rooms: [{ room: MAIN }, { room: SALLE_B }] }),
+      assignee: person(7, 'Paul'),
+      assistant: person(9, 'Luc'),
+      externalSpeaker: person(11, 'Orateur A'),
+    }
+    one.rooms = one.rooms?.map(row => {
+      const main = row.roomId === MAIN.id
+      return {
+        ...row,
+        assignee: main ? person(7, 'Paul') : person(8, 'Jean'),
+        assistant: main ? person(9, 'Luc') : person(10, 'Marc'),
+        externalSpeaker: main ? person(11, 'Orateur A') : person(12, 'Orateur B'),
+      }
+    })
+    expect(
+      itemsPerRoom([one]).map(each => [
+        each.assignee?.firstname,
+        each.assistant?.firstname,
+        each.externalSpeaker?.firstname,
+      ]),
+    ).toEqual([
+      ['Paul', 'Luc', 'Orateur A'],
+      ['Jean', 'Marc', 'Orateur B'],
+    ])
+  })
+
+  it('refuses rows read without the people the item was read with, rather than showing the main room’s in each', () => {
     const one = {
       ...item(5, { name: 'Lecture', rooms: [{ room: MAIN }, { room: SALLE_B }] }),
       assignee: { id: 7, firstname: 'Paul' },
     }
-    one.rooms = one.rooms?.map(row => ({
-      ...row,
-      assigneeId: row.roomId === MAIN.id ? 7 : 8,
-      assignee: row.roomId === MAIN.id ? { id: 7, firstname: 'Paul' } : { id: 8, firstname: 'Jean' },
-    }))
-    expect(itemsPerRoom([one]).map(each => each.assignee?.firstname)).toEqual(['Paul', 'Jean'])
+    expect(() => itemsPerRoom([one])).toThrow(WITHOUT_ROOMS_RE)
   })
 })

@@ -136,6 +136,20 @@ interface RowPeople {
   externalSpeaker?: unknown
 }
 
+const PEOPLE = ['assignee', 'assistant', 'externalSpeaker'] as const
+
+/**
+ * A reader that read the item's people records must read its rows' too, or every room would show the item's (the
+ * main room's) people, silently: refused rather than drawn wrong.
+ */
+function assertRowPeople(item: RowPeople, row: RowPeople) {
+  for (const key of PEOPLE) {
+    if (key in item && !(key in row)) {
+      throw new Error(`A part's ${key} was read without its rooms' (select it on its rows too)`)
+    }
+  }
+}
+
 /**
  * A programme's items as copies, for a reader that draws them (the board and its PDF, which join copies sharing an
  * order): an item with one room is left as it is; an item with a row per room (R4's shape) becomes one copy per room,
@@ -150,6 +164,7 @@ export function itemsPerRoom<T extends ItemWithRooms & RowPeople>(items: readonl
       .sort((a, b) => a.room.order - b.room.order || a.id - b.id)
       .map(row => {
         const people = row as ItemRoomRow & RowPeople
+        assertRowPeople(item, people)
         const isMain = row.room.key === 'main'
         return {
           ...item,
