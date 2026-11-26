@@ -127,10 +127,9 @@ export function ScheduleTemplatePanel({
     wasOpen.current = item != null
   }, [item, docked])
 
+  // How many schedules were made from it; nothing while none is (user, 2026-11-26).
   const description =
-    template.schedules === 0
-      ? m.settings_schedule_templates_used_none()
-      : m.settings_schedule_templates_used({ count: template.schedules })
+    template.schedules === 0 ? undefined : m.settings_schedule_templates_used({ count: template.schedules })
   const copy =
     item?.kind === 'service'
       ? serviceEditorCopy('template', item.id != null)

@@ -60,7 +60,6 @@ export function ScheduleTemplateForm({
           placeholder={template.placeholder}
           maxLength={80}
         />
-        <p className="text-faint text-xs">{m.settings_schedule_templates_name_hint()}</p>
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor={`${id}-responsible`}>{m.settings_schedule_templates_responsible()}</Label>

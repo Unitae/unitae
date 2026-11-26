@@ -69,6 +69,21 @@ describe('createScheduleTemplate', () => {
             congregationId,
             actorId,
           )
+          // A name another template carries, whatever its case, or the label an unnamed one shows, is refused.
+          await tx.scheduleTemplate.create({ data: { key: 'duties', kind: 'duty', congregationId } })
+          const taken = await createScheduleTemplate(
+            db,
+            { name: 'visite', kind: 'programme', responsibleRoleId: null },
+            congregationId,
+            actorId,
+          )
+          const label = await createScheduleTemplate(
+            db,
+            { name: 'Services', kind: 'duty', responsibleRoleId: null },
+            congregationId,
+            actorId,
+          )
+          await tx.scheduleTemplate.deleteMany({ where: { key: 'duties', congregationId } })
           const templates = await tx.scheduleTemplate.findMany({
             where: { congregationId },
             orderBy: { id: 'asc' },
@@ -90,6 +105,8 @@ describe('createScheduleTemplate', () => {
             programme,
             duties,
             blank,
+            taken,
+            label,
             notDelegatable,
             templates,
             // Stored as JSON text.
@@ -107,6 +124,8 @@ describe('createScheduleTemplate', () => {
     expect(read.programme).toEqual({ ok: true, id: expect.any(Number) })
     expect(read.duties).toEqual({ ok: true, id: expect.any(Number) })
     expect(read.blank).toEqual({ ok: false, reason: 'name' })
+    expect(read.taken).toEqual({ ok: false, reason: 'taken' })
+    expect(read.label).toEqual({ ok: false, reason: 'taken' })
     expect(read.notDelegatable).toEqual({ ok: false, reason: 'role' })
     expect(read.templates).toEqual([
       {

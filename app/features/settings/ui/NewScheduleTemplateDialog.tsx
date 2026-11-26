@@ -86,8 +86,8 @@ export function NewScheduleTemplateDialog({ open, onOpenChange, roles, returnFoc
               value={kind}
               onValueChange={value => setKind(value === 'duty' ? 'duty' : 'programme')}
               options={[
-                { value: 'programme', label: m.settings_schedule_templates_new_parts() },
-                { value: 'duty', label: m.settings_schedule_templates_new_services() },
+                { value: 'programme', label: m.programs_schedule_kind_programme() },
+                { value: 'duty', label: m.programs_schedule_kind_duty() },
               ]}
             />
           </div>
@@ -98,7 +98,7 @@ export function NewScheduleTemplateDialog({ open, onOpenChange, roles, returnFoc
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NO_RESPONSIBLE}>{m.settings_schedule_templates_new_responsible_none()}</SelectItem>
+                <SelectItem value={NO_RESPONSIBLE}>{m.settings_schedule_templates_responsible_none()}</SelectItem>
                 {roles.map(each => (
                   <SelectItem key={each.id} value={String(each.id)}>
                     {each.label}

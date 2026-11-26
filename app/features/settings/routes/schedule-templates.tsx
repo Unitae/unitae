@@ -7,7 +7,10 @@ import { onlyHelpPanelChanged } from '~/features/help'
 import { scheduleTemplateView } from '~/features/settings/model/schedule-template-view'
 import { scheduleTemplateSchema } from '~/features/settings/schemas/schedule-template.schema'
 import { holdersOfRoles } from '~/features/settings/server/role-holders.queries'
-import { handleCreateScheduleTemplate } from '~/features/settings/server/schedule-template-create-action.server'
+import {
+  handleCreateScheduleTemplate,
+  refusalMessage,
+} from '~/features/settings/server/schedule-template-create-action.server'
 import {
   handleScheduleTemplateItem,
   SCHEDULE_TEMPLATE_ITEM_INTENTS,
@@ -106,10 +109,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     const result = await updateScheduleTemplate(db, scheduleTemplateId, change, congregationId, currentUser.id)
     if (result == null) return refusal(scheduleTemplateId, [m.settings_schedule_templates_error_vanished()], 409)
     if (!result.ok) {
-      const message =
-        result.reason === 'name'
-          ? m.settings_schedule_templates_error_name()
-          : m.settings_schedule_templates_error_role()
+      const message = refusalMessage(result.reason)
       return refusal(scheduleTemplateId, [message])
     }
     return okWithToast(request, m.settings_schedule_templates_saved())

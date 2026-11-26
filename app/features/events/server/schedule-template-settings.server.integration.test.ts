@@ -257,6 +257,22 @@ describe('updateScheduleTemplate', () => {
     })
   })
 
+  it('refuses a name another template reads as, and keeps its own however it is cased', async () => {
+    await inCongregation(async ({ db, congregationId, actorId }) => {
+      const visite = await db.scheduleTemplate.create({ data: { name: 'Visite', kind: 'programme', congregationId } })
+      const other = await db.scheduleTemplate.create({ data: { name: 'Autre', kind: 'programme', congregationId } })
+      const rename = (id: number, name: string) => updateScheduleTemplate(db, id, { name }, congregationId, actorId)
+
+      // « Services » is what the seeded duties templates show, unnamed.
+      expect([await rename(other.id, 'VISITE'), await rename(other.id, 'services')]).toEqual([
+        { ok: false, reason: 'taken' },
+        { ok: false, reason: 'taken' },
+      ])
+      expect(await rename(visite.id, 'visite')).toEqual({ ok: true })
+      expect((await db.scheduleTemplate.findFirstOrThrow({ where: { id: other.id } })).name).toBe('Autre')
+    })
+  })
+
   it('keeps a stored role no one may pick any more when only the name changes', async () => {
     await inCongregation(async ({ db, congregationId, actorId, identityRoleId }) => {
       const loose = await db.scheduleTemplate.create({

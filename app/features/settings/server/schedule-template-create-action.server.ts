@@ -24,7 +24,12 @@ export async function handleCreateScheduleTemplate(
   const result = await createScheduleTemplate(db, { name, kind, responsibleRoleId }, actor.congregationId, actor.id)
   if (result.ok) return result
   logger.warn('handleCreateScheduleTemplate: refused', { reason: result.reason, ...actor })
-  const message =
-    result.reason === 'name' ? m.settings_schedule_templates_error_name() : m.settings_schedule_templates_error_role()
-  return { ok: false, errors: [message] }
+  return { ok: false, errors: [refusalMessage(result.reason)] }
+}
+
+/** Why a template's name or responsible was refused, in words: on creation and on « Enregistrer » alike. */
+export function refusalMessage(reason: 'name' | 'role' | 'taken'): string {
+  if (reason === 'name') return m.settings_schedule_templates_error_name()
+  if (reason === 'taken') return m.settings_schedule_templates_error_name_taken()
+  return m.settings_schedule_templates_error_role()
 }

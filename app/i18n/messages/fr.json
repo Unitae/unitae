@@ -4438,15 +4438,14 @@
     "settings_schedule_templates_meta_title": "Modèles de planning - Unitae",
     "settings_schedule_templates_subtitle": "Cette page sert à créer des modèles de planning, afin de ne pas refaire tous les plannings à la main à chaque fois ; toute modification ici se retrouve dans les futurs programmes.",
     "settings_schedule_templates_name": "Nom",
-    "settings_schedule_templates_name_hint": "Les plannings déjà créés gardent leur nom.",
     "settings_schedule_templates_responsible": "Responsable",
     "settings_schedule_templates_responsible_none": "Aucun responsable désigné",
     "settings_schedule_templates_responsible_none_short": "Aucun",
-    "settings_schedule_templates_responsible_hint": "Le titulaire et les adjoints de ce rôle remplissent et publient les plannings faits de ce modèle, sur toutes les réunions.",
+    "settings_schedule_templates_responsible_hint": "Le titulaire et les adjoints de ce rôle peuvent remplir et publier les plannings créés à partir de ce modèle, sur toutes les réunions.",
     "settings_schedule_templates_holders": "Aujourd’hui : {names}.",
     "settings_schedule_templates_holders_none": "Personne n’a ce rôle aujourd’hui.",
     "settings_schedule_templates_suggested_by": "Utilisé dans",
-    "settings_schedule_templates_suggested_none": "Aucun type : il s’ajoute depuis la réunion, avec « Ajouter un planning ».",
+    "settings_schedule_templates_suggested_none": "Ce modèle n’est pas encore utilisé",
     "settings_schedule_templates_parts_label": "Parties",
     "settings_schedule_templates_services_label": "Services",
     "settings_schedule_templates_add_service": "Ajouter un service",
@@ -4479,7 +4478,7 @@
             }
         }
     ],
-    "settings_schedule_templates_list_note": "Les changements de cette liste s’appliquent aussitôt. Les plannings déjà créés n’en sont pas touchés : seules les nouvelles réunions les prennent.",
+    "settings_schedule_templates_list_note": "Les plannings déjà créés ne seront pas modifiés, seules les nouvelles réunions prennent en compte les changements effectués ici.",
     "settings_schedule_templates_save_part": "Enregistrer la partie",
     "settings_schedule_templates_save_service": "Enregistrer le service",
     "settings_schedule_templates_section_renamed": "Section renommée.",
@@ -4508,7 +4507,6 @@
             }
         }
     ],
-    "settings_schedule_templates_used_none": "Aucun planning fait de ce modèle",
     "settings_schedule_templates_kinds": [
         {
             "declarations": [
@@ -4525,6 +4523,7 @@
     "settings_schedule_templates_kinds_none": "aucun type",
     "settings_schedule_templates_saved": "Modèle de planning enregistré.",
     "settings_schedule_templates_error_name": "Donnez-lui un nom.",
+    "settings_schedule_templates_error_name_taken": "Un autre modèle porte déjà ce nom : choisissez-en un autre.",
     "settings_schedule_templates_error_name_long": "Le nom : 80 caractères au plus.",
     "settings_schedule_templates_error_role": "Ce rôle ne peut pas répondre d’un modèle : rechargez la page.",
     "settings_schedule_templates_error_vanished": "Ce modèle n’existe plus : rechargez la page.",
@@ -4532,9 +4531,6 @@
     "settings_schedule_templates_new": "Nouveau modèle",
     "settings_schedule_templates_new_title": "Nouveau modèle de planning",
     "settings_schedule_templates_new_contents": "Type de planning",
-    "settings_schedule_templates_new_parts": "Programme spirituel",
-    "settings_schedule_templates_new_services": "Programme des services",
-    "settings_schedule_templates_new_responsible_none": "Aucun : ceux qui gèrent les programmes",
     "settings_schedule_templates_create": "Créer le modèle",
     "settings_schedule_templates_created": "Modèle de planning créé.",
     "settings_presets_subtitle": "Ce qu’est chaque partie d’un programme, et le message envoyé à la personne qui la reçoit.",
@@ -7863,7 +7859,7 @@
     "settings_schedule_templates_room_gone": "Cette salle n’existe plus : la liste vient d’être rechargée.",
     "settings_schedule_templates_room_main_stays": "La salle principale reste toujours : renommez-la si besoin.",
     "settings_schedule_templates_rooms_title": "Salles",
-    "settings_schedule_templates_rooms_hint": "Les salles où des parties ont lieu en même temps. Ajouter une salle demande son nom ; ses parties se choisissent ensuite, partie par partie.",
+    "settings_schedule_templates_rooms_hint": "Les noms des salles où des parties du programme ont lieu en même temps.",
     "settings_schedule_templates_room_whole": "toute l’assemblée",
     "settings_schedule_templates_room_parts": [
         {

@@ -4,6 +4,7 @@ import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import { listDelegatableRoles } from '~/shared/domain/roles.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
+import { scheduleTemplateNameTaken } from './create-schedule-template.server'
 import { removeTemplateResponsible, setTemplateResponsible } from './event-templates.server'
 
 /** What Réglages › « Modèles de planning » saves on a schedule template (6a): a field left out is left as it is. */
@@ -12,8 +13,11 @@ export interface ScheduleTemplateChange {
   responsibleRoleId?: number | null
 }
 
-/** Why a change is refused: a role the congregation may not delegate a template to, or no name where no key labels it. */
-export type ScheduleTemplateRefusal = 'role' | 'name'
+/**
+ * Why a change is refused: a role the congregation may not delegate a template to, no name where no key labels it, or a
+ * name another template reads as.
+ */
+export type ScheduleTemplateRefusal = 'role' | 'name' | 'taken'
 
 /**
  * Saves a schedule template's name and responsible, as the page asks; null when the template is not the
@@ -54,6 +58,9 @@ export async function updateScheduleTemplate(
   }
   const nameChanges = name !== template.name
   if (!nameChanges && !roleChanges) return { ok: true }
+  if (nameChanges && name != null && (await scheduleTemplateNameTaken(db, name, congregationId, template.id))) {
+    return { ok: false, reason: 'taken' }
+  }
 
   if (nameChanges) {
     await db.scheduleTemplate.update({

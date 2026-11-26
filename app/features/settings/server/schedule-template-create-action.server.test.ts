@@ -59,6 +59,16 @@ describe('handleCreateScheduleTemplate', () => {
     expect(createScheduleTemplate).not.toHaveBeenCalled()
   })
 
+  it('says a name another template carries is taken', async () => {
+    vi.mocked(createScheduleTemplate).mockResolvedValueOnce({ ok: false, reason: 'taken' })
+    const result = await handleCreateScheduleTemplate(
+      {} as never,
+      form({ name: 'Visite', kind: 'duty', responsibleRoleId: 'none' }),
+      ACTOR,
+    )
+    expect(result).toEqual({ ok: false, errors: ['Un autre modèle porte déjà ce nom : choisissez-en un autre.'] })
+  })
+
   it('says why the service refused', async () => {
     vi.mocked(createScheduleTemplate).mockResolvedValueOnce({ ok: false, reason: 'role' })
     const result = await handleCreateScheduleTemplate(
