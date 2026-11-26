@@ -9,7 +9,9 @@
 // key, which readers still hand out as `partId`. The legacy keys come whatever the select names. Writers are tested
 // against a `db.item` mock of their own, never through this.
 
-type Args = { where?: Record<string, unknown>; select?: Record<string, unknown> } | undefined
+type Args =
+  | { where?: Record<string, unknown>; select?: Record<string, unknown>; include?: Record<string, unknown> }
+  | undefined
 type Model = Partial<Record<'findMany' | 'findFirst', (args: Args) => unknown>>
 type Row = Record<string, unknown>
 
@@ -41,11 +43,34 @@ function kindOf(args: Args): 'part' | 'service' {
 /** Far from any fixture's ids: a legacy key a test never mistakes for the item's id. */
 const LEGACY_ID_OFFSET = 1_000_000
 
-function asItem(row: unknown, kind: 'part' | 'service', selectsId: boolean): unknown {
+/**
+ * A part's one room row, as R1's trigger keeps it beside every part (parallel rooms): its people and conflict, in the
+ * room its track names (the main room without one). Given only to a query that reads rooms, and never over a fixture's.
+ */
+function roomRowOf(item: Row): Row[] {
+  const track = typeof item.track === 'string' ? item.track : ''
+  return [
+    {
+      id: (typeof item.id === 'number' ? item.id : 0) + LEGACY_ID_OFFSET * 2,
+      roomId: 1,
+      assigneeId: item.assigneeId ?? null,
+      assistantId: item.assistantId ?? null,
+      externalSpeakerId: item.externalSpeakerId ?? null,
+      hasConflict: item.hasConflict ?? false,
+      room: { name: track === '' ? null : track, key: track === '' ? 'main' : null, order: 0 },
+      ...('assignee' in item && { assignee: item.assignee }),
+      ...('assistant' in item && { assistant: item.assistant }),
+      ...('externalSpeaker' in item && { externalSpeaker: item.externalSpeaker }),
+    },
+  ]
+}
+
+function asItem(row: unknown, kind: 'part' | 'service', selectsId: boolean, readsRooms = false): unknown {
   if (row == null || typeof row !== 'object') return row
   const { id, ...rest } = row as Row
   // As Prisma does, a query whose select leaves `id` out gets no id.
   const item: Row = selectsId ? { id, ...rest } : rest
+  if (kind === 'part' && readsRooms && !('rooms' in item)) item.rooms = roomRowOf(row as Row)
   const legacyId = typeof id === 'number' ? id + LEGACY_ID_OFFSET : null
   return kind === 'part'
     ? {
@@ -68,7 +93,10 @@ async function route(models: { part?: Model; service?: Model }, method: 'findMan
   if (!target) throw new Error(`No ${kind} mock for item.${method}`)
   const result = await target(args)
   const selectsId = args?.select == null || args.select.id === true
-  return Array.isArray(result) ? result.map(row => asItem(row, kind, selectsId)) : asItem(result, kind, selectsId)
+  const readsRooms = args?.select?.rooms != null || args?.include?.rooms != null
+  return Array.isArray(result)
+    ? result.map(row => asItem(row, kind, selectsId, readsRooms))
+    : asItem(result, kind, selectsId, readsRooms)
 }
 
 /** A `db.item` mock over the test's part and service mocks. */

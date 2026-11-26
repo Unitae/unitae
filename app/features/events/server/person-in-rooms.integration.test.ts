@@ -21,7 +21,9 @@ const { seedDefaultTemplates, syncTemplateScheduleTemplates } = await import('~/
 const { getPersonalAssignments } = await import('./personal-assignments.server')
 const { listUserConflictsInRange } = await import('./list-user-conflicts-in-range.server')
 const { listUserSameEventAssignments } = await import('./list-user-same-event-assignments.server')
-const { findUpcomingAssignmentsForMember } = await import('./member-engagement.queries')
+const { findLastAssignmentsForMembers, findUpcomingAssignmentsForMember } = await import('./member-engagement.queries')
+const { listCongregationAbsences } = await import('./days-off.queries')
+const { listUserCadence } = await import('./list-user-cadence.server')
 const { getUpcomingAssignments } = await import('~/features/dashboard/server/get-upcoming-assignments.server')
 const { getConflictingAssignments } = await import('~/features/dashboard/server/dashboard.server')
 
@@ -39,6 +41,9 @@ interface Read {
   conflicts: string[]
   dashboardConflict: string | null
   sameEvent: { copies: string[]; rows: string[] }
+  last: string | null
+  absence: string[]
+  cadence: { past: boolean[]; lastAssignedAt: string | null }
   second: { feed: { copies: string[]; rows: string[] }; upcoming: { copies: string[]; rows: string[] } }
 }
 
@@ -101,6 +106,34 @@ describe('a person in another room', () => {
           const upcoming = await getUpcomingAssignments(db, jean, congregationId, new Date('2099-03-01'))
           const member = await findUpcomingAssignmentsForMember(db, jean as never, congregationId as never, since)
           const conflicts = await listUserConflictsInRange(db, jean, since, new Date('2099-12-31'))
+          const last = (
+            await findLastAssignmentsForMembers(db, [jean as never], congregationId as never, new Date('2099-06-01'))
+          ).get(jean as never)
+          await tx.absence.create({
+            data: {
+              startDate: new Date('2099-03-01'),
+              endDate: new Date('2099-03-20'),
+              memberId: jean,
+              accountId: jeanAccount,
+              congregationId,
+            },
+          })
+          const [absence] = await listCongregationAbsences(db, {
+            congregationId,
+            from: new Date('2099-03-01'),
+            to: new Date('2099-03-31'),
+          })
+          // From a meeting after both: was the part his, on each?
+          const cadence = await listUserCadence(db, {
+            userId: jean,
+            event: { templateId: kind.id, id: -1, startDate: new Date('2099-04-01') },
+            congregationId,
+            partName: seeded.partName,
+            partSection: seeded.partSection,
+            slot: 'assignee',
+            pastCount: 4,
+            futureCount: 0,
+          })
           // The dashboard's notice names the first conflict: with the copies' cleared, only the later meeting's row is.
           await tx.item.updateMany({
             where: { eventId: seeded.copies, assigneeId: jean },
@@ -128,6 +161,15 @@ describe('a person in another room', () => {
             ),
             conflicts: conflicts.map(each => `${each.eventDate.toISOString().slice(0, 10)}:${each.assignmentName}`),
             sameEvent: { copies: await sameEvent(seeded.copies), rows: await sameEvent(seeded.rows) },
+            // His last part is the later meeting's, which only its rows hold.
+            last: last == null ? null : `${last.date.toISOString().slice(0, 10)}:${last.partName}`,
+            absence: (absence?.conflicts ?? []).map(
+              each => `${each.eventDate.toISOString().slice(0, 10)}:${each.name}`,
+            ),
+            cadence: {
+              past: cadence.past.map(entry => entry.assigned),
+              lastAssignedAt: cadence.lastAssignedAt?.slice(0, 10) ?? null,
+            },
             dashboardConflict:
               notice == null ? null : `${notice.eventStartDate.toISOString().slice(0, 10)}:${notice.name}`,
             second: {
@@ -164,6 +206,9 @@ describe('a person in another room', () => {
     expect(read.dashboardConflict).toBe(`2099-03-11:${partName}`)
     expect(read.conflicts).toEqual([`2099-03-04:${partName}`, `2099-03-11:${partName}`])
     expect(read.sameEvent).toEqual({ copies: [partName], rows: [partName] })
+    expect(read.last).toBe(`2099-03-11:${partName}`)
+    expect(read.absence).toEqual([`2099-03-04:${partName}`, `2099-03-11:${partName}`])
+    expect(read.cadence).toEqual({ past: [true, true], lastAssignedAt: '2099-03-11' })
     // A second speaker in another room reads as one: his slot and partner are his room's.
     expect(read.second.feed).toEqual({
       copies: ['programme-part-assistant:programme-part-assistant'],

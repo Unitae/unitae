@@ -67,5 +67,5 @@ export async function seedMeetingsInRooms(
     },
   })
   await db.item.delete({ where: { id: second.id } })
-  return { copies: copies.eventId, rows: rows.eventId, partName: first.name }
+  return { copies: copies.eventId, rows: rows.eventId, partName: first.name, partSection: first.section }
 }

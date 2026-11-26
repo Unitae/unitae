@@ -156,7 +156,7 @@ function assertRowPeople(item: RowPeople, row: RowPeople) {
  * with that room's name, place and people. A line other than the main room's takes its row's id, negated, so it never
  * reads as an item's: such a reader keys lines by id and acts on none.
  */
-export function itemsPerRoom<T extends ItemWithRooms & RowPeople>(items: readonly T[]): T[] {
+export function itemsPerRoom<T extends { id: number; rooms?: ItemRoomRow[] } & RowPeople>(items: readonly T[]): T[] {
   return items.flatMap(item => {
     const rows = item.rooms ?? []
     if (rows.length <= 1) return [item]

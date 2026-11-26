@@ -1,3 +1,4 @@
+import { itemsPerRoom } from '~/features/events/model/part-rooms'
 import {
   type CadenceEntry,
   type CadenceHelperResult,
@@ -8,6 +9,7 @@ import {
   PROGRAMME_SCHEDULE_SELECT,
 } from '~/features/events/server/cadence-shared.server'
 import { PART_ITEMS, PART_TIE_BREAK } from '~/features/events/server/item-projection.server'
+import { ITEM_ROOMS } from '~/features/events/server/item-rooms.queries'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 
@@ -47,6 +49,7 @@ export async function listUserCadence(
     // The first matching part names the person: in the items' order, as the old relation returned its rows.
     orderBy: PART_TIE_BREAK,
     select: {
+      id: true,
       name: true,
       section: true,
       assigneeId: true,
@@ -56,6 +59,14 @@ export async function listUserCadence(
       // needs; RLS scopes the join to the same congregation.
       assignee: { select: { firstname: true, lastname: true } },
       assistant: { select: { firstname: true, lastname: true } },
+      // Each room's people (parallel rooms): a part held in several rooms reads as one copy per room.
+      rooms: {
+        select: {
+          ...ITEM_ROOMS.rooms.select,
+          assignee: { select: { firstname: true, lastname: true } },
+          assistant: { select: { firstname: true, lastname: true } },
+        },
+      },
     },
   } as const
 
@@ -88,7 +99,8 @@ export async function listUserCadence(
       where: {
         ...PART_ITEMS,
         event: { ...commonWhere, startDate: { lt: event.startDate } },
-        ...(slot === 'assignee' ? { assigneeId: userId } : { assistantId: userId }),
+        // Held in one of its rooms (parallel rooms).
+        rooms: { some: slot === 'assignee' ? { assigneeId: userId } : { assistantId: userId } },
       },
       select: { name: true, section: true, event: { select: { startDate: true } } },
     }),
@@ -101,7 +113,9 @@ export async function listUserCadence(
     slot === 'assignee' ? (p: PartRow) => p.assigneeId === userId : (p: PartRow) => p.assistantId === userId
   const personOnSlot = (p: PartRow) => (slot === 'assignee' ? p.assignee : p.assistant)
   const toEntry = (row: (typeof pastRows)[number]): CadenceEntry => {
-    const matches = row.items.filter(p => normalize(p.name) === targetName && normalize(p.section) === targetSection)
+    const matches = itemsPerRoom(row.items).filter(
+      p => normalize(p.name) === targetName && normalize(p.section) === targetSection,
+    )
     const person = matches.map(personOnSlot).find(p => p != null)
     return {
       date: row.startDate.toISOString(),
