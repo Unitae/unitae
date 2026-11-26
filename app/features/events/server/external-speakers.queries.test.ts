@@ -44,6 +44,8 @@ const eventStatusBeside = (schedule: string) => (schedule === 'published' ? 'dra
 function part(externalSpeakerId: number, isoDate: string, eventId = 1, status = 'published') {
   return {
     externalSpeakerId,
+    // Its one room, where the speaker is (parallel rooms): as every part has since R1.
+    rooms: [{ externalSpeakerId }],
     schedule: { status },
     event: { id: eventId, startDate: new Date(isoDate), status: eventStatusBeside(status) },
   }
