@@ -332,7 +332,8 @@ export function ScheduleTemplatePanel({
                   {template.title}
                 </Button>
               )}
-              <div className="flex items-center gap-2">
+              {/* Clear of the sheet's close button, which sits over the top right corner. */}
+              <div className="flex items-center gap-2 pr-10">
                 <SheetTitle className="flex-1">{title}</SheetTitle>
                 {actions}
               </div>

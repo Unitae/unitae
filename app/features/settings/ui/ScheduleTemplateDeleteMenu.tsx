@@ -1,3 +1,4 @@
+import { Callout } from '@unitae/ui'
 import { MoreHorizontal } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useFetcher } from 'react-router'
@@ -25,6 +26,7 @@ type Template = Pick<ScheduleTemplateView, 'id' | 'kind' | 'title' | 'kinds' | '
  */
 export function ScheduleTemplateDeleteMenu({ template, onDeleted }: { template: Template; onDeleted: () => void }) {
   const [open, setOpen] = useState(false)
+  const trigger = useRef<HTMLButtonElement>(null)
   const fetcher = useFetcher<{ ok: true } | { ok: false; errors: string[] }>({
     key: `schedule-template-${template.id}-delete-template`,
   })
@@ -45,7 +47,13 @@ export function ScheduleTemplateDeleteMenu({ template, onDeleted }: { template: 
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button type="button" variant="ghost" size="icon-sm" aria-label={m.settings_schedule_templates_actions()}>
+          <Button
+            ref={trigger}
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={m.settings_schedule_templates_actions()}
+          >
             <MoreHorizontal aria-hidden="true" />
           </Button>
         </DropdownMenuTrigger>
@@ -56,7 +64,17 @@ export function ScheduleTemplateDeleteMenu({ template, onDeleted }: { template: 
         </DropdownMenuContent>
       </DropdownMenu>
       <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent
+          onCloseAutoFocus={event => {
+            // Back to the « … » that opened it, or, the template gone with its panel, to the list.
+            const target = trigger.current?.isConnected
+              ? trigger.current
+              : document.querySelector<HTMLElement>('[data-row-primary]')
+            if (target == null) return
+            event.preventDefault()
+            target.focus()
+          }}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>{m.settings_schedule_templates_delete_title({ name: template.title })}</AlertDialogTitle>
             <AlertDialogDescription asChild>
@@ -67,10 +85,10 @@ export function ScheduleTemplateDeleteMenu({ template, onDeleted }: { template: 
                   ))}
                 </ul>
                 <p>{m.settings_schedule_templates_delete_final()}</p>
-                {errors && <p className="text-danger-text">{errors.join(' ')}</p>}
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {errors && <Callout tone="danger" role="alert" title={errors.join(' ')} />}
           <AlertDialogFooter>
             <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
             <Button

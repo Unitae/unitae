@@ -115,6 +115,7 @@ describe('deleteScheduleTemplate', () => {
     expect(read.deleted).toEqual({ name: ids.programmeName, kinds: [ids.kindName], schedules: 1 })
     expect(read.standalone).toEqual({ name: 'Visite', kinds: [], schedules: 0 })
     expect(read.missing).toBeNull()
+    // Another congregation's template is out of reach by RLS here; its own scoping is held by test:tenant-scoping.
     expect(read.programmeLeft).toBe(0)
     // The kind's parts went with its programme template; its services, in its duties template, stay.
     expect(read.kindParts).toBe(0)
