@@ -126,7 +126,10 @@ describe('planMeetingMoves', () => {
 })
 
 describe('programmeAwaits', () => {
-  const midweek = { key: 'midweek-meeting', _count: { parts: 12, serviceParts: 4 } }
+  const midweek = {
+    key: 'midweek-meeting',
+    scheduleTemplates: [{ scheduleTemplate: { _count: { parts: 12, serviceParts: 4 } } }],
+  }
   it('says a programme without parts awaits its own while its template has parts to give', () => {
     expect(programmeAwaits({ kind: 'programme', items: 0, fromTemplate: true }, midweek)).toBe(true)
     expect(programmeAwaits({ kind: 'programme', items: 3, fromTemplate: true }, midweek)).toBe(false)
@@ -137,7 +140,7 @@ describe('programmeAwaits', () => {
     expect(
       programmeAwaits(
         { kind: 'programme', items: 0, fromTemplate: true },
-        { key: 'x', _count: { parts: 0, serviceParts: 4 } },
+        { key: 'x', scheduleTemplates: [{ scheduleTemplate: { _count: { parts: 0, serviceParts: 4 } } }] },
       ),
     ).toBe(false)
     expect(programmeAwaits({ kind: 'programme', items: 0, fromTemplate: true }, null)).toBe(false)

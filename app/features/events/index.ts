@@ -17,6 +17,7 @@ export {
   parseAttendanceKind,
 } from './model/attendance-kind.type'
 export { dayLabel, dayLabelShort } from './model/day-label'
+export { type ProgrammeTemplateCounts, programmeTemplate } from './model/empty-meetings'
 export { EVENT_ORIGINS, EventOrigin, isEventOrigin } from './model/event-origin.type'
 export { EventStatus } from './model/event-status.type'
 export { EventTemplateKey, isSystemTemplate } from './model/event-template.type'

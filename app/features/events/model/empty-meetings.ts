@@ -21,11 +21,39 @@ export function isAwaitingProgramme(event: {
   return event.parts === 0 && event.services === 0
 }
 
-/** isAwaitingProgramme's template from a row selected with TEMPLATE_PROGRAMME_COUNT. */
+/**
+ * A kind as selected with TEMPLATE_PROGRAMME_COUNT: its key, its own rows not placed in a schedule template, and the
+ * schedule templates it uses in order, each with its sort and how many items it holds.
+ */
+export interface ProgrammeTemplateCounts {
+  key: string | null
+  _count?: { parts: number; serviceParts: number }
+  scheduleTemplates: { scheduleTemplate: { kind?: string; _count: { parts: number; serviceParts: number } } }[]
+}
+
+/** The same counts as one total, as the meeting page's payload carries them. */
+export interface ProgrammeTemplateTotals {
+  key: string | null
+  _count: { parts: number; serviceParts: number }
+}
+
+/** isAwaitingProgramme's template from a row selected with TEMPLATE_PROGRAMME_COUNT: its schedule templates' items. */
 export function programmeTemplate(
-  template: { key: string | null; _count: { parts: number; serviceParts: number } } | null,
+  template: ProgrammeTemplateCounts | ProgrammeTemplateTotals | null,
 ): { key: string | null; parts: number; services: number } | null {
-  return template && { key: template.key, parts: template._count.parts, services: template._count.serviceParts }
+  if (template == null) return null
+  if (!('scheduleTemplates' in template)) {
+    return { key: template.key, parts: template._count.parts, services: template._count.serviceParts }
+  }
+  // The copy's rule (kindTemplate): the first template of each sort, then the kind's rows not placed yet.
+  const first = (sort: string) =>
+    template.scheduleTemplates.find(link => (link.scheduleTemplate.kind ?? sort) === sort)?.scheduleTemplate._count
+  const unplaced = template._count ?? { parts: 0, serviceParts: 0 }
+  return {
+    key: template.key,
+    parts: (first(ScheduleKind.Programme)?.parts ?? 0) + unplaced.parts,
+    services: (first(ScheduleKind.Duty)?.serviceParts ?? 0) + unplaced.serviceParts,
+  }
 }
 
 /**
@@ -89,7 +117,7 @@ export function planMeetingMoves(input: {
 export function programmeAwaits(
   /** `fromTemplate`: an empty schedule added by hand has no template's parts to wait for. */
   schedule: { kind: string; items: number; fromTemplate: boolean },
-  template: { key: string | null; _count: { parts: number; serviceParts: number } } | null,
+  template: ProgrammeTemplateCounts | ProgrammeTemplateTotals | null,
 ): boolean {
   if (schedule.kind !== ScheduleKind.Programme || !schedule.fromTemplate) return false
   const given = programmeTemplate(template)

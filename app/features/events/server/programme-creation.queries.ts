@@ -36,8 +36,14 @@ export async function getProgrammeCreationData(
       weekDay: true,
       startTime: true,
       endTime: true,
+      // Its rows not placed in a schedule template yet: a new meeting copies them too (kindTemplate).
       // biome-ignore lint/style/useNamingConvention: Prisma's relation count key
-      _count: { select: { parts: true, serviceParts: true } },
+      _count: {
+        select: {
+          parts: { where: { scheduleTemplateId: null } },
+          serviceParts: { where: { scheduleTemplateId: null } },
+        },
+      },
       scheduleTemplates: {
         select: {
           scheduleTemplate: {
@@ -45,7 +51,8 @@ export async function getProgrammeCreationData(
             select: { name: true, kind: true, _count: { select: { parts: true, serviceParts: true } } },
           },
         },
-        orderBy: [{ order: 'asc' }, { id: 'asc' }],
+        // The same « first » as the copy and the counts (TEMPLATE_INCLUDE, TEMPLATE_PROGRAMME_COUNT).
+        orderBy: [{ order: 'asc' }, { scheduleTemplateId: 'asc' }],
       },
     },
   })
@@ -88,14 +95,8 @@ export async function getProgrammeCreationData(
       weekDay: row.weekDay,
       startTime: row.startTime,
       endTime: row.endTime,
-      parts: row._count.parts,
-      services: row._count.serviceParts,
-      // What giveProgramme creates — one schedule of each kind with items, none empty — as long as the sync keeps one
-      // schedule template per kind holding all the kind's items (syncTemplateScheduleTemplates).
-      schedules: row.scheduleTemplates.flatMap(({ scheduleTemplate: { name, kind, _count } }) => {
-        const items = kind === ScheduleKind.Programme ? _count.parts : _count.serviceParts
-        return items > 0 ? [{ name, kind, items }] : []
-      }),
+      // What a new meeting copies (kindTemplate): the first template of each sort, and the kind's rows not placed.
+      ...copiedBy(row),
       lastDay: lastDays.get(row.id) ?? null,
     }))
     .sort(byWeekThenName)
@@ -120,4 +121,36 @@ function weekPosition(weekDay: number | null): number {
 
 function byWeekThenName(a: CreationTemplate, b: CreationTemplate): number {
   return weekPosition(a.weekDay) - weekPosition(b.weekDay) || a.name.localeCompare(b.name, getLocale())
+}
+
+/**
+ * What « Créer » gives a new meeting of the kind, as kindTemplate copies it: its parts and services, and one schedule
+ * of each sort that has items (none empty), in the order the kind lists its templates.
+ */
+function copiedBy(row: {
+  _count: { parts: number; serviceParts: number }
+  scheduleTemplates: {
+    scheduleTemplate: { name: string | null; kind: string; _count: { parts: number; serviceParts: number } }
+  }[]
+}) {
+  const sorts = [ScheduleKind.Programme, ScheduleKind.Duty].map(kind => {
+    const at = row.scheduleTemplates.findIndex(link => link.scheduleTemplate.kind === kind)
+    const template = row.scheduleTemplates[at]?.scheduleTemplate
+    const of = kind === ScheduleKind.Programme ? 'parts' : 'serviceParts'
+    return {
+      kind,
+      at: at < 0 ? Number.MAX_SAFE_INTEGER : at,
+      name: template?.name ?? null,
+      items: (template?._count[of] ?? 0) + row._count[of],
+    }
+  })
+  const [parts, services] = sorts
+  return {
+    parts: parts?.items ?? 0,
+    services: services?.items ?? 0,
+    schedules: sorts
+      .filter(sort => sort.items > 0)
+      .sort((a, b) => a.at - b.at)
+      .map(({ name, kind, items }) => ({ name, kind, items })),
+  }
 }

@@ -42,7 +42,7 @@ describe('listProgrammes', () => {
           name: 'Réunion de semaine',
           color: '#3b82f6',
           key: 'midweek-meeting',
-          _count: { parts: 12, serviceParts: 4 },
+          scheduleTemplates: [{ scheduleTemplate: { _count: { parts: 12, serviceParts: 4 } } }],
         },
         items: [part(5), service(9), part(null, 2), part(null), service(null), part(7, null, true), service(5, true)],
       },
@@ -73,14 +73,24 @@ describe('listProgrammes', () => {
         id: 1,
         name: 'Réunion',
         templateId: 4,
-        template: { name: 'R', color: '#000', key: null, _count: { parts: 12, serviceParts: 4 } },
+        template: {
+          name: 'R',
+          color: '#000',
+          key: null,
+          scheduleTemplates: [{ scheduleTemplate: { _count: { parts: 12, serviceParts: 4 } } }],
+        },
       },
       {
         ...empty,
         id: 2,
         name: 'Nettoyage',
         templateId: 9,
-        template: { name: 'A', color: '#000', key: 'freeform', _count: { parts: 0, serviceParts: 0 } },
+        template: {
+          name: 'A',
+          color: '#000',
+          key: 'freeform',
+          scheduleTemplates: [{ scheduleTemplate: { _count: { parts: 0, serviceParts: 0 } } }],
+        },
       },
     ] as never)
 

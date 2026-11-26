@@ -1,6 +1,7 @@
 import type { AttendanceKind } from '~/features/events/model/attendance-kind.type'
 import { isSystemTemplate } from '~/features/events/model/event-template.type'
 import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
+import { TEMPLATE_PROGRAMME_COUNT } from '~/features/events/server/give-programme.server'
 import { syncTemplateScheduleTemplates } from '~/features/events/server/schedule-templates.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -19,7 +20,9 @@ export function getTemplates(db: TransactionClient, congregationId: number) {
   return db.eventTemplate.findMany({
     where: { congregationId },
     include: {
-      _count: { select: { parts: true, serviceParts: true, events: true } },
+      // Its items: those of the schedule templates it uses (6b-0), beside its events.
+      _count: { select: { events: true, ...TEMPLATE_PROGRAMME_COUNT._count.select } },
+      scheduleTemplates: TEMPLATE_PROGRAMME_COUNT.scheduleTemplates,
       responsibles: responsibleInclude,
     },
     orderBy: { name: 'asc' },

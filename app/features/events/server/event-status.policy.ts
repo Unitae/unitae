@@ -1,4 +1,4 @@
-import { programmeAwaits } from '~/features/events/model/empty-meetings'
+import { type ProgrammeTemplateCounts, programmeAwaits } from '~/features/events/model/empty-meetings'
 import * as m from '~/i18n/paraglide/messages'
 import { ConflictError } from '~/shared/errors/app-error.server'
 
@@ -49,7 +49,7 @@ export type PublishRefusal = 'conflicts' | 'awaiting' | 'empty'
  */
 export function scheduleRefusal(
   schedule: { kind: string; items: { hasConflict: boolean }[]; fromTemplate: boolean },
-  template: { key: string | null; _count: { parts: number; serviceParts: number } } | null,
+  template: ProgrammeTemplateCounts | null,
 ): PublishRefusal | null {
   const { kind, items, fromTemplate } = schedule
   if (programmeAwaits({ kind, items: items.length, fromTemplate }, template)) return 'awaiting'
