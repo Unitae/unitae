@@ -45,7 +45,7 @@ Numa parte, **Onde** indica onde decorre:
 
 ## O responsável
 
-O titular e os adjuntos da função escolhida podem preencher e publicar os planeamentos criados a partir deste modelo, em todas as reuniões. Quem tem a função muda-se no organigrama.
+O titular e os adjuntos da função escolhida podem preencher e publicar os planeamentos criados a partir deste modelo, em todas as reuniões. Quem tem a função muda-se no organigrama. O nome e o responsável mudam-se no topo do painel do modelo; num telemóvel, toque primeiro em **Alterar o nome e o responsável**.
 
 ## Eliminar um modelo
 

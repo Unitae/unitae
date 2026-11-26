@@ -4445,6 +4445,7 @@
     "settings_schedule_templates_responsible_none": "Nenhum responsável designado",
     "settings_schedule_templates_responsible_none_short": "Nenhum",
     "settings_schedule_templates_responsible_hint": "O titular e os adjuntos deste papel podem preencher e publicar os planeamentos criados a partir deste modelo, em todas as reuniões.",
+    "settings_schedule_templates_edit_fields": "Alterar o nome e o responsável",
     "settings_schedule_templates_holders": "Atualmente: {names}.",
     "settings_schedule_templates_holders_none": "Atualmente, ninguém tem esta função.",
     "settings_schedule_templates_suggested_by": "Utilizado em",

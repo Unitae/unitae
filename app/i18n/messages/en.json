@@ -4445,6 +4445,7 @@
     "settings_schedule_templates_responsible_none": "No person in charge assigned",
     "settings_schedule_templates_responsible_none_short": "None",
     "settings_schedule_templates_responsible_hint": "The holder and the deputies of this role can fill in and publish the schedules created from this template, on every meeting.",
+    "settings_schedule_templates_edit_fields": "Edit the name and the person in charge",
     "settings_schedule_templates_holders": "Today: {names}.",
     "settings_schedule_templates_holders_none": "Nobody holds this role today.",
     "settings_schedule_templates_suggested_by": "Used in",

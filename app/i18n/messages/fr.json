@@ -4445,6 +4445,7 @@
     "settings_schedule_templates_responsible_none": "Aucun responsable désigné",
     "settings_schedule_templates_responsible_none_short": "Aucun",
     "settings_schedule_templates_responsible_hint": "Le titulaire et les adjoints de ce rôle peuvent remplir et publier les plannings créés à partir de ce modèle, sur toutes les réunions.",
+    "settings_schedule_templates_edit_fields": "Modifier le nom et le responsable",
     "settings_schedule_templates_holders": "Aujourd’hui : {names}.",
     "settings_schedule_templates_holders_none": "Personne n’a ce rôle aujourd’hui.",
     "settings_schedule_templates_suggested_by": "Utilisé dans",
