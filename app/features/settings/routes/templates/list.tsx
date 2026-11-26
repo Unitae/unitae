@@ -43,7 +43,7 @@ export function loader({ context }: Route.LoaderArgs) {
       endTime: template.endTime,
       // What its schedule templates hold (6b-0).
       ...countsOf(template),
-      responsibles: template.responsibles.map(responsible => responsible.role),
+      responsibles: template.responsibles,
     }))
     return {
       templates: rows.filter(row => !isSystemTemplate(row.key)),

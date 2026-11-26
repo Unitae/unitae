@@ -108,7 +108,7 @@ async function syncScheduleTemplate(
 /**
  * Writes a kind's TemplateResponsible rows onto its first schedule template of each sort, none when a scope has no row:
  * what the sync did on every pass until 6b-1b, kept for restoring an archive whose kinds hold their responsibles there
- * (2.20 and older, or merged into a kind the congregation had), so restoring gives what migrating live data gave.
+ * alone (2.20 and older, which carries no schedule templates), so restoring gives what migrating live data gave.
  */
 export async function applyKindResponsibles(db: TransactionClient, templateId: number, congregationId: number) {
   const kind = await db.eventTemplate.findFirst({

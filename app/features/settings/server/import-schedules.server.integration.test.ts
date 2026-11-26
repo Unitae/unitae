@@ -439,6 +439,49 @@ describe('restoring a 2.21 archive into templates that already have schedule tem
   })
 })
 
+// From 6b-1b a schedule template holds its responsible and the kind's rows no longer follow « Modèles de planning »: an
+// archive carrying its schedule templates restores their roles, whatever stale row the kind came with.
+describe('restoring an archive whose schedule templates hold their responsibles', () => {
+  for (const [label, archived] of [
+    ['keeps a role the page changed', 'changed'],
+    ['keeps none where the page removed it', 'removed'],
+  ] as const) {
+    it(`${label}, past the kind's stale row, into a kind the congregation has`, async () => {
+      await restored(async ({ db, congregationId, templateId }) => {
+        // The congregation's kind has its schedule templates, no responsible; the archive's stale row lands on it, as
+        // importTemplateResponsibles writes it before the settle step.
+        const rows = await db.templateResponsible.findMany({ where: { templateId } })
+        await db.templateResponsible.deleteMany({ where: { templateId } })
+        await syncTemplateScheduleTemplates(db, templateId, congregationId)
+        await db.templateResponsible.createMany({ data: rows.map(({ id: _, ...row }) => row) })
+        const page = (await db.role.create({ data: { key: `page-${templateId}`, name: 'P', congregationId } })).id
+        const zip = new JsZip()
+        writeNdjsonFile(zip, 'schedules', [])
+        writeNdjsonFile(zip, 'schedule-templates', [
+          {
+            id: 11,
+            name: 'Réunion',
+            key: null,
+            kind: 'programme',
+            responsibleRoleId: archived === 'changed' ? 7 : null,
+          },
+        ])
+        writeNdjsonFile(zip, 'kind-schedule-templates', [{ eventKindId: 2, scheduleTemplateId: 11, order: 0 }])
+        const idMap = new EntityIdMap()
+        idMap.set('programme-templates', 2, templateId)
+        idMap.set('roles', 7, page)
+
+        await importScheduleTemplates(zip, db, idMap, congregationId)
+        const merged = await importKindScheduleTemplates(zip, db, idMap, congregationId)
+        await settleImportedSchedules(zip, db, congregationId, merged)
+
+        const programme = await db.scheduleTemplate.findFirstOrThrow({ where: { kind: 'programme' } })
+        expect(programme.responsibleRoleId).toBe(archived === 'changed' ? page : null)
+      })
+    })
+  }
+})
+
 describe('restoring a schedule template the congregation renamed in Réglages', () => {
   it('keeps the archived name on the schedule template it merges into, past the settle step', async () => {
     await restored(async ({ db, congregationId, templateId }) => {

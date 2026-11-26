@@ -302,8 +302,10 @@ export async function settleImportedSchedules(
   }
   for (const template of templates) {
     await syncTemplateScheduleTemplates(db, template.id, congregationId)
-    // The sync gives a responsible on creation only (6b-1b): an existing schedule template takes the archive's here.
-    await applyKindResponsibles(db, template.id, congregationId)
+    // The sync gives a responsible on creation only (6b-1b). An archive without schedule templates (2.20 and older) holds
+    // its responsibles in the kinds' rows alone, which go onto the schedule templates a kind already had. A newer one
+    // carries them on its schedule templates, and its kinds' rows may be stale since 6b-1b: they are left to say nothing.
+    if (!carriesSchedules) await applyKindResponsibles(db, template.id, congregationId)
   }
 
   const withoutSchedule = carriesSchedules ? { scheduleId: null } : {}
