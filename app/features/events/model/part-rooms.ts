@@ -129,12 +129,52 @@ export function partsInRooms<T extends ItemWithRooms>(items: readonly T[]): Part
   return parts
 }
 
+/** The people a room row may be read with, as the item is: what a copy-shaped line carries for its room. */
+interface RowPeople {
+  assignee?: unknown
+  assistant?: unknown
+  externalSpeaker?: unknown
+}
+
+/**
+ * A programme's items as copies, for a reader that draws them (the board and its PDF, which join copies sharing an
+ * order): an item with one room is left as it is; an item with a row per room (R4's shape) becomes one copy per room,
+ * with that room's name, place and people. A line other than the main room's takes its row's id, negated, so it never
+ * reads as an item's: such a reader keys lines by id and acts on none.
+ */
+export function itemsPerRoom<T extends ItemWithRooms & RowPeople>(items: readonly T[]): T[] {
+  return items.flatMap(item => {
+    const rows = item.rooms ?? []
+    if (rows.length <= 1) return [item]
+    return [...rows]
+      .sort((a, b) => a.room.order - b.room.order || a.id - b.id)
+      .map(row => {
+        const people = row as ItemRoomRow & RowPeople
+        const isMain = row.room.key === 'main'
+        return {
+          ...item,
+          id: isMain ? item.id : -row.id,
+          track: label(row.room),
+          trackOrder: row.room.order + 1,
+          assigneeId: row.assigneeId,
+          assistantId: row.assistantId,
+          externalSpeakerId: row.externalSpeakerId,
+          hasConflict: row.hasConflict,
+          ...('assignee' in people && { assignee: people.assignee }),
+          ...('assistant' in people && { assistant: people.assistant }),
+          ...('externalSpeaker' in people && { externalSpeaker: people.externalSpeaker }),
+          rooms: [row],
+        } as T
+      })
+  })
+}
+
 /**
  * A part as one of its people holds it: the item, with the room row that holds `who` (speaker or second speaker) in
  * the place of the item's own people and conflict, and without its rows. A copy reads as it is (its row is its
  * columns); an item with a row per room reads as its holder's room. An item none of whose rows holds `who` reads as is.
  */
-export function heldBy<T extends ItemWithRooms & RowPeople>(
+export function heldBy<T extends { rooms?: ItemRoomRow[] } & RowPeople>(
   item: T,
   who: number | readonly number[],
 ): Omit<T, 'rooms'> {
@@ -145,14 +185,15 @@ export function heldBy<T extends ItemWithRooms & RowPeople>(
     | undefined
   const { rooms, ...rest } = item
   if (row == null) return rest
+  // Each field is the item's own type: a row carries the same people, read the same way.
   return {
     ...rest,
-    assigneeId: row.assigneeId,
-    assistantId: row.assistantId,
-    externalSpeakerId: row.externalSpeakerId,
-    hasConflict: row.hasConflict,
+    ...('assigneeId' in rest && { assigneeId: row.assigneeId }),
+    ...('assistantId' in rest && { assistantId: row.assistantId }),
+    ...('externalSpeakerId' in rest && { externalSpeakerId: row.externalSpeakerId }),
+    ...('hasConflict' in rest && { hasConflict: row.hasConflict }),
     ...('assignee' in row && { assignee: row.assignee }),
     ...('assistant' in row && { assistant: row.assistant }),
     ...('externalSpeaker' in row && { externalSpeaker: row.externalSpeaker }),
-  }
+  } as Omit<T, 'rooms'>
 }

@@ -88,7 +88,8 @@ describe('a person in another room', () => {
           const feed = (await getPersonalAssignments(db, jeanAccount, congregationId, since)).filter(
             item => item.kind !== 'day-off',
           )
-          const upcoming = await getUpcomingAssignments(db, jean, congregationId, since)
+          // The dashboard looks four weeks ahead.
+          const upcoming = await getUpcomingAssignments(db, jean, congregationId, new Date('2099-03-01'))
           const member = await findUpcomingAssignmentsForMember(db, jean as never, congregationId as never, since)
           const conflicts = await listUserConflictsInRange(db, jean, since, new Date('2099-12-31'))
           const sameEvent = async (eventId: number) =>
