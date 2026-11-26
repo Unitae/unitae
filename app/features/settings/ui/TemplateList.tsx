@@ -4,6 +4,7 @@ import { dayLabel } from '~/features/events'
 import * as m from '~/i18n/paraglide/messages'
 import { getRoleDisplayName } from '~/shared/types/role'
 import { openRowOnClick } from '~/shared/ui/row-click'
+import { cn } from '~/shared/utils/utils'
 
 export interface TemplateRow {
   id: number
@@ -34,7 +35,16 @@ function content(row: TemplateRow): string {
 }
 
 /** Both tables share their columns, so the built-in rows line up under the congregation's. */
-function Columns() {
+function Columns({ compact = false }: { compact?: boolean }) {
+  // Beside the docked panel only the name and when columns show: they share the width.
+  if (compact) {
+    return (
+      <colgroup>
+        <col className="w-[58%]" />
+        <col />
+      </colgroup>
+    )
+  }
   return (
     <colgroup>
       <col className="md:w-[26%]" />
@@ -46,11 +56,21 @@ function Columns() {
 }
 
 /** A template's name and colour; on a phone, when it happens under the name. Its link is stretched over the row. */
-function TemplateName({ row, when }: { row: Pick<TemplateRow, 'id' | 'name' | 'color'>; when: string }) {
+function TemplateName({
+  row,
+  when,
+  selected,
+}: {
+  row: Pick<TemplateRow, 'id' | 'name' | 'color'>
+  when: string
+  selected: boolean
+}) {
   return (
     <td className={cellClass}>
       <Link
-        to={`/settings/templates/${row.id}`}
+        // It opens in the side panel (6b-2b), keeping the page's other parameters out.
+        to={`/settings/templates?type=${row.id}`}
+        aria-current={selected ? 'true' : undefined}
         data-row-primary
         className="flex items-center gap-2.5 font-medium outline-none rounded-sm focus-visible:ring-2 focus-visible:ring-ring"
       >
@@ -67,26 +87,37 @@ function TemplateName({ row, when }: { row: Pick<TemplateRow, 'id' | 'name' | 'c
 const rowClass = 'group relative cursor-pointer transition-colors duration-(--u-duration-fast) hover:bg-hover'
 
 /** The congregation's templates: their colour, when they happen, what they hold and who runs them. */
-export function TemplateTable({ rows }: { rows: TemplateRow[] }) {
+export function TemplateTable({
+  rows,
+  selectedId,
+  compact,
+}: {
+  rows: TemplateRow[]
+  /** The type open in the side panel. */
+  selectedId: number | null
+  /** Beside the docked panel: its name and when columns only. */
+  compact: boolean
+}) {
+  const hide = compact ? 'hidden' : wideOnly
   return (
     <div className="overflow-x-auto rounded-lg border border-border bg-card">
       <table className="w-full border-collapse text-sm md:table-fixed">
-        <Columns />
+        <Columns compact={compact} />
         <thead className={wideOnly}>
           <tr>
             <th className={headClass}>{m.settings_templates_col_template()}</th>
             <th className={headClass}>{m.settings_templates_col_when()}</th>
-            <th className={headClass}>{m.settings_templates_col_content()}</th>
-            <th className={headClass}>{m.settings_templates_col_responsibles()}</th>
+            <th className={`${headClass} ${hide}`}>{m.settings_templates_col_content()}</th>
+            <th className={`${headClass} ${hide}`}>{m.settings_templates_col_responsibles()}</th>
           </tr>
         </thead>
         <tbody>
           {rows.map(row => (
-            <tr key={row.id} onClick={openRowOnClick} className={rowClass}>
-              <TemplateName row={row} when={when(row)} />
+            <tr key={row.id} onClick={openRowOnClick} className={cn(rowClass, row.id === selectedId && 'bg-selected')}>
+              <TemplateName row={row} when={when(row)} selected={row.id === selectedId} />
               <td className={`${cellClass} ${wideOnly} truncate text-muted-foreground tabular-nums`}>{when(row)}</td>
-              <td className={`${cellClass} ${wideOnly} truncate text-muted-foreground`}>{content(row)}</td>
-              <td className={`${cellClass} ${wideOnly}`}>
+              <td className={`${cellClass} ${hide} truncate text-muted-foreground`}>{content(row)}</td>
+              <td className={`${cellClass} ${hide}`}>
                 {row.responsibles.length > 0 ? (
                   <span className="flex flex-wrap gap-1">
                     {row.responsibles.map(role => (
@@ -110,8 +141,17 @@ export function TemplateTable({ rows }: { rows: TemplateRow[] }) {
  * changes. A one-off event is dated by whoever creates it, with its own name and hours; nobody is responsible for it, so
  * the last column stays empty (the table keeps the congregation's columns).
  */
-export function BuiltInTemplates({ rows }: { rows: TemplateRow[] }) {
+export function BuiltInTemplates({
+  rows,
+  selectedId,
+  compact,
+}: {
+  rows: TemplateRow[]
+  selectedId: number | null
+  compact: boolean
+}) {
   if (rows.length === 0) return null
+  const hide = compact ? 'hidden' : wideOnly
   return (
     <Panel
       title={
@@ -122,18 +162,22 @@ export function BuiltInTemplates({ rows }: { rows: TemplateRow[] }) {
       }
     >
       <table className="w-full border-collapse text-sm md:table-fixed">
-        <Columns />
+        <Columns compact={compact} />
         <tbody>
           {rows.map(row => {
             const happens = m.settings_templates_one_time()
             return (
-              <tr key={row.id} onClick={openRowOnClick} className={rowClass}>
-                <TemplateName row={row} when={happens} />
+              <tr
+                key={row.id}
+                onClick={openRowOnClick}
+                className={cn(rowClass, row.id === selectedId && 'bg-selected')}
+              >
+                <TemplateName row={row} when={happens} selected={row.id === selectedId} />
                 <td className={`${cellClass} ${wideOnly} truncate text-muted-foreground`}>{happens}</td>
-                <td className={`${cellClass} ${wideOnly} truncate text-muted-foreground`}>
+                <td className={`${cellClass} ${hide} truncate text-muted-foreground`}>
                   {m.settings_templates_freeform_content()}
                 </td>
-                <td className={`${cellClass} ${wideOnly} truncate text-faint`} />
+                <td className={`${cellClass} ${hide} truncate text-faint`} />
               </tr>
             )
           })}

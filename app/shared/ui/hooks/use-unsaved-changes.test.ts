@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-let capturedBlockerFn: (args: { currentLocation: { pathname: string }; nextLocation: { pathname: string } }) => boolean
+type Place = { pathname: string; search?: string }
+let capturedBlockerFn: (args: { currentLocation: Place; nextLocation: Place }) => boolean
 let capturedEffects: Array<() => undefined | (() => void)>
 let capturedDeps: unknown[][]
 let setIsDirty: ReturnType<typeof vi.fn>
@@ -37,11 +38,11 @@ vi.mock('react-router', () => ({
 const { useUnsavedChanges } = await import('./use-unsaved-changes')
 const { useState } = await import('react')
 
-function loc(pathname: string) {
-  return { pathname }
+function loc(pathname: string, search = '') {
+  return { pathname, search }
 }
 
-function simulateHook(dirty: boolean, navState = 'idle') {
+function simulateHook(dirty: boolean, navState = 'idle', param?: string) {
   capturedEffects = []
   capturedDeps = []
   navigationState = { state: navState }
@@ -50,7 +51,7 @@ function simulateHook(dirty: boolean, navState = 'idle') {
 
   vi.mocked(useState).mockReturnValue([dirty, setIsDirty] as never)
 
-  return useUnsavedChanges()
+  return useUnsavedChanges(param)
 }
 
 beforeEach(() => {
@@ -84,6 +85,29 @@ describe('useUnsavedChanges', () => {
         nextLocation: loc('/publishers'),
       })
       expect(blocked).toBe(false)
+    })
+
+    // An item opened on the same page by a search parameter (« Types d’évènement »'s `?type=`, 6b-2b).
+    it('blocks moving the named parameter to another item, or none, when dirty, and nothing else on the page', () => {
+      simulateHook(true, 'idle', 'type')
+      const from = loc('/settings/templates', '?type=4')
+      expect(capturedBlockerFn({ currentLocation: from, nextLocation: loc('/settings/templates', '?type=5') })).toBe(
+        true,
+      )
+      expect(capturedBlockerFn({ currentLocation: from, nextLocation: loc('/settings/templates') })).toBe(true)
+      expect(
+        capturedBlockerFn({ currentLocation: from, nextLocation: loc('/settings/templates', '?type=4&help=x') }),
+      ).toBe(false)
+    })
+
+    it('leaves a search change alone without a named parameter', () => {
+      simulateHook(true)
+      expect(
+        capturedBlockerFn({
+          currentLocation: loc('/settings/templates', '?type=4'),
+          nextLocation: loc('/settings/templates', '?type=5'),
+        }),
+      ).toBe(false)
     })
 
     it('allows navigation to the same pathname when not dirty', () => {

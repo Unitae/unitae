@@ -6,8 +6,11 @@ import { useBlocker, useNavigation } from 'react-router'
  * Returns the blocker state and a markDirty callback for form onChange, or setDirty for a form that
  * knows when it is back to what it loaded.
  * Automatically resets dirty state when a form submission starts.
+ *
+ * `param` names a search parameter that opens an item on the same page (`?type=` on « Types d’évènement »): moving to
+ * another value, or none, leaves the item as surely as leaving the page, and asks first too.
  */
-export function useUnsavedChanges() {
+export function useUnsavedChanges(param?: string) {
   const [isDirty, setIsDirty] = useState(false)
   // What the tab-close warning reads. A submission clears it at once: React Router commits the
   // 'submitting' state in a transition, and an action answering with redirectDocument can unload
@@ -21,9 +24,13 @@ export function useUnsavedChanges() {
     }
   }, [navigation.state])
 
-  const blocker = useBlocker(
-    ({ currentLocation, nextLocation }) => isDirty && currentLocation.pathname !== nextLocation.pathname,
-  )
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => {
+    if (!isDirty) return false
+    if (currentLocation.pathname !== nextLocation.pathname) return true
+    if (param == null) return false
+    const of = (search: string) => new URLSearchParams(search).get(param)
+    return of(currentLocation.search) !== of(nextLocation.search)
+  })
 
   // Warn on tab close / browser back
   useEffect(() => {

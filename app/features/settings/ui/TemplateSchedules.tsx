@@ -1,4 +1,4 @@
-import { Callout, Panel } from '@unitae/ui'
+import { Callout } from '@unitae/ui'
 import { ChevronDown, ChevronRight, ChevronUp, Plus, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useFetcher } from 'react-router'
@@ -22,10 +22,13 @@ const rowLine = (row: TemplateScheduleRow) =>
  * sort: a new meeting copies the first of each), removes one and moves it up or down (6b-2).
  */
 export function TemplateSchedules({
+  typeId,
   rows,
   candidates,
   editable,
 }: {
+  /** The type whose templates these are: the list's action writes it (6b-2b). */
+  typeId: number
   rows: TemplateScheduleRow[]
   /** The templates it may come to use: of a sort it uses none of. Null when it uses one of each. */
   candidates: TemplateScheduleRow[] | null
@@ -49,6 +52,7 @@ export function TemplateSchedules({
     refocus.current = intent !== 'use-schedule-template'
     const form = new FormData()
     form.set('intent', intent)
+    form.set('typeId', String(typeId))
     for (const id of ids) form.append('scheduleTemplateId', String(id))
     fetcher.submit(form, { method: 'post' })
   }
@@ -60,87 +64,88 @@ export function TemplateSchedules({
   }
 
   return (
-    <Panel title={m.settings_template_schedules_title()} padded>
-      <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
+        <h3 className="font-medium text-sm">{m.settings_template_schedules_title()}</h3>
         <p className="text-faint text-xs">{m.settings_template_schedules_hint()}</p>
-        {refusal && <Callout tone="danger" role="alert" title={refusal} />}
-        <section
-          ref={list}
-          tabIndex={-1}
-          aria-label={m.settings_template_schedules_title()}
-          className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          {rows.length === 0 ? (
-            <p className="text-muted-foreground text-sm">{m.settings_template_schedules_empty()}</p>
-          ) : (
-            <ul className="flex flex-col rounded-md border border-border">
-              {rows.map((row, index) => (
-                <li key={row.id} className="flex items-center gap-1 border-border border-b pr-1.5 last:border-b-0">
-                  <Link
-                    to={`/settings/schedule-templates?template=${row.id}`}
-                    data-schedule-template-id={row.id}
-                    className="flex min-h-11 min-w-0 flex-1 items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm outline-none transition-colors duration-(--u-duration-fast) hover:bg-hover focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="font-medium">{row.title}</span>
-                      <span className="text-faint text-xs">{rowLine(row)}</span>
-                    </span>
-                    {!editable && <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-faint" />}
-                  </Link>
-                  {editable && (
-                    <>
-                      {rows.length > 1 && (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            disabled={busy || index === 0}
-                            aria-label={m.settings_template_schedules_up({ name: row.title })}
-                            onClick={() => move(index, index - 1)}
-                          >
-                            <ChevronUp />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            disabled={busy || index === rows.length - 1}
-                            aria-label={m.settings_template_schedules_down({ name: row.title })}
-                            onClick={() => move(index, index + 1)}
-                          >
-                            <ChevronDown />
-                          </Button>
-                        </>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        disabled={busy}
-                        aria-label={m.settings_template_schedules_remove({ name: row.title })}
-                        onClick={() => submit('stop-schedule-template', [row.id])}
-                      >
-                        <X />
-                      </Button>
-                    </>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-        {editable && candidates != null && (
-          <Button
-            ref={opener}
-            variant="ghost"
-            size="sm"
-            className="self-start"
-            disabled={busy}
-            onClick={() => setPicking(true)}
-          >
-            <Plus />
-            {m.settings_template_schedules_use()}
-          </Button>
-        )}
       </div>
+      {refusal && <Callout tone="danger" role="alert" title={refusal} />}
+      <section
+        ref={list}
+        tabIndex={-1}
+        aria-label={m.settings_template_schedules_title()}
+        className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        {rows.length === 0 ? (
+          <p className="text-muted-foreground text-sm">{m.settings_template_schedules_empty()}</p>
+        ) : (
+          <ul className="flex flex-col rounded-md border border-border">
+            {rows.map((row, index) => (
+              <li key={row.id} className="flex items-center gap-1 border-border border-b pr-1.5 last:border-b-0">
+                <Link
+                  to={`/settings/schedule-templates?template=${row.id}`}
+                  data-schedule-template-id={row.id}
+                  className="flex min-h-11 min-w-0 flex-1 items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm outline-none transition-colors duration-(--u-duration-fast) hover:bg-hover focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="font-medium">{row.title}</span>
+                    <span className="text-faint text-xs">{rowLine(row)}</span>
+                  </span>
+                  {!editable && <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-faint" />}
+                </Link>
+                {editable && (
+                  <>
+                    {rows.length > 1 && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          disabled={busy || index === 0}
+                          aria-label={m.settings_template_schedules_up({ name: row.title })}
+                          onClick={() => move(index, index - 1)}
+                        >
+                          <ChevronUp />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          disabled={busy || index === rows.length - 1}
+                          aria-label={m.settings_template_schedules_down({ name: row.title })}
+                          onClick={() => move(index, index + 1)}
+                        >
+                          <ChevronDown />
+                        </Button>
+                      </>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      disabled={busy}
+                      aria-label={m.settings_template_schedules_remove({ name: row.title })}
+                      onClick={() => submit('stop-schedule-template', [row.id])}
+                    >
+                      <X />
+                    </Button>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+      {editable && candidates != null && (
+        <Button
+          ref={opener}
+          variant="ghost"
+          size="sm"
+          className="self-start"
+          disabled={busy}
+          onClick={() => setPicking(true)}
+        >
+          <Plus />
+          {m.settings_template_schedules_use()}
+        </Button>
+      )}
       <Dialog open={picking} onOpenChange={setPicking}>
         <DialogContent
           className="sm:max-w-md"
@@ -186,6 +191,6 @@ export function TemplateSchedules({
           )}
         </DialogContent>
       </Dialog>
-    </Panel>
+    </div>
   )
 }

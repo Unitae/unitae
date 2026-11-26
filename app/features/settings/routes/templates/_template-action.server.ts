@@ -94,7 +94,7 @@ export async function handleTemplateAction(
     if (!copy) return null
     return {
       kind: 'moved',
-      to: `/settings/templates/${copy.id}`,
+      to: `/settings/templates?type=${copy.id}`,
       message: m.settings_template_view_duplicate_success({ name: copy.name }),
     }
   }

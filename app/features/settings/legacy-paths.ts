@@ -8,7 +8,7 @@ const MOVED: [RegExp, (match: RegExpMatchArray) => string][] = [
   [/^\/settings\/congregation\/presets(\/.*)?$/, () => '/settings/part-types'],
   [
     /^\/settings\/congregation\/templates\/(\d+)(\/(edit|responsible))?\/?$/,
-    match => `/settings/templates/${match[1]}`,
+    match => `/settings/templates?type=${match[1]}`,
   ],
   [/^\/settings\/users\/(\d+)\/edit\/?$/, match => `/settings/users/${match[1]}`],
   [/^\/settings\/permissions\/?$/, () => '/settings/roles'],
