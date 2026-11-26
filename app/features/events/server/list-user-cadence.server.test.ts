@@ -464,7 +464,8 @@ describe('listUserCadence', () => {
     await listUserCadence(db, DEFAULT_ARGS)
 
     const call = vi.mocked(db.eventPart.findMany).mock.calls[0][0]
-    expect(call?.where).toMatchObject({ assigneeId: 5 })
+    // Held in one of its rooms (parallel rooms), on that slot only.
+    expect(call?.where).toMatchObject({ rooms: { some: { assigneeId: 5 } } })
     expect(call?.where).not.toHaveProperty('assistantId')
   })
 
@@ -523,7 +524,7 @@ describe('listUserCadence', () => {
     await listUserCadence(db, { ...DEFAULT_ARGS, slot: 'assistant' })
 
     const call = vi.mocked(db.eventPart.findMany).mock.calls[0][0]
-    expect(call?.where).toMatchObject({ assistantId: 5 })
+    expect(call?.where).toMatchObject({ rooms: { some: { assistantId: 5 } } })
     expect(call?.where).not.toHaveProperty('assigneeId')
   })
 

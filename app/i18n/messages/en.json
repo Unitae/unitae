@@ -4441,15 +4441,14 @@
     "settings_schedule_templates_meta_title": "Schedule templates - Unitae",
     "settings_schedule_templates_subtitle": "This page is for creating schedule templates, so you don’t redo every schedule by hand each time; any change here carries into future programs.",
     "settings_schedule_templates_name": "Name",
-    "settings_schedule_templates_name_hint": "Schedules already created keep their name.",
     "settings_schedule_templates_responsible": "Person in charge",
     "settings_schedule_templates_responsible_none": "No person in charge assigned",
     "settings_schedule_templates_responsible_none_short": "None",
-    "settings_schedule_templates_responsible_hint": "The holder and deputies of this role fill and publish the schedules made from this template, on every meeting.",
+    "settings_schedule_templates_responsible_hint": "The holder and the deputies of this role can fill in and publish the schedules created from this template, on every meeting.",
     "settings_schedule_templates_holders": "Today: {names}.",
     "settings_schedule_templates_holders_none": "Nobody holds this role today.",
     "settings_schedule_templates_suggested_by": "Used in",
-    "settings_schedule_templates_suggested_none": "No kind: it is added from the meeting, with “Add a schedule”.",
+    "settings_schedule_templates_suggested_none": "This template is not used yet",
     "settings_schedule_templates_parts_label": "Parts",
     "settings_schedule_templates_services_label": "Services",
     "settings_schedule_templates_add_service": "Add a service",
@@ -4482,8 +4481,7 @@
             }
         }
     ],
-    "settings_schedule_templates_list_note": "Changes to this list apply at once. Schedules already created are not touched: only new meetings take them.",
-    "settings_schedule_templates_no_kind": "No kind uses this template: its content can be edited once a kind uses it.",
+    "settings_schedule_templates_list_note": "Schedules already created will not be changed; only new meetings take in the changes made here.",
     "settings_schedule_templates_save_part": "Save the part",
     "settings_schedule_templates_save_service": "Save the service",
     "settings_schedule_templates_section_renamed": "Section renamed.",
@@ -4512,7 +4510,6 @@
             }
         }
     ],
-    "settings_schedule_templates_used_none": "No schedule made from this template",
     "settings_schedule_templates_kinds": [
         {
             "declarations": [
@@ -4529,10 +4526,74 @@
     "settings_schedule_templates_kinds_none": "no kind",
     "settings_schedule_templates_saved": "Schedule template saved.",
     "settings_schedule_templates_error_name": "Give it a name.",
+    "settings_schedule_templates_error_name_taken": "Another template already has this name: choose another one.",
     "settings_schedule_templates_error_name_long": "The name: 80 characters at most.",
     "settings_schedule_templates_error_role": "This role cannot be in charge of a template: reload the page.",
     "settings_schedule_templates_error_vanished": "This template no longer exists: reload the page.",
-    "settings_schedule_templates_empty": "No schedule template yet: they come with a kind’s parts or services, in Program templates.",
+    "settings_schedule_templates_empty": "No schedule template yet: create the first one with “New template”.",
+    "settings_schedule_templates_new": "New template",
+    "settings_schedule_templates_new_title": "New schedule template",
+    "settings_schedule_templates_new_contents": "Schedule type",
+    "settings_schedule_templates_create": "Create template",
+    "settings_schedule_templates_created": "Schedule template created.",
+    "settings_schedule_templates_actions": "Template actions",
+    "settings_schedule_templates_delete": "Delete template",
+    "settings_schedule_templates_delete_title": "Delete “{name}”?",
+    "settings_schedule_templates_delete_kinds": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{kinds} no longer uses it: its new meetings come without this schedule.",
+                "countPlural=*": "{kinds} no longer use it: their new meetings come without this schedule."
+            }
+        }
+    ],
+    "settings_schedule_templates_delete_unused": "“Add a schedule” no longer offers it.",
+    "settings_schedule_templates_delete_schedules_parts": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "The schedule already created from this template keeps its name, its parts and its assignments.",
+                "countPlural=*": "The {count} schedules already created from this template keep their name, their parts and their assignments."
+            }
+        }
+    ],
+    "settings_schedule_templates_delete_schedules_services": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "The schedule already created from this template keeps its name, its services and its assignments.",
+                "countPlural=*": "The {count} schedules already created from this template keep their name, their services and their assignments."
+            }
+        }
+    ],
+    "settings_schedule_templates_delete_responsible": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "It no longer has a person in charge: those who manage the programs see to it.",
+                "countPlural=*": "They no longer have a person in charge: those who manage the programs see to them."
+            }
+        }
+    ],
+    "settings_schedule_templates_delete_final": "This deletion is permanent.",
+    "settings_schedule_templates_deleted": "Schedule template deleted.",
     "settings_presets_subtitle": "What each part of a program is, and the message sent to the person who receives it.",
     "settings_presets_new_button": "New type",
     "settings_presets_form_name_label": "Name",
@@ -6433,6 +6494,8 @@
     "audit_log_action_service_role_allowed_roles_changed": "Service roles changed",
     "audit_log_action_part_preset_created": "Part type created",
     "audit_log_action_schedule_template_updated": "Schedule template changed",
+    "audit_log_action_schedule_template_deleted": "Schedule template deleted",
+    "audit_log_action_schedule_template_created": "Schedule template created",
     "audit_log_action_part_preset_updated": "Part type changed",
     "audit_log_action_part_preset_deleted": "Part type deleted",
     "audit_log_action_calendar_feed_token_created": "Calendar link created",
@@ -7858,7 +7921,7 @@
     "settings_schedule_templates_room_gone": "This room no longer exists: the list has just been reloaded.",
     "settings_schedule_templates_room_main_stays": "The main room always stays: rename it if needed.",
     "settings_schedule_templates_rooms_title": "Rooms",
-    "settings_schedule_templates_rooms_hint": "The rooms where parts take place at the same time. Adding a room asks for its name; its parts are then chosen part by part.",
+    "settings_schedule_templates_rooms_hint": "The names of the rooms where parts of the program take place at the same time.",
     "settings_schedule_templates_room_whole": "the whole congregation",
     "settings_schedule_templates_room_parts": [
         {

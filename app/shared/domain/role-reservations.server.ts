@@ -1,3 +1,4 @@
+import * as m from '~/i18n/paraglide/messages'
 import { ConflictError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -69,7 +70,7 @@ export async function findSoleReservations(
 
   const partRows = await db.templatePartAllowedRole.findMany({
     where: { roleId, congregationId },
-    select: { partId: true, asKind: true, part: { select: { name: true, template: { select: { name: true } } } } },
+    select: { partId: true, asKind: true, part: { select: { name: true, ...FILED_UNDER } } },
   })
   const partCounts = await db.templatePartAllowedRole.groupBy({
     by: ['partId', 'asKind'],
@@ -82,7 +83,7 @@ export async function findSoleReservations(
     where: { roleId, congregationId },
     select: {
       servicePartId: true,
-      servicePart: { select: { name: true, template: { select: { name: true } } } },
+      servicePart: { select: { name: true, ...FILED_UNDER } },
     },
   })
   const serviceCounts = await db.templateServicePartAllowedRole.groupBy({
@@ -108,7 +109,7 @@ export async function findSoleReservations(
   const templateParts = new Map<number, { template: string; name: string }>()
   for (const row of partRows) {
     if (soleParts.has(key(row.partId, row.asKind))) {
-      templateParts.set(row.partId, { template: row.part.template.name, name: row.part.name })
+      templateParts.set(row.partId, { template: filedUnder(row.part), name: row.part.name })
     }
   }
 
@@ -119,11 +120,30 @@ export async function findSoleReservations(
       ...templateParts.values(),
       ...serviceRows
         .filter(row => soleServices.has(key(row.servicePartId)))
-        .map(row => ({ template: row.servicePart.template.name, name: row.servicePart.name })),
+        .map(row => ({ template: filedUnder(row.servicePart), name: row.servicePart.name })),
     ],
     programmeSlots: new Set(itemRows.filter(row => soleItems.has(key(row.itemId, row.slot))).map(row => row.itemId))
       .size,
   }
+}
+
+/**
+ * Where a template item is named from: its kind, or the schedule template it belongs to when no kind uses it
+ * (6a-1c-2), by its name or, unnamed, by its kind's label (as « Modèles de planning » shows it).
+ */
+const FILED_UNDER = {
+  template: { select: { name: true } },
+  scheduleTemplate: { select: { name: true, kind: true } },
+} as const
+
+function filedUnder(item: {
+  template: { name: string } | null
+  scheduleTemplate: { name: string | null; kind: string } | null
+}) {
+  if (item.template != null) return item.template.name
+  const scheduleTemplate = item.scheduleTemplate
+  if (scheduleTemplate?.name != null) return scheduleTemplate.name
+  return scheduleTemplate?.kind === 'duty' ? m.programs_schedule_kind_duty() : m.programs_schedule_kind_programme()
 }
 
 /** Raised when a role still alone reserves something: deleting it would open those places to everyone. */

@@ -47,11 +47,20 @@ function db(tables: Partial<Record<string, Slot[]>>) {
     territoryKindAllowedRole: allowedTable(tables.kinds ?? [], 'kindId', id => ({
       kind: { key: `kind-${id}`, name: id === 1 ? null : `Kind ${id}` },
     })),
+    // From 50 on, the items of a schedule template no kind uses (6a-1c-2): named, or a duties one left unnamed.
     templatePartAllowedRole: allowedTable(tables.parts ?? [], 'partId', id => ({
-      part: { name: `Part ${id}`, template: { name: 'Réunion de semaine' } },
+      part: {
+        name: `Part ${id}`,
+        template: id >= 50 ? null : { name: 'Réunion de semaine' },
+        scheduleTemplate: { name: id >= 50 ? 'Visite' : 'Réunion de semaine', kind: 'programme' },
+      },
     })),
     templateServicePartAllowedRole: allowedTable(tables.services ?? [], 'servicePartId', id => ({
-      servicePart: { name: `Service ${id}`, template: { name: 'Réunion du week-end' } },
+      servicePart: {
+        name: `Service ${id}`,
+        template: id >= 50 ? null : { name: 'Réunion du week-end' },
+        scheduleTemplate: { name: null, kind: 'duty' },
+      },
     })),
     // A programme's parts and duties are items (plan T12): a speaker is the main slot, a reader the second, a duty's
     // single list the main slot. Duties take ids of their own, apart from the parts'.
@@ -119,6 +128,18 @@ describe('findSoleReservations', () => {
     )
     expect(found.templateSlots).toEqual([{ template: 'Réunion du week-end', name: 'Service 7' }])
     expect(found.programmeSlots).toBe(2)
+  })
+
+  it('names an item of a schedule template no kind uses by that template, an unnamed one by its kind', async () => {
+    const found = await findSoleReservations(
+      db({ parts: [{ slotId: 50, roleId: ROLE, asKind: 'speaker' }], services: [{ slotId: 60, roleId: ROLE }] }),
+      ROLE,
+      CONGREGATION,
+    )
+    expect(found.templateSlots).toEqual([
+      { template: 'Visite', name: 'Part 50' },
+      { template: 'Services', name: 'Service 60' },
+    ])
   })
 
   it('finds nothing for a role that shares every place it is named in', async () => {

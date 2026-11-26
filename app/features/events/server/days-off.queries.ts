@@ -8,6 +8,7 @@ import {
   SERVICE_ITEMS,
   SERVICE_ITEMS_BY_DATE,
 } from '~/features/events/server/item-projection.server'
+import { ITEM_ROOMS, PART_CONFLICT_OF } from '~/features/events/server/item-rooms.queries'
 import {
   listUserConflictsInRange,
   type UserConflictInRange,
@@ -125,15 +126,14 @@ export async function listCongregationAbsences(
       where: {
         ...PART_ITEMS,
         congregationId,
-        hasConflict: true,
+        // A conflict is its room's (parallel rooms): a flagged room holding one of them.
+        ...PART_CONFLICT_OF({ in: memberIds }),
         event: span,
-        OR: [{ assigneeId: { in: memberIds } }, { assistantId: { in: memberIds } }],
       },
       select: {
         id: true,
         name: true,
-        assigneeId: true,
-        assistantId: true,
+        ...ITEM_ROOMS,
         event,
         schedule,
       },
@@ -153,7 +153,7 @@ export async function listCongregationAbsences(
       published: part.schedule?.status === ScheduleStatus.Published,
       responsibleRoleId: part.schedule?.scheduleTemplate?.responsibleRoleId ?? null,
       kind: 'part' as const,
-      holders: [part.assigneeId, part.assistantId],
+      holders: part.rooms.filter(room => room.hasConflict).flatMap(room => [room.assigneeId, room.assistantId]),
     })),
     ...services.map(service => ({
       id: publicItemId(service),

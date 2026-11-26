@@ -13,6 +13,7 @@ import {
 } from '~/features/events'
 import { partsInListOrder, templatePlaces } from '~/features/settings/model/schedule-template-list'
 import type { ScheduleTemplateView } from '~/features/settings/model/schedule-template-view'
+import { ScheduleTemplateDeleteMenu } from '~/features/settings/ui/ScheduleTemplateDeleteMenu'
 import { ScheduleTemplateForm } from '~/features/settings/ui/ScheduleTemplateForm'
 import { itemMark, ScheduleTemplateItemList } from '~/features/settings/ui/ScheduleTemplateItemList'
 import { type TemplateRoom, TemplateRooms } from '~/features/settings/ui/TemplateRooms'
@@ -94,7 +95,7 @@ export function ScheduleTemplatePanel({
     of: template.kind === 'duty' ? 'services' : 'parts',
     parts: items?.parts ?? [],
     services: items?.services ?? [],
-    enabled: items?.kindId != null,
+    enabled: items != null,
     docked,
   })
   const [version, setVersion] = useState(0)
@@ -127,10 +128,9 @@ export function ScheduleTemplatePanel({
     wasOpen.current = item != null
   }, [item, docked])
 
+  // How many schedules were made from it; nothing while none is (user, 2026-11-26).
   const description =
-    template.schedules === 0
-      ? m.settings_schedule_templates_used_none()
-      : m.settings_schedule_templates_used({ count: template.schedules })
+    template.schedules === 0 ? undefined : m.settings_schedule_templates_used({ count: template.schedules })
   const copy =
     item?.kind === 'service'
       ? serviceEditorCopy('template', item.id != null)
@@ -149,10 +149,9 @@ export function ScheduleTemplatePanel({
         id={FORM_ID}
         formRef={fields.ref}
       />
-      {template.kind !== 'duty' && items != null && items.kindId != null && <TemplateRooms rooms={items.rooms} />}
-      {items == null || items.kindId == null ? (
-        <p className="text-muted-foreground text-sm">{m.settings_schedule_templates_no_kind()}</p>
-      ) : (
+      {template.kind !== 'duty' && items != null && <TemplateRooms rooms={items.rooms} />}
+      {/* Every template's items are its own, a kind using it or not (6a-1c-2). */}
+      {items != null && (
         <ScheduleTemplateItemList
           kind={template.kind === 'duty' ? 'service' : 'part'}
           parts={order.parts}
@@ -261,6 +260,8 @@ export function ScheduleTemplatePanel({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+    ) : item == null ? (
+      <ScheduleTemplateDeleteMenu template={template} onDeleted={onClose} />
     ) : undefined
   const back = { label: template.title, onClick: onBack, returnFocus: () => rowOf(left.current) }
   // « 4 sur 16 »: an existing part among the parts as the list shows them.
@@ -331,7 +332,8 @@ export function ScheduleTemplatePanel({
                   {template.title}
                 </Button>
               )}
-              <div className="flex items-center gap-2">
+              {/* Clear of the sheet's close button, which sits over the top right corner. */}
+              <div className="flex items-center gap-2 pr-10">
                 <SheetTitle className="flex-1">{title}</SheetTitle>
                 {actions}
               </div>

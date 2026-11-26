@@ -7,6 +7,7 @@ import {
   SERVICE_ITEMS,
   SERVICE_ITEMS_BY_DATE,
 } from '~/features/events/server/item-projection.server'
+import { ITEM_ROOMS, PART_HELD_BY } from '~/features/events/server/item-rooms.queries'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { CongregationId, MemberId } from '~/shared/types/branded'
 
@@ -36,7 +37,7 @@ export async function findUpcomingAssignmentsForMember(
       where: {
         ...PART_ITEMS,
         ...VISIBLE_ITEM,
-        OR: [{ assigneeId: memberId }, { assistantId: memberId }],
+        ...PART_HELD_BY(memberId),
         event: eventFilter,
       },
       select,
@@ -111,10 +112,11 @@ export async function findLastAssignmentsForMembers(
       where: {
         ...PART_ITEMS,
         ...VISIBLE_ITEM,
-        OR: [{ assigneeId: { in: memberIds } }, { assistantId: { in: memberIds } }],
+        ...PART_HELD_BY({ in: memberIds }),
         event,
       },
-      select: { name: true, assigneeId: true, assistantId: true, event: { select: { startDate: true } } },
+      // Each room's people (parallel rooms): the person who held a part is on their room's row.
+      select: { name: true, ...ITEM_ROOMS, event: { select: { startDate: true } } },
       orderBy: PART_ITEMS_BY_DATE,
     }),
     db.item.findMany({
@@ -132,8 +134,10 @@ export async function findLastAssignmentsForMembers(
     if (current == null || current.date < date) last.set(memberId as MemberId, { partName, date })
   }
   for (const part of parts) {
-    keep(part.assigneeId, part.name, part.event.startDate)
-    keep(part.assistantId, part.name, part.event.startDate)
+    for (const room of part.rooms) {
+      keep(room.assigneeId, part.name, part.event.startDate)
+      keep(room.assistantId, part.name, part.event.startDate)
+    }
   }
   for (const part of serviceParts) keep(part.assigneeId, part.name, part.event.startDate)
   return last

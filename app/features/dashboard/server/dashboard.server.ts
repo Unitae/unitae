@@ -1,8 +1,10 @@
 // Intentional cross-feature import: dashboard aggregates data from events and the board for the overview
 import { listBoardItems, resolveProgrammeLink } from '~/features/display-board/index.server'
-import { VISIBLE_EVENT, VISIBLE_ITEM } from '~/features/events'
+import { itemsPerRoom, VISIBLE_EVENT, VISIBLE_ITEM } from '~/features/events'
 import {
   getNextDaysOffs,
+  ITEM_ROOMS,
+  PART_CONFLICT_OF,
   PART_ITEMS,
   PART_ITEMS_BY_DATE,
   PART_TIE_BREAK,
@@ -95,8 +97,8 @@ export async function getConflictingAssignments(db: TransactionClient, userId: n
         // Conflicts in a draft schedule are not urgent: it isn't public yet. They only surface via the events-list
         // amber badge for managers, and block the release step.
         ...VISIBLE_ITEM,
-        hasConflict: true,
-        OR: [{ assigneeId: userId }, { assistantId: userId }],
+        // A conflict is its room's (parallel rooms): the room that holds me, flagged.
+        ...PART_CONFLICT_OF(userId),
         event: { startDate: { gte: now } },
       },
       select: {
@@ -194,6 +196,15 @@ export async function getNextMeeting(db: TransactionClient, userId: number, cong
         assistant: { select: { id: true, firstname: true, lastname: true } },
         // A visiting speaker holds the part instead of a member: not an empty slot.
         externalSpeaker: { select: EXTERNAL_SPEAKER_LABEL_SELECT },
+        // Each room's people (parallel rooms): a part held in several rooms reads as one line per room.
+        rooms: {
+          select: {
+            ...ITEM_ROOMS.rooms.select,
+            assignee: { select: { id: true, firstname: true, lastname: true } },
+            assistant: { select: { id: true, firstname: true, lastname: true } },
+            externalSpeaker: { select: EXTERNAL_SPEAKER_LABEL_SELECT },
+          },
+        },
       },
       // The old query's order, by position alone (never the track's, unlike PART_ITEM_ORDER), the item's id breaking a
       // tie it left to Postgres.
@@ -215,7 +226,7 @@ export async function getNextMeeting(db: TransactionClient, userId: number, cong
   // engineer it. `null` means "viewer has no role on this part" — the UI
   // filters on userPartIds so nulls never render, but keeping the field
   // present makes the shape uniform and typed.
-  const eventParts = partItems.map(p => ({
+  const eventParts = itemsPerRoom(partItems).map(({ rooms, ...p }) => ({
     ...p,
     viewerRole:
       p.assignee?.id === userId ? ('speaker' as const) : p.assistant?.id === userId ? ('reader' as const) : null,

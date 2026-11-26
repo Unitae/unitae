@@ -214,8 +214,12 @@ function snapshot(): Promise<Result> {
           const templateParts = await tx.templatePart.findMany({ where: { congregationId } })
           const templateServices = await tx.templateServicePart.findMany({ where: { congregationId } })
           const strayTemplateItems =
-            templateParts.filter(item => item.scheduleTemplateId !== ownOf(item.templateId, 'programme')).length +
-            templateServices.filter(item => item.scheduleTemplateId !== ownOf(item.templateId, 'duty')).length
+            templateParts.filter(
+              item => item.templateId == null || item.scheduleTemplateId !== ownOf(item.templateId, 'programme'),
+            ).length +
+            templateServices.filter(
+              item => item.templateId == null || item.scheduleTemplateId !== ownOf(item.templateId, 'duty'),
+            ).length
 
           const rows = await tx.schedule.findMany({
             where: { congregationId },

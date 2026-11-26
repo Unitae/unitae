@@ -1,43 +1,47 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('./kind-items.queries', () => ({ getKindItems: vi.fn() }))
+vi.mock('~/features/events/index.server', async () => ({
+  listPartPresets: vi.fn(),
+  ownerWhere: (await import('~/features/events/server/template-owner')).ownerWhere,
+}))
+vi.mock('~/shared/domain/roles.server', () => ({ listRoles: vi.fn() }))
 
-const { getKindItems } = await import('./kind-items.queries')
+const { listPartPresets } = await import('~/features/events/index.server')
+const { listRoles } = await import('~/shared/domain/roles.server')
 const { getScheduleTemplateItems } = await import('./schedule-template-items.queries')
 
 const findFirst = vi.fn()
-const rooms = vi.fn()
-const partRooms = vi.fn()
+const parts = vi.fn()
+const services = vi.fn()
 const db = {
   scheduleTemplate: { findFirst },
-  scheduleTemplateRoom: { findMany: rooms },
-  templatePartRoom: { findMany: partRooms },
-}
-
-const page = {
-  template: {
-    parts: [
-      { id: 1, scheduleTemplateId: 30, section: 'Joyaux', track: '' },
-      { id: 2, scheduleTemplateId: null, section: 'Vie chrétienne', track: 'Salle B' },
-      { id: 3, scheduleTemplateId: 99, section: 'Ailleurs', track: '' },
-    ],
-    serviceParts: [
-      { id: 7, scheduleTemplateId: 31 },
-      { id: 8, scheduleTemplateId: 99 },
-    ],
-  },
-  roles: [{ id: 5 }],
-  presets: [{ id: 6 }],
+  templatePart: { findMany: parts },
+  templateServicePart: { findMany: services },
+  templatePartAllowedRole: { findMany: vi.fn() },
+  templateServicePartAllowedRole: { findMany: vi.fn() },
+  scheduleTemplateRoom: { findMany: vi.fn() },
+  templatePartRoom: { findMany: vi.fn() },
 }
 
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(getKindItems).mockResolvedValue(page as never)
-  rooms.mockResolvedValue([
+  vi.mocked(listRoles).mockResolvedValue([{ id: 5, key: 'elder', name: null, isBuiltIn: true, extra: 1 }] as never)
+  vi.mocked(listPartPresets).mockResolvedValue([{ id: 6 }] as never)
+  parts.mockResolvedValue([
+    { id: 1, section: 'Joyaux' },
+    { id: 2, section: 'Vie chrétienne' },
+  ])
+  services.mockResolvedValue([{ id: 7 }])
+  db.templatePartAllowedRole.findMany.mockResolvedValue([
+    { partId: 1, roleId: 30, asKind: 'speaker' },
+    { partId: 1, roleId: 31, asKind: 'reader' },
+  ])
+  db.templateServicePartAllowedRole.findMany.mockResolvedValue([{ servicePartId: 7, roleId: 40 }])
+  db.scheduleTemplateRoom.findMany.mockResolvedValue([
     { id: 50, name: null, key: 'main' },
     { id: 51, name: 'Salle B', key: null },
   ])
-  partRooms.mockResolvedValue([
+  db.templatePartRoom.findMany.mockResolvedValue([
     { templatePartId: 1, roomId: 50 },
     { templatePartId: 2, roomId: 50 },
     { templatePartId: 2, roomId: 51 },
@@ -45,14 +49,31 @@ beforeEach(() => {
 })
 
 describe('getScheduleTemplateItems', () => {
-  it('reads a programme template’s parts through its first kind, its own and the not yet placed ones', async () => {
+  it('reads a programme template’s parts: its first kind’s in it or not yet placed, and its own, with who may take each', async () => {
     findFirst.mockResolvedValue({ kind: 'programme', eventKinds: [{ eventKindId: 270 }] })
 
     const items = await getScheduleTemplateItems(db as never, 30, 3)
 
-    expect(getKindItems).toHaveBeenCalledWith(db, 270, 3)
-    expect(items).toMatchObject({ kind: 'programme', kindId: 270, roles: [{ id: 5 }], presets: [{ id: 6 }] })
-    expect(items?.parts.map(part => part.id)).toEqual([1, 2])
+    expect(parts).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          OR: [
+            { templateId: 270, scheduleTemplateId: 30 },
+            { templateId: 270, scheduleTemplateId: null },
+            { templateId: null, scheduleTemplateId: 30 },
+          ],
+          congregationId: 3,
+        },
+      }),
+    )
+    expect(services).not.toHaveBeenCalled()
+    expect(items).toMatchObject({
+      kind: 'programme',
+      kindId: 270,
+      roles: [{ id: 5, key: 'elder', name: null, isBuiltIn: true }],
+      presets: [{ id: 6 }],
+    })
+    expect(items?.parts[0]).toMatchObject({ id: 1, allowedSpeakerRoleIds: [30], allowedReaderRoleIds: [31] })
     expect(items?.services).toEqual([])
     expect(items?.sectionSuggestions).toEqual(['Joyaux', 'Vie chrétienne'])
   })
@@ -72,22 +93,25 @@ describe('getScheduleTemplateItems', () => {
     ])
   })
 
-  it('reads a duties template’s services only', async () => {
+  it('reads a duties template’s services only, with who may take each', async () => {
     findFirst.mockResolvedValue({ kind: 'duty', eventKinds: [{ eventKindId: 270 }] })
 
     const items = await getScheduleTemplateItems(db as never, 31, 3)
 
-    expect(items?.services.map(service => service.id)).toEqual([7])
+    expect(items?.services).toEqual([{ id: 7, allowedRoleIds: [40] }])
     expect(items?.parts).toEqual([])
     expect(items?.rooms).toEqual([])
-    expect(rooms).not.toHaveBeenCalled()
+    expect(parts).not.toHaveBeenCalled()
+    expect(db.scheduleTemplateRoom.findMany).not.toHaveBeenCalled()
   })
 
-  it('has no kind to write through for a template no kind uses, and nothing for one not there', async () => {
+  it('reads the items of a template no kind uses by it alone, and has nothing for one not there', async () => {
     findFirst.mockResolvedValueOnce({ kind: 'duty', eventKinds: [] }).mockResolvedValueOnce(null)
 
-    expect(await getScheduleTemplateItems(db as never, 40, 3)).toMatchObject({ kindId: null, parts: [], services: [] })
+    expect(await getScheduleTemplateItems(db as never, 40, 3)).toMatchObject({ kindId: null, services: [{ id: 7 }] })
+    expect(services).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { scheduleTemplateId: 40, congregationId: 3 } }),
+    )
     expect(await getScheduleTemplateItems(db as never, 41, 3)).toBeNull()
-    expect(getKindItems).not.toHaveBeenCalled()
   })
 })

@@ -1,6 +1,8 @@
 import { resolveProgrammeLink } from '~/features/display-board/index.server'
-import { partPresetReaderLabel, partPresetSpeakerLabel, VISIBLE_ITEM } from '~/features/events'
+import { heldBy, partPresetReaderLabel, partPresetSpeakerLabel, VISIBLE_ITEM } from '~/features/events'
 import {
+  ITEM_ROOMS,
+  PART_HELD_BY,
   PART_ITEMS,
   PART_TIE_BREAK,
   publicItemId,
@@ -71,7 +73,8 @@ export async function getUpcomingAssignments(
       where: {
         ...PART_ITEMS,
         ...VISIBLE_ITEM,
-        OR: [{ assigneeId: userId }, { assistantId: userId }],
+        // Found by the room that holds them (parallel rooms): their slot and partner are that room's.
+        ...PART_HELD_BY(userId),
         event: eventFilter,
       },
       select: {
@@ -88,6 +91,13 @@ export async function getUpcomingAssignments(
         assistantId: true,
         assignee: { select: { firstname: true, lastname: true } },
         assistant: { select: { firstname: true, lastname: true } },
+        rooms: {
+          select: {
+            ...ITEM_ROOMS.rooms.select,
+            assignee: { select: { firstname: true, lastname: true } },
+            assistant: { select: { firstname: true, lastname: true } },
+          },
+        },
         event: eventSelect,
       },
       // The item's id breaks a tie the old query left to Postgres (in practice the rows' insertion order).
@@ -101,22 +111,24 @@ export async function getUpcomingAssignments(
   ])
 
   const raw: RawAssignment[] = [
-    ...partRows.map(
-      (part): RawAssignment => ({
-        key: `part-${publicItemId(part)}`,
-        // A member listed as the part's assignee is the speaker; otherwise the
-        // OR filter guarantees they are the assistant (reader).
-        role: part.assigneeId === userId ? 'speaker' : 'reader',
-        partner: (part.assigneeId === userId ? part.assistant : part.assignee) ?? null,
-        name: part.name,
-        topic: part.topic || null,
-        ...slotLabels(part),
-        eventName: part.event.name,
-        eventStartDate: part.event.startDate,
-        eventId: part.event.id,
-        templateId: part.event.templateId,
-      }),
-    ),
+    ...partRows
+      .map(row => heldBy(row, userId))
+      .map(
+        (part): RawAssignment => ({
+          key: `part-${publicItemId(part)}`,
+          // A member listed as the part's assignee is the speaker; otherwise the
+          // OR filter guarantees they are the assistant (reader).
+          role: part.assigneeId === userId ? 'speaker' : 'reader',
+          partner: (part.assigneeId === userId ? part.assistant : part.assignee) ?? null,
+          name: part.name,
+          topic: part.topic || null,
+          ...slotLabels(part),
+          eventName: part.event.name,
+          eventStartDate: part.event.startDate,
+          eventId: part.event.id,
+          templateId: part.event.templateId,
+        }),
+      ),
     ...serviceRows.map(
       (role): RawAssignment => ({
         key: `service-${publicItemId(role)}`,

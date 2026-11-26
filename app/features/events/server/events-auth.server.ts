@@ -6,6 +6,7 @@ import {
   SERVICE_ITEMS,
 } from '~/features/events/server/item-projection.server'
 import { canFillSchedule, responsibleKindIds } from '~/features/events/server/schedule-rights.server'
+import { type ItemOwner, ownerWhere } from '~/features/events/server/template-owner'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
@@ -104,12 +105,12 @@ export async function templateItemBelongsToTemplate(
   db: TransactionClient,
   kind: 'part' | 'service',
   id: number,
-  templateId: number,
+  owner: ItemOwner,
   congregationId: number,
 ): Promise<boolean> {
   if (!Number.isInteger(id)) return false
 
-  const where = { id, templateId, congregationId }
+  const where = { id, ...ownerWhere(owner), congregationId }
   const row =
     kind === 'service'
       ? await db.templateServicePart.findFirst({ where, select: { id: true } })
@@ -119,7 +120,7 @@ export async function templateItemBelongsToTemplate(
     logger.warn('templateItemBelongsToTemplate: item does not belong to the authorised template', {
       kind,
       id,
-      templateId,
+      owner,
       congregationId,
     })
   }

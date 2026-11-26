@@ -420,4 +420,48 @@ test.describe('Schedule templates: a part in the template panel', () => {
       }
     }
   })
+
+  // « Nouveau modèle »: a refusal first, then the template, which opens in the panel with its empty list, then
+  // « Supprimer le modèle ». One a failed run left behind is reused, and deleted this time.
+  test('creates a schedule template after a refused name, opens it with nothing in it, and deletes it', async ({
+    page,
+  }) => {
+    const name = 'E2E Nouveau modèle'
+    await page.goto('/settings/schedule-templates')
+    const existing = page.locator('[data-row-primary]').filter({ hasText: name })
+    if ((await existing.count()) === 0) {
+      const open = page.getByRole('button', { name: 'Nouveau modèle', exact: true })
+      await open.click()
+      const dialog = page.getByRole('dialog')
+      await dialog.getByLabel('Nom').fill('   ')
+      await dialog.getByRole('button', { name: 'Services', exact: true }).click()
+      await dialog.getByRole('button', { name: 'Créer le modèle' }).click()
+      await expect(dialog.getByRole('alert')).toContainText('Donnez-lui un nom.')
+      await dialog.getByLabel('Nom').fill(name)
+      await dialog.getByRole('button', { name: 'Créer le modèle' }).click()
+      // Created once: the dialog goes, and focus is back on the button that opened it.
+      await expect(dialog).toHaveCount(0)
+      await expect(page).toHaveURL(TEMPLATE_RE)
+      await expect(open).toBeFocused()
+      // Opening it again starts afresh, without the old refusal.
+      await open.click()
+      await expect(page.getByRole('dialog').getByRole('alert')).toHaveCount(0)
+      await page.keyboard.press('Escape')
+    } else {
+      await existing.first().click()
+    }
+    await expect(page.locator('[data-row-primary]').filter({ hasText: name })).toHaveCount(1)
+    // A template no kind uses shows its list, empty, with its first service to add.
+    await expect(page.getByRole('button', { name: 'Ajouter un service' })).toBeVisible()
+
+    // « Supprimer le modèle »: the dialog says it was used nowhere, and the template leaves the list.
+    await page.getByRole('button', { name: 'Actions du modèle' }).click()
+    await page.getByRole('menuitem', { name: 'Supprimer le modèle' }).click()
+    const confirm = page.getByRole('alertdialog')
+    await expect(confirm).toContainText('Il n’est plus proposé par « Ajouter un planning ».')
+    await confirm.getByRole('button', { name: 'Supprimer le modèle' }).click()
+    await expect(confirm).toHaveCount(0)
+    await expect(page).not.toHaveURL(TEMPLATE_RE)
+    await expect(page.locator('[data-row-primary]').filter({ hasText: name })).toHaveCount(0)
+  })
 })

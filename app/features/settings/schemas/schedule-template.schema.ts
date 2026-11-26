@@ -30,3 +30,17 @@ export const renameSectionSchema = z.object({
   from: z.string().min(1),
   to: z.string().trim().min(1).max(80),
 })
+
+/** « Nouveau modèle »: its name, what it holds, and its responsible (« none »: the managers). */
+export const createScheduleTemplateSchema = z.object({
+  intent: z.literal('create-template'),
+  name: z
+    .string({ error: () => m.settings_schedule_templates_error_name() })
+    .trim()
+    .min(1, { error: () => m.settings_schedule_templates_error_name() })
+    .max(80, { error: () => m.settings_schedule_templates_error_name_long() }),
+  kind: z.enum(['programme', 'duty']),
+  responsibleRoleId: z
+    .union([z.literal(NO_RESPONSIBLE), z.coerce.number().int().positive()])
+    .transform(value => (value === NO_RESPONSIBLE ? null : value)),
+})

@@ -1,4 +1,5 @@
 import { PART_ITEMS, SERVICE_ITEMS } from '~/features/events/server/item-projection.server'
+import { PART_HELD_BY } from '~/features/events/server/item-rooms.queries'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export type SameEventAssignment = { type: 'part'; name: string; section: string } | { type: 'service'; name: string }
@@ -22,7 +23,7 @@ export async function listUserSameEventAssignments(
       ...PART_ITEMS,
       eventId,
       congregationId,
-      OR: [{ assigneeId: userId }, { assistantId: userId }],
+      ...PART_HELD_BY(userId),
       ...(excludePartAssignmentId != null && { NOT: { id: excludePartAssignmentId } }),
     },
     select: { name: true, section: true },

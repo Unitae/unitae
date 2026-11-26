@@ -13,12 +13,13 @@ import {
 } from '~/features/display-board/server/organigram-document.server'
 // Cross-feature import via the events barrel (deep-importing another
 // feature's model directly is forbidden by the boundaries lint rule).
-import { VISIBLE_EVENT, VISIBLE_ITEM } from '~/features/events'
+import { itemsPerRoom, VISIBLE_EVENT, VISIBLE_ITEM } from '~/features/events'
 import {
   asEventPart,
   asEventServicePart,
   ITEM_KIND,
   ITEM_ORIGIN_INCLUDE,
+  ITEM_ROOMS,
   type LastWeekMeeting,
   listLastWeekAttendance,
   MIXED_ITEM_ORDER,
@@ -491,6 +492,15 @@ function programmeItems(withServices: boolean) {
       assignee: { select: userSelect },
       assistant: { select: userSelect },
       externalSpeaker: { select: EXTERNAL_SPEAKER_LABEL_SELECT },
+      // Each room's people (parallel rooms): a part with a row per room reads as one copy per room, as copies do.
+      rooms: {
+        select: {
+          ...ITEM_ROOMS.rooms.select,
+          assignee: { select: userSelect },
+          assistant: { select: userSelect },
+          externalSpeaker: { select: EXTERNAL_SPEAKER_LABEL_SELECT },
+        },
+      },
     },
     orderBy: MIXED_ITEM_ORDER,
   } satisfies Prisma.Event$itemsArgs
@@ -503,8 +513,9 @@ function withProgramme<E extends { items: ProgrammeItem[] }>({ items, ...event }
   const { parts, services } = splitItems(items)
   return {
     ...event,
-    eventParts: parts.map(asEventPart),
-    eventServiceParts: withServices ? services.map(asEventServicePart) : undefined,
+    // A part's room rows are how its rooms are read, not part of what the document shows.
+    eventParts: itemsPerRoom(parts).map(({ rooms, ...part }) => asEventPart(part)),
+    eventServiceParts: withServices ? services.map(({ rooms, ...service }) => asEventServicePart(service)) : undefined,
   }
 }
 

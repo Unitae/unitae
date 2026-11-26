@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-// « Modèles de planning » writes a template's items through its first kind, the parts of a programme template and the
-// services of a duties one only; a template no kind uses, or not there, has nothing to write through.
+// « Modèles de planning » writes a template's items as its own (6a-1c-2), filed under its first kind when one uses it:
+// the parts of a programme template and the services of a duties one only; a template not there has nothing.
 
-const { calls, items, outcome } = vi.hoisted(() => ({
+const { calls, items, outcome, who } = vi.hoisted(() => ({
+  /** An owner as the calls record it: « schedule template:kind ». */
+  who: (owner: { scheduleTemplateId: number; templateId: number | null }) =>
+    `${owner.scheduleTemplateId}:${owner.templateId}`,
   calls: [] as unknown[],
   outcome: { current: 'saved' as 'saved' | 'refused' },
   items: {
@@ -17,13 +20,15 @@ const { calls, items, outcome } = vi.hoisted(() => ({
   },
 }))
 
+type Owner = { scheduleTemplateId: number; templateId: number | null }
+
 vi.mock('./schedule-template-items.queries', () => ({
   getScheduleTemplateItems: vi.fn(async () => items.current),
 }))
 vi.mock('./template-item-action.server', async importOriginal => ({
   ...(await importOriginal<typeof import('./template-item-action.server')>()),
-  handleTemplateItemAction: vi.fn(async (_db: unknown, templateId: number, formData: FormData) => {
-    calls.push([templateId, formData.get('intent')])
+  handleTemplateItemAction: vi.fn(async (_db: unknown, owner: Owner, formData: FormData) => {
+    calls.push([who(owner), formData.get('intent')])
     if (formData.get('intent') === 'upsert-part') calls.push(['track', formData.get('partTrack')])
     return outcome.current === 'saved' ? { kind: 'saved', message: 'ok' } : { kind: 'refused', response: null }
   }),
@@ -39,32 +44,30 @@ vi.mock('~/shared/domain/audit.server', async importOriginal => ({
 }))
 
 vi.mock('~/features/events/index.server', () => ({
-  reorderTemplateServices: vi.fn(async (_db: unknown, _congregationId: number, kindId: number, ids: number[]) => {
-    calls.push(['reorder-services', kindId, ids])
+  reorderTemplateServices: vi.fn(async (_db: unknown, _congregationId: number, owner: Owner, ids: number[]) => {
+    calls.push(['reorder-services', who(owner), ids])
     return true
   }),
-  renameTemplateSection: vi.fn(
-    async (_db: unknown, target: { templateId: number; scheduleTemplateId: number }, from: string, to: string) => {
-      calls.push(['rename-section', target.templateId, target.scheduleTemplateId, from, to])
-      return from === 'Absente' ? 'gone' : to === 'Ministère' ? 'taken' : 'renamed'
-    },
-  ),
+  renameTemplateSection: vi.fn(async (_db: unknown, target: Owner, from: string, to: string) => {
+    calls.push(['rename-section', target.templateId, target.scheduleTemplateId, from, to])
+    return from === 'Absente' ? 'gone' : to === 'Ministère' ? 'taken' : 'renamed'
+  }),
   // A write the service itself refuses: an order starting with part 99.
-  reorderTemplateParts: vi.fn(async (_db: unknown, _congregationId: number, kindId: number, ids: number[]) => {
-    calls.push(['reorder', kindId, ids])
+  reorderTemplateParts: vi.fn(async (_db: unknown, _congregationId: number, owner: Owner, ids: number[]) => {
+    calls.push(['reorder', who(owner), ids])
     return ids[0] !== 99
   }),
-  makeRoomAtTemplateOrder: vi.fn(async (_db: unknown, kindId: number, order: number) => {
-    calls.push(['room', kindId, order])
+  makeRoomAtTemplateOrder: vi.fn(async (_db: unknown, owner: Owner, order: number) => {
+    calls.push(['room', who(owner), order])
   }),
   // Part 11 sits in « Ministère » at order 33; any other id is not the template's.
-  templatePartPlace: vi.fn(async (_db: unknown, _kindId: number, partId: number) =>
+  templatePartPlace: vi.fn(async (_db: unknown, _owner: Owner, partId: number) =>
     partId === 11 ? { section: 'Ministère', order: 33 } : null,
   ),
   // « Absente » was renamed or emptied elsewhere.
-  placeExists: vi.fn(async (_db: unknown, _kindId: number, section: string) => section !== 'Absente'),
-  orderAtEndOf: vi.fn(async (_db: unknown, kindId: number, section: string, partId: number | null) => {
-    calls.push(['end', kindId, section, partId])
+  placeExists: vi.fn(async (_db: unknown, _owner: Owner, section: string) => section !== 'Absente'),
+  orderAtEndOf: vi.fn(async (_db: unknown, owner: Owner, section: string, partId: number | null) => {
+    calls.push(['end', who(owner), section, partId])
     return 40
   }),
 }))
@@ -85,13 +88,13 @@ beforeEach(() => {
 })
 
 describe('handleScheduleTemplateItem', () => {
-  it('writes a programme template’s parts through its first kind', async () => {
+  it('writes a programme template’s parts as its own, filed under its first kind', async () => {
     items.current = { kind: 'programme', kindId: 270 }
     expect(await handleScheduleTemplateItem({} as never, 3, form('upsert-part'), ACTOR)).toMatchObject({
       kind: 'saved',
     })
     expect(calls).toEqual([
-      [270, 'upsert-part'],
+      ['3:270', 'upsert-part'],
       ['track', ''],
     ])
   })
@@ -105,17 +108,17 @@ describe('handleScheduleTemplateItem', () => {
     expect(calls).toEqual([])
   })
 
-  it('refuses a template no kind uses, saying so, and has nothing for one not there', async () => {
+  it('writes the items of a template no kind uses, under no kind, and has nothing for one not there', async () => {
     items.current = { kind: 'duty', kindId: null }
     expect(await handleScheduleTemplateItem({} as never, 4, form('upsert-service-role'), ACTOR)).toMatchObject({
-      kind: 'refused',
+      kind: 'saved',
     })
     items.current = null
     expect(await handleScheduleTemplateItem({} as never, 5, form('upsert-service-role'), ACTOR)).toBeNull()
-    expect(calls).toEqual([])
+    expect(calls).toEqual([['4:null', 'upsert-service-role']])
   })
 
-  it('renames a section of a programme template, through its first kind; a hall is no longer renamed', async () => {
+  it('renames a section of a programme template, as its own; a hall is no longer renamed', async () => {
     items.current = { kind: 'programme', kindId: 270 }
     const section = await handleScheduleTemplateItem(
       {} as never,
@@ -171,8 +174,8 @@ describe('handleScheduleTemplateItem', () => {
       ACTOR,
     )
     expect(calls).toEqual([
-      ['room', 270, 11],
-      [270, 'upsert-part'],
+      ['room', '3:270', 11],
+      ['3:270', 'upsert-part'],
       ['track', ''],
     ])
   })
@@ -187,9 +190,9 @@ describe('handleScheduleTemplateItem', () => {
     )
     await handleScheduleTemplateItem({} as never, 3, form('upsert-part', { partOrder: '4' }), ACTOR)
     expect(calls).toEqual([
-      [270, 'upsert-part'],
+      ['3:270', 'upsert-part'],
       ['track', ''],
-      [270, 'upsert-part'],
+      ['3:270', 'upsert-part'],
       ['track', ''],
     ])
   })
@@ -200,9 +203,9 @@ describe('handleScheduleTemplateItem', () => {
     await handleScheduleTemplateItem({} as never, 3, formData, ACTOR)
     expect(formData.get('partOrder')).toBe('40')
     expect(calls).toEqual([
-      ['end', 270, 'Joyaux', 11],
-      ['room', 270, 40],
-      [270, 'upsert-part'],
+      ['end', '3:270', 'Joyaux', 11],
+      ['room', '3:270', 40],
+      ['3:270', 'upsert-part'],
       ['track', ''],
     ])
   })
@@ -259,20 +262,20 @@ describe('handleScheduleTemplateItem', () => {
       ACTOR,
     )
     expect(calls).toEqual([
-      ['end', 270, 'Joyaux', null],
-      ['room', 270, 40],
-      [270, 'upsert-part'],
+      ['end', '3:270', 'Joyaux', null],
+      ['room', '3:270', 40],
+      ['3:270', 'upsert-part'],
       ['track', ''],
     ])
   })
 
-  it('deletes a part through its first kind', async () => {
+  it('deletes a part as its own', async () => {
     items.current = { kind: 'programme', kindId: 270 }
     await handleScheduleTemplateItem({} as never, 3, form('delete-part', { partId: '11' }), ACTOR)
-    expect(calls).toEqual([[270, 'delete-part']])
+    expect(calls).toEqual([['3:270', 'delete-part']])
   })
 
-  it('writes a new order of the programme’s parts through its first kind, without a toast', async () => {
+  it('writes a new order of the programme’s parts as its own, without a toast', async () => {
     items.current = { kind: 'programme', kindId: 270, parts: [{ id: 1 }, { id: 2 }, { id: 3 }] }
     const result = await handleScheduleTemplateItem(
       {} as never,
@@ -282,7 +285,7 @@ describe('handleScheduleTemplateItem', () => {
     )
     expect(result).toEqual({ kind: 'reordered' })
     expect(calls).toEqual([
-      ['reorder', 270, [3, 1, 2]],
+      ['reorder', '3:270', [3, 1, 2]],
       ['audit', 'ScheduleTemplate', 3, { reordered: 'parts', count: 3 }],
     ])
   })
@@ -332,7 +335,7 @@ describe('handleScheduleTemplateItem', () => {
     expect([result?.kind, statusOf(result)]).toEqual(['refused', 409])
   })
 
-  it('writes a duties template’s new services order through its first kind, and audits it', async () => {
+  it('writes a duties template’s new services order as its own, and audits it', async () => {
     items.current = { kind: 'duty', kindId: 270, services: [{ id: 5 }, { id: 6 }] }
     const result = await handleScheduleTemplateItem(
       {} as never,
@@ -342,7 +345,7 @@ describe('handleScheduleTemplateItem', () => {
     )
     expect(result).toEqual({ kind: 'reordered' })
     expect(calls).toEqual([
-      ['reorder-services', 270, [6, 5]],
+      ['reorder-services', '4:270', [6, 5]],
       ['audit', 'ScheduleTemplate', 4, { reordered: 'services', count: 2 }],
     ])
   })

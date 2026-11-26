@@ -279,6 +279,7 @@ describe('addSchedule, beside what the event holds', () => {
         [added.outcome === 'added' ? added.id : 0],
         congregationId,
       )
+      if (first.templateId == null) throw new Error('a kind’s part')
       const copy = await duplicateTemplate(db, first.templateId, congregationId, actorId)
       const copied = await db.templatePart.findFirstOrThrow({
         where: { templateId: copy?.id, order: first.order },

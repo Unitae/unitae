@@ -49,8 +49,7 @@ const refused = (formErrors: string[], status = 400): TemplateActionResult => ({
 
 /**
  * Writes a schedule template's item from « Modèles de planning »: a programme template's parts, a duties template's
- * services, through the first kind that uses it until its items stop belonging to a kind (6a-1c-2). Null when the
- * template is not the congregation's; refused when no kind uses it, nothing to write through.
+ * services, its own whether a kind uses it or not (6a-1c-2). Null when the template is not the congregation's.
  */
 export async function handleScheduleTemplateItem(
   db: TransactionClient,
@@ -63,13 +62,8 @@ export async function handleScheduleTemplateItem(
     logger.warn('handleScheduleTemplateItem: no such schedule template', { scheduleTemplateId, ...actor })
     return null
   }
-  if (items.kindId == null) {
-    logger.warn('handleScheduleTemplateItem: no kind uses the schedule template', { scheduleTemplateId, ...actor })
-    return {
-      kind: 'refused',
-      response: data({ status: 'error', error: { '': [m.settings_schedule_templates_no_kind()] } }, { status: 409 }),
-    }
-  }
+  // Its items are its own, filed under the kind that uses it too when one does (6a-1c-2).
+  const owner = { scheduleTemplateId, templateId: items.kindId }
   const intent = String(formData.get('intent'))
   const own: readonly string[] =
     items.kind === ScheduleKind.Programme
@@ -105,8 +99,8 @@ export async function handleScheduleTemplateItem(
     }
     const written =
       of === 'parts'
-        ? await reorderTemplateParts(db, congregationId, items.kindId, ids)
-        : await reorderTemplateServices(db, congregationId, items.kindId, ids)
+        ? await reorderTemplateParts(db, congregationId, owner, ids)
+        : await reorderTemplateServices(db, congregationId, owner, ids)
     if (!written) {
       logger.warn('handleScheduleTemplateItem: the order refused at write', { scheduleTemplateId, of, ...actor })
       return refused([m.settings_schedule_templates_order_stale()], 409)
@@ -133,8 +127,7 @@ export async function handleScheduleTemplateItem(
       return { kind: 'refused', response: data(submission.reply(), { status: 400 }) }
     }
     const { from, to } = submission.value
-    const target = { templateId: items.kindId, scheduleTemplateId }
-    const outcome = await renameTemplateSection(db, target, from, to, congregationId, actorId)
+    const outcome = await renameTemplateSection(db, owner, from, to, congregationId, actorId)
     if (outcome !== 'renamed') {
       logger.warn('handleScheduleTemplateItem: a rename refused', { scheduleTemplateId, intent, outcome, ...actor })
       if (outcome === 'blank') return refused([m.settings_schedule_templates_name_blank()])
@@ -148,7 +141,7 @@ export async function handleScheduleTemplateItem(
   const partId = Number(formData.get('partId'))
   const was =
     intent === 'upsert-part' && Number.isInteger(partId) && partId > 0
-      ? await templatePartPlace(db, items.kindId, partId, congregationId)
+      ? await templatePartPlace(db, owner, partId, congregationId)
       : null
   if (intent === 'upsert-part') {
     // A template part's rooms are its room rows (« Où »), never a track.
@@ -165,7 +158,7 @@ export async function handleScheduleTemplateItem(
       const moved = was != null && was.section !== partSection
       // An edited part is moved among what exists: a section renamed or emptied elsewhere since its form opened is
       // not there any more (a new part may bring its own, from « Ajouter une section »).
-      if (moved && !(await placeExists(db, items.kindId, partSection, partId, congregationId))) {
+      if (moved && !(await placeExists(db, owner, partSection, partId, congregationId))) {
         logger.warn('handleScheduleTemplateItem: a part moved to a section no longer there', {
           scheduleTemplateId,
           partId,
@@ -182,13 +175,13 @@ export async function handleScheduleTemplateItem(
         was != null && !moved
           ? was.order
           : moved || sentOrder === ''
-            ? await orderAtEndOf(db, items.kindId, partSection, self, congregationId)
+            ? await orderAtEndOf(db, owner, partSection, self, congregationId)
             : Number(sentOrder)
       formData.set('partOrder', String(order))
-      if (isNew || moved) await makeRoomAtTemplateOrder(db, items.kindId, order, congregationId)
+      if (isNew || moved) await makeRoomAtTemplateOrder(db, owner, order, congregationId)
     }
   }
-  return (await handleTemplateItemAction(db, items.kindId, formData, actor)) ?? null
+  return (await handleTemplateItemAction(db, owner, formData, actor)) ?? null
 }
 
 /** The ids a reorder sends, as JSON; null for anything else. */

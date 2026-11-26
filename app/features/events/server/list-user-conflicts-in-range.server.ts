@@ -6,6 +6,7 @@ import {
   SERVICE_ITEMS,
   SERVICE_ITEMS_BY_DATE,
 } from '~/features/events/server/item-projection.server'
+import { PART_CONFLICT_OF } from '~/features/events/server/item-rooms.queries'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { getRoleDisplayName } from '~/shared/types/role'
 import { accountDisplayName } from '~/shared/utils/display-name'
@@ -60,8 +61,8 @@ export async function listUserConflictsInRange(
         // Drafts are invisible to publisher- and manager-facing conflict surfaces alike; managers spot draft
         // conflicts via the events-list amber badge and the release-blocking error.
         ...VISIBLE_ITEM,
-        hasConflict: true,
-        OR: [{ assigneeId: memberId }, { assistantId: memberId }],
+        // A conflict is its room's (parallel rooms): the room that holds them, flagged.
+        ...PART_CONFLICT_OF(memberId),
         event: { startDate: { lte: endDate }, endDate: { gte: startDate } },
       },
       select: conflictSelect,

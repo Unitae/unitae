@@ -91,6 +91,15 @@ export function useScheduleTemplatePage({
       { preventScrollReset: true, replace: true },
     )
   }, [stale])
+  // A template the address names that is no longer there (deleted from its panel, or elsewhere): the address forgets
+  // it, as it forgets an item gone.
+  const goneTemplate = params.get('template') != null && templateId == null
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the template goes, with the address of then
+  useEffect(() => {
+    if (!goneTemplate) return
+    pass.current = true
+    setParams({}, { preventScrollReset: true, replace: true })
+  }, [goneTemplate])
   // Changes count while a template is open: a panel closed with them discarded leaves none behind.
   const unsaved = dirty && templateId != null
 

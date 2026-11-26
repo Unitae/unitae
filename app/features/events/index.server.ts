@@ -3,7 +3,9 @@
 export { releaseAccountEvents } from './server/account-events.server'
 export { kindOfSlot } from './server/allowed-roles.server'
 export { type LastWeekMeeting, listLastWeekAttendance, listMeetingsUnderWay } from './server/attendance.queries'
+export { createScheduleTemplate } from './server/create-schedule-template.server'
 export { getNextDaysOffs } from './server/days-off.server'
+export { deleteScheduleTemplate } from './server/delete-schedule-template.server'
 export { deleteTemplate } from './server/delete-template.server'
 export { duplicateTemplate } from './server/duplicate-template.server'
 export { countMeetingsToMove, EMPTY_MEETING } from './server/empty-meetings.queries'
@@ -33,6 +35,7 @@ export {
   SERVICE_TIE_BREAK,
   splitItems,
 } from './server/item-projection.server'
+export { ITEM_ROOMS, PART_CONFLICT_OF, PART_HELD_BY } from './server/item-rooms.queries'
 export {
   findLastAssignmentsForMembers,
   findNextAbsencesForMembers,
@@ -66,6 +69,7 @@ export {
   upsertTemplatePart,
   upsertTemplateServicePart,
 } from './server/template-items.server'
+export { type ItemOwner, ownerWhere } from './server/template-owner'
 export {
   addTemplateRoom,
   deleteTemplateRoom,

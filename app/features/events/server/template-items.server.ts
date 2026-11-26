@@ -3,17 +3,19 @@ import {
   setTemplateServicePartAllowedRoles,
 } from '~/features/events/server/allowed-roles.server'
 import { syncTemplateScheduleTemplates } from '~/features/events/server/schedule-templates.server'
+import { type ItemOwner, ownerData, ownerKind, ownerWhere } from '~/features/events/server/template-owner'
 import { setTemplatePartRooms } from '~/features/events/server/template-rooms.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { ConflictError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
 
-// A template's items: its parts and its services, with who may take each.
+// A template's items: its parts and its services, with who may take each. Written for a kind, or for a schedule
+// template (« Modèles de planning »), which may be used by no kind (template-owner.ts).
 
 export async function upsertTemplatePart(
   db: TransactionClient,
-  templateId: number,
+  owner: ItemOwner,
   partData: {
     id?: number
     name: string
@@ -57,9 +59,9 @@ export async function upsertTemplatePart(
         data: baseData,
       })
     : await db.templatePart.create({
-        data: { ...baseData, templateId, congregationId },
+        data: { ...baseData, ...ownerData(owner), congregationId },
       })
-  await syncTemplateScheduleTemplates(db, templateId, congregationId)
+  await syncKind(db, owner, congregationId)
   if (partData.roomIds !== undefined) await holdInRooms(db, part.id, partData.roomIds, congregationId, actorId)
 
   const noChange = { added: [] as number[], removed: [] as number[] }
@@ -98,14 +100,15 @@ export function deleteTemplatePart(db: TransactionClient, partId: number, congre
 }
 
 /** After the template's services: a new one goes last. */
-async function nextTemplateServiceOrder(db: TransactionClient, templateId: number, congregationId: number) {
-  const last = await db.templateServicePart.aggregate({ where: { templateId, congregationId }, _max: { order: true } })
+async function nextTemplateServiceOrder(db: TransactionClient, owner: ItemOwner, congregationId: number) {
+  const where = { ...ownerWhere(owner), congregationId }
+  const last = await db.templateServicePart.aggregate({ where, _max: { order: true } })
   return last._max.order == null ? 0 : last._max.order + 5
 }
 
 export async function upsertTemplateServicePart(
   db: TransactionClient,
-  templateId: number,
+  owner: ItemOwner,
   roleData: { id?: number; name: string; key: string; allowedRoleIds: number[] },
   congregationId: number,
   actorId: number,
@@ -119,12 +122,12 @@ export async function upsertTemplateServicePart(
         data: {
           name: roleData.name,
           key: roleData.key,
-          order: await nextTemplateServiceOrder(db, templateId, congregationId),
-          templateId,
+          order: await nextTemplateServiceOrder(db, owner, congregationId),
+          ...ownerData(owner),
           congregationId,
         },
       })
-  await syncTemplateScheduleTemplates(db, templateId, congregationId)
+  await syncKind(db, owner, congregationId)
 
   const diff = await setTemplateServicePartAllowedRoles(db, servicePart.id, roleData.allowedRoleIds, congregationId)
 
@@ -157,11 +160,11 @@ export function deleteTemplateServicePart(db: TransactionClient, roleId: number,
 export async function reorderTemplateParts(
   db: TransactionClient,
   congregationId: number,
-  templateId: number,
+  owner: ItemOwner,
   orderedIds: number[],
 ): Promise<boolean> {
   await db.$executeRawUnsafe('SELECT pg_advisory_xact_lock($1, $2)', 1_000_005, congregationId)
-  const owned = await db.templatePart.count({ where: { id: { in: orderedIds }, templateId, congregationId } })
+  const owned = await db.templatePart.count({ where: { id: { in: orderedIds }, ...ownerWhere(owner), congregationId } })
   if (owned !== orderedIds.length || new Set(orderedIds).size !== orderedIds.length) return false
 
   for (let i = 0; i < orderedIds.length; i++) {
@@ -190,4 +193,10 @@ async function holdInRooms(
   if (placed?.scheduleTemplateId == null) throw new ConflictError('The part is in no schedule template')
   const outcome = await setTemplatePartRooms(db, placed.scheduleTemplateId, partId, roomIds, congregationId, actorId)
   if (outcome !== 'saved') throw new ConflictError(`The part's rooms were refused: ${outcome}`)
+}
+
+/** After a write, a kind's schedule templates follow its items; a schedule template no kind uses has none to follow. */
+async function syncKind(db: TransactionClient, owner: ItemOwner, congregationId: number) {
+  const kindId = ownerKind(owner)
+  if (kindId != null) await syncTemplateScheduleTemplates(db, kindId, congregationId)
 }

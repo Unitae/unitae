@@ -60,7 +60,8 @@ describe('getUpcomingAssignments', () => {
     await getUpcomingAssignments(db, 100, CONGREGATION_ID, NOW)
 
     const where = vi.mocked(db.eventPart.findMany).mock.calls[0][0]?.where as Record<string, unknown>
-    expect(where.OR).toEqual([{ assigneeId: 100 }, { assistantId: 100 }])
+    // Found by the room that holds me (parallel rooms).
+    expect(where.rooms).toEqual({ some: { OR: [{ assigneeId: 100 }, { assistantId: 100 }] } })
     expect(where.schedule).toEqual({ status: 'published' })
     expect(where.event).toEqual({ startDate: { gte: NOW, lte: FOUR_WEEKS_LATER } })
   })

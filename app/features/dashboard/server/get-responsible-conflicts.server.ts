@@ -47,13 +47,24 @@ export async function getResponsibleConflicts(
 
   const [partRows, serviceRows] = await Promise.all([
     db.item.findMany({
-      where: { AND: [...PART_ITEMS.AND, ...answered], ...VISIBLE_ITEM, hasConflict: true, event: upcoming },
+      // A conflict is its room's (parallel rooms): the flagged rooms, with their people.
+      where: {
+        AND: [...PART_ITEMS.AND, ...answered],
+        ...VISIBLE_ITEM,
+        rooms: { some: { hasConflict: true } },
+        event: upcoming,
+      },
       select: {
         eventId: true,
-        assigneeId: true,
-        assignee: { select: { firstname: true, lastname: true } },
-        assistantId: true,
-        assistant: { select: { firstname: true, lastname: true } },
+        rooms: {
+          where: { hasConflict: true },
+          select: {
+            assigneeId: true,
+            assignee: { select: { firstname: true, lastname: true } },
+            assistantId: true,
+            assistant: { select: { firstname: true, lastname: true } },
+          },
+        },
       },
     }),
     db.item.findMany({
@@ -82,8 +93,10 @@ export async function getResponsibleConflicts(
   }
 
   for (const row of partRows) {
-    record(row.assigneeId, row.assignee, row.eventId)
-    record(row.assistantId, row.assistant, row.eventId)
+    for (const room of row.rooms) {
+      record(room.assigneeId, room.assignee, row.eventId)
+      record(room.assistantId, room.assistant, row.eventId)
+    }
   }
   for (const row of serviceRows) {
     record(row.assigneeId, row.assignee, row.eventId)
