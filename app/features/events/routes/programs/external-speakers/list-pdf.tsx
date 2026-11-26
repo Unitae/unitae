@@ -3,6 +3,7 @@ import { getSpeakerListPdf } from '~/features/events/server/speaker-list-file.se
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
+import { contentDisposition } from '~/shared/utils/content-disposition'
 import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/list-pdf'
 
@@ -27,7 +28,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   return new Response(file.body, {
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `inline; filename="${name}"`,
+      'Content-Disposition': contentDisposition(name, 'inline'),
       'Cache-Control': 'private, no-store',
       'X-Content-Type-Options': 'nosniff',
     },
