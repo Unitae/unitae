@@ -68,8 +68,11 @@ export function loader({ params, context }: Route.LoaderArgs) {
       const { id, title, detail, responsible } = scheduleTemplateView(each, page.roles, new Map())
       return { id, title, detail, responsible }
     })
+    // What the page reads of the type, and no more: its parts and services are « Modèles de planning »'s.
+    const { name, key, color, weekDay, startTime, endTime, attendanceKind } = page.template
+    const template = { name, key, color, weekDay, startTime, endTime, attendanceKind }
     return {
-      page: { template: page.template, eventCount: page.eventCount },
+      page: { template, eventCount: page.eventCount },
       schedules,
       isManager,
       editable,
