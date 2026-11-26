@@ -16,7 +16,8 @@ export async function seedMeetingsInRooms(
   input: {
     kindId: number
     days: [string, string]
-    speakers: [number, number]
+    /** The speaker of each room; null leaves it open. */
+    speakers: [number | null, number | null]
     /** A second speaker per room, when the test needs one. */
     seconds?: [number | null, number | null]
   },

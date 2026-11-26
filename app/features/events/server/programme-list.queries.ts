@@ -37,7 +37,7 @@ function counts(slots: { filled: boolean; hasConflict: boolean }[]): SlotCounts 
 /**
  * The programmes touching [from, to], soonest first, drafts included: the page decides who sees them. Each carries the
  * counts the list shows, never its slots: a part is filled when its main slot has a person or an external speaker, as
- * the programme's page counts it.
+ * the programme's page counts it, and a part held in several rooms is a slot in each.
  */
 export async function listProgrammes(
   db: TransactionClient,
@@ -60,6 +60,8 @@ export async function listProgrammes(
           assigneeId: true,
           externalSpeakerId: true,
           hasConflict: true,
+          // A part's rooms (parallel rooms): a part held in several rooms is a slot in each.
+          rooms: { select: { assigneeId: true, externalSpeakerId: true, hasConflict: true } },
         },
       },
     },
@@ -76,10 +78,12 @@ export async function listProgrammes(
         template: programmeTemplate(template),
       }),
       parts: counts(
-        eventParts.map(part => ({
-          filled: part.assigneeId != null || part.externalSpeakerId != null,
-          hasConflict: part.hasConflict,
-        })),
+        eventParts.flatMap(part =>
+          (part.rooms.length > 0 ? part.rooms : [part]).map(room => ({
+            filled: room.assigneeId != null || room.externalSpeakerId != null,
+            hasConflict: room.hasConflict,
+          })),
+        ),
       ),
       services: counts(
         eventServiceParts.map(service => ({ filled: service.assigneeId != null, hasConflict: service.hasConflict })),

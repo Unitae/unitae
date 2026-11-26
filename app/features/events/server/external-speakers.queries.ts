@@ -31,15 +31,17 @@ async function summariseVisits(
   const summaries = new Map<number, VisitSummary>()
   if (speakerIds.length === 0) return summaries
   const parts = await db.item.findMany({
-    where: { congregationId, externalSpeakerId: { in: speakerIds }, ...PART_ITEMS },
+    // The room they speak in (parallel rooms): a part held in several rooms has its speakers on its rows.
+    where: { congregationId, rooms: { some: { externalSpeakerId: { in: speakerIds } } }, ...PART_ITEMS },
     // Each visit by its programme's own schedule (plan §10, 5b), not by its event.
     select: {
-      externalSpeakerId: true,
+      rooms: { where: { externalSpeakerId: { in: speakerIds } }, select: { externalSpeakerId: true } },
       schedule: { select: { status: true } },
       event: { select: { id: true, startDate: true } },
     },
   })
-  for (const part of parts) {
+  const visits = parts.flatMap(part => part.rooms.map(room => ({ ...part, externalSpeakerId: room.externalSpeakerId })))
+  for (const part of visits) {
     if (part.externalSpeakerId == null) continue
     const summary = summaries.get(part.externalSpeakerId) ?? { ...NO_VISIT }
     const { startDate, id } = part.event
@@ -136,7 +138,7 @@ export async function getSpeakerVisits(
   now: Date = new Date(),
 ): Promise<SpeakerVisits> {
   const parts = await db.item.findMany({
-    where: { congregationId, externalSpeakerId: speakerId, ...PART_ITEMS },
+    where: { congregationId, rooms: { some: { externalSpeakerId: speakerId } }, ...PART_ITEMS },
     select: {
       name: true,
       topic: true,

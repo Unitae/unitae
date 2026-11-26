@@ -25,7 +25,8 @@ const { findLastAssignmentsForMembers, findUpcomingAssignmentsForMember } = awai
 const { listCongregationAbsences } = await import('./days-off.queries')
 const { listUserCadence } = await import('./list-user-cadence.server')
 const { getUpcomingAssignments } = await import('~/features/dashboard/server/get-upcoming-assignments.server')
-const { getConflictingAssignments } = await import('~/features/dashboard/server/dashboard.server')
+const { getConflictingAssignments, getNextMeeting } = await import('~/features/dashboard/server/dashboard.server')
+const { getResponsibleConflicts } = await import('~/features/dashboard/server/get-responsible-conflicts.server')
 
 class Rollback extends Error {}
 
@@ -40,6 +41,8 @@ interface Read {
   member: { copies: string[]; rows: string[] }
   conflicts: string[]
   dashboardConflict: string | null
+  responsible: { count: number; names: string[] }
+  nextMeeting: string[]
   sameEvent: { copies: string[]; rows: string[] }
   last: string | null
   absence: string[]
@@ -134,12 +137,20 @@ describe('a person in another room', () => {
             pastCount: 4,
             futureCount: 0,
           })
+          // A responsible's dashboard: Jean's flagged room, on both meetings.
+          const responsible = await getResponsibleConflicts(db, actorId, congregationId, true)
           // The dashboard's notice names the first conflict: with the copies' cleared, only the later meeting's row is.
           await tx.item.updateMany({
             where: { eventId: seeded.copies, assigneeId: jean },
             data: { hasConflict: false },
           })
           const notice = await getConflictingAssignments(db, jean)
+          // The next meeting, once the copies' is a draft again: Jean's line is his room's.
+          await tx.event.update({ where: { id: seeded.copies }, data: { status: 'draft' } })
+          await tx.schedule.updateMany({ where: { eventId: seeded.copies }, data: { status: 'draft' } })
+          const next = await getNextMeeting(db, jean, congregationId)
+          await tx.event.update({ where: { id: seeded.copies }, data: { status: 'released' } })
+          await tx.schedule.updateMany({ where: { eventId: seeded.copies }, data: { status: 'published' } })
           const sameEvent = async (eventId: number) =>
             (await listUserSameEventAssignments(db, { userId: jean, eventId, congregationId })).map(each => each.name)
           read = {
@@ -170,6 +181,10 @@ describe('a person in another room', () => {
               past: cadence.past.map(entry => entry.assigned),
               lastAssignedAt: cadence.lastAssignedAt?.slice(0, 10) ?? null,
             },
+            responsible: { count: responsible.count, names: responsible.absenteeNames },
+            nextMeeting: (next?.eventParts ?? [])
+              .filter(part => part.viewerRole != null)
+              .map(part => `${part.name}:${part.track}:${part.viewerRole}`),
             dashboardConflict:
               notice == null ? null : `${notice.eventStartDate.toISOString().slice(0, 10)}:${notice.name}`,
             second: {
@@ -202,6 +217,10 @@ describe('a person in another room', () => {
     expect(read.upcoming.rows).toEqual(read.upcoming.copies)
     expect(read.upcoming.copies).toHaveLength(1)
     expect(read.member).toEqual({ copies: [partName], rows: [partName] })
+    // The flagged room's people on both meetings, Jean and his second speaker Luc, as a flagged copy counts them.
+    expect(read.responsible.count).toBe(4)
+    expect(read.responsible.names).toEqual([expect.stringContaining('Jean'), expect.stringContaining('Luc')])
+    expect(read.nextMeeting).toEqual([`${partName}:Salle B:speaker`])
     // The dashboard's « away on a day you have a part » notice, from the room's flag.
     expect(read.dashboardConflict).toBe(`2099-03-11:${partName}`)
     expect(read.conflicts).toEqual([`2099-03-04:${partName}`, `2099-03-11:${partName}`])

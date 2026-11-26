@@ -15,6 +15,8 @@ const part = (assigneeId: number | null, externalSpeakerId: number | null = null
   assigneeId,
   externalSpeakerId,
   hasConflict,
+  // Its one room, as every part has since R1 (parallel rooms).
+  rooms: [{ assigneeId, externalSpeakerId, hasConflict }],
 })
 const service = (assigneeId: number | null, hasConflict = false) => ({
   schedule: { kind: 'duty' },

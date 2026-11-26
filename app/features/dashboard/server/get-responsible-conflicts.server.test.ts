@@ -40,11 +40,13 @@ describe('getResponsibleConflicts', () => {
     ['service', () => db.eventServicePart.findMany],
   ] as const)(
     'asks the %s query for the items whose schedule the user answers for (non-manager)',
-    async (_kind, query) => {
+    async (kind, query) => {
       await getResponsibleConflicts(db, 100, CONGREGATION_ID, false)
 
       const where = vi.mocked(query()).mock.calls[0][0]?.where as Record<string, unknown>
-      expect(where.hasConflict).toBe(true)
+      // A part's conflict is its room's (parallel rooms); a duty keeps its flag on the item.
+      if (kind === 'part') expect(where.rooms).toEqual({ some: { hasConflict: true } })
+      else expect(where.hasConflict).toBe(true)
       expect(where.schedule).toEqual({ status: 'published' })
       expect(where.event).toEqual({ startDate: { gte: expect.any(Date) } })
       expect(where.AND).toContainEqual({ schedule: { scheduleTemplate: { responsibleRoleId: { in: [ROLE_ID] } } } })

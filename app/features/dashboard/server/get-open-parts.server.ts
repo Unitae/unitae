@@ -28,7 +28,10 @@ export async function getOpenParts(
   if (roleIds != null && roleIds.length === 0) return []
   const answered =
     roleIds == null ? [] : [{ schedule: { scheduleTemplate: { responsibleRoleId: { in: [...roleIds] } } } }]
-  const open = { AND: [...PART_ITEMS.AND, ...answered], assigneeId: null, externalSpeakerId: null }
+  // An open slot is a room nobody holds (parallel rooms): a part held in two rooms has two. Read with its rows, as a
+  // part with a row per room has its rooms nowhere else.
+  const openRoom = { assigneeId: null, externalSpeakerId: null }
+  const parts = { AND: [...PART_ITEMS.AND, ...answered], rooms: { some: openRoom } }
   const events = await db.event.findMany({
     where: {
       congregationId,
@@ -40,18 +43,19 @@ export async function getOpenParts(
       startDate: true,
       // The open slots are programme parts: the programme's own schedule says whether it is a draft (plan §10, 5b).
       schedules: { where: { kind: ScheduleKind.Programme }, select: { status: true } },
-      _count: { select: { items: { where: open } } },
+      items: { where: parts, select: { rooms: { where: openRoom, select: { id: true } } } },
     },
     orderBy: { startDate: 'asc' },
   })
   return events
-    .filter(event => event._count.items > 0)
-    .map(event => ({
+    .map(event => ({ event, count: event.items.reduce((sum, item) => sum + item.rooms.length, 0) }))
+    .filter(({ count }) => count > 0)
+    .map(({ event, count }) => ({
       eventId: event.id,
       name: event.name,
       startDate: event.startDate,
       isDraft: event.schedules[0]?.status !== ScheduleStatus.Published,
-      count: event._count.items,
+      count,
     }))
 }
 

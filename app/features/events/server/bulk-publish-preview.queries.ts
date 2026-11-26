@@ -1,6 +1,7 @@
 import type { BulkPublishPreview, PreviewSchedule } from '~/features/events/model/bulk-publish-preview.type'
 import { isAwaitingProgramme, programmeTemplate } from '~/features/events/model/empty-meetings'
 import { EventStatus } from '~/features/events/model/event-status.type'
+import { itemsPerRoom } from '~/features/events/model/part-rooms'
 import { type EventPageRights, mayOpenEvent, maySeeSchedule } from '~/features/events/model/programme-access'
 import { type ScheduleKind, ScheduleStatus } from '~/features/events/model/schedule.type'
 import { unfilledSlots } from '~/features/events/model/unfilled-slots'
@@ -10,6 +11,7 @@ import { publishableScheduleIds } from './event-publishing.server'
 import { scheduleRefusal } from './event-status.policy'
 import { TEMPLATE_PROGRAMME_COUNT } from './give-programme.server'
 import { MIXED_ITEM_ORDER } from './item-projection.server'
+import { ITEM_ROOMS } from './item-rooms.queries'
 import { scheduleRightsFor } from './schedule-rights.server'
 
 // What bulk « Publier » announces before it runs (design round A, « TourA-Publier-Lot »): each draft schedule of the
@@ -54,12 +56,14 @@ export async function bulkPublishPreview(
           scheduleTemplate: { select: { responsibleRole: { select: { key: true, name: true } } } },
           items: {
             select: {
+              id: true,
               name: true,
               hasConflict: true,
               assigneeId: true,
               assistantId: true,
               externalSpeakerId: true,
               preset: { select: { hasReaderSlot: true } },
+              ...ITEM_ROOMS,
             },
             orderBy: MIXED_ITEM_ORDER,
           },
@@ -109,7 +113,9 @@ export async function bulkPublishPreview(
         continue
       }
       const fromTemplate = schedule.scheduleTemplateId != null
-      const refusal = scheduleRefusal({ kind: schedule.kind, items: schedule.items, fromTemplate }, event.template)
+      // A part held in several rooms is a part in each (parallel rooms): its open rooms and conflicts all count.
+      const items = itemsPerRoom(schedule.items)
+      const refusal = scheduleRefusal({ kind: schedule.kind, items, fromTemplate }, event.template)
       switch (refusal) {
         case 'awaiting':
           preview.awaiting.push(named)
@@ -120,11 +126,11 @@ export async function bulkPublishPreview(
         case 'conflicts':
           preview.conflicts.push({
             ...named,
-            away: schedule.items.filter(item => item.hasConflict).map(item => item.name),
+            away: items.filter(item => item.hasConflict).map(item => item.name),
           })
           break
         case null:
-          preview.publish.push({ ...named, unfilled: unfilledOf(schedule.kind, schedule.items) })
+          preview.publish.push({ ...named, unfilled: unfilledOf(schedule.kind, items) })
           break
         default:
           // A refusal added to scheduleRefusal must get its bucket here.

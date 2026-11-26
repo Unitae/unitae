@@ -166,15 +166,16 @@ export function itemsPerRoom<T extends { id: number; rooms?: ItemRoomRow[] } & R
         const people = row as ItemRoomRow & RowPeople
         assertRowPeople(item, people)
         const isMain = row.room.key === 'main'
+        // Only the fields the reader read: a line never carries what its item was not read with.
         return {
           ...item,
           id: isMain ? item.id : -row.id,
-          track: label(row.room),
-          trackOrder: row.room.order + 1,
-          assigneeId: row.assigneeId,
-          assistantId: row.assistantId,
-          externalSpeakerId: row.externalSpeakerId,
-          hasConflict: row.hasConflict,
+          ...('track' in item && { track: label(row.room) }),
+          ...('trackOrder' in item && { trackOrder: row.room.order + 1 }),
+          ...('assigneeId' in item && { assigneeId: row.assigneeId }),
+          ...('assistantId' in item && { assistantId: row.assistantId }),
+          ...('externalSpeakerId' in item && { externalSpeakerId: row.externalSpeakerId }),
+          ...('hasConflict' in item && { hasConflict: row.hasConflict }),
           ...('assignee' in people && { assignee: people.assignee }),
           ...('assistant' in people && { assistant: people.assistant }),
           ...('externalSpeaker' in people && { externalSpeaker: people.externalSpeaker }),
