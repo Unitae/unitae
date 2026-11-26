@@ -36,8 +36,6 @@ export async function getProgrammeCreationData(
       weekDay: true,
       startTime: true,
       endTime: true,
-      // biome-ignore lint/style/useNamingConvention: Prisma's relation count key
-      _count: { select: { parts: true, serviceParts: true } },
       scheduleTemplates: {
         select: {
           scheduleTemplate: {
@@ -88,10 +86,10 @@ export async function getProgrammeCreationData(
       weekDay: row.weekDay,
       startTime: row.startTime,
       endTime: row.endTime,
-      parts: row._count.parts,
-      services: row._count.serviceParts,
-      // What giveProgramme creates — one schedule of each kind with items, none empty — as long as the sync keeps one
-      // schedule template per kind holding all the kind's items (syncTemplateScheduleTemplates).
+      // The kind's items: those of the schedule templates it uses (6b-0).
+      parts: countOf(row.scheduleTemplates, 'parts'),
+      services: countOf(row.scheduleTemplates, 'serviceParts'),
+      // What giveProgramme creates: one schedule of each kind with items, none empty, from the templates it uses.
       schedules: row.scheduleTemplates.flatMap(({ scheduleTemplate: { name, kind, _count } }) => {
         const items = kind === ScheduleKind.Programme ? _count.parts : _count.serviceParts
         return items > 0 ? [{ name, kind, items }] : []
@@ -120,4 +118,12 @@ function weekPosition(weekDay: number | null): number {
 
 function byWeekThenName(a: CreationTemplate, b: CreationTemplate): number {
   return weekPosition(a.weekDay) - weekPosition(b.weekDay) || a.name.localeCompare(b.name, getLocale())
+}
+
+/** How many parts or services the schedule templates a kind uses hold together. */
+function countOf(
+  links: { scheduleTemplate: { _count: { parts: number; serviceParts: number } } }[],
+  of: 'parts' | 'serviceParts',
+) {
+  return links.reduce((total, link) => total + link.scheduleTemplate._count[of], 0)
 }

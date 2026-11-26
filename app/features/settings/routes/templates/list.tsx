@@ -1,7 +1,7 @@
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { redirect, useFetcher } from 'react-router'
-import { isSystemTemplate } from '~/features/events'
+import { isSystemTemplate, type ProgrammeTemplateCounts, programmeTemplate } from '~/features/events'
 import { getTemplates } from '~/features/events/index.server'
 import { setProgrammeShowsAttendance } from '~/features/settings/server/programme-attendance-setting.server'
 import { NewTemplateDialog } from '~/features/settings/ui/NewTemplateDialog'
@@ -19,6 +19,12 @@ import type { Route } from './+types/list'
 
 export const meta: Route.MetaFunction = () => [{ title: m.settings_templates_meta_title() }]
 
+/** A kind's parts and services: those of the schedule templates it uses. */
+function countsOf(template: ProgrammeTemplateCounts) {
+  const counted = programmeTemplate(template)
+  return { parts: counted?.parts ?? 0, services: counted?.services ?? 0 }
+}
+
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const isManager = permissions.has(Permission.CanManageProgramTemplates)
@@ -35,8 +41,8 @@ export function loader({ context }: Route.LoaderArgs) {
       weekDay: template.weekDay,
       startTime: template.startTime,
       endTime: template.endTime,
-      parts: template._count.parts,
-      services: template._count.serviceParts,
+      // What its schedule templates hold (6b-0).
+      ...countsOf(template),
       responsibles: template.responsibles.map(responsible => responsible.role),
     }))
     return {

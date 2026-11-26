@@ -1,6 +1,11 @@
 import { EventOrigin } from '~/features/events/model/event-origin.type'
 import { isSystemTemplate } from '~/features/events/model/event-template.type'
-import { giveProgramme, lockTemplates, TEMPLATE_INCLUDE } from '~/features/events/server/give-programme.server'
+import {
+  giveProgramme,
+  kindTemplate,
+  lockTemplates,
+  TEMPLATE_INCLUDE,
+} from '~/features/events/server/give-programme.server'
 import {
   type CreatedProgramme,
   type CreationContext,
@@ -39,10 +44,11 @@ export async function createMeetingProgramme(
     },
   })
   if (event?.templateId == null) return null
-  const template = await db.eventTemplate.findFirst({
+  const loaded = await db.eventTemplate.findFirst({
     where: { id: event.templateId, congregationId },
     include: TEMPLATE_INCLUDE,
   })
+  const template = loaded && kindTemplate(loaded)
   if (template == null || (template.key != null && isSystemTemplate(template.key))) return null
   if (template.parts.length === 0 && template.serviceParts.length === 0) return null
   if (event._count.items > 0) throw new ProgrammeExistsError(event.id)

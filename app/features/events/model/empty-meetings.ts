@@ -21,11 +21,29 @@ export function isAwaitingProgramme(event: {
   return event.parts === 0 && event.services === 0
 }
 
-/** isAwaitingProgramme's template from a row selected with TEMPLATE_PROGRAMME_COUNT. */
+/** A kind as selected with TEMPLATE_PROGRAMME_COUNT: its key, and how many items each schedule template it uses holds. */
+export interface ProgrammeTemplateCounts {
+  key: string | null
+  scheduleTemplates: { scheduleTemplate: { _count: { parts: number; serviceParts: number } } }[]
+}
+
+/** The same counts as one total, as the meeting page's payload carries them. */
+export interface ProgrammeTemplateTotals {
+  key: string | null
+  _count: { parts: number; serviceParts: number }
+}
+
+/** isAwaitingProgramme's template from a row selected with TEMPLATE_PROGRAMME_COUNT: its schedule templates' items. */
 export function programmeTemplate(
-  template: { key: string | null; _count: { parts: number; serviceParts: number } } | null,
+  template: ProgrammeTemplateCounts | ProgrammeTemplateTotals | null,
 ): { key: string | null; parts: number; services: number } | null {
-  return template && { key: template.key, parts: template._count.parts, services: template._count.serviceParts }
+  if (template == null) return null
+  if ('_count' in template) {
+    return { key: template.key, parts: template._count.parts, services: template._count.serviceParts }
+  }
+  const sum = (of: 'parts' | 'serviceParts') =>
+    template.scheduleTemplates.reduce((total, link) => total + link.scheduleTemplate._count[of], 0)
+  return { key: template.key, parts: sum('parts'), services: sum('serviceParts') }
 }
 
 /**
@@ -89,7 +107,7 @@ export function planMeetingMoves(input: {
 export function programmeAwaits(
   /** `fromTemplate`: an empty schedule added by hand has no template's parts to wait for. */
   schedule: { kind: string; items: number; fromTemplate: boolean },
-  template: { key: string | null; _count: { parts: number; serviceParts: number } } | null,
+  template: ProgrammeTemplateCounts | ProgrammeTemplateTotals | null,
 ): boolean {
   if (schedule.kind !== ScheduleKind.Programme || !schedule.fromTemplate) return false
   const given = programmeTemplate(template)

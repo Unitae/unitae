@@ -4,6 +4,7 @@ import { daysOnWeekday, programmeKey } from '~/features/events/model/programme-d
 import { EMPTY_MEETING } from '~/features/events/server/empty-meetings.queries'
 import {
   giveProgramme,
+  kindTemplate,
   lockTemplates,
   TEMPLATE_INCLUDE,
   type TemplateWithRelations,
@@ -59,10 +60,12 @@ export async function createProgrammeSeries(
   ctx: CreationContext,
 ): Promise<SeriesResult> {
   const ids = [...new Set(input.templateIds)]
-  const templates: TemplateWithRelations[] = await db.eventTemplate.findMany({
-    where: { id: { in: ids }, congregationId: ctx.congregationId, key: NOT_A_SYSTEM_TEMPLATE },
-    include: TEMPLATE_INCLUDE,
-  })
+  const templates: TemplateWithRelations[] = (
+    await db.eventTemplate.findMany({
+      where: { id: { in: ids }, congregationId: ctx.congregationId, key: NOT_A_SYSTEM_TEMPLATE },
+      include: TEMPLATE_INCLUDE,
+    })
+  ).map(kindTemplate)
   const recurring = templates.filter(template => template.weekDay != null)
   if (recurring.length !== ids.length) throw new NotFoundError('EventTemplate')
 
@@ -196,10 +199,11 @@ export async function createProgrammeOnDay(
   input: { templateId: number; day: string },
   ctx: CreationContext,
 ): Promise<CreatedProgramme> {
-  const template: TemplateWithRelations | null = await db.eventTemplate.findFirst({
+  const loaded = await db.eventTemplate.findFirst({
     where: { id: input.templateId, congregationId: ctx.congregationId, key: NOT_A_SYSTEM_TEMPLATE },
     include: TEMPLATE_INCLUDE,
   })
+  const template: TemplateWithRelations | null = loaded && kindTemplate(loaded)
   if (!template) throw new NotFoundError('EventTemplate', input.templateId)
 
   await lockTemplates(db, [template.id], ctx.congregationId)

@@ -44,7 +44,10 @@ describe('assertCanRelease', () => {
 })
 
 describe('scheduleRefusal, what publishing a schedule refuses (shared by publishing and its preview)', () => {
-  const midweek = { key: 'midweek', _count: { parts: 12, serviceParts: 5 } }
+  const midweek = {
+    key: 'midweek',
+    scheduleTemplates: [{ scheduleTemplate: { _count: { parts: 12, serviceParts: 5 } } }],
+  }
   const item = (hasConflict = false) => ({ hasConflict })
 
   it('lets through a schedule with items and nobody away, filled or not', () => {

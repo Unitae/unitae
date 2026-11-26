@@ -1,5 +1,9 @@
 import type { Prisma } from '~/database/generated/client'
-import { isAwaitingProgramme, programmeTemplate } from '~/features/events/model/empty-meetings'
+import {
+  isAwaitingProgramme,
+  type ProgrammeTemplateCounts,
+  programmeTemplate,
+} from '~/features/events/model/empty-meetings'
 import { EventOrigin } from '~/features/events/model/event-origin.type'
 import {
   SCHEDULE_KINDS,
@@ -15,7 +19,7 @@ import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
-import { writeTemplateItems } from './give-programme.server'
+import { TEMPLATE_PROGRAMME_COUNT, writeTemplateItems } from './give-programme.server'
 import { type ScheduleRef, settleEventStatus } from './schedule-status.server'
 
 // Adding one schedule to an event (D39): from a schedule template, with its parts or duties and who may take them, or
@@ -90,7 +94,7 @@ async function lockEventForAdd(db: TransactionClient, eventId: number, congregat
       origin: true,
       schedules: { select: { kind: true } },
       _count: { select: { items: true } },
-      template: { select: { key: true, _count: { select: { parts: true, serviceParts: true } } } },
+      template: { select: { key: true, ...TEMPLATE_PROGRAMME_COUNT } },
     },
   })
 }
@@ -121,7 +125,7 @@ function refusalOf(
   event: {
     schedules: { kind: string }[]
     _count: { items: number }
-    template: { key: string | null; _count: { parts: number; serviceParts: number } } | null
+    template: ProgrammeTemplateCounts | null
   },
   kind: ScheduleKind,
   counts: { parts: number; serviceParts: number } | null,
@@ -221,7 +225,7 @@ export async function scheduleAddOptions(
       templateId: true,
       schedules: { select: { kind: true, scheduleTemplateId: true } },
       _count: { select: { items: true } },
-      template: { select: { key: true, _count: { select: { parts: true, serviceParts: true } } } },
+      template: { select: { key: true, ...TEMPLATE_PROGRAMME_COUNT } },
     },
   })
   if (event == null) return none

@@ -1,3 +1,4 @@
+import { type ProgrammeTemplateCounts, programmeTemplate } from '~/features/events/model/empty-meetings'
 import { ScheduleStatus } from '~/features/events/model/schedule.type'
 import {
   getPartAssignmentAllowedRoleIds,
@@ -11,6 +12,7 @@ import {
   DAY_OFF_MESSAGE,
   PROGRAMME_ASSIGNMENT_ERRORS,
 } from '~/features/events/server/event-part.policy'
+import { TEMPLATE_PROGRAMME_COUNT } from '~/features/events/server/give-programme.server'
 import {
   asEventPart,
   asEventServicePart,
@@ -45,7 +47,7 @@ export async function getEventProgramme(db: TransactionClient, eventId: number, 
   const event = await db.event.findFirst({
     where: { id: eventId, congregationId },
     include: {
-      template: { include: { _count: { select: { parts: true, serviceParts: true } } } },
+      template: { include: TEMPLATE_PROGRAMME_COUNT },
       schedules: {
         select: {
           id: true,
@@ -80,7 +82,19 @@ export async function getEventProgramme(db: TransactionClient, eventId: number, 
       orderBy: SERVICE_ITEM_ORDER,
     }),
   ])
-  return { ...event, eventParts: parts.map(asEventPart), eventServiceParts: services.map(asEventServicePart) }
+  // The page reads its template's counts as one total, its schedule templates' together (6b-0).
+  return {
+    ...event,
+    template: event.template && withTotals(event.template),
+    eventParts: parts.map(asEventPart),
+    eventServiceParts: services.map(asEventServicePart),
+  }
+}
+
+/** A template read with TEMPLATE_PROGRAMME_COUNT, its schedule templates' items as one `_count`. */
+function withTotals<T extends ProgrammeTemplateCounts>({ scheduleTemplates, ...template }: T) {
+  const counted = programmeTemplate({ key: template.key, scheduleTemplates })
+  return { ...template, _count: { parts: counted?.parts ?? 0, serviceParts: counted?.services ?? 0 } }
 }
 
 /**

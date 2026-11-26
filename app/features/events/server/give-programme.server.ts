@@ -38,13 +38,58 @@ export interface TemplateWithRelations {
   serviceParts: { id: number; name: string; order: number; allowedRoles: { roleId: number }[] }[]
 }
 
-/** The template counts isAwaitingProgramme needs: whether it has a programme to give. */
-export const TEMPLATE_PROGRAMME_COUNT = { _count: { select: { parts: true, serviceParts: true } } } as const
+/**
+ * The template counts isAwaitingProgramme needs: whether it has a programme to give, the items of the schedule
+ * templates it uses (6b-0), theirs under no kind as well as its own.
+ */
+export const TEMPLATE_PROGRAMME_COUNT = {
+  scheduleTemplates: {
+    select: { scheduleTemplate: { select: { _count: { select: { parts: true, serviceParts: true } } } } },
+  },
+} as const
 
+const PARTS = {
+  orderBy: [{ order: 'asc' }, { id: 'asc' }],
+  include: { allowedRoles: true, rooms: { include: { room: true } } },
+} satisfies Prisma.EventTemplate$partsArgs
+const SERVICES = {
+  orderBy: [{ order: 'asc' }, { id: 'asc' }],
+  include: { allowedRoles: true },
+} satisfies Prisma.EventTemplate$servicePartsArgs
+
+/**
+ * What a new meeting of the kind copies (6b-0): the items of the schedule templates it uses, in their order, and any of
+ * the kind's own not placed in one yet (its writers leave that to syncTemplateScheduleTemplates).
+ */
 export const TEMPLATE_INCLUDE = {
-  parts: { orderBy: { order: 'asc' }, include: { allowedRoles: true, rooms: { include: { room: true } } } },
-  serviceParts: { orderBy: [{ order: 'asc' }, { id: 'asc' }], include: { allowedRoles: true } },
+  parts: { ...PARTS, where: { scheduleTemplateId: null } },
+  serviceParts: { ...SERVICES, where: { scheduleTemplateId: null } },
+  scheduleTemplates: {
+    orderBy: [{ order: 'asc' }, { scheduleTemplateId: 'asc' }],
+    select: { scheduleTemplate: { select: { kind: true, parts: PARTS, serviceParts: SERVICES } } },
+  },
 } satisfies Prisma.EventTemplateInclude
+
+type LoadedKind = Prisma.EventTemplateGetPayload<{ include: typeof TEMPLATE_INCLUDE }>
+
+/**
+ * A kind as loaded with TEMPLATE_INCLUDE, its items those of its first programme template and its first duties
+ * template (an event holds one schedule of each sort) — that template's own and the kind's rows in it; another kind's
+ * rows in a shared template are its own business — then the kind's not placed yet.
+ */
+export function kindTemplate<T extends LoadedKind>(loaded: T): Omit<T, 'scheduleTemplates'> & TemplateWithRelations {
+  // A kind read without its links (an older caller, a test's stub) has only its own items.
+  const { scheduleTemplates = [], ...kind } = loaded
+  const first = (sort: string) => scheduleTemplates.find(link => link.scheduleTemplate.kind === sort)?.scheduleTemplate
+  const ours = (item: { templateId: number | null }) => item.templateId == null || item.templateId === kind.id
+  const byOrder = (a: { order: number; id: number }, b: { order: number; id: number }) =>
+    a.order - b.order || a.id - b.id
+  return {
+    ...kind,
+    parts: [...(first(ScheduleKind.Programme)?.parts.filter(ours) ?? []), ...kind.parts].sort(byOrder),
+    serviceParts: [...(first(ScheduleKind.Duty)?.serviceParts.filter(ours) ?? []), ...kind.serviceParts].sort(byOrder),
+  }
+}
 
 /**
  * Locks template rows before reading which days already have their events: in id order, like the recurring-events job,

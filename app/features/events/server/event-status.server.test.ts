@@ -122,7 +122,10 @@ describe('releaseEvent (tx-only)', () => {
   it('refuses a meeting still waiting for its programme, but not an empty other event', async () => {
     vi.mocked(db.event.findFirst).mockResolvedValue({
       ...draftEvent,
-      template: { key: 'midweek-meeting', _count: { parts: 12, serviceParts: 4 } },
+      template: {
+        key: 'midweek-meeting',
+        scheduleTemplates: [{ scheduleTemplate: { _count: { parts: 12, serviceParts: 4 } } }],
+      },
     } as never)
 
     expect(await releaseEvent(db, 42, 1, 5)).toEqual({
@@ -133,7 +136,10 @@ describe('releaseEvent (tx-only)', () => {
 
     vi.mocked(db.event.findFirst).mockResolvedValue({
       ...draftEvent,
-      template: { key: 'freeform', _count: { parts: 12, serviceParts: 4 } },
+      template: {
+        key: 'freeform',
+        scheduleTemplates: [{ scheduleTemplate: { _count: { parts: 12, serviceParts: 4 } } }],
+      },
     } as never)
     vi.mocked(db.event.update).mockResolvedValue(releasedEvent as never)
     expect(await releaseEvent(db, 42, 1, 5)).toMatchObject({ event: releasedEvent })
@@ -143,7 +149,7 @@ describe('releaseEvent (tx-only)', () => {
   it('publishes an empty event of a template with neither parts nor services', async () => {
     vi.mocked(db.event.findFirst).mockResolvedValue({
       ...draftEvent,
-      template: { key: null, _count: { parts: 0, serviceParts: 0 } },
+      template: { key: null, scheduleTemplates: [{ scheduleTemplate: { _count: { parts: 0, serviceParts: 0 } } }] },
     } as never)
     vi.mocked(db.event.update).mockResolvedValue(releasedEvent as never)
 

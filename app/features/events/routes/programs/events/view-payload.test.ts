@@ -41,7 +41,10 @@ vi.mock('~/features/events/server/event-part-assignments.server', () => ({
       status: 'released',
       templateId: 3,
       // A kind with parts to give: an empty programme waits for its own (programmeAwaits).
-      template: { key: 'midweek-meeting', _count: { parts: 3, serviceParts: 1 } },
+      template: {
+        key: 'midweek-meeting',
+        scheduleTemplates: [{ scheduleTemplate: { _count: { parts: 3, serviceParts: 1 } } }],
+      },
       schedules: [
         {
           id: 1,
