@@ -432,7 +432,7 @@ test.describe('Schedule templates: a part in the template panel', () => {
       await open.click()
       const dialog = page.getByRole('dialog')
       await dialog.getByLabel('Nom').fill('   ')
-      await dialog.getByRole('button', { name: 'Des services' }).click()
+      await dialog.getByRole('button', { name: 'Programme des services' }).click()
       await dialog.getByRole('button', { name: 'Créer le modèle' }).click()
       await expect(dialog.getByRole('alert')).toContainText('Donnez-lui un nom.')
       await dialog.getByLabel('Nom').fill(name)

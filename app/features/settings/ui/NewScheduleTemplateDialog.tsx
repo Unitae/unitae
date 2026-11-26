@@ -107,11 +107,6 @@ export function NewScheduleTemplateDialog({ open, onOpenChange, roles, returnFoc
               </SelectContent>
             </Select>
           </div>
-          <p className="text-muted-foreground text-sm">
-            {kind === 'duty'
-              ? m.settings_schedule_templates_new_hint_duty()
-              : m.settings_schedule_templates_new_hint_programme()}
-          </p>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
               {m.common_cancel()}
