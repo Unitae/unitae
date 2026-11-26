@@ -10,3 +10,9 @@ export function loader({ params }: Route.LoaderArgs) {
   const templateId = requireParamId(params.templateId, '/settings/templates')
   throw redirect(`/settings/templates?type=${templateId}`)
 }
+
+/** A tab left open on the old page across the change posts here: it lands on the panel, its change not kept. */
+export function action({ params }: Route.ActionArgs) {
+  const templateId = requireParamId(params.templateId, '/settings/templates')
+  throw redirect(`/settings/templates?type=${templateId}`)
+}

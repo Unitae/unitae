@@ -6360,7 +6360,7 @@
     "settings_template_duplicate": "Duplicate",
     "settings_template_delete": "Delete…",
     "settings_template_delete_title": "Delete this type?",
-    "settings_template_delete_description": "“{name}”, its parts, its services and who runs it are removed. No program created so far used it.",
+    "settings_template_delete_description": "“{name}” is removed, with the schedule templates only it uses. Those another type uses stay. No program created so far used it.",
     "settings_template_delete_in_use": [
         {
             "declarations": [

@@ -1,5 +1,5 @@
 import { Plus } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { redirect, useFetcher, useSearchParams } from 'react-router'
 import { isSystemTemplate, type ProgrammeTemplateCounts, programmeTemplate } from '~/features/events'
 import { getTemplates } from '~/features/events/index.server'
@@ -120,6 +120,15 @@ export default function TemplateListPage({ loaderData }: Route.ComponentProps) {
       params.delete('type')
       return params
     })
+  // A type deleted from its panel takes the panel and its button with it: focus goes to the list's first row.
+  const shown = useRef<number | null>(null)
+  useEffect(() => {
+    const was = shown.current
+    shown.current = type?.id ?? null
+    if (was != null && type == null && !templates.some(row => row.id === was)) {
+      document.querySelector<HTMLElement>('[data-row-primary]')?.focus()
+    }
+  }, [type, templates])
   const panel = type && <TypePanel type={type} docked={docked} onClose={close} onDirtyChange={setDirty} />
   const attendanceFetcher = useFetcher()
   // Shown as asked while the change is on its way.

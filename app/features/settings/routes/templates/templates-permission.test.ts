@@ -95,6 +95,17 @@ describe('a meeting type’s old page', () => {
     expect(response.headers.get('Location')).toBe('/settings/templates?type=270')
     expect(calls).toEqual([])
   })
+  it('sends a post from a tab left on it to the panel, writing nothing', async () => {
+    const response = await respond(() =>
+      template.action({
+        request: formRequest(`${URL}/270`, { intent: 'update-template', name: 'Renommée' }),
+        params: { templateId: '270' },
+        context: routeContext([Permission.CanManageProgramTemplates]),
+      } as never),
+    )
+    expect(response.headers.get('Location')).toBe('/settings/templates?type=270')
+    expect(calls).toEqual([])
+  })
 })
 
 describe('a meeting type’s side panel', () => {

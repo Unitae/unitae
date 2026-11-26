@@ -67,7 +67,11 @@ function TypePanelContent({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="max-w-72">
-        <DropdownMenuItem onSelect={() => menuFetcher.submit(intent('duplicate'), { method: 'post' })}>
+        {/* The copy is made from what is saved: not while changes wait, which it would silently leave out. */}
+        <DropdownMenuItem
+          disabled={changes > 0}
+          onSelect={() => menuFetcher.submit(intent('duplicate'), { method: 'post' })}
+        >
           <Copy />
           {m.settings_template_duplicate()}
         </DropdownMenuItem>

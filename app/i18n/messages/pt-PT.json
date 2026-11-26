@@ -6360,7 +6360,7 @@
     "settings_template_duplicate": "Duplicar",
     "settings_template_delete": "Eliminar…",
     "settings_template_delete_title": "Eliminar este tipo?",
-    "settings_template_delete_description": "“{name}”, as respetivas partes e serviços e quem os dirige serão removidos. Ainda não foi criado nenhum programa com este modelo.",
+    "settings_template_delete_description": "“{name}” será removido, com os modelos de planeamento que só ele utiliza. Os que outro tipo utiliza ficam. Ainda não foi criado nenhum programa com este tipo.",
     "settings_template_delete_in_use": [
         {
             "declarations": [

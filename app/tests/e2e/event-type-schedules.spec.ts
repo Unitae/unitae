@@ -90,4 +90,23 @@ test.describe('Meeting type: the schedule templates it uses', () => {
     await page.getByRole('button', { name: 'Annuler' }).click()
     await expect(name).toHaveValue('Réunion du week-end')
   })
+
+  // « Dupliquer » opens the copy; « Supprimer… » removes it and focus lands on the list, not the page's body.
+  test('duplicates a type, deletes the copy, and puts focus on the list', async ({ page }) => {
+    await page.goto('/settings/templates')
+    const type = page.getByRole('link', { name: 'Réunion du week-end' }).first()
+    if ((await type.count()) === 0) test.skip()
+    await type.click()
+    await page.waitForURL(TYPE_PAGE_RE)
+    const original = page.url()
+    await page.getByRole('button', { name: 'Plus d’actions' }).click()
+    await page.getByRole('menuitem', { name: 'Dupliquer' }).click()
+    await expect.poll(() => page.url()).not.toBe(original)
+    await page.getByRole('button', { name: 'Supprimer…' }).click()
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Supprimer' }).click()
+    await expect.poll(() => page.url()).not.toContain('type=')
+    await expect
+      .poll(() => page.evaluate(() => document.activeElement?.hasAttribute('data-row-primary') ?? false))
+      .toBe(true)
+  })
 })
