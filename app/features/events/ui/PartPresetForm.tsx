@@ -135,6 +135,18 @@ export function PartPresetForm({
           />
         </SettingRow>
         <SettingRow
+          htmlFor="printsStudentSlip"
+          title={m.settings_presets_form_student_slip()}
+          description={m.settings_presets_form_student_slip_hint()}
+        >
+          <Switch
+            id="printsStudentSlip"
+            name="printsStudentSlip"
+            defaultChecked={preset?.printsStudentSlip ?? false}
+            disabled={readOnly}
+          />
+        </SettingRow>
+        <SettingRow
           htmlFor="hasReaderSlot"
           title={m.settings_presets_form_has_reader()}
           description={m.settings_presets_form_has_reader_hint()}

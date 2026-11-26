@@ -6369,6 +6369,8 @@
     "settings_template_responsibles_moved": "Who fills and publishes its schedules is set on each schedule template:",
     "settings_template_read_only": "You see this template without being able to change it.",
     "settings_presets_form_has_reader_hint": "A second person on the part.",
+    "settings_presets_form_student_slip": "Student assignment slip (S-89)",
+    "settings_presets_form_student_slip_hint": "On a published midweek programme, the student can get his slip to print.",
     "settings_presets_form_insert": "Insert:",
     "settings_part_types_col_type": "Type",
     "settings_part_types_col_speaker": "Person",

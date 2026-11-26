@@ -12,6 +12,7 @@ export interface PartPresetInput {
   speakerLabel: string | null
   readerLabel: string | null
   allowExternalSpeaker: boolean
+  printsStudentSlip: boolean
   shareMessage: string | null
 }
 
@@ -28,6 +29,7 @@ function normalize(data: PartPresetInput) {
     speakerLabel: data.speakerLabel,
     readerLabel: data.hasReaderSlot ? data.readerLabel : null,
     allowExternalSpeaker: data.allowExternalSpeaker,
+    printsStudentSlip: data.printsStudentSlip,
     shareMessage: data.shareMessage,
   }
 }
