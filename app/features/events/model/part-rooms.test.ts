@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { type ItemWithRooms, partsInRooms } from './part-rooms'
+import { type ItemWithRooms, itemsPerRoom, partsInRooms } from './part-rooms'
 
 // The one reading of a programme's parts in their rooms: today's copies (a part in two rooms is two items, each in
 // its room) and R4's shape (one item, a row per room) read the same.
+
+const WITHOUT_ROOMS_RE = /without its rooms/
 
 const room = (id: number, name: string | null, order: number) => ({ id, name, key: order === 0 ? 'main' : null, order })
 const MAIN = room(1, null, 0)
@@ -177,5 +179,75 @@ describe('partsInRooms', () => {
   it('reads an item without its rows (a reader not including them yet) from the item itself', () => {
     const bare = { ...item(1, { name: 'Lecture', track: 'Salle B', trackOrder: 2, assigneeId: 8 }), rooms: undefined }
     expect(read([bare])).toEqual([{ name: 'Lecture', parallel: false, rooms: ['Salle B:8'] }])
+  })
+})
+
+describe('itemsPerRoom', () => {
+  it('leaves an item with one room as it is, copies included', () => {
+    const items = [
+      item(1, { name: 'Discours', order: 1, assigneeId: 7, rooms: [{ room: MAIN, assigneeId: 7 }] }),
+      item(2, { name: 'Lecture', order: 2, track: 'Salle B', trackOrder: 2, rooms: [{ room: SALLE_B }] }),
+    ]
+    expect(itemsPerRoom(items)).toEqual(items)
+  })
+
+  it('reads an item with a row per room as one copy per room, its room’s people and place on each', () => {
+    const one = item(5, {
+      name: 'Lecture',
+      order: 2,
+      assigneeId: 7,
+      rooms: [
+        { room: SALLE_B, assigneeId: 8 },
+        { room: MAIN, assigneeId: 7 },
+      ],
+    })
+    const [main, second] = itemsPerRoom([one])
+    expect([main?.id, main?.track, main?.trackOrder, main?.assigneeId]).toEqual([5, 'Salle principale', 1, 7])
+    // Another room's line keeps the part's place and name, under an id of its own (negative: never an item's).
+    expect([second?.id, second?.track, second?.trackOrder, second?.assigneeId, second?.order, second?.name]).toEqual([
+      -(one.rooms?.find(row => row.roomId === SALLE_B.id)?.id ?? 0),
+      'Salle B',
+      2,
+      8,
+      2,
+      'Lecture',
+    ])
+  })
+
+  it('carries each room’s people as read with the row (the three records), not the item’s', () => {
+    const person = (id: number, firstname: string) => ({ id, firstname })
+    const one = {
+      ...item(5, { name: 'Lecture', rooms: [{ room: MAIN }, { room: SALLE_B }] }),
+      assignee: person(7, 'Paul'),
+      assistant: person(9, 'Luc'),
+      externalSpeaker: person(11, 'Orateur A'),
+    }
+    one.rooms = one.rooms?.map(row => {
+      const main = row.roomId === MAIN.id
+      return {
+        ...row,
+        assignee: main ? person(7, 'Paul') : person(8, 'Jean'),
+        assistant: main ? person(9, 'Luc') : person(10, 'Marc'),
+        externalSpeaker: main ? person(11, 'Orateur A') : person(12, 'Orateur B'),
+      }
+    })
+    expect(
+      itemsPerRoom([one]).map(each => [
+        each.assignee?.firstname,
+        each.assistant?.firstname,
+        each.externalSpeaker?.firstname,
+      ]),
+    ).toEqual([
+      ['Paul', 'Luc', 'Orateur A'],
+      ['Jean', 'Marc', 'Orateur B'],
+    ])
+  })
+
+  it('refuses rows read without the people the item was read with, rather than showing the main room’s in each', () => {
+    const one = {
+      ...item(5, { name: 'Lecture', rooms: [{ room: MAIN }, { room: SALLE_B }] }),
+      assignee: { id: 7, firstname: 'Paul' },
+    }
+    expect(() => itemsPerRoom([one])).toThrow(WITHOUT_ROOMS_RE)
   })
 })

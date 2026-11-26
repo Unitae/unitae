@@ -128,3 +128,58 @@ export function partsInRooms<T extends ItemWithRooms>(items: readonly T[]): Part
   }
   return parts
 }
+
+/** The people a room row may be read with, as the item is: what a copy-shaped line carries for its room. */
+interface RowPeople {
+  assignee?: unknown
+  assistant?: unknown
+  externalSpeaker?: unknown
+}
+
+const PEOPLE = ['assignee', 'assistant', 'externalSpeaker'] as const
+
+/**
+ * A reader that read the item's people records must read its rows' too, or every room would show the item's (the
+ * main room's) people, silently: refused rather than drawn wrong.
+ */
+function assertRowPeople(item: RowPeople, row: RowPeople) {
+  for (const key of PEOPLE) {
+    if (key in item && !(key in row)) {
+      throw new Error(`A part's ${key} was read without its rooms' (select it on its rows too)`)
+    }
+  }
+}
+
+/**
+ * A programme's items as copies, for a reader that draws them (the board and its PDF, which join copies sharing an
+ * order): an item with one room is left as it is; an item with a row per room (R4's shape) becomes one copy per room,
+ * with that room's name, place and people. A line other than the main room's takes its row's id, negated, so it never
+ * reads as an item's: such a reader keys lines by id and acts on none.
+ */
+export function itemsPerRoom<T extends ItemWithRooms & RowPeople>(items: readonly T[]): T[] {
+  return items.flatMap(item => {
+    const rows = item.rooms ?? []
+    if (rows.length <= 1) return [item]
+    return [...rows]
+      .sort((a, b) => a.room.order - b.room.order || a.id - b.id)
+      .map(row => {
+        const people = row as ItemRoomRow & RowPeople
+        assertRowPeople(item, people)
+        const isMain = row.room.key === 'main'
+        return {
+          ...item,
+          id: isMain ? item.id : -row.id,
+          track: label(row.room),
+          trackOrder: row.room.order + 1,
+          assigneeId: row.assigneeId,
+          assistantId: row.assistantId,
+          externalSpeakerId: row.externalSpeakerId,
+          hasConflict: row.hasConflict,
+          ...('assignee' in people && { assignee: people.assignee }),
+          ...('assistant' in people && { assistant: people.assistant }),
+          ...('externalSpeaker' in people && { externalSpeaker: people.externalSpeaker }),
+          rooms: [row],
+        } as T
+      })
+  })
+}
