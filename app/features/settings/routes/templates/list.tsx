@@ -120,15 +120,15 @@ export default function TemplateListPage({ loaderData }: Route.ComponentProps) {
       params.delete('type')
       return params
     })
-  // A type deleted from its panel takes the panel and its button with it: focus goes to the list's first row.
+  // The panel closed: focus goes back to its type's row, or to the list's first row for a type deleted from it.
   const shown = useRef<number | null>(null)
   useEffect(() => {
     const was = shown.current
     shown.current = type?.id ?? null
-    if (was != null && type == null && !templates.some(row => row.id === was)) {
-      document.querySelector<HTMLElement>('[data-row-primary]')?.focus()
-    }
-  }, [type, templates])
+    if (was == null || type != null) return
+    const row = document.querySelector<HTMLElement>(`[data-row-primary][href="/settings/templates?type=${was}"]`)
+    ;(row ?? document.querySelector<HTMLElement>('[data-row-primary]'))?.focus()
+  }, [type])
   const panel = type && <TypePanel type={type} docked={docked} onClose={close} onDirtyChange={setDirty} />
   const attendanceFetcher = useFetcher()
   // Shown as asked while the change is on its way.

@@ -89,6 +89,9 @@ test.describe('Meeting type: the schedule templates it uses', () => {
     await expect(name).toHaveValue('Réunion du week-end (brouillon)')
     await page.getByRole('button', { name: 'Annuler' }).click()
     await expect(name).toHaveValue('Réunion du week-end')
+    // Closed with its ×, focus goes back to the type's row.
+    await page.getByRole('button', { name: 'Fermer' }).click()
+    await expect(first).toBeFocused()
   })
 
   // « Dupliquer » opens the copy; « Supprimer… » removes it and focus lands on the list, not the page's body.
