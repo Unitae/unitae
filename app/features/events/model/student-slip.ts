@@ -3,9 +3,7 @@
 
 import { formatEventDate } from '~/shared/utils/event-time'
 import { AttendanceKind } from './attendance-kind.type'
-import { PartPresetKey } from './part-preset.type'
 import { ScheduleKind, ScheduleStatus } from './schedule.type'
-import { isMinistrySection } from './section-style'
 
 interface SlipPerson {
   firstname: string | null
@@ -24,7 +22,8 @@ export interface SlipPart {
   assignee: SlipPerson | null
   assistant: SlipPerson | null
   externalSpeaker: unknown | null
-  preset: { key: string } | null
+  /** The part's kind: whether it offers the slip is the congregation's choice, in Réglages. */
+  preset: { key: string; printsStudentSlip: boolean } | null
 }
 
 export interface SlipEvent {
@@ -35,21 +34,9 @@ export interface SlipEvent {
 }
 
 /**
- * The student kinds. A part with no kind is a student's only in the ministry section: those parts have none on purpose,
- * their kind changing every week, but other parts may have none too (the « Vie chrétienne » ones, older talks).
- */
-const STUDENT_PRESETS: ReadonlySet<string> = new Set([
-  PartPresetKey.BibleReading,
-  PartPresetKey.SchoolDemonstration,
-  PartPresetKey.SchoolTalk,
-])
-
-/**
- * Whether a part gets an S-89 slip: a member given a student part of a published midweek programme. The programme's own
- * schedule decides, as it does for the share message; an external speaker has no slip.
- *
- * The midweek talks (« Joyaux », « Perles », « Vie chrétienne ») are left out: the data does not say whether a student
- * gives them, so the slip is not offered for them.
+ * Whether a part gets an S-89 slip: a member given a part of a published midweek programme, whose kind offers the slip
+ * (on for the seeded Bible reading, demonstration and student talk; any kind can be switched in Réglages). The
+ * programme's own schedule decides, as it does for the share message; an external speaker has no slip.
  */
 export function isStudentSlipPart(part: SlipPart, event: SlipEvent): boolean {
   if (event.template?.attendanceKind !== AttendanceKind.Midweek) return false
@@ -58,8 +45,8 @@ export function isStudentSlipPart(part: SlipPart, event: SlipEvent): boolean {
   if (part.assigneeId == null || part.assignee == null || part.externalSpeaker != null) return false
   // Without a section the part has no number on the slip, and the programme does not print it either.
   if (part.section === '') return false
-  if (part.preset == null) return isMinistrySection(part.section)
-  return STUDENT_PRESETS.has(part.preset.key)
+  // Nothing is guessed: a part with no kind has no slip until the person in charge picks one.
+  return part.preset?.printsStudentSlip === true
 }
 
 const numberingKey = (part: SlipPart) => JSON.stringify([part.section, part.order, part.name])

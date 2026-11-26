@@ -49,7 +49,7 @@ function part(overrides: Record<string, unknown> = {}) {
     assignee: { firstname: 'Marc', lastname: 'Dupont' },
     assistant: null,
     externalSpeaker: null,
-    preset: { key: 'bible-reading' },
+    preset: { key: 'bible-reading', printsStudentSlip: true },
     ...overrides,
   }
 }
@@ -124,7 +124,7 @@ describe('the S-89 slip loader', () => {
   })
 
   it('refuses a part that is not a student’s, an external speaker’s, or not in this programme', async () => {
-    const prayer = programme({ eventParts: [part({ preset: { key: 'prayer' } })] })
+    const prayer = programme({ eventParts: [part({ preset: { key: 'prayer', printsStudentSlip: false } })] })
     const external = programme({ eventParts: [part({ externalSpeaker: { id: 3 } })] })
 
     await expect(async () => download(prayer)).rejects.toMatchObject({ status: 302 })

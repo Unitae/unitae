@@ -37,60 +37,43 @@ function event(overrides: Partial<SlipEvent> = {}): SlipEvent {
   }
 }
 
+/** A part's kind as the programme reads it: its key and whether it offers the slip. */
+const kind = (key: string, printsStudentSlip: boolean) => ({ key, printsStudentSlip })
+const demonstration = kind(PartPresetKey.SchoolDemonstration, true)
+
 describe('isStudentSlipPart', () => {
-  it('accepts a member given a student part of a published midweek programme', () => {
-    expect(isStudentSlipPart(part({ id: 1 }), event())).toBe(true)
-    expect(isStudentSlipPart(part({ id: 2, preset: { key: PartPresetKey.BibleReading } }), event())).toBe(true)
-    expect(isStudentSlipPart(part({ id: 3, preset: { key: PartPresetKey.SchoolDemonstration } }), event())).toBe(true)
+  it('accepts a member given a part whose kind offers the slip, on a published midweek programme', () => {
+    expect(isStudentSlipPart(part({ id: 1, preset: demonstration }), event())).toBe(true)
+    expect(isStudentSlipPart(part({ id: 2, preset: kind(PartPresetKey.BibleReading, true) }), event())).toBe(true)
+    // The congregation's own kind, switched on in Réglages.
+    expect(isStudentSlipPart(part({ id: 3, preset: kind('expose-perso', true) }), event())).toBe(true)
   })
 
   it('refuses a weekend meeting, a draft programme and a part with nobody in it', () => {
-    expect(isStudentSlipPart(part({ id: 1 }), event({ template: { attendanceKind: 'weekend' } }))).toBe(false)
-    expect(isStudentSlipPart(part({ id: 1 }), event({ schedules: [{ kind: 'programme', status: 'draft' }] }))).toBe(
-      false,
-    )
-    expect(isStudentSlipPart(part({ id: 1, assigneeId: null, assignee: null }), event())).toBe(false)
+    const slip = { preset: demonstration }
+    expect(isStudentSlipPart(part({ id: 1, ...slip }), event({ template: { attendanceKind: 'weekend' } }))).toBe(false)
+    expect(
+      isStudentSlipPart(part({ id: 1, ...slip }), event({ schedules: [{ kind: 'programme', status: 'draft' }] })),
+    ).toBe(false)
+    expect(isStudentSlipPart(part({ id: 1, ...slip, assigneeId: null, assignee: null }), event())).toBe(false)
   })
 
   it('refuses a part outside every named section, which the programme does not number', () => {
-    expect(isStudentSlipPart(part({ id: 1, section: '' }), event())).toBe(false)
+    expect(isStudentSlipPart(part({ id: 1, preset: demonstration, section: '' }), event())).toBe(false)
   })
 
-  it('refuses an external speaker and the kinds that are not a student’s', () => {
-    expect(isStudentSlipPart(part({ id: 1, externalSpeaker: { id: 4 } }), event())).toBe(false)
-    for (const key of [
-      PartPresetKey.Prayer,
-      PartPresetKey.Chairman,
-      PartPresetKey.MidweekTalk,
-      PartPresetKey.CongregationBibleStudy,
-    ]) {
-      expect(isStudentSlipPart(part({ id: 1, preset: { key } }), event())).toBe(false)
-    }
+  it('refuses an external speaker and a kind that does not offer the slip', () => {
+    expect(isStudentSlipPart(part({ id: 1, preset: demonstration, externalSpeaker: { id: 4 } }), event())).toBe(false)
+    expect(isStudentSlipPart(part({ id: 1, preset: kind(PartPresetKey.MidweekTalk, false) }), event())).toBe(false)
+    // Switched off by the congregation, even on a seeded student kind.
+    expect(isStudentSlipPart(part({ id: 1, preset: kind(PartPresetKey.SchoolTalk, false) }), event())).toBe(false)
   })
 
-  // The ministry parts have no kind on purpose (it changes every week), but neither do other parts: a part without a
-  // kind is a student's only in the ministry section, whatever language its title is in.
-  it('takes a part without a kind for a student’s only in the ministry section', () => {
-    for (const section of [
-      'Appliquons-nous au ministère',
-      'Apply Yourself to the Field Ministry',
-      'Empenhe-se no Ministério',
-    ]) {
-      expect(isStudentSlipPart(part({ id: 1, section }), event())).toBe(true)
-    }
-    for (const section of [
-      'Joyaux de la parole de Dieu',
-      'Joyaux spirituels',
-      'Vie chrétienne',
-      'Living as Christians',
-    ]) {
-      expect(isStudentSlipPart(part({ id: 1, section }), event())).toBe(false)
-    }
-  })
-
-  it('keeps the Bible reading, whose kind says it, in the treasures section', () => {
-    const reading = part({ id: 1, section: 'Joyaux spirituels', preset: { key: PartPresetKey.BibleReading } })
-    expect(isStudentSlipPart(reading, event())).toBe(true)
+  // Nothing is guessed: the person in charge picks the part's kind on the meeting, and the slip follows.
+  it('refuses a part with no kind, even in the ministry section', () => {
+    expect(isStudentSlipPart(part({ id: 1, section: 'Appliquons-nous au ministère', preset: null }), event())).toBe(
+      false,
+    )
   })
 })
 
@@ -98,14 +81,20 @@ describe('slipPartNumber', () => {
   // The seeded midweek programme: the song and the opening prayer have no section and take no number.
   const programme: SlipPart[] = [
     part({ id: 10, name: 'Prière', section: '', order: 1 }),
-    part({ id: 11, name: 'Discours', section: 'Trésors', order: 2, preset: { key: PartPresetKey.MidweekTalk } }),
-    part({ id: 12, name: 'Perles', section: 'Trésors', order: 3, preset: { key: PartPresetKey.MidweekTalk } }),
-    part({ id: 13, name: 'Lecture', section: 'Trésors', order: 4, preset: { key: PartPresetKey.BibleReading } }),
+    part({ id: 11, name: 'Discours', section: 'Trésors', order: 2, preset: kind(PartPresetKey.MidweekTalk, false) }),
+    part({ id: 12, name: 'Perles', section: 'Trésors', order: 3, preset: kind(PartPresetKey.MidweekTalk, false) }),
+    part({ id: 13, name: 'Lecture', section: 'Trésors', order: 4, preset: kind(PartPresetKey.BibleReading, true) }),
     part({ id: 14, name: 'Première partie', section: 'Ministère', order: 5 }),
     part({ id: 17, name: 'Deuxième partie', section: 'Ministère', order: 6 }),
     part({ id: 18, name: 'Troisième partie', section: 'Ministère', order: 7 }),
     part({ id: 15, name: 'Chant', section: '', order: 8 }),
-    part({ id: 16, name: 'Vie 1', section: 'Vie chrétienne', order: 9, preset: { key: PartPresetKey.MidweekTalk } }),
+    part({
+      id: 16,
+      name: 'Vie 1',
+      section: 'Vie chrétienne',
+      order: 9,
+      preset: kind(PartPresetKey.MidweekTalk, false),
+    }),
   ]
 
   it('numbers the parts of a named section in order, the song and prayer aside', () => {
