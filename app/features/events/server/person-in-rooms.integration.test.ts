@@ -21,7 +21,9 @@ const { seedDefaultTemplates, syncTemplateScheduleTemplates } = await import('~/
 const { getPersonalAssignments } = await import('./personal-assignments.server')
 const { listUserConflictsInRange } = await import('./list-user-conflicts-in-range.server')
 const { listUserSameEventAssignments } = await import('./list-user-same-event-assignments.server')
-const { findUpcomingAssignmentsForMember } = await import('./member-engagement.queries')
+const { findLastAssignmentsForMembers, findUpcomingAssignmentsForMember } = await import('./member-engagement.queries')
+const { listCongregationAbsences } = await import('./days-off.queries')
+const { listUserCadence } = await import('./list-user-cadence.server')
 const { getUpcomingAssignments } = await import('~/features/dashboard/server/get-upcoming-assignments.server')
 
 class Rollback extends Error {}
@@ -37,6 +39,9 @@ interface Read {
   member: { copies: string[]; rows: string[] }
   conflicts: string[]
   sameEvent: { copies: string[]; rows: string[] }
+  last: string | null
+  absence: string[]
+  cadence: { past: boolean[]; lastAssignedAt: string | null }
 }
 
 describe('a person in another room', () => {
@@ -92,6 +97,34 @@ describe('a person in another room', () => {
           const upcoming = await getUpcomingAssignments(db, jean, congregationId, new Date('2099-03-01'))
           const member = await findUpcomingAssignmentsForMember(db, jean as never, congregationId as never, since)
           const conflicts = await listUserConflictsInRange(db, jean, since, new Date('2099-12-31'))
+          const last = (
+            await findLastAssignmentsForMembers(db, [jean as never], congregationId as never, new Date('2099-06-01'))
+          ).get(jean as never)
+          await tx.absence.create({
+            data: {
+              startDate: new Date('2099-03-01'),
+              endDate: new Date('2099-03-20'),
+              memberId: jean,
+              accountId: jeanAccount,
+              congregationId,
+            },
+          })
+          const [absence] = await listCongregationAbsences(db, {
+            congregationId,
+            from: new Date('2099-03-01'),
+            to: new Date('2099-03-31'),
+          })
+          // From a meeting after both: was the part his, on each?
+          const cadence = await listUserCadence(db, {
+            userId: jean,
+            event: { templateId: kind.id, id: -1, startDate: new Date('2099-04-01') },
+            congregationId,
+            partName: seeded.partName,
+            partSection: seeded.partSection,
+            slot: 'assignee',
+            pastCount: 4,
+            futureCount: 0,
+          })
           const sameEvent = async (eventId: number) =>
             (await listUserSameEventAssignments(db, { userId: jean, eventId, congregationId })).map(each => each.name)
           read = {
@@ -113,6 +146,15 @@ describe('a person in another room', () => {
             ),
             conflicts: conflicts.map(each => `${each.eventDate.toISOString().slice(0, 10)}:${each.assignmentName}`),
             sameEvent: { copies: await sameEvent(seeded.copies), rows: await sameEvent(seeded.rows) },
+            // His last part is the later meeting's, which only its rows hold.
+            last: last == null ? null : `${last.date.toISOString().slice(0, 10)}:${last.partName}`,
+            absence: (absence?.conflicts ?? []).map(
+              each => `${each.eventDate.toISOString().slice(0, 10)}:${each.name}`,
+            ),
+            cadence: {
+              past: cadence.past.map(entry => entry.assigned),
+              lastAssignedAt: cadence.lastAssignedAt?.slice(0, 10) ?? null,
+            },
           }
           throw new Rollback()
         },
@@ -131,5 +173,8 @@ describe('a person in another room', () => {
     expect(read.member).toEqual({ copies: [partName], rows: [partName] })
     expect(read.conflicts).toEqual([`2099-03-04:${partName}`, `2099-03-11:${partName}`])
     expect(read.sameEvent).toEqual({ copies: [partName], rows: [partName] })
+    expect(read.last).toBe(`2099-03-11:${partName}`)
+    expect(read.absence).toEqual([`2099-03-04:${partName}`, `2099-03-11:${partName}`])
+    expect(read.cadence).toEqual({ past: [true, true], lastAssignedAt: '2099-03-11' })
   })
 })

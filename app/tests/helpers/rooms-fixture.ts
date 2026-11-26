@@ -51,5 +51,5 @@ export async function seedMeetingsInRooms(
     data: { itemId: main.id, roomId: secondRow.roomId, assigneeId: input.speakers[1], congregationId },
   })
   await db.item.delete({ where: { id: second.id } })
-  return { copies: copies.eventId, rows: rows.eventId, partName: first.name }
+  return { copies: copies.eventId, rows: rows.eventId, partName: first.name, partSection: first.section }
 }
