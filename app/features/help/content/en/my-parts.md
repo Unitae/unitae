@@ -34,4 +34,4 @@ Your calendar link adds your published parts and services to Apple Calendar, Goo
 
 ## The printed assignment
 
-For a student part, the person who manages the programme can also give you the printed assignment slip (S-89). It shows your name, your assistant’s name, the date and the part’s number.
+For a student part of the midweek meeting, the person in charge of the program can also give you the printed assignment slip (S-89). It shows your name, your assistant’s name, the date, the part’s number and the room.

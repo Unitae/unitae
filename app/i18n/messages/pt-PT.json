@@ -6380,7 +6380,7 @@
     "settings_template_read_only": "Pode ver este modelo, mas não o pode alterar.",
     "settings_presets_form_has_reader_hint": "Uma segunda pessoa na parte.",
     "settings_presets_form_student_slip": "Designação de estudante (S-89)",
-    "settings_presets_form_student_slip_hint": "Num programa de meio de semana publicado, o estudante pode receber a sua designação para imprimir.",
+    "settings_presets_form_student_slip_hint": "Num programa de meio de semana publicado, quem preenche o programa pode imprimir a designação do estudante.",
     "settings_presets_form_insert": "Inserir:",
     "settings_part_types_col_type": "Tipo",
     "settings_part_types_col_speaker": "Pessoa",
