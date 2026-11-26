@@ -3,6 +3,7 @@ import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import type { MemberOption } from '~/features/publishers/ui/MemberMultiSelect'
 import { MemberMultiSelect } from '~/features/publishers/ui/MemberMultiSelect'
+import { formatMonthYear } from '~/features/publishers/ui/report-month-format'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/shared/ui/dialog'
@@ -12,7 +13,9 @@ import { RadioGroup, RadioGroupItem } from '~/shared/ui/radio-group'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { formatGroupName } from '~/shared/utils/format-group-name'
 
-type ExportFormat = 'xlsx' | 'pdfs'
+type ExportFormat = 'xlsx' | 'pdfs' | 's1'
+/** A month as the activity page shows it; `month` is 0-indexed. */
+type ExportMonth = { month: number; year: number }
 // What actually gets downloaded: the user's format, or one S-21 PDF in single-publisher mode.
 type DownloadKind = ExportFormat | 'pdf'
 type ExportScope = 'all' | 'group' | 'members'
@@ -33,6 +36,8 @@ interface ExportActivityDialogProps {
   // When set, the dialog exports this one publisher's S-21: only the year is asked, and
   // publisherGroups / members are not needed.
   publisherId?: number
+  // The month the page shows: its S-1 is offered. No S-1 without it.
+  month?: ExportMonth
 }
 
 export function ExportActivityDialog({
@@ -43,6 +48,7 @@ export function ExportActivityDialog({
   publisherGroups = [],
   members = [],
   publisherId,
+  month,
 }: ExportActivityDialogProps) {
   const startYear = initialExportYear(availableYears, defaultYear)
   const [format, setFormat] = useState<ExportFormat>('pdfs')
@@ -55,7 +61,7 @@ export function ExportActivityDialog({
 
   const yearsForSelect = availableYears.length > 0 ? availableYears : [defaultYear]
   const singlePublisher = publisherId != null
-  const scopeDisabled = singlePublisher || format === 'xlsx'
+  const scopeDisabled = singlePublisher || format !== 'pdfs'
 
   function reset() {
     setFormat('pdfs')
@@ -74,7 +80,7 @@ export function ExportActivityDialog({
 
   async function handleExport() {
     setError(null)
-    const url = buildExportUrl({ format, year, scope, groupId, publisherIds, publisherId })
+    const url = buildExportUrl({ format, year, scope, groupId, publisherIds, publisherId, month })
     if (url == null) {
       setError(m.activity_export_dialog_error_scope())
       return
@@ -93,7 +99,7 @@ export function ExportActivityDialog({
 
       const kind: DownloadKind = singlePublisher ? 'pdf' : format
       const disposition = response.headers.get('Content-Disposition') ?? ''
-      const filename = filenameFromDisposition(disposition) ?? fallbackFilename(kind, year)
+      const filename = filenameFromDisposition(disposition) ?? fallbackFilename(kind, year, month)
       const blob = await response.blob()
       saveBlob(blob, filename)
       handleClose(false)
@@ -121,8 +127,8 @@ export function ExportActivityDialog({
           </div>
         ) : (
           <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto">
-            {!singlePublisher && <FormatField format={format} onFormatChange={setFormat} />}
-            <YearField year={year} years={yearsForSelect} onYearChange={setYear} />
+            {!singlePublisher && <FormatField format={format} onFormatChange={setFormat} month={month} />}
+            {format !== 's1' && <YearField year={year} years={yearsForSelect} onYearChange={setYear} />}
             {!scopeDisabled && (
               <ScopeField
                 scope={scope}
@@ -158,7 +164,15 @@ function submitLabel(scope: ExportScope | null, picked: number): string {
   return m.activity_export_dialog_submit_count({ count: picked })
 }
 
-function FormatField({ format, onFormatChange }: { format: ExportFormat; onFormatChange: (f: ExportFormat) => void }) {
+function FormatField({
+  format,
+  onFormatChange,
+  month,
+}: {
+  format: ExportFormat
+  onFormatChange: (f: ExportFormat) => void
+  month?: ExportMonth
+}) {
   return (
     <div className="flex flex-col gap-2">
       <Label>{m.activity_export_dialog_format_label()}</Label>
@@ -181,6 +195,17 @@ function FormatField({ format, onFormatChange }: { format: ExportFormat; onForma
             <span className="text-muted-foreground text-xs">{m.activity_export_dialog_format_xlsx_hint()}</span>
           </div>
         </label>
+        {month != null && (
+          <label htmlFor="export-format-s1" className="flex cursor-pointer items-start gap-2 rounded-md border p-3">
+            <RadioGroupItem value="s1" id="export-format-s1" className="mt-0.5" />
+            <div className="flex flex-col gap-0.5">
+              <span className="font-medium text-sm">{m.activity_export_dialog_format_s1()}</span>
+              <span className="text-muted-foreground text-xs">
+                {m.activity_export_dialog_format_s1_hint({ month: formatMonthYear(month.month, month.year) })}
+              </span>
+            </div>
+          </label>
+        )}
       </RadioGroup>
     </div>
   )
@@ -286,11 +311,17 @@ interface BuildExportUrlArgs {
   groupId: number | null
   publisherIds: number[]
   publisherId?: number
+  month?: ExportMonth
 }
 
 export function buildExportUrl(args: BuildExportUrlArgs): string | null {
   const params = new URLSearchParams({ year: String(args.year) })
   if (args.publisherId != null) return `/publishers/${args.publisherId}/activity/pdf?${params.toString()}`
+  if (args.format === 's1') {
+    if (args.month == null) return null
+    const month = new URLSearchParams({ month: String(args.month.month), year: String(args.month.year) })
+    return `/attendance/branch-report.pdf?${month.toString()}`
+  }
   if (args.format === 'pdfs') {
     if (args.scope === 'group') {
       if (args.groupId == null) return null
@@ -303,8 +334,11 @@ export function buildExportUrl(args: BuildExportUrlArgs): string | null {
   return `/publishers/activity/export/${args.format}?${params.toString()}`
 }
 
-function fallbackFilename(kind: DownloadKind, year: number): string {
+function fallbackFilename(kind: DownloadKind, year: number, month?: ExportMonth): string {
   if (kind === 'pdf') return m.activity_export_filename_s21({ year: String(year) })
+  if (kind === 's1' && month != null) {
+    return m.branch_report_filename_pdf({ period: `${month.year}-${String(month.month + 1).padStart(2, '0')}` })
+  }
   return kind === 'xlsx'
     ? m.activity_export_filename_xlsx({ year: String(year) })
     : m.activity_export_filename_zip({ year: String(year) })

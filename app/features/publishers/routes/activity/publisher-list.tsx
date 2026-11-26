@@ -269,6 +269,7 @@ export default function ActivityReports({ loaderData }: Route.ComponentProps) {
         defaultYear={exportOptions.defaultYear}
         publisherGroups={exportOptions.publisherGroups}
         members={exportOptions.members}
+        month={selectedMonth}
       />
     </div>
   )
