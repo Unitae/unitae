@@ -11,6 +11,7 @@
         "readerLabel": null,
         "allowExternalSpeaker": false,
         "shareMessage": null,
+        "printsStudentSlip": true,
         "isSystem": true
       },
       {
@@ -23,6 +24,7 @@
         "readerLabel": null,
         "allowExternalSpeaker": false,
         "shareMessage": null,
+        "printsStudentSlip": false,
         "isSystem": true
       },
       {
@@ -35,6 +37,7 @@
         "readerLabel": null,
         "allowExternalSpeaker": false,
         "shareMessage": null,
+        "printsStudentSlip": false,
         "isSystem": true
       },
       {
@@ -47,6 +50,7 @@
         "readerLabel": null,
         "allowExternalSpeaker": true,
         "shareMessage": null,
+        "printsStudentSlip": false,
         "isSystem": true
       },
       {
@@ -59,6 +63,7 @@
         "readerLabel": null,
         "allowExternalSpeaker": true,
         "shareMessage": null,
+        "printsStudentSlip": false,
         "isSystem": true
       },
       {
@@ -71,6 +76,7 @@
         "readerLabel": null,
         "allowExternalSpeaker": true,
         "shareMessage": null,
+        "printsStudentSlip": false,
         "isSystem": true
       },
       {
@@ -83,6 +89,7 @@
         "readerLabel": null,
         "allowExternalSpeaker": false,
         "shareMessage": null,
+        "printsStudentSlip": true,
         "isSystem": true
       },
       {
@@ -95,6 +102,7 @@
         "readerLabel": null,
         "allowExternalSpeaker": false,
         "shareMessage": null,
+        "printsStudentSlip": true,
         "isSystem": true
       },
       {
@@ -107,6 +115,7 @@
         "readerLabel": null,
         "allowExternalSpeaker": false,
         "shareMessage": null,
+        "printsStudentSlip": false,
         "isSystem": true
       }
     ],

@@ -11,6 +11,10 @@ const logger = createLogger('import-part-presets')
 // congregation-created preset always slugs to something else.
 const LEGACY_MIDWEEK_KEYS = new Set(['spiritual-gems', 'spiritual-pearls', 'christian-life-talk'])
 
+// The seeded student kinds, which offer the S-89 slip. An archive made before the option carries no value: it gets the
+// one the 20261202090000_part_preset_student_slip migration gave live data, on for these, off for every other kind.
+const STUDENT_SLIP_KEYS = new Set(['bible-reading', 'school-demonstration', 'school-talk'])
+
 /**
  * Recreates the part presets — the kinds of programme part, and the message
  * sent to whoever is assigned one.
@@ -46,6 +50,7 @@ export async function importPartPresets(
     allowExternalSpeaker: boolean
     shareMessage: string
     isSystem: boolean
+    printsStudentSlip?: boolean
   }>(zip, 'part-presets')
 
   let midweekTalkId: number | null = null
@@ -82,6 +87,7 @@ export async function importPartPresets(
         readerLabel: record.readerLabel,
         allowExternalSpeaker: record.allowExternalSpeaker,
         shareMessage: record.shareMessage,
+        printsStudentSlip: record.printsStudentSlip ?? (record.isSystem && STUDENT_SLIP_KEYS.has(record.key)),
         // Carried rather than recomputed: a congregation may have edited a
         // seeded preset, and re-deriving isSystem from the key would either
         // discard that or resurrect a preset they deleted.
