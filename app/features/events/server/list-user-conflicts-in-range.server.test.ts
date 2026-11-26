@@ -38,8 +38,10 @@ describe('listUserConflictsInRange', () => {
 
     const call = vi.mocked(db.eventPart.findMany).mock.calls[0][0]
     const where = call?.where as Record<string, unknown>
-    expect(where.hasConflict).toBe(true)
-    expect(where.OR).toEqual([{ assigneeId: memberId }, { assistantId: memberId }])
+    // A conflict is its room's (parallel rooms): the room that holds them, flagged.
+    expect(where.rooms).toEqual({
+      some: { hasConflict: true, OR: [{ assigneeId: memberId }, { assistantId: memberId }] },
+    })
     expect(where.schedule).toEqual({ status: 'published' })
     expect(where.event).toEqual({ startDate: { lte: end }, endDate: { gte: start } })
   })

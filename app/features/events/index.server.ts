@@ -33,7 +33,7 @@ export {
   SERVICE_TIE_BREAK,
   splitItems,
 } from './server/item-projection.server'
-export { ITEM_ROOMS } from './server/item-rooms.queries'
+export { ITEM_ROOMS, PART_CONFLICT_OF, PART_HELD_BY } from './server/item-rooms.queries'
 export {
   findLastAssignmentsForMembers,
   findNextAbsencesForMembers,

@@ -183,3 +183,33 @@ export function itemsPerRoom<T extends ItemWithRooms & RowPeople>(items: readonl
       })
   })
 }
+
+/**
+ * A part as one of its people holds it: the item, with the room row that holds `who` (speaker or second speaker) in
+ * the place of the item's own people and conflict, and without its rows. A copy reads as it is (its row is its
+ * columns); an item with a row per room reads as its holder's room. An item none of whose rows holds `who` reads as is.
+ */
+export function heldBy<T extends { rooms?: ItemRoomRow[] } & RowPeople>(
+  item: T,
+  who: number | readonly number[],
+): Omit<T, 'rooms'> {
+  const people = typeof who === 'number' ? [who] : who
+  const holds = (id: number | null) => id != null && people.includes(id)
+  const row = item.rooms?.find(each => holds(each.assigneeId) || holds(each.assistantId)) as
+    | (ItemRoomRow & RowPeople)
+    | undefined
+  const { rooms, ...rest } = item
+  if (row == null) return rest
+  assertRowPeople(item, row)
+  // Each field is the item's own type: a row carries the same people, read the same way.
+  return {
+    ...rest,
+    ...('assigneeId' in rest && { assigneeId: row.assigneeId }),
+    ...('assistantId' in rest && { assistantId: row.assistantId }),
+    ...('externalSpeakerId' in rest && { externalSpeakerId: row.externalSpeakerId }),
+    ...('hasConflict' in rest && { hasConflict: row.hasConflict }),
+    ...('assignee' in row && { assignee: row.assignee }),
+    ...('assistant' in row && { assistant: row.assistant }),
+    ...('externalSpeaker' in row && { externalSpeaker: row.externalSpeaker }),
+  } as Omit<T, 'rooms'>
+}

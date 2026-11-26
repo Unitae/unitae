@@ -7,6 +7,7 @@ import {
   SERVICE_ITEMS,
   SERVICE_ITEMS_BY_DATE,
 } from '~/features/events/server/item-projection.server'
+import { PART_HELD_BY } from '~/features/events/server/item-rooms.queries'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { CongregationId, MemberId } from '~/shared/types/branded'
 
@@ -36,7 +37,7 @@ export async function findUpcomingAssignmentsForMember(
       where: {
         ...PART_ITEMS,
         ...VISIBLE_ITEM,
-        OR: [{ assigneeId: memberId }, { assistantId: memberId }],
+        ...PART_HELD_BY(memberId),
         event: eventFilter,
       },
       select,

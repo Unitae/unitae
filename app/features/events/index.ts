@@ -32,7 +32,14 @@ export {
   partPresetShareMessage,
   partPresetSpeakerLabel,
 } from './model/part-preset-defaults'
-export { type ItemWithRooms, itemsPerRoom, type PartInRooms, partsInRooms, type RoomLine } from './model/part-rooms'
+export {
+  heldBy,
+  type ItemWithRooms,
+  itemsPerRoom,
+  type PartInRooms,
+  partsInRooms,
+  type RoomLine,
+} from './model/part-rooms'
 export { programmeKey } from './model/programme-dates'
 export {
   groupProgrammeParts,

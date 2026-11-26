@@ -29,7 +29,7 @@ describe('getPersonalAssignments', () => {
     // Personal calendar / ICS is publisher-facing — drafts must not appear
     // there. Only published schedules flow through.
     expect(partsCall.where).toMatchObject({
-      OR: [{ assigneeId: 42 }, { assistantId: 42 }],
+      rooms: { some: { OR: [{ assigneeId: 42 }, { assistantId: 42 }] } },
       schedule: { status: 'published' },
       event: { startDate: { gte: since } },
     })
