@@ -243,6 +243,16 @@ describe('itemsPerRoom', () => {
     ])
   })
 
+  it('gives an expanded line only the fields its item was read with', () => {
+    const one = item(5, { name: 'Lecture', rooms: [{ room: MAIN }, { room: SALLE_B }] })
+    const { track, trackOrder, assistantId, externalSpeakerId, hasConflict, ...narrow } = one
+    const lines = itemsPerRoom([narrow])
+    expect(lines).toHaveLength(2)
+    for (const line of lines) {
+      expect(['track', 'trackOrder', 'assistantId', 'hasConflict'].filter(key => key in line)).toEqual([])
+    }
+  })
+
   it('refuses rows read without the people the item was read with, rather than showing the main room’s in each', () => {
     const one = {
       ...item(5, { name: 'Lecture', rooms: [{ room: MAIN }, { room: SALLE_B }] }),

@@ -15,7 +15,8 @@ describe('getOpenParts', () => {
         // Its programme is a draft beside published duties: the event reads released (D51), the programme decides.
         status: 'released',
         schedules: [{ status: 'draft' }],
-        _count: { items: 2 },
+        // Its parts with an open room: one part open in two rooms, so two slots.
+        items: [{ rooms: [{ id: 11 }, { id: 12 }] }],
       },
       {
         id: 2,
@@ -23,7 +24,7 @@ describe('getOpenParts', () => {
         startDate: new Date(2026, 10, 15),
         status: 'released',
         schedules: [{ status: 'published' }],
-        _count: { items: 0 },
+        items: [],
       },
       {
         id: 3,
@@ -31,7 +32,7 @@ describe('getOpenParts', () => {
         startDate: new Date(2026, 10, 19),
         status: 'draft',
         schedules: [{ status: 'published' }],
-        _count: { items: 1 },
+        items: [{ rooms: [{ id: 31 }] }],
       },
     ] as never)
     const open = await getOpenParts(db, 1, { roleIds: null, days: 28 })
@@ -43,7 +44,7 @@ describe('getOpenParts', () => {
 
   it('finds nothing for someone holding no role, who answers for no schedule', async () => {
     vi.mocked(db.event.findMany).mockResolvedValue([
-      { id: 1, name: 'x', startDate: new Date(), status: 'draft', _count: { items: 2 } },
+      { id: 1, name: 'x', startDate: new Date(), status: 'draft', items: [{ rooms: [{ id: 1 }] }] },
     ] as never)
     expect(await getOpenParts(db, 1, { roleIds: [], days: 28 })).toEqual([])
   })

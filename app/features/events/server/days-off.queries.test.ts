@@ -194,6 +194,32 @@ describe('listCongregationAbsences', () => {
   // The old page ran two queries per absence.
   // The flag follows the item's own schedule, not its event's status: a part in a draft schedule of a released event,
   // or a part in no schedule, is not published.
+  // A part held in two rooms (parallel rooms): its conflict is the flagged room's, never the other room's people.
+  it('gives a conflict to the person of a flagged room only, not to someone away in another room of the part', async () => {
+    const both = { ...elodie, endDate: paul.endDate }
+    vi.mocked(db.absence.findMany).mockResolvedValue([both, { ...paul, startDate: elodie.startDate }] as never)
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([
+      {
+        id: 12,
+        name: 'Lecture',
+        event: meeting(31, '2026-11-12T18:00:00Z'),
+        schedule: { status: 'published' },
+        rooms: [
+          { assigneeId: 5, assistantId: null, hasConflict: true },
+          { assigneeId: 7, assistantId: null, hasConflict: false },
+        ],
+      },
+    ] as never)
+    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([])
+
+    const result = await listCongregationAbsences(db, { congregationId: 1, from: FROM, to: TO })
+
+    expect(result.map(absence => [absence.memberId, absence.conflicts.map(each => each.id)])).toEqual([
+      [5, [12]],
+      [7, []],
+    ])
+  })
+
   it("takes « published » from the assignment's own schedule", async () => {
     vi.mocked(db.absence.findMany).mockResolvedValue([elodie] as never)
     vi.mocked(db.eventPart.findMany).mockResolvedValue([
