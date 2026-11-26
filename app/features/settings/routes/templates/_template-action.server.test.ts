@@ -33,17 +33,17 @@ vi.mock('~/features/events/index.server', () => {
       writes.push(`move-meetings ${id} ${ctx.timeZone} ${ctx.actorId}`)
       return { moved: 2, removed: 0 }
     }),
-    addKindScheduleTemplate: vi.fn(async (_db: unknown, id: number, scheduleTemplateId: number) => {
+    addKindScheduleTemplate: vi.fn((_db: unknown, id: number, scheduleTemplateId: number) => {
       writes.push(`use ${id} ${scheduleTemplateId}`)
-      return scheduleTemplateId === 66 ? { ok: false, reason: 'sort-used' } : { ok: true }
+      return Promise.resolve(scheduleTemplateId === 66 ? { ok: false, reason: 'sort-used' } : { ok: true })
     }),
-    removeKindScheduleTemplate: vi.fn(async (_db: unknown, id: number, scheduleTemplateId: number) => {
+    removeKindScheduleTemplate: vi.fn((_db: unknown, id: number, scheduleTemplateId: number) => {
       writes.push(`stop ${id} ${scheduleTemplateId}`)
-      return { ok: true }
+      return Promise.resolve({ ok: true })
     }),
-    orderKindScheduleTemplates: vi.fn(async (_db: unknown, id: number, ids: number[]) => {
+    orderKindScheduleTemplates: vi.fn((_db: unknown, id: number, ids: number[]) => {
       writes.push(`order ${id} ${ids.join(',')}`)
-      return { ok: true }
+      return Promise.resolve({ ok: true })
     }),
     deleteTemplate: vi.fn(async (_db: unknown, id: number) => {
       writes.push(`delete ${id}`)

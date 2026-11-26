@@ -40,6 +40,8 @@ export async function addKindScheduleTemplate(
   congregationId: number,
   actorId: number,
 ): Promise<{ ok: true } | { ok: false; reason: AddKindScheduleTemplateRefusal } | null> {
+  // Two adds at once would both pass the one-per-sort check: the type's row is locked first, as its sync locks it.
+  await db.$queryRaw`SELECT "id" FROM "EventTemplate" WHERE "id" = ${kindId} AND "congregationId" = ${congregationId} FOR UPDATE`
   const [kind, template] = await Promise.all([
     kindWithLinks(db, kindId, congregationId),
     db.scheduleTemplate.findFirst({ where: { id: scheduleTemplateId, congregationId }, select: { kind: true } }),

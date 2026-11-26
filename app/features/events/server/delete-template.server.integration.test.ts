@@ -5,7 +5,8 @@ import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 // Deleting a meeting type takes the schedule templates only it uses, with every item in them: its own rows, and those a
-// template holds under no kind (written from « Modèles de planning », 6b-1). A template another type uses stays. In a
+// template holds under no kind (written from « Modèles de planning », 6b-1). A template another type uses stays, with
+// the type's rows in it, which become the template's own (6b-2: types share templates from their page). In a
 // congregation of its own, rolled back.
 
 const testDb = new PrismaClient({
@@ -65,8 +66,9 @@ describe('deleteTemplate', () => {
           await tx.templatePart.create({
             data: { name: 'Du modèle', section: '', track: '', order: 1, scheduleTemplateId: own.id, congregationId },
           })
+          // Filed under the type going, in a template another type still uses (seeded rows are filed under their type).
           await tx.templateServicePart.create({
-            data: { name: 'Zoom', key: 'zoom', scheduleTemplateId: shared.id, congregationId },
+            data: { name: 'Zoom', key: 'zoom', templateId: gone.id, scheduleTemplateId: shared.id, congregationId },
           })
 
           const result = await deleteTemplate(db, gone.id, congregationId, actorId)
