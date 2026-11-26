@@ -464,4 +464,31 @@ test.describe('Schedule templates: a part in the template panel', () => {
     await expect(page).not.toHaveURL(TEMPLATE_RE)
     await expect(page.locator('[data-row-primary]').filter({ hasText: name })).toHaveCount(0)
   })
+
+  // On a phone (« TourA-Modeles-Mobile », « -Mobile-Partie »): the name and responsible read first, their form a tap
+  // away; a part opens over the whole screen, its « Supprimer » in its footer. Nothing is written.
+  test('on a phone, reads the template first and opens a part full screen with its delete in the footer', async ({
+    page,
+  }) => {
+    // 360 px, a common Android width: the footer's three buttons must fit there.
+    await page.setViewportSize({ width: 360, height: 800 })
+    await page.goto('/settings/schedule-templates')
+    const programme = page.locator('[data-row-primary]').filter({ hasText: 'Spirituel' }).first()
+    if ((await programme.count()) === 0) test.skip()
+    await programme.click()
+    await expect(page).toHaveURL(TEMPLATE_RE)
+    const sheet = page.locator('[data-schedule-template-sheet]')
+    await expect(sheet.getByRole('textbox', { name: 'Nom', exact: true })).toHaveCount(0)
+    await sheet.getByRole('button', { name: 'Modifier le nom et le responsable' }).click()
+    await expect(sheet.getByRole('textbox', { name: 'Nom', exact: true })).toBeFocused()
+
+    await sheet.locator('[data-item^="part-"]').first().click()
+    await expect(page).toHaveURL(PART_RE)
+    const remove = sheet.getByRole('button', { name: 'Supprimer', exact: true })
+    await expect(remove).toBeVisible()
+    expect((await remove.boundingBox())?.x ?? -1).toBeGreaterThanOrEqual(0)
+    await expect(sheet.getByRole('button', { name: 'Plus d’actions' })).toHaveCount(0)
+    const height = await sheet.evaluate(element => element.getBoundingClientRect().height)
+    expect(height).toBeGreaterThanOrEqual(800 - 1)
+  })
 })

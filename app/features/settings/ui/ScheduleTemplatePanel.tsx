@@ -5,17 +5,18 @@ import { useFetcher } from 'react-router'
 import {
   InlineDeleteDialog,
   PART_FORM_ID,
-  PartEditor,
+  type PartEditor,
   partEditorCopy,
   SERVICE_FORM_ID,
-  ServiceEditor,
   serviceEditorCopy,
 } from '~/features/events'
-import { partsInListOrder, templatePlaces } from '~/features/settings/model/schedule-template-list'
+import { partsInListOrder } from '~/features/settings/model/schedule-template-list'
 import type { ScheduleTemplateView } from '~/features/settings/model/schedule-template-view'
 import { ScheduleTemplateDeleteMenu } from '~/features/settings/ui/ScheduleTemplateDeleteMenu'
 import { ScheduleTemplateForm } from '~/features/settings/ui/ScheduleTemplateForm'
+import { ScheduleTemplateItemEditor } from '~/features/settings/ui/ScheduleTemplateItemEditor'
 import { itemMark, ScheduleTemplateItemList } from '~/features/settings/ui/ScheduleTemplateItemList'
+import { ScheduleTemplateSummary } from '~/features/settings/ui/ScheduleTemplateSummary'
 import { type TemplateRoom, TemplateRooms } from '~/features/settings/ui/TemplateRooms'
 import type { OpenItem } from '~/features/settings/ui/use-schedule-template-page'
 import * as m from '~/i18n/paraglide/messages'
@@ -25,6 +26,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useFormChanges } from '~/shared/ui/hooks/use-form-changes'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '~/shared/ui/sheet'
+import { cn } from '~/shared/utils/utils'
 import { useOnSettled } from './use-on-settled'
 import { useTemplateReorder } from './use-template-reorder'
 
@@ -99,6 +101,8 @@ export function ScheduleTemplatePanel({
     docked,
   })
   const [version, setVersion] = useState(0)
+  // A phone's name and responsible form, opened from the read view.
+  const [editingFields, setEditingFields] = useState(false)
   const [deleting, setDeleting] = useState(false)
   // The item the last delete was for: its refusal shows on that item only, not on the next one opened.
   const [deletedMark, setDeletedMark] = useState<string | null>(null)
@@ -106,7 +110,11 @@ export function ScheduleTemplatePanel({
   useOnSettled(itemFetcher, onLeaveItem)
   useOnSettled(deleteFetcher, onLeaveItem)
   // Saved: the form starts again from what is stored, and its footer goes.
-  useOnSettled(fetcher, () => setVersion(current => current + 1))
+  // On a phone, the read view comes back.
+  useOnSettled(fetcher, () => {
+    setVersion(current => current + 1)
+    setEditingFields(false)
+  })
   const refusal = replyMessages(itemFetcher) ?? (deletedMark === mark ? replyMessages(deleteFetcher) : null)
 
   const part = item?.kind === 'part' && item.id != null ? items?.parts.find(each => each.id === item.id) : undefined
@@ -140,15 +148,29 @@ export function ScheduleTemplatePanel({
 
   const levelOne = (
     <div className="flex flex-col gap-6">
-      <ScheduleTemplateForm
-        key={`${template.id}-${version}`}
-        template={template}
-        roles={roles}
-        errors={errors}
-        fetcher={fetcher as never}
-        id={FORM_ID}
-        formRef={fields.ref}
-      />
+      {/* On a phone the name and responsible read first, their form a tap away; changes or a refusal keep it open. */}
+      {!docked && !editingFields && fields.changes === 0 && errors == null ? (
+        <ScheduleTemplateSummary
+          template={template}
+          onEdit={() => {
+            setEditingFields(true)
+            // The button goes with the read view: focus goes to the name.
+            requestAnimationFrame(() =>
+              document.querySelector<HTMLInputElement>('[data-schedule-template-sheet] input[name="name"]')?.focus(),
+            )
+          }}
+        />
+      ) : (
+        <ScheduleTemplateForm
+          key={`${template.id}-${version}`}
+          template={template}
+          roles={roles}
+          errors={errors}
+          fetcher={fetcher as never}
+          id={FORM_ID}
+          formRef={fields.ref}
+        />
+      )}
       {template.kind !== 'duty' && items != null && <TemplateRooms rooms={items.rooms} />}
       {/* Every template's items are its own, a kind using it or not (6a-1c-2). */}
       {items != null && (
@@ -169,47 +191,16 @@ export function ScheduleTemplatePanel({
     </div>
   )
   const itemEditor =
-    item == null || items == null ? null : item.kind === 'part' ? (
-      <PartEditor
-        key={`part-${item.id ?? `new-${item.draft?.section}-${item.draft?.order}`}`}
-        mode="template"
-        fetcher={itemFetcher}
-        part={
-          part ??
-          (item.draft == null
-            ? null
-            : {
-                name: '',
-                section: item.draft.section,
-                track: '',
-                order: item.draft.order,
-                durationMin: null,
-                presetId: null,
-                allowedSpeakerRoleIds: [],
-                allowedReaderRoleIds: [],
-                roomIds: [],
-              })
-        }
-        // After the last part, whatever their numbering (a reorder writes them five apart).
-        defaultOrder={items.parts.reduce((max, each) => Math.max(max, each.order), -1) + 1}
-        roles={items.roles}
-        presets={items.presets}
-        sectionSuggestions={items.sectionSuggestions}
-        trackSuggestions={[]}
-        places={templatePlaces(items.parts, items.rooms)}
-        formRef={itemForm.ref}
-      />
-    ) : (
-      <ServiceEditor
-        key={`service-${item.id ?? 'new'}`}
-        mode="template"
-        fetcher={itemFetcher}
-        service={service ?? null}
-        roles={items.roles}
+    item == null || items == null ? null : (
+      <ScheduleTemplateItemEditor
+        item={item}
+        items={items}
+        part={part}
+        service={service}
+        itemFetcher={itemFetcher}
         formRef={itemForm.ref}
       />
     )
-
   const levelTwo = (
     <div className="flex flex-col gap-4">
       {refusal != null && (
@@ -224,6 +215,12 @@ export function ScheduleTemplatePanel({
   const footer: ReactNode =
     item != null ? (
       <>
+        {/* On a phone the part's « Supprimer » is in its footer (« TourA-Modeles-Mobile-Partie »), not in a menu. */}
+        {!docked && item.id != null && (
+          <Button type="button" variant="ghost" className="mr-auto text-danger-text" onClick={() => setDeleting(true)}>
+            {m.common_delete()}
+          </Button>
+        )}
         <Button type="button" variant="ghost" onClick={onBack}>
           {m.common_cancel()}
         </Button>
@@ -231,9 +228,12 @@ export function ScheduleTemplatePanel({
           form={item.kind === 'part' ? PART_FORM_ID : SERVICE_FORM_ID}
           disabled={itemFetcher.state !== 'idle' || deleteFetcher.state !== 'idle'}
         >
-          {item.kind === 'part'
-            ? m.settings_schedule_templates_save_part()
-            : m.settings_schedule_templates_save_service()}
+          {/* A phone's footer also holds « Supprimer »: « Enregistrer » alone, as its board, so the three fit. */}
+          {!docked
+            ? m.common_save()
+            : item.kind === 'part'
+              ? m.settings_schedule_templates_save_part()
+              : m.settings_schedule_templates_save_service()}
         </SubmitButton>
       </>
     ) : fields.changes > 0 ? (
@@ -299,7 +299,7 @@ export function ScheduleTemplatePanel({
       {docked ? (
         <SidePanel
           title={title}
-          description={item == null ? description : copy.description}
+          description={item == null ? description : undefined}
           closeLabel={m.common_close()}
           onClose={onClose}
           back={item == null ? undefined : back}
@@ -313,7 +313,8 @@ export function ScheduleTemplatePanel({
         <Sheet open onOpenChange={next => !next && onClose()}>
           <SheetContent
             data-schedule-template-sheet=""
-            className="sm:max-w-md"
+            // A part takes the whole screen on a phone, as the keyboard does.
+            className={cn('sm:max-w-md', item != null && 'max-md:h-dvh max-md:rounded-none')}
             onEscapeKeyDown={event => {
               // A rename or a new section's name takes its own Escape (it hears it after this sheet does).
               if ((event.target as HTMLElement | null)?.closest('[data-own-escape]')) {
@@ -335,13 +336,13 @@ export function ScheduleTemplatePanel({
               {/* Clear of the sheet's close button, which sits over the top right corner. */}
               <div className="flex items-center gap-2 pr-10">
                 <SheetTitle className="flex-1">{title}</SheetTitle>
-                {actions}
+                {item == null && actions}
               </div>
-              <SheetDescription>{item == null ? description : copy.description}</SheetDescription>
+              <SheetDescription>{item == null ? description : undefined}</SheetDescription>
             </SheetHeader>
             <div className="flex-1 overflow-y-auto px-4 pb-4">{item == null ? levelOne : levelTwo}</div>
             {footer != null && (
-              <SheetFooter className="flex-row justify-end border-border border-t">{footer}</SheetFooter>
+              <SheetFooter className="flex-row flex-wrap justify-end border-border border-t">{footer}</SheetFooter>
             )}
           </SheetContent>
         </Sheet>
