@@ -36,7 +36,9 @@ export function TemplateSchedules({
   const busy = fetcher.state !== 'idle'
   const refusal = fetcher.state === 'idle' ? fetcher.data?.error?.['']?.join(' ') : undefined
   // The button pressed is gone or drawn again once the answer is back: focus goes to the list, not the page's body.
-  const list = useRef<HTMLDivElement>(null)
+  const list = useRef<HTMLElement>(null)
+  const opener = useRef<HTMLButtonElement>(null)
+  const picked = useRef(false)
   const refocus = useRef(false)
   useEffect(() => {
     if (fetcher.state !== 'idle' || !refocus.current) return
@@ -62,7 +64,12 @@ export function TemplateSchedules({
       <div className="flex flex-col gap-3">
         <p className="text-faint text-xs">{m.settings_template_schedules_hint()}</p>
         {refusal && <Callout tone="danger" role="alert" title={refusal} />}
-        <div ref={list} tabIndex={-1} className="outline-none">
+        <section
+          ref={list}
+          tabIndex={-1}
+          aria-label={m.settings_template_schedules_title()}
+          className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
           {rows.length === 0 ? (
             <p className="text-muted-foreground text-sm">{m.settings_template_schedules_empty()}</p>
           ) : (
@@ -119,16 +126,31 @@ export function TemplateSchedules({
               ))}
             </ul>
           )}
-        </div>
+        </section>
         {editable && candidates != null && (
-          <Button variant="ghost" size="sm" className="self-start" disabled={busy} onClick={() => setPicking(true)}>
+          <Button
+            ref={opener}
+            variant="ghost"
+            size="sm"
+            className="self-start"
+            disabled={busy}
+            onClick={() => setPicking(true)}
+          >
             <Plus />
             {m.settings_template_schedules_use()}
           </Button>
         )}
       </div>
       <Dialog open={picking} onOpenChange={setPicking}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent
+          className="sm:max-w-md"
+          // Opened from state, with no trigger to go back to: a pick lands in the list, a cancel on its button.
+          onCloseAutoFocus={event => {
+            event.preventDefault()
+            ;(picked.current ? list.current : opener.current)?.focus()
+            picked.current = false
+          }}
+        >
           <DialogHeader>
             <DialogTitle>{m.settings_template_schedules_use_title()}</DialogTitle>
             <DialogDescription>{m.settings_template_schedules_use_hint()}</DialogDescription>
@@ -149,6 +171,7 @@ export function TemplateSchedules({
                     data-schedule-template-id={row.id}
                     disabled={busy}
                     onClick={() => {
+                      picked.current = true
                       submit('use-schedule-template', [row.id])
                       setPicking(false)
                     }}

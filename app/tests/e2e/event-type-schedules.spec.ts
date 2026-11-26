@@ -45,12 +45,13 @@ test.describe('Meeting type: the schedule templates it uses', () => {
       await Promise.all([saved(page), removes.last().click()])
       await expect(removes).toHaveCount(before.length - 1)
       // The button pressed is gone: focus goes to the list, not the page's body.
-      await expect.poll(() => page.evaluate(() => document.activeElement?.tagName)).toBe('DIV')
+      await expect.poll(() => page.evaluate(() => document.activeElement?.tagName)).toBe('SECTION')
 
       await page.getByRole('button', { name: 'Utiliser un modèle' }).click()
       const dialog = page.getByRole('dialog', { name: 'Utiliser un modèle de planning' })
       await Promise.all([saved(page), again(dialog).click()])
       await expect(removes).toHaveCount(before.length)
+      await expect.poll(() => page.evaluate(() => document.activeElement?.tagName)).toBe('SECTION')
       expect(await titles()).toEqual(before)
       await expect(page.locator('[data-schedule-template-id]').last()).toHaveAttribute(
         'data-schedule-template-id',
