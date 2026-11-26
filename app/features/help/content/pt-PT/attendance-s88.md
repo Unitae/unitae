@@ -29,6 +29,6 @@ Uma reunião só conta para as médias depois de serem introduzidos os dois núm
 
 ## Escolher que reuniões são contabilizadas
 
-Quem gere os modelos de programa escolhe que reuniões são contabilizadas. Em **Definições › Modelos de programa**, abra o modelo da reunião e, em **Detalhes**, defina **Assistência** como **Reunião de semana**, **Reunião de fim de semana**, **Contabilizada à parte** (fora das médias e do S-88, como a Celebração) ou **Não contabilizada**. Depois, clique em **Guardar**.
+Quem gere os tipos de evento escolhe que reuniões são contabilizadas. Em **Definições › Tipos de evento**, abra o tipo da reunião e, em **Detalhes**, defina **Assistência** como **Reunião de semana**, **Reunião de fim de semana**, **Contabilizada à parte** (fora das médias e do S-88, como a Celebração) ou **Não contabilizada**. Depois, clique em **Guardar**.
 
 Na mesma página, **Mostrar a assistência no programa** permite que todas as pessoas que veem o programa consultem o total da semana anterior. As médias e o histórico continuam restritos.

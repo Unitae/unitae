@@ -29,6 +29,6 @@ Une réunion n’entre dans les moyennes que lorsque ses deux nombres, en salle 
 
 ## Choisir les réunions comptées
 
-Qui gère les modèles de programme choisit les réunions comptées : dans **Réglages › Modèles de programme**, ouvrez le modèle de la réunion et, dans **Informations**, réglez **Assistance** sur **Réunion de semaine**, **Réunion de week-end**, **Comptée à part** (hors des moyennes et de la S-88, pour le Mémorial) ou **Non comptée**. Cliquez ensuite sur **Enregistrer**.
+Qui gère les types d’évènement choisit les réunions comptées : dans **Réglages › Types d’évènement**, ouvrez le type de la réunion et, dans **Informations**, réglez **Assistance** sur **Réunion de semaine**, **Réunion de week-end**, **Comptée à part** (hors des moyennes et de la S-88, pour le Mémorial) ou **Non comptée**. Cliquez ensuite sur **Enregistrer**.
 
 Sur la même page, **Afficher l’assistance sur le programme** fait lire à tous ceux qui voient le programme le total de la semaine passée. Les moyennes et l’historique restent réservés.

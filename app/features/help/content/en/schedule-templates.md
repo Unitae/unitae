@@ -22,7 +22,7 @@ A schedule template gives the meetings' schedules their content: the parts of a 
 
 A template no meeting type uses is added to a meeting with **Add a schedule**, on the meeting's page.
 
-For a meeting type to use it, open that type in **Settings › Program templates**: under **Schedules used**, **Use a template** offers the templates of a kind the type doesn't have yet. A type uses at most one spiritual template and one services template. The arrows change their order, and the cross removes one: its parts and services stay in the template, and meetings already created keep their schedules. Only new meetings follow these changes.
+For a meeting type to use it, open that type in **Settings › Event types**: under **Schedules used**, **Use a template** offers the templates of a kind the type doesn't have yet. A type uses at most one spiritual template and one services template. The arrows change their order, and the cross removes one: its parts and services stay in the template, and meetings already created keep their schedules. Only new meetings follow these changes.
 
 ## Its parts and sections
 

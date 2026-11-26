@@ -951,15 +951,15 @@
     "settings_general_password_security_scope_responsibilities_hint": "Les anciens, les assistants ministériels et les comptes qui ont des droits de gestion.",
     "settings_general_password_security_scope_everyone": "Tout le monde",
     "settings_general_password_security_scope_everyone_hint": "Tous les comptes de l’assemblée.",
-    "settings_templates_meta_title": "Modèles de programme - Réglages - Unitae",
+    "settings_templates_meta_title": "Types d’évènement - Réglages - Unitae",
     "settings_templates_subtitle": "Ce qui se répète d’une réunion à l’autre : jour, heures, parties, services et responsables.",
-    "settings_templates_new_button": "Nouveau modèle",
+    "settings_templates_new_button": "Nouveau type",
     "settings_templates_one_time": "Ponctuel",
     "settings_template_edit_weekday_label": "Jour de la semaine",
     "settings_template_edit_start_time_label": "Heure de début",
     "settings_template_edit_end_time_label": "Heure de fin",
     "settings_template_edit_color_label": "Couleur",
-    "settings_template_system_body_freeform": "Réservé par l’application pour les événements ponctuels qui n’entrent dans aucun modèle récurrent.",
+    "settings_template_system_body_freeform": "Réservé par l’application pour les évènements ponctuels qui n’entrent dans aucun type récurrent.",
     "settings_template_schedules_title": "Plannings utilisés",
     "settings_template_schedules_down": "Descendre « {name} »",
     "settings_template_schedules_up": "Monter « {name} »",
@@ -971,9 +971,9 @@
     "settings_template_schedules_use": "Utiliser un modèle",
     "settings_template_schedules_sort_used": "Un modèle de ce genre est déjà utilisé : retirez-le d’abord.",
     "settings_template_schedules_saved": "Plannings mis à jour.",
-    "settings_template_schedules_hint": "Les nouvelles réunions créées à partir de ce modèle reçoivent ces plannings. Leurs parties et leurs services se règlent dans « Modèles de planning ».",
-    "settings_template_schedules_empty": "Aucun planning : les nouvelles réunions créées à partir de ce modèle commencent vides.",
-    "settings_template_system_locked_intent": "Ce modèle est géré par l’application — seule la couleur est modifiable.",
+    "settings_template_schedules_hint": "Les nouvelles réunions de ce type reçoivent ces plannings. Leurs parties et leurs services se règlent dans « Modèles de planning ».",
+    "settings_template_schedules_empty": "Aucun planning : les nouvelles réunions de ce type commencent vides.",
+    "settings_template_system_locked_intent": "Ce type est géré par l’application — seule la couleur est modifiable.",
     "settings_template_edit_part_updated": "Partie mise à jour.",
     "settings_template_edit_part_added": "Partie ajoutée.",
     "settings_template_edit_part_deleted": "Partie supprimée.",
@@ -982,10 +982,10 @@
     "settings_template_edit_service_role_added": "Rôle de service ajouté.",
     "settings_template_edit_service_role_deleted": "Rôle de service supprimé.",
     "settings_template_new_name_placeholder": "Ex : Réunion de semaine",
-    "settings_template_new_success": "Modèle « {name} » créé.",
-    "settings_template_view_duplicate_success": "Modèle dupliqué : « {name} ».",
-    "settings_template_view_delete_success": "Modèle supprimé : « {name} ».",
-    "settings_template_view_delete_error": "Impossible de supprimer ce modèle.",
+    "settings_template_new_success": "Type « {name} » créé.",
+    "settings_template_view_duplicate_success": "Type dupliqué : « {name} ».",
+    "settings_template_view_delete_success": "Type supprimé : « {name} ».",
+    "settings_template_view_delete_error": "Impossible de supprimer ce type.",
     "settings_template_view_delete_in_use": [
         {
             "declarations": [
@@ -994,8 +994,8 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "Ce modèle est encore utilisé par {count} évènement et ne peut pas être supprimé.",
-                "countPlural=*": "Ce modèle est encore utilisé par {count} évènements et ne peut pas être supprimé."
+                "countPlural=one": "Ce type est encore utilisé par {count} évènement et ne peut pas être supprimé.",
+                "countPlural=*": "Ce type est encore utilisé par {count} évènements et ne peut pas être supprimé."
             }
         }
     ],
@@ -4343,7 +4343,7 @@
     "data_transfer_entity_territory_entrance_links": "Liens territoires-entrées",
     "data_transfer_entity_building_entrance_links": "Liens immeubles-entrées",
     "data_transfer_entity_attributions": "Attributions",
-    "data_transfer_entity_programme_templates": "Modèles de programme",
+    "data_transfer_entity_programme_templates": "Types d’évènement",
     "data_transfer_entity_programme_template_parts": "Parties de programme",
     "data_transfer_entity_programme_template_service_roles": "Rôles de service",
     "data_transfer_entity_programme_template_responsibles": "Responsables de programme",
@@ -5933,7 +5933,7 @@
     "settings_title": "Réglages",
     "settings_entry_general": "Général",
     "settings_entry_publishers": "Proclamateurs",
-    "settings_entry_templates": "Modèles de programme",
+    "settings_entry_templates": "Types d’évènement",
     "settings_entry_schedule_templates": "Modèles de planning",
     "settings_entry_part_types": "Types de parties",
     "settings_entry_territories": "Territoires",
@@ -6241,7 +6241,7 @@
     "settings_roles_not_held": "Vous n’avez pas ce droit : un administrateur le donne ou le retire.",
     "settings_roles_saved": "Autorisations enregistrées.",
     "events_template_copy_name": "{name} (copie)",
-    "settings_templates_col_template": "Modèle",
+    "settings_templates_col_template": "Type",
     "settings_templates_col_when": "Quand",
     "settings_templates_col_content": "Contenu",
     "settings_templates_col_responsibles": "Responsables",
@@ -6273,14 +6273,14 @@
         }
     ],
     "settings_templates_managers": "Les gestionnaires des programmes",
-    "settings_templates_built_in": "Modèles intégrés",
+    "settings_templates_built_in": "Types intégrés",
     "settings_templates_built_in_hint": "leur couleur seulement",
     "settings_templates_freeform_content": "Nom et heures libres",
-    "settings_templates_empty": "Aucun modèle. Créez-en un pour préparer les programmes plus vite.",
+    "settings_templates_empty": "Aucun type. Créez-en un pour préparer les programmes plus vite.",
     "settings_templates_new_description": "Le jour et les heures de la réunion ; ses parties, services et responsables se règlent ensuite sur sa page.",
-    "settings_templates_new_submit": "Créer le modèle",
-    "settings_templates_name_required": "Saisissez le nom du modèle.",
-    "settings_template_page_subtitle": "Modèle de programme",
+    "settings_templates_new_submit": "Créer le type",
+    "settings_templates_name_required": "Saisissez le nom du type.",
+    "settings_template_page_subtitle": "Type d’évènement",
     "settings_template_move_meetings_title": [
         {
             "declarations": [
@@ -6289,12 +6289,12 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "{count} réunion à venir n’est pas au jour et à l’heure du modèle.",
-                "countPlural=*": "{count} réunions à venir ne sont pas au jour et à l’heure du modèle."
+                "countPlural=one": "{count} réunion à venir n’est pas au jour et à l’heure du type.",
+                "countPlural=*": "{count} réunions à venir ne sont pas au jour et à l’heure du type."
             }
         }
     ],
-    "settings_template_move_meetings_body": "Chaque réunion sans programme va au jour du modèle dans sa propre semaine. Une semaine qui a déjà sa réunion ce jour-là garde la sienne, et les semaines supprimées le restent.",
+    "settings_template_move_meetings_body": "Chaque réunion sans programme va au jour du type dans sa propre semaine. Une semaine qui a déjà sa réunion ce jour-là garde la sienne, et les semaines supprimées le restent.",
     "settings_template_move_meetings_button": [
         {
             "declarations": [
@@ -6334,7 +6334,7 @@
             }
         }
     ],
-    "settings_template_move_meetings_none": "Les réunions à venir sont déjà au jour et à l’heure du modèle.",
+    "settings_template_move_meetings_none": "Les réunions à venir sont déjà au jour et à l’heure du type.",
     "settings_template_page_used": [
         {
             "declarations": [
@@ -6343,14 +6343,14 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "Modèle de programme · utilisé par {count} programme",
-                "countPlural=*": "Modèle de programme · utilisé par {count} programmes"
+                "countPlural=one": "Type d’évènement · utilisé par {count} programme",
+                "countPlural=*": "Type d’évènement · utilisé par {count} programmes"
             }
         }
     ],
-    "settings_template_built_in_subtitle": "Modèle intégré",
+    "settings_template_built_in_subtitle": "Type intégré",
     "settings_template_info": "Informations",
-    "settings_template_color_hint": "Un point de cette couleur repère le modèle dans les listes et le calendrier.",
+    "settings_template_color_hint": "Un point de cette couleur repère le type dans les listes et le calendrier.",
     "settings_template_attendance_label": "Assistance",
     "settings_template_attendance_none": "Non comptée",
     "settings_template_attendance_midweek": "Réunion de semaine",
@@ -6360,7 +6360,7 @@
     "settings_template_parts_empty": "Aucune partie. Ajoutez la première.",
     "settings_template_duplicate": "Dupliquer",
     "settings_template_delete": "Supprimer…",
-    "settings_template_delete_title": "Supprimer ce modèle ?",
+    "settings_template_delete_title": "Supprimer ce type ?",
     "settings_template_delete_description": "« {name} », ses parties, ses services et ses responsables disparaissent. Les programmes déjà créés ne l’utilisaient pas.",
     "settings_template_delete_in_use": [
         {
@@ -6375,9 +6375,9 @@
             }
         }
     ],
-    "settings_template_saved": "Modèle enregistré.",
+    "settings_template_saved": "Type enregistré.",
     "settings_template_responsibles_moved": "Qui remplit et publie ses plannings se règle sur chaque modèle de planning :",
-    "settings_template_read_only": "Vous voyez ce modèle sans pouvoir le modifier.",
+    "settings_template_read_only": "Vous voyez ce type sans pouvoir le modifier.",
     "settings_presets_form_has_reader_hint": "Une seconde personne sur la partie.",
     "settings_presets_form_student_slip": "Fiche de devoir de l’élève (S-89)",
     "settings_presets_form_student_slip_hint": "Sur un programme de semaine publié, l’élève peut recevoir sa fiche à imprimer.",
@@ -6457,11 +6457,11 @@
     "audit_log_action_role_permission_changed": "Autorisations d’un rôle modifiées",
     "audit_log_action_permission_direct_grants_migrated": "Droits directs convertis en rôles",
     "audit_log_action_part_allowed_roles_changed": "Rôles d’une partie modifiés",
-    "audit_log_action_event_template_created": "Modèle de programme créé",
-    "audit_log_action_event_template_updated": "Modèle de programme modifié",
-    "audit_log_action_event_template_deleted": "Modèle de programme supprimé",
-    "audit_log_action_event_template_duplicated": "Modèle de programme dupliqué",
-    "audit_log_action_event_template_schedule_templates_changed": "Plannings d’un modèle de programme modifiés",
+    "audit_log_action_event_template_created": "Type d’évènement créé",
+    "audit_log_action_event_template_updated": "Type d’évènement modifié",
+    "audit_log_action_event_template_deleted": "Type d’évènement supprimé",
+    "audit_log_action_event_template_duplicated": "Type d’évènement dupliqué",
+    "audit_log_action_event_template_schedule_templates_changed": "Plannings d’un type d’évènement modifiés",
     "audit_log_action_event_template_responsibles_changed": "Responsables d’un modèle modifiés",
     "audit_log_action_service_role_allowed_roles_changed": "Rôles d’un service modifiés",
     "audit_log_action_part_preset_created": "Type de partie créé",
@@ -6552,7 +6552,7 @@
     "audit_log_empty": "Aucune action sur cette période.",
     "audit_log_entity_member": "Fiche",
     "audit_log_entity_role": "Rôle",
-    "audit_log_entity_event_template": "Modèle de programme",
+    "audit_log_entity_event_template": "Type d’évènement",
     "audit_log_entity_template_part": "Partie d’un modèle",
     "audit_log_entity_template_service": "Service d’un modèle",
     "audit_log_entity_event_part": "Partie d’un programme",
@@ -7796,8 +7796,8 @@
     "attendance_panel_previous": "Réunion plus récente",
     "attendance_panel_next": "Réunion plus ancienne",
     "attendance_empty_title": "Aucune réunion n’est encore comptée.",
-    "attendance_empty_body": "Choisissez dans vos modèles de programme quelles réunions le sont.",
-    "attendance_empty_action": "Ouvrir les modèles de programme",
+    "attendance_empty_body": "Choisissez dans vos types d’évènement quelles réunions le sont.",
+    "attendance_empty_action": "Ouvrir les types d’évènement",
     "attendance_history_cleared": "{count} : effacé par {name} le {date} à {time}",
     "attendance_col_actions": "Actions",
     "attendance_error_count_failed": "Pas enregistré, réessayez",
