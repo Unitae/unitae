@@ -21,7 +21,25 @@ vi.mock('~/shared/domain/settings.server', () => ({ getBoolSetting: vi.fn(async 
 vi.mock('~/features/settings/server/template-page.queries', () => ({
   getTemplatePage: vi.fn(async () => {
     calls.push('getTemplatePage')
-    return { template: { key: 'midweek-meeting', name: 'Réunion de semaine' } }
+    // The whole type, its parts and services with it, as getTemplateById reads it.
+    return {
+      template: {
+        id: 4,
+        key: 'midweek-meeting',
+        name: 'Réunion de semaine',
+        color: '#0b6e75',
+        weekDay: 4,
+        startTime: '19:00',
+        endTime: '20:45',
+        attendanceKind: 'midweek',
+        parts: [{ id: 1, name: 'Joyaux' }],
+        serviceParts: [{ id: 2, name: 'Sono' }],
+        responsibles: [],
+      },
+      eventCount: 3,
+      scheduleTemplates: [],
+      roles: [],
+    }
   }),
 }))
 vi.mock('./_template-action.server', () => ({
@@ -85,5 +103,19 @@ describe('a meeting type’s page', () => {
     )
     expect(response.headers.get('Location')).toBe('/settings/templates')
     expect(calls).toEqual([])
+  })
+})
+
+describe('the meeting type page, what it sends', () => {
+  it('sends the type’s own fields only: its parts and services are « Modèles de planning »’s', async () => {
+    const result = (await template.loader({
+      request: new Request(`${URL}/4`),
+      params: { templateId: '4' },
+      context: routeContext([Permission.CanManageProgramTemplates]),
+    } as never)) as { page: { template: Record<string, unknown>; eventCount: number } }
+    expect(Object.keys(result.page.template).sort()).toEqual(
+      ['attendanceKind', 'color', 'endTime', 'key', 'name', 'startTime', 'weekDay'].sort(),
+    )
+    expect(result.page.eventCount).toBe(3)
   })
 })

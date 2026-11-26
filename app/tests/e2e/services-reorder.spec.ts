@@ -9,9 +9,7 @@ const SERVICES_SECTION = /Services$/
 
 // Depending on how React Router routes a fetcher's POST, it reaches the `.data` URL or the route itself: accept both.
 const REORDER_SERVICES_RE = /\/reorder-services(\.data)?$/
-const TEMPLATE_REORDER_URL_RE = /\/settings\/templates\/\d+\/reorder-services(\.data)?$/
 const EVENT_REORDER_URL_RE = /\/programs\/events\/\d+\/reorder-services(\.data)?$/
-const TEMPLATE_URL_RE = /\/settings\/templates\/\d+$/
 const DRAGGABLE_RE = /draggable item (\d+)/i
 
 /** The services panel's rows only: the programme's parts are sortable too, in their own panel. */
@@ -56,35 +54,6 @@ test.describe('Services drag-drop reorder', () => {
     )
     const loggedIn = await login(page, MANAGER_EMAIL ?? '', MANAGER_PASSWORD ?? '')
     if (!loggedIn) test.skip()
-  })
-
-  test('a template’s services keep the order they are dragged into', async ({ page }) => {
-    await page.goto('/settings/templates')
-    await page.waitForLoadState('networkidle')
-    // The first template with two services or more: the system ones (« Absence », « Autre événement ») have none.
-    const hrefs = (
-      await page
-        .locator('a[href^="/settings/templates/"]')
-        .evaluateAll(links => links.map(link => link.getAttribute('href')))
-    ).filter((href): href is string => href != null && TEMPLATE_URL_RE.test(href))
-    let rowsBefore: string[] = []
-    for (const href of new Set(hrefs)) {
-      await page.goto(href)
-      await page.waitForLoadState('networkidle')
-      rowsBefore = await serviceRows(page).allTextContents()
-      if (rowsBefore.length >= 2) break
-    }
-    // Every congregation is seeded with templates that have services: none found means the selectors broke.
-    expect(rowsBefore.length, 'a template with two services or more').toBeGreaterThanOrEqual(2)
-
-    const response = await moveFirstServiceDown(page)
-    expect(response.ok()).toBeTruthy()
-    expect(response.url()).toMatch(TEMPLATE_REORDER_URL_RE)
-
-    await page.reload()
-    const rowsAfter = await serviceRows(page).allTextContents()
-    expect(rowsAfter.slice(0, 2)).toEqual([rowsBefore[1], rowsBefore[0]])
-    expect(rowsAfter.slice(2)).toEqual(rowsBefore.slice(2))
   })
 
   test('an event’s services keep the order they are dragged into', async ({ page }) => {

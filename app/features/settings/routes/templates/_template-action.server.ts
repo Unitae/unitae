@@ -3,10 +3,7 @@ import { data } from 'react-router'
 import { isSystemTemplate } from '~/features/events'
 import { deleteTemplate, duplicateTemplate, moveEmptyMeetings, updateTemplate } from '~/features/events/index.server'
 import { updateTemplateSchema } from '~/features/settings/schemas/template.schema'
-import {
-  handleTemplateItemAction,
-  type TemplateActionResult,
-} from '~/features/settings/server/template-item-action.server'
+import type { TemplateActionResult } from '~/features/settings/server/template-item-action.server'
 
 import * as m from '~/i18n/paraglide/messages'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -26,9 +23,8 @@ const refused = (reply: unknown, status = 400): TemplateActionResult => ({
 })
 
 /**
- * The template page's intents. A built-in template only takes its colour; a part or a service id must belong to this
- * template (a responsible may edit their template, while the writers find a row by its id alone); who runs a template,
- * duplicating and deleting it are for the template managers.
+ * The template page's intents. A built-in template only takes its colour; duplicating and deleting it are for the
+ * template managers. Its parts and services are written from « Modèles de planning » since 6a-1c.
  */
 export async function handleTemplateAction(
   db: TransactionClient,
@@ -62,9 +58,6 @@ export async function handleTemplateAction(
     )
     return { kind: 'saved', message: m.settings_template_saved() }
   }
-
-  const item = await handleTemplateItemAction(db, templateId, formData, actor)
-  if (item != null) return item
 
   // « Déplacer les N réunions à venir »: whoever may change the template's day may bring its meetings along.
   if (intent === 'move-meetings') {

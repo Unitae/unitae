@@ -123,21 +123,14 @@ describe('handleTemplateAction', () => {
     expect(writes).toEqual([])
   })
 
-  it('edits and deletes a part of this template', async () => {
-    await handleTemplateAction(dbWith('midweek'), 4, form({ intent: 'delete-part', partId: '11' }), RESPONSIBLE)
-    expect(writes).toEqual(['delete-part 11'])
-  })
-
-  it('refuses a part of another template', async () => {
-    const result = await handleTemplateAction(
-      dbWith('midweek'),
-      4,
-      form({ intent: 'delete-part', partId: '12' }),
-      RESPONSIBLE,
-    )
-    expect(result?.kind).toBe('refused')
-    expect(writes).toEqual([])
-  })
+  // A type's parts and services are written from « Modèles de planning » (6a-1c): its page takes none of their intents.
+  it.each(['upsert-part', 'delete-part', 'upsert-service-role', 'delete-service-role'])(
+    'leaves %s to « Modèles de planning »',
+    async intent => {
+      expect(await handleTemplateAction(dbWith('midweek'), 4, form({ intent, partId: '11' }), MANAGER)).toBeNull()
+      expect(writes).toEqual([])
+    },
+  )
 
   // Whoever may change the template's day — its responsible too — brings its empty meetings along.
   it('moves the empty meetings ahead for a responsible, in the congregation’s zone', async () => {
