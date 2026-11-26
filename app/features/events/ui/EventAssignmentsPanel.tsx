@@ -309,9 +309,10 @@ function PartActions({
     <>
       {slipHref && assigned && (
         <Button variant="ghost" size="icon-sm" className="size-7" asChild>
+          {/* A plain anchor without `download`: the route's Content-Disposition saves the PDF, and a refusal (session
+              ended, programme withdrawn) opens the page it redirects to instead of being saved as an HTML file. */}
           <a
             href={slipHref}
-            download
             aria-label={m.slip_download_label({ name: assigned })}
             title={m.slip_download_label({ name: assigned })}
           >
