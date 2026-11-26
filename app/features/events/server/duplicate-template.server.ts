@@ -1,4 +1,5 @@
 import { isSystemTemplate } from '~/features/events/model/event-template.type'
+import { kindTemplate, TEMPLATE_INCLUDE } from '~/features/events/server/give-programme.server'
 import { syncTemplateScheduleTemplates } from '~/features/events/server/schedule-templates.server'
 import { setTemplatePartRooms } from '~/features/events/server/template-rooms.server'
 import * as m from '~/i18n/paraglide/messages'
@@ -11,17 +12,14 @@ export async function duplicateTemplate(
   congregationId: number,
   actorId: number,
 ) {
-  const source = await db.eventTemplate.findFirst({
+  // What a new meeting of the type gets (kindTemplate, 6b-0): its schedule templates' items, whatever kind they are
+  // filed under (6b-1), and its own rows not placed yet.
+  const loaded = await db.eventTemplate.findFirst({
     where: { id: templateId, congregationId },
-    include: {
-      parts: {
-        orderBy: { order: 'asc' },
-        include: { allowedRoles: true, rooms: { include: { room: true } } },
-      },
-      serviceParts: { orderBy: [{ order: 'asc' }, { id: 'asc' }], include: { allowedRoles: true } },
-    },
+    include: TEMPLATE_INCLUDE,
   })
-  if (!source) return null
+  if (!loaded) return null
+  const source = kindTemplate(loaded)
 
   // System templates are looked up by key at runtime — duplicating them just
   // clutters the list with an untethered `-copy-<ts>` row. The UI hides the
