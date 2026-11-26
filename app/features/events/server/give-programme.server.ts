@@ -5,7 +5,6 @@ import { ITEM_SLOT, type PartRoleKind } from '~/features/events/server/allowed-r
 import { templateItemsOf } from '~/features/events/server/item-projection.server'
 import type { CreatedProgramme, CreationContext } from '~/features/events/server/programme-creation.server'
 import { eventSchedulesOf } from '~/features/events/server/schedules.server'
-import * as m from '~/i18n/paraglide/messages'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
