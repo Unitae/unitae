@@ -165,7 +165,7 @@ describe('a schedule template no kind uses', () => {
             select: { legacyServiceId: true },
           })
 
-          // A kind coming to use it hides none of its parts, and a part added then goes after them, under the kind.
+          // A kind coming to use it hides none of its parts, and a part added then goes after them, the template's alone.
           const kind = await tx.eventTemplate.create({
             data: { name: 'Visite du responsable', key: stamp, congregationId },
           })
@@ -227,7 +227,8 @@ describe('a schedule template no kind uses', () => {
     expect(read.afterDelete).toEqual(['Prière'])
     expect(read.placed).toEqual(['Soir:Cantique', 'Soir:Prière finale'])
     expect([read.foreign, read.foreignKept]).toEqual(['refused', true])
-    expect(read.adopted).toEqual(['Cantique:own', 'Prière finale:own', 'Conclusion:kind'])
+    // A part added once a kind uses the template is the template's alone too (6b-1).
+    expect(read.adopted).toEqual(['Cantique:own', 'Prière finale:own', 'Conclusion:own'])
     expect(read.services).toEqual([
       { name: 'Son', templateId: null, mirrored: true },
       { name: 'Zoom', templateId: null, mirrored: true },

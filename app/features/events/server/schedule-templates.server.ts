@@ -111,16 +111,26 @@ async function syncScheduleTemplate(
   }
 }
 
-/** Deletes the schedule templates only this template suggests: they go with it. */
+/**
+ * Deletes the schedule templates only this template suggests: they go with it, every item in them first — the kind's
+ * own rows and those a template holds under no kind (6b-1), which could not be left with no owner.
+ */
 export async function deleteTemplateScheduleTemplates(
   db: TransactionClient,
   templateId: number,
   congregationId: number,
 ) {
-  await db.scheduleTemplate.deleteMany({
+  const only = await db.scheduleTemplate.findMany({
     where: {
       congregationId,
       eventKinds: { some: { eventKindId: templateId }, every: { eventKindId: templateId } },
     },
+    select: { id: true },
   })
+  const ids = only.map(each => each.id)
+  if (ids.length === 0) return
+  const where = { scheduleTemplateId: { in: ids }, congregationId }
+  await db.templatePart.deleteMany({ where })
+  await db.templateServicePart.deleteMany({ where })
+  await db.scheduleTemplate.deleteMany({ where: { id: { in: ids }, congregationId } })
 }

@@ -24,10 +24,13 @@ export function ownerWhere(owner: ItemOwner) {
   }
 }
 
-/** What a new item of the owner carries. */
+/**
+ * What a new item of the owner carries: a kind's, its kind; a schedule template's, that template alone (6b-1) — a new
+ * meeting copies a template's items whatever kind they are filed under (kindTemplate), so a kind no longer needs them.
+ */
 export function ownerData(owner: ItemOwner): { templateId: number | null; scheduleTemplateId?: number } {
   if (typeof owner === 'number') return { templateId: owner }
-  return { templateId: owner.templateId, scheduleTemplateId: owner.scheduleTemplateId }
+  return { templateId: null, scheduleTemplateId: owner.scheduleTemplateId }
 }
 
 /** The kind the owner's items are filed under, whose schedule templates are synced after a write; null for none. */
