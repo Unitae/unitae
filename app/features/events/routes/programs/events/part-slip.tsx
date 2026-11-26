@@ -21,9 +21,10 @@ import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/part-slip'
 
-// The S-89 of one student part, printed from the event page's share control. Its guards are the page's own: the
-// reader may see the programme and fill its parts (canFillSchedule), the programme is published, and the part is a
-// student's. Any other request goes back to the event page, and no document is rendered.
+// The S-89 of one student part, downloaded from its row on the event page. Its guards are the page's own: the reader may
+// view programmes and open the event, may see the programme and fill its parts (canFillSchedule); the programme is
+// published and the part is a student's (isStudentSlipPart). A missing or closed event goes back to /programs, any other
+// refusal to the event page. No document is rendered either way.
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)

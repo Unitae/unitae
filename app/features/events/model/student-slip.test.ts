@@ -69,7 +69,7 @@ describe('isStudentSlipPart', () => {
     expect(isStudentSlipPart(part({ id: 1, preset: kind(PartPresetKey.SchoolTalk, false) }), event())).toBe(false)
   })
 
-  // Nothing is guessed: the person in charge picks the part's kind on the meeting, and the slip follows.
+  // Regression guard: the slip never falls back on the section (an earlier rule offered it to kindless ministry parts).
   it('refuses a part with no kind, even in the ministry section', () => {
     expect(isStudentSlipPart(part({ id: 1, section: 'Appliquons-nous au ministère', preset: null }), event())).toBe(
       false,
