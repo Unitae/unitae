@@ -30,6 +30,7 @@ function input(overrides: Record<string, unknown> = {}) {
     speakerLabel: 'Orateur',
     readerLabel: null,
     allowExternalSpeaker: true,
+    printsStudentSlip: false,
     shareMessage: 'Bonjour {{assigneeFirstname}}, tu as {{partName}} le {{date}}.',
     ...overrides,
   }
@@ -118,6 +119,15 @@ describe('createPartPreset', () => {
     await createPartPreset(db as never, input({ hasReaderSlot: true, readerLabel: 'Interlocuteur' }), 1, 7)
 
     expect(createdData(db).readerLabel).toBe('Interlocuteur')
+  })
+
+  it('stores whether the kind offers the S-89 slip', async () => {
+    const db = makeDb()
+    db.partPreset.findMany.mockResolvedValue([] as never)
+
+    await createPartPreset(db as never, input({ printsStudentSlip: true }), 42, 7)
+
+    expect(createdData(db)).toMatchObject({ printsStudentSlip: true })
   })
 })
 

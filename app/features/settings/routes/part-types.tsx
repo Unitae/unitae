@@ -66,6 +66,7 @@ export function loader({ context }: Route.LoaderArgs) {
             readerLabel: preset.readerLabel,
             hasReaderSlot: preset.hasReaderSlot,
             allowExternalSpeaker: preset.allowExternalSpeaker,
+            printsStudentSlip: preset.printsStudentSlip,
             shareMessage: preset.shareMessage ?? '',
           },
           placeholders: {

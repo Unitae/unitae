@@ -1448,6 +1448,10 @@ model PartPreset {
   // has no share button. Text: the congregation's own wording.
   shareMessage String?
 
+  // Whether a part of this kind offers its student the S-89 assignment slip. On for the seeded Bible reading,
+  // demonstration and student talk; a part with no kind never offers it.
+  printsStudentSlip Boolean @default(false)
+
   // Seeded presets: `key` is immutable and the row cannot be deleted, matching
   // the isSystemTemplate() convention on EventTemplate.
   isSystem Boolean @default(false)

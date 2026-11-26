@@ -31,3 +31,7 @@ Quand une partie ou un service publié vous est attribué, un e-mail vous l’an
 ## Dans votre agenda
 
 Votre lien d’agenda ajoute vos parties et vos services publiés à Apple Calendar, Google Agenda ou Outlook, et les tient à jour. Il se crée dans **Mon compte**, sur la page **Profil**.
+
+## Le devoir imprimé
+
+Pour une partie d’élève, le responsable du programme peut aussi vous remettre le devoir imprimé (S-89). Il porte votre nom, celui de votre interlocuteur, la date et le numéro de la partie.

@@ -4,6 +4,7 @@ import { isAwaitingProgramme, programmeAwaits, programmeTemplate } from '~/featu
 import { mayOpenEvent, maySeeSchedule } from '~/features/events/model/programme-access'
 import { ScheduleKind, ScheduleStatus } from '~/features/events/model/schedule.type'
 import { responsibleForPage } from '~/features/events/model/schedule-responsible'
+import { isStudentSlipPart } from '~/features/events/model/student-slip'
 import { buildAssignmentCandidates } from '~/features/events/server/assignment-candidates.server'
 import { eventHasAttendance } from '~/features/events/server/attendance.queries'
 import { buildShareTextsForEvent } from '~/features/events/server/build-share-message.server'
@@ -205,6 +206,10 @@ export function loader({ params, context }: Route.LoaderArgs) {
       partCandidates,
       serviceCandidates,
       shareTexts,
+      // The parts whose S-89 slip the reader may print (part-slip route): the same reader who shares them.
+      slipPartIds: canAssign
+        ? shown.eventParts.filter(part => isStudentSlipPart(part, event)).map(part => part.id)
+        : [],
       timezone: congregation.timezone,
     }
   })

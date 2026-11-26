@@ -28,6 +28,7 @@ export const partPresetSchema = z.object({
   readerLabel: slotLabelField,
   hasReaderSlot: checkboxField,
   allowExternalSpeaker: checkboxField,
+  printsStudentSlip: checkboxField,
   shareMessage: z
     .string()
     .trim()

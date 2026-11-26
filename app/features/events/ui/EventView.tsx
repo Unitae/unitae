@@ -69,6 +69,8 @@ interface EventViewProps {
   serviceCandidates: Record<number, number[]>
   externalSpeakers: ExternalSpeakerOption[]
   shareTexts: Record<number, string>
+  /** The parts whose S-89 slip the reader may print. */
+  slipPartIds: number[]
   timezone: string
   /** « Tout publier » (D43): how many drafts the reader may publish, and whether that is every schedule (« Publier »). */
   publishAll: { count: number; everyone: boolean }
@@ -100,6 +102,7 @@ export function EventView({
   serviceCandidates,
   externalSpeakers,
   shareTexts,
+  slipPartIds,
   timezone,
   publishAll,
   addSchedule,
@@ -305,6 +308,8 @@ export function EventView({
               canAssign={canAssign}
               canViewPublishers={canViewPublishers}
               shareTexts={shareTexts}
+              eventId={event.id}
+              slipPartIds={slipPartIds}
               selectedId={target?.kind === 'part' ? target.id : null}
               onAssign={(item, trigger) => panel.request({ kind: 'part', id: item.id, trigger })}
               onUnassign={setUnassignTarget}

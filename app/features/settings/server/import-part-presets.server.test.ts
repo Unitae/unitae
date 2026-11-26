@@ -76,6 +76,40 @@ describe('importPartPresets', () => {
     expect(db.partPreset.create.mock.calls[0][0].data.shareMessage).toBe('Texte personnalisé {{date}}')
   })
 
+  it('carries whether a kind offers the S-89 slip, as the congregation set it', async () => {
+    archive([
+      preset(1, { key: 'school-talk', printsStudentSlip: false }),
+      preset(2, { key: 'expose-perso', isSystem: false, printsStudentSlip: true }),
+    ])
+    const db = makeDb()
+
+    await importPartPresets({} as never, db as never, new EntityIdMap(), 1)
+
+    expect(db.partPreset.create.mock.calls.map(([call]) => call.data.printsStudentSlip)).toEqual([false, true])
+  })
+
+  // As the migration that added the option did: on for the seeded student kinds, off for everything else.
+  it('offers the slip on the seeded student kinds of an archive made before the option', async () => {
+    archive([
+      preset(1, { key: 'bible-reading' }),
+      preset(2, { key: 'school-demonstration' }),
+      preset(3, { key: 'school-talk' }),
+      preset(4, { key: 'prayer' }),
+      preset(5, { key: 'school-talk', isSystem: false }),
+    ])
+    const db = makeDb()
+
+    await importPartPresets({} as never, db as never, new EntityIdMap(), 1)
+
+    expect(db.partPreset.create.mock.calls.map(([call]) => call.data.printsStudentSlip)).toEqual([
+      true,
+      true,
+      true,
+      false,
+      false,
+    ])
+  })
+
   it('does nothing for a pre-2.5 archive with no preset file', async () => {
     archive([])
     const db = makeDb()

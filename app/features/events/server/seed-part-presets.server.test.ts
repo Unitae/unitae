@@ -103,6 +103,20 @@ describe('seedDefaultPartPresets', () => {
     expect(rowFor(db, 'bible-reading')?.allowExternalSpeaker).toBe(false)
   })
 
+  it('offers the S-89 slip on the three student kinds only', async () => {
+    const db = makeDb()
+    db.partPreset.findFirst.mockResolvedValue(null as never)
+    db.partPreset.create.mockResolvedValue({} as never)
+
+    await seedDefaultPartPresets(db, 1, 'fr')
+
+    const withSlip = createdRows(db)
+      .filter(row => row.printsStudentSlip === true)
+      .map(row => row.key)
+      .sort()
+    expect(withSlip).toEqual(['bible-reading', 'school-demonstration', 'school-talk'])
+  })
+
   it.each(['fr', 'en'] as const)('uses only known variables in every %s message', async locale => {
     // Ties the catalogue to the renderer: a typo'd placeholder would otherwise
     // ship silently and render as a gap in a real SMS.
