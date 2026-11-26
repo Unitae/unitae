@@ -4445,7 +4445,7 @@
     "settings_schedule_templates_holders": "Atualmente: {names}.",
     "settings_schedule_templates_holders_none": "Atualmente, ninguém tem esta função.",
     "settings_schedule_templates_suggested_by": "Utilizado em",
-    "settings_schedule_templates_suggested_none": "Este modelo ainda não é utilizado",
+    "settings_schedule_templates_suggested_none": "Nenhum tipo de reunião e nenhuma reunião publicada",
     "settings_schedule_templates_parts_label": "Partes",
     "settings_schedule_templates_services_label": "Serviços",
     "settings_schedule_templates_add_service": "Adicionar um serviço",

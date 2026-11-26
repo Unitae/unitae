@@ -49,7 +49,7 @@ export async function createScheduleTemplate(
 }
 
 /**
- * Whether another schedule template reads as `name`: one carrying it, whatever the case, or an unnamed one whose label
+ * Whether another schedule template reads as `name`: one carrying it, whatever the case or accents, or an unnamed one whose label
  * is it (« Spirituel », « Services », in the reader's language). Two templates of one name could not be told apart in
  * the list or in « Ajouter un planning » (user, 2026-11-26). `except` is the template being renamed.
  */
@@ -59,12 +59,20 @@ export async function scheduleTemplateNameTaken(
   congregationId: number,
   except?: number,
 ): Promise<boolean> {
-  const wanted = name.toLocaleLowerCase()
+  const wanted = comparable(name)
   const others = await db.scheduleTemplate.findMany({
     where: { congregationId, ...(except != null && { NOT: { id: except } }) },
     select: { name: true, kind: true },
   })
   const label = (kind: string) =>
     kind === ScheduleKind.Duty ? m.programs_schedule_kind_duty() : m.programs_schedule_kind_programme()
-  return others.some(other => (other.name ?? label(other.kind)).toLocaleLowerCase() === wanted)
+  return others.some(other => comparable(other.name ?? label(other.kind)) === wanted)
+}
+
+/** A name as two names are told apart: neither case nor accents count (« Memorial » is « Mémorial », user). */
+function comparable(name: string): string {
+  return name
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLocaleLowerCase()
 }

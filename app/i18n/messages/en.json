@@ -4445,7 +4445,7 @@
     "settings_schedule_templates_holders": "Today: {names}.",
     "settings_schedule_templates_holders_none": "Nobody holds this role today.",
     "settings_schedule_templates_suggested_by": "Used in",
-    "settings_schedule_templates_suggested_none": "This template is not used yet",
+    "settings_schedule_templates_suggested_none": "No meeting type and no published meeting",
     "settings_schedule_templates_parts_label": "Parts",
     "settings_schedule_templates_services_label": "Services",
     "settings_schedule_templates_add_service": "Add a service",
