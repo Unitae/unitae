@@ -18,11 +18,15 @@ import { Permission } from '~/shared/types/permission'
 
 import type { Route } from './+types/branch-report-pdf'
 
-/** `?month=&year=` (month 0-indexed), or null when it does not parse. */
+/** `?month=&year=` (month 0-indexed), or null when either is missing, empty or out of range. */
 function parseMonth(params: URLSearchParams): { month: number; year: number } | null {
-  const month = Number(params.get('month'))
-  const year = Number(params.get('year'))
-  if (params.get('month') == null || !Number.isInteger(month) || month < 0 || month > 11) return null
+  const monthParam = params.get('month')
+  const yearParam = params.get('year')
+  // `Number('')` is 0: an empty value would otherwise pass for January.
+  if (monthParam == null || monthParam === '' || yearParam == null || yearParam === '') return null
+  const month = Number(monthParam)
+  const year = Number(yearParam)
+  if (!Number.isInteger(month) || month < 0 || month > 11) return null
   if (!Number.isInteger(year) || year < 2000 || year > 3000) return null
   return { month, year }
 }

@@ -80,6 +80,9 @@ describe('the S-1 PDF', () => {
     const reader = [Permission.CanViewActivity]
     await expect(loader(args('?month=12&year=2026', reader))).rejects.toMatchObject({ status: 302 })
     await expect(loader(args('?month=abc&year=2026', reader))).rejects.toMatchObject({ status: 302 })
+    // An empty value is not January.
+    await expect(loader(args('?month=&year=2026', reader))).rejects.toMatchObject({ status: 302 })
+    await expect(loader(args('?month=0&year=', reader))).rejects.toMatchObject({ status: 302 })
     expect(renderPdfResponse).not.toHaveBeenCalled()
   })
 
@@ -111,5 +114,23 @@ describe('the S-1 PDF', () => {
     expect(listServiceYearAttendance).not.toHaveBeenCalled()
     const [[document]] = renderPdfResponse.mock.calls
     expect(document.props.weekendAverage).toBeNull()
+  })
+
+  // January belongs to the service year that began the September before, read in the congregation's zone.
+  it('reads the attendance of the service year a January belongs to, in the congregation’s zone', async () => {
+    listServiceYearAttendance.mockResolvedValue([weekend('2027-01-10T08:00:00Z', 70)])
+
+    const response = await loader(
+      args('?month=0&year=2027', [Permission.CanViewActivity, Permission.CanViewAttendance]),
+    )
+
+    expect(response.status).toBe(200)
+    expect(listServiceYearAttendance).toHaveBeenCalledWith(
+      {},
+      { congregationId: 3, serviceYear: 2026, timeZone: 'Europe/Paris' },
+    )
+    const [[document, filename]] = renderPdfResponse.mock.calls
+    expect(filename).toBe('S-1_2027-01.pdf')
+    expect(document.props.weekendAverage).toBe(80)
   })
 })
