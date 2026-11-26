@@ -35,7 +35,7 @@ Um pioneiro passou tempo numa escola, num projeto de construção ou numa missã
 
 Com o direito de ver a atividade, **Congregação › Atividade** apresenta os relatórios de toda a congregação, mês a mês. Abre no mês atual, ou no mês que acabou de terminar enquanto não tiver chegado nenhum relatório deste mês; **Mês anterior** e **Mês seguinte** mudam o mês. O filtro **Relatório › Sem relatório** mostra apenas os que faltam: clique em **Introduzir** numa linha e guarde, tal como a partir do grupo.
 
-Os números acima da lista são os que a filial pede: os relatórios dos publicadores, pioneiros auxiliares e pioneiros regulares que pregaram, com as suas horas e estudos bíblicos, e depois o total da congregação. Um relatório conta com o serviço do seu mês. Os pioneiros especiais e os missionários não entram em nenhuma linha, mas os seus estudos bíblicos contam para a congregação. O crédito de horas nunca entra. Em **Congregação**, os irregulares são os que entregaram um relatório sem terem pregado, à parte os inativos.
+Os números acima da lista são os que a filial pede: o total da congregação, e depois os relatórios dos publicadores, pioneiros auxiliares e pioneiros regulares que pregaram, com as suas horas e estudos bíblicos. Um relatório conta com o serviço do seu mês. Os pioneiros especiais e os missionários não entram em nenhuma linha, mas os seus estudos bíblicos contam para a congregação. O crédito de horas nunca entra. Em **Congregação**, os irregulares são os que entregaram um relatório sem terem pregado, à parte os inativos.
 
 ## Corrigir ou eliminar um relatório
 

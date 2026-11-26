@@ -12,13 +12,23 @@ function lineFoot({ hours, studies }: Partial<Pick<BranchLine, 'hours'>> & Pick<
 }
 
 /**
- * The month's figures as the branch asks for them, one tile per line, then the congregation's: reports first, then
- * hours and Bible studies. Above the list and its panel so the strip keeps the page's full width.
+ * The month's figures as the branch asks for them, the congregation's total first, then one tile per line: reports
+ * first, then hours and Bible studies. Above the list and its panel so the strip keeps the page's full width.
  */
 export function ActivityMonthSummary({ summary }: { summary: ReportMonthSummary }) {
   const { publishers, auxiliary, regular, congregation } = summary.branch
   return (
     <MetricStrip aria-label={m.activity_summary_label()} minTileWidth={150}>
+      <StatTile
+        label={m.activity_summary_congregation_label()}
+        value={congregation.reports}
+        unit={
+          congregation.irregular > 0
+            ? `${m.activity_summary_reports_unit({ count: congregation.reports })}, ${m.activity_summary_irregular({ count: congregation.irregular })}`
+            : m.activity_summary_reports_unit({ count: congregation.reports })
+        }
+        foot={lineFoot(congregation)}
+      />
       <StatTile
         label={m.activity_summary_publishers_label()}
         value={publishers.reports}
@@ -36,16 +46,6 @@ export function ActivityMonthSummary({ summary }: { summary: ReportMonthSummary 
         value={regular.reports}
         unit={m.activity_summary_reports_unit({ count: regular.reports })}
         foot={lineFoot(regular)}
-      />
-      <StatTile
-        label={m.activity_summary_congregation_label()}
-        value={congregation.reports}
-        unit={
-          congregation.irregular > 0
-            ? `${m.activity_summary_reports_unit({ count: congregation.reports })}, ${m.activity_summary_irregular({ count: congregation.irregular })}`
-            : m.activity_summary_reports_unit({ count: congregation.reports })
-        }
-        foot={lineFoot(congregation)}
       />
     </MetricStrip>
   )
