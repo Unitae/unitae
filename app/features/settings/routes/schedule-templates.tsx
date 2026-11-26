@@ -1,6 +1,6 @@
 import { parseWithZod } from '@conform-to/zod/v4'
 import { Plus } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { data, redirect, type ShouldRevalidateFunctionArgs, useFetcher } from 'react-router'
 import { listScheduleTemplatesForSettings, updateScheduleTemplate } from '~/features/events/index.server'
 import { onlyHelpPanelChanged } from '~/features/help'
@@ -123,6 +123,7 @@ export default function ScheduleTemplatesPage({ loaderData }: Route.ComponentPro
   const docked = useMediaQuery('(min-width: 1280px)') === true
   const [dirty, setDirty] = useState(false)
   const [creating, setCreating] = useState(false)
+  const newButton = useRef<HTMLButtonElement>(null)
   const page = useScheduleTemplatePage({
     templateIds: templates.map(template => template.id),
     // An item of the other sort (a part asked of a duties template) is not this template's.
@@ -150,13 +151,18 @@ export default function ScheduleTemplatesPage({ loaderData }: Route.ComponentPro
         title={m.settings_entry_schedule_templates()}
         subtitle={m.settings_schedule_templates_subtitle()}
         actions={
-          <Button size="sm" onClick={() => setCreating(true)}>
+          <Button size="sm" ref={newButton} onClick={() => setCreating(true)}>
             <Plus />
             {m.settings_schedule_templates_new()}
           </Button>
         }
       />
-      <NewScheduleTemplateDialog open={creating} onOpenChange={setCreating} roles={roles} />
+      <NewScheduleTemplateDialog
+        open={creating}
+        onOpenChange={setCreating}
+        roles={roles}
+        returnFocus={() => newButton.current}
+      />
       {templates.length === 0 ? (
         <p className="text-muted-foreground text-sm">{m.settings_schedule_templates_empty()}</p>
       ) : (

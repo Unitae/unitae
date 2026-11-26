@@ -420,4 +420,36 @@ test.describe('Schedule templates: a part in the template panel', () => {
       }
     }
   })
+
+  // « Nouveau modèle »: a refusal first, then the template, which opens in the panel with its empty list. Created once
+  // and reused by later runs (the page cannot delete one yet), so a run leaves no template of its own behind.
+  test('creates a schedule template after a refused name, and opens it with nothing in it', async ({ page }) => {
+    const name = 'E2E Nouveau modèle'
+    await page.goto('/settings/schedule-templates')
+    const existing = page.locator('[data-row-primary]').filter({ hasText: name })
+    if ((await existing.count()) === 0) {
+      const open = page.getByRole('button', { name: 'Nouveau modèle', exact: true })
+      await open.click()
+      const dialog = page.getByRole('dialog')
+      await dialog.getByLabel('Nom').fill('   ')
+      await dialog.getByRole('button', { name: 'Des services' }).click()
+      await dialog.getByRole('button', { name: 'Créer le modèle' }).click()
+      await expect(dialog.getByRole('alert')).toContainText('Donnez-lui un nom.')
+      await dialog.getByLabel('Nom').fill(name)
+      await dialog.getByRole('button', { name: 'Créer le modèle' }).click()
+      // Created once: the dialog goes, and focus is back on the button that opened it.
+      await expect(dialog).toHaveCount(0)
+      await expect(page).toHaveURL(TEMPLATE_RE)
+      await expect(open).toBeFocused()
+      // Opening it again starts afresh, without the old refusal.
+      await open.click()
+      await expect(page.getByRole('dialog').getByRole('alert')).toHaveCount(0)
+      await page.keyboard.press('Escape')
+    } else {
+      await existing.first().click()
+    }
+    await expect(page.locator('[data-row-primary]').filter({ hasText: name })).toHaveCount(1)
+    // A template no kind uses shows its list, empty, with its first service to add.
+    await expect(page.getByRole('button', { name: 'Ajouter un service' })).toBeVisible()
+  })
 })

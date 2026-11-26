@@ -14,6 +14,8 @@ interface NewScheduleTemplateDialogProps {
   onOpenChange: (open: boolean) => void
   /** The roles a template may be handed to. */
   roles: { id: number; label: string }[]
+  /** Where focus goes back once it closes: the button that opened it. */
+  returnFocus?: () => HTMLElement | null
 }
 
 /**
@@ -21,8 +23,10 @@ interface NewScheduleTemplateDialogProps {
  * created it opens in the panel, where its parts or services are added; no kind uses it yet, « Ajouter un planning »
  * offers it on the meetings.
  */
-export function NewScheduleTemplateDialog({ open, onOpenChange, roles }: NewScheduleTemplateDialogProps) {
-  const fetcher = useFetcher<{ ok: false; errors: string[] }>()
+export function NewScheduleTemplateDialog({ open, onOpenChange, roles, returnFocus }: NewScheduleTemplateDialogProps) {
+  // A fetcher of its own per opening: a refusal from an earlier one never shows on the next.
+  const [opening, setOpening] = useState(0)
+  const fetcher = useFetcher<{ ok: false; errors: string[] }>({ key: `new-schedule-template-${opening}` })
   const id = useId()
   const [kind, setKind] = useState<'programme' | 'duty'>('programme')
   const [role, setRole] = useState(NO_RESPONSIBLE)
@@ -31,22 +35,33 @@ export function NewScheduleTemplateDialog({ open, onOpenChange, roles }: NewSche
   // Each opening starts afresh.
   useEffect(() => {
     if (!open) return
+    setOpening(each => each + 1)
     setKind('programme')
     setRole(NO_RESPONSIBLE)
   }, [open])
 
-  // Created: the answer is the page's address with the template open, and the dialog goes. A refusal stays in it.
-  const sent = useRef(false)
+  // Created: the answer is a redirect to the page with the template open, which brings no data, so the data the
+  // submission found stays as it was; a refusal brings its own. Only a new refusal keeps the dialog open.
+  const sent = useRef<{ data: unknown } | null>(null)
   useEffect(() => {
-    if (fetcher.state === 'submitting') sent.current = true
-    if (fetcher.state !== 'idle' || !sent.current) return
-    sent.current = false
-    if (fetcher.data?.ok !== false) onOpenChange(false)
+    if (fetcher.state === 'submitting' && sent.current == null) sent.current = { data: fetcher.data }
+    if (fetcher.state !== 'idle' || sent.current == null) return
+    const refused = fetcher.data !== sent.current.data && fetcher.data?.ok === false
+    sent.current = null
+    if (!refused) onOpenChange(false)
   }, [fetcher.state, fetcher.data, onOpenChange])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent
+        className="sm:max-w-md"
+        onCloseAutoFocus={event => {
+          const target = returnFocus?.()
+          if (target == null) return
+          event.preventDefault()
+          target.focus()
+        }}
+      >
         <DialogHeader>
           <DialogTitle>{m.settings_schedule_templates_new_title()}</DialogTitle>
         </DialogHeader>
@@ -60,7 +75,7 @@ export function NewScheduleTemplateDialog({ open, onOpenChange, roles }: NewSche
             <Input id={`${id}-name`} name="name" maxLength={80} required autoComplete="off" />
           </div>
           <div className="flex flex-col gap-1.5">
-            <span aria-hidden="true" className="font-medium text-sm">
+            <span aria-hidden="true" className="text-sm font-medium">
               {m.settings_schedule_templates_new_contents()}
             </span>
             <SegmentedControl
