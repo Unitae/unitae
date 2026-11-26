@@ -1337,11 +1337,13 @@
     "activity_export_button": "Export",
     "activity_previous_month": "Previous month",
     "activity_next_month": "Next month",
-    "activity_hours_unit": "h",
     "activity_hours_value": "{hours} h",
     "activity_summary_label": "The month in figures",
-    "activity_summary_filed_label": "Reports in",
-    "activity_summary_filed_unit": [
+    "activity_summary_publishers_label": "Publishers",
+    "activity_summary_auxiliary_label": "Auxiliary pioneers",
+    "activity_summary_regular_label": "Regular pioneers",
+    "activity_summary_congregation_label": "Congregation",
+    "activity_summary_reports_unit": [
         {
             "declarations": [
                 "input count",
@@ -1349,15 +1351,12 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "of {count} expected",
-                "countPlural=*": "of {count} expected"
+                "countPlural=one": "report",
+                "countPlural=*": "reports"
             }
         }
     ],
-    "activity_summary_missing": "{count} to follow up",
-    "activity_summary_all_filed": "Every report is in",
-    "activity_summary_preached_label": "Preached",
-    "activity_summary_not_preached": [
+    "activity_summary_irregular": [
         {
             "declarations": [
                 "input count",
@@ -1365,15 +1364,12 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "{count} did not preach this month",
-                "countPlural=*": "{count} did not preach this month"
+                "countPlural=one": "including {count} irregular",
+                "countPlural=*": "including {count} irregular"
             }
         }
     ],
-    "activity_summary_everyone_preached": "Everyone preached this month",
-    "activity_summary_pioneer_hours_label": "Pioneer hours",
-    "activity_summary_pioneers_none": "No pioneers this month",
-    "activity_summary_pioneers_count": [
+    "activity_summary_studies_count": [
         {
             "declarations": [
                 "input count",
@@ -1381,65 +1377,12 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "{count} pioneer",
-                "countPlural=*": "{count} pioneers"
-            }
-        }
-    ],
-    "activity_summary_pioneers_permanent": [
-        {
-            "declarations": [
-                "input count",
-                "local countPlural = count: plural"
-            ],
-            "selectors": ["countPlural"],
-            "match": {
-                "countPlural=one": "{count} regular",
-                "countPlural=*": "{count} regular"
-            }
-        }
-    ],
-    "activity_summary_pioneers_auxiliary": [
-        {
-            "declarations": [
-                "input count",
-                "local countPlural = count: plural"
-            ],
-            "selectors": ["countPlural"],
-            "match": {
-                "countPlural=one": "{count} auxiliary",
-                "countPlural=*": "{count} auxiliary"
-            }
-        }
-    ],
-    "activity_summary_pioneers_special": [
-        {
-            "declarations": [
-                "input count",
-                "local countPlural = count: plural"
-            ],
-            "selectors": ["countPlural"],
-            "match": {
-                "countPlural=one": "{count} special",
-                "countPlural=*": "{count} special"
-            }
-        }
-    ],
-    "activity_summary_pioneers_missionary": [
-        {
-            "declarations": [
-                "input count",
-                "local countPlural = count: plural"
-            ],
-            "selectors": ["countPlural"],
-            "match": {
-                "countPlural=one": "{count} missionary",
-                "countPlural=*": "{count} missionaries"
+                "countPlural=one": "{count} Bible study",
+                "countPlural=*": "{count} Bible studies"
             }
         }
     ],
     "activity_summary_studies_label": "Bible studies",
-    "activity_summary_pioneer_studies": "{count} of them by pioneers",
     "activity_groups_title": "By group",
     "activity_groups_hint": "choosing a group filters the list",
     "activity_filter_status_label": "Report",

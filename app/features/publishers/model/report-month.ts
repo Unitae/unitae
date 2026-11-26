@@ -29,21 +29,34 @@ export interface GroupProgress {
   expected: number
 }
 
+/** One line of the branch's monthly figures: reports from those who preached, their hours, their Bible studies. */
+export interface BranchLine {
+  reports: number
+  hours: number
+  studies: number
+}
+
+/**
+ * The month's figures as the branch asks for them. A report counts under the service stored on it, so an auxiliary
+ * pioneer for the month counts there for that month. Special pioneers and missionaries are in no line and their
+ * hours in no total, but their Bible studies are the congregation's. The credit never counts, as in the exports.
+ */
+export interface BranchFigures {
+  publishers: Omit<BranchLine, 'hours'>
+  auxiliary: BranchLine
+  regular: BranchLine
+  /** Every report in, preached or not; « irregular » are those without preaching, the inactive left out. */
+  congregation: BranchLine & { irregular: number }
+}
+
 export interface ReportMonthSummary {
   /** Publishers expected to report: everyone listed but the inactive. */
   expected: number
   /** Of them, those whose report is in, preached or not. */
   filed: number
   missing: number
-  preached: number
-  notPreached: number
   inactive: number
-  /** Field hours of the pioneers' reports; the credit never counts here, as in the exports. */
-  pioneerHours: number
-  pioneers: number
-  pioneersByType: Partial<Record<PublisherType, number>>
-  studies: number
-  pioneerStudies: number
+  branch: BranchFigures
   /** Reports in per group, by group name. Publishers without a group are left out. */
   groups: GroupProgress[]
 }
@@ -53,33 +66,47 @@ function emptySummary(): ReportMonthSummary {
     expected: 0,
     filed: 0,
     missing: 0,
-    preached: 0,
-    notPreached: 0,
     inactive: 0,
-    pioneerHours: 0,
-    pioneers: 0,
-    pioneersByType: {},
-    studies: 0,
-    pioneerStudies: 0,
+    branch: {
+      publishers: { reports: 0, studies: 0 },
+      auxiliary: { reports: 0, hours: 0, studies: 0 },
+      regular: { reports: 0, hours: 0, studies: 0 },
+      congregation: { reports: 0, hours: 0, studies: 0, irregular: 0 },
+    },
     groups: [],
   }
 }
 
-/** Adds a filed report's figures: preached or not, studies, and a pioneer's hours by service. */
+/** Adds a filed report to the branch's figures: its line if he preached, the congregation's total either way. */
 function countReport(
   summary: ReportMonthSummary,
   report: NonNullable<ReportMonthRow['lastActivity']>,
   preached: boolean,
 ) {
+  const { branch } = summary
   summary.filed++
-  if (preached) summary.preached++
-  else summary.notPreached++
-  summary.studies += report.studies
-  if (report.type === PublisherType.Normal) return
-  summary.pioneers++
-  summary.pioneersByType[report.type] = (summary.pioneersByType[report.type] ?? 0) + 1
-  summary.pioneerHours += report.hours ?? 0
-  summary.pioneerStudies += report.studies
+  branch.congregation.reports++
+  if (!preached) {
+    branch.congregation.irregular++
+    return
+  }
+  branch.congregation.studies += report.studies
+  if (report.type === PublisherType.Normal) {
+    branch.publishers.reports++
+    branch.publishers.studies += report.studies
+    return
+  }
+  const line =
+    report.type === PublisherType.PionnierAuxiliaires
+      ? branch.auxiliary
+      : report.type === PublisherType.PionnierPermanant
+        ? branch.regular
+        : null
+  if (line == null) return
+  line.reports++
+  line.hours += report.hours ?? 0
+  line.studies += report.studies
+  branch.congregation.hours += report.hours ?? 0
 }
 
 export function summarizeReportMonth(rows: ReportMonthRow[], compareNames: (a: string, b: string) => number) {

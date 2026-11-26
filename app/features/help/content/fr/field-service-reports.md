@@ -5,7 +5,7 @@ title: Comment saisir les rapports de prédication ?
 summary: Le rapport du mois de chaque proclamateur, depuis la page du groupe ou la page Activité, et les corrections ensuite.
 module: activity
 permission: CanRecordActivity, CanCorrectActivity, CanManagePublishers, GroupLeader
-keywords: rapport, rapports, prédication, saisir, mois, groupe, responsable, adjoint, secrétaire, heures, cours bibliques, a prêché, pionnier auxiliaire, crédit, sans rapport, corriger, supprimer
+keywords: rapport, rapports, prédication, saisir, mois, groupe, responsable, adjoint, secrétaire, heures, cours bibliques, a prêché, pionnier auxiliaire, crédit, sans rapport, corriger, supprimer, filiale, totaux, irréguliers
 related: pioneers, activity-exports
 order: 1
 ---
@@ -34,6 +34,8 @@ Un pionnier a passé du temps à l’école, sur un chantier ou en mission ? Not
 ## Depuis la page Activité
 
 Avec le droit de voir l’activité, **Assemblée › Activité** liste les rapports de toute l’assemblée, mois par mois. Elle s’ouvre sur le mois en cours, ou sur le mois écoulé tant qu’aucun rapport du mois n’est arrivé ; **Mois précédent** et **Mois suivant** changent de mois. Le filtre **Rapport › Sans rapport** garde ceux qui manquent : cliquez sur **Saisir** sur une ligne, puis enregistrez comme depuis le groupe.
+
+Les chiffres au-dessus de la liste sont ceux du rapport à la filiale : le total de l’assemblée, puis les rapports des proclamateurs, des pionniers auxiliaires et des pionniers permanents qui ont prêché, avec leurs heures et leurs cours bibliques. Un rapport compte avec le service de son mois. Les pionniers spéciaux et les missionnaires ne figurent dans aucune ligne, mais leurs cours bibliques comptent pour l’assemblée. Le crédit d’heures n’y entre jamais. Dans **Assemblée**, les irréguliers sont ceux qui ont rendu un rapport sans avoir prêché, les inactifs mis à part.
 
 ## Corriger ou supprimer un rapport
 
