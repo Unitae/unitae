@@ -1,77 +1,51 @@
 import { MetricStrip, ProgressBar, StatTile } from '@unitae/ui'
 
-import type { GroupProgress, ReportMonthSummary } from '~/features/publishers/model/report-month'
+import type { BranchLine, GroupProgress, ReportMonthSummary } from '~/features/publishers/model/report-month'
 import * as m from '~/i18n/paraglide/messages'
-import { PublisherType } from '~/shared/types/publisher-type'
 import { formatGroupName } from '~/shared/utils/format-group-name'
 import { cn } from '~/shared/utils/utils'
 
-/** One message for one, another for more, as the catalogues pair them. */
-const PIONEER_PARTS: { type: PublisherType; label: (count: number) => string }[] = [
-  {
-    type: PublisherType.PionnierPermanant,
-    label: count => m.activity_summary_pioneers_permanent({ count: count }),
-  },
-  {
-    type: PublisherType.PionnierAuxiliaires,
-    label: count => m.activity_summary_pioneers_auxiliary({ count: count }),
-  },
-  {
-    type: PublisherType.PionnierSpecial,
-    label: count => m.activity_summary_pioneers_special({ count: count }),
-  },
-  {
-    type: PublisherType.Missionnaire,
-    label: count => m.activity_summary_pioneers_missionary({ count: count }),
-  },
-]
-
-/** « 8 pionniers · 6 permanents, 2 auxiliaires »: the services in the month's reports. */
-function pioneersFoot(summary: ReportMonthSummary): string {
-  if (summary.pioneers === 0) return m.activity_summary_pioneers_none()
-  const parts = PIONEER_PARTS.flatMap(({ type, label }) => {
-    const count = summary.pioneersByType[type] ?? 0
-    return count > 0 ? [label(count)] : []
-  })
-  const total = m.activity_summary_pioneers_count({ count: summary.pioneers })
-  return `${total} · ${parts.join(', ')}`
+/** « 95 h · 4 cours bibliques »: what a line adds up to beside its number of reports. */
+function lineFoot({ hours, studies }: Partial<Pick<BranchLine, 'hours'>> & Pick<BranchLine, 'studies'>): string {
+  const studiesText = m.activity_summary_studies_count({ count: studies })
+  return hours == null ? studiesText : `${m.activity_hours_value({ hours })} · ${studiesText}`
 }
 
-/** The month at a glance, above the list and its panel so the strip keeps the page's full width. */
+/**
+ * The month's figures as the branch asks for them, one tile per line, then the congregation's: reports first, then
+ * hours and Bible studies. Above the list and its panel so the strip keeps the page's full width.
+ */
 export function ActivityMonthSummary({ summary }: { summary: ReportMonthSummary }) {
+  const { publishers, auxiliary, regular, congregation } = summary.branch
   return (
     <MetricStrip aria-label={m.activity_summary_label()} minTileWidth={150}>
       <StatTile
-        label={m.activity_summary_filed_label()}
-        value={summary.filed}
-        unit={m.activity_summary_filed_unit({ count: summary.expected })}
-        meter={<ProgressBar value={summary.filed} max={summary.expected} />}
-        foot={
-          summary.missing > 0 ? m.activity_summary_missing({ count: summary.missing }) : m.activity_summary_all_filed()
-        }
-        tone={summary.missing > 0 ? 'warning' : 'positive'}
+        label={m.activity_summary_publishers_label()}
+        value={publishers.reports}
+        unit={m.activity_summary_reports_unit({ count: publishers.reports })}
+        foot={lineFoot(publishers)}
       />
       <StatTile
-        label={m.activity_summary_preached_label()}
-        value={summary.preached}
-        foot={
-          summary.notPreached > 0
-            ? m.activity_summary_not_preached({ count: summary.notPreached })
-            : m.activity_summary_everyone_preached()
-        }
+        label={m.activity_summary_auxiliary_label()}
+        value={auxiliary.reports}
+        unit={m.activity_summary_reports_unit({ count: auxiliary.reports })}
+        foot={lineFoot(auxiliary)}
       />
       <StatTile
-        label={m.activity_summary_pioneer_hours_label()}
-        value={summary.pioneerHours}
-        unit={m.activity_hours_unit()}
-        foot={pioneersFoot(summary)}
+        label={m.activity_summary_regular_label()}
+        value={regular.reports}
+        unit={m.activity_summary_reports_unit({ count: regular.reports })}
+        foot={lineFoot(regular)}
       />
       <StatTile
-        label={m.activity_summary_studies_label()}
-        value={summary.studies}
-        foot={
-          summary.pioneerStudies > 0 ? m.activity_summary_pioneer_studies({ count: summary.pioneerStudies }) : undefined
+        label={m.activity_summary_congregation_label()}
+        value={congregation.reports}
+        unit={
+          congregation.irregular > 0
+            ? `${m.activity_summary_reports_unit({ count: congregation.reports })}, ${m.activity_summary_irregular({ count: congregation.irregular })}`
+            : m.activity_summary_reports_unit({ count: congregation.reports })
         }
+        foot={lineFoot(congregation)}
       />
     </MetricStrip>
   )
