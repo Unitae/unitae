@@ -157,7 +157,7 @@ describe('syncTemplateScheduleTemplates', () => {
     })
   })
 
-  it('creates nothing twice, and follows what changed since: a new item, a responsible — never a rename', async () => {
+  it('creates nothing twice, and follows what changed since: a new item — never a rename nor a responsible', async () => {
     await inCongregation(async ({ db, congregationId, template, part, service, role, responsible, read }) => {
       const weekend = await template('Réunion de week-end')
       await part(weekend)
@@ -179,8 +179,9 @@ describe('syncTemplateScheduleTemplates', () => {
 
       const after = await read(weekend)
       expect(after.scheduleTemplates).toMatchObject([
-        // Its name belongs to Réglages › « Modèles de planning » since 6a: the kind's rename leaves it.
-        { id: before[0].id, kind: 'programme', name: 'Réunion de week-end', responsibleRoleId: second },
+        // Its name and responsible belong to Réglages › « Modèles de planning » (6a, 6b-1b): the kind gave them on
+        // creation, and what changes on the kind after leaves them.
+        { id: before[0].id, kind: 'programme', name: 'Réunion de week-end', responsibleRoleId: first },
         { kind: 'duty', responsibleRoleId: null },
       ])
       expect(after.parts).toEqual([before[0].id, before[0].id])
@@ -188,17 +189,18 @@ describe('syncTemplateScheduleTemplates', () => {
     })
   })
 
-  it('clears a responsible the template no longer names', async () => {
+  it('keeps the schedule template’s responsible when the kind’s row goes', async () => {
     await inCongregation(async ({ db, congregationId, template, part, role, responsible, read }) => {
       const midweek = await template('Réunion de semaine')
       await part(midweek)
-      await responsible(midweek, await role('programme'), ResponsibilityScope.Programme)
+      const roleId = await role('programme')
+      await responsible(midweek, roleId, ResponsibilityScope.Programme)
       await syncTemplateScheduleTemplates(db, midweek, congregationId)
 
       await db.templateResponsible.deleteMany({ where: { templateId: midweek } })
       await syncTemplateScheduleTemplates(db, midweek, congregationId)
 
-      expect((await read(midweek)).scheduleTemplates).toMatchObject([{ kind: 'programme', responsibleRoleId: null }])
+      expect((await read(midweek)).scheduleTemplates).toMatchObject([{ kind: 'programme', responsibleRoleId: roleId }])
     })
   })
 

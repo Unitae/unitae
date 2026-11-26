@@ -1,6 +1,7 @@
 import type { AttendanceKind } from '~/features/events/model/attendance-kind.type'
 import { isSystemTemplate } from '~/features/events/model/event-template.type'
 import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
+import { SCHEDULE_KINDS, ScheduleKind } from '~/features/events/model/schedule.type'
 import { TEMPLATE_PROGRAMME_COUNT } from '~/features/events/server/give-programme.server'
 import { syncTemplateScheduleTemplates } from '~/features/events/server/schedule-templates.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
@@ -16,17 +17,39 @@ const responsibleInclude = {
   orderBy: { scope: 'asc' },
 } as const
 
-export function getTemplates(db: TransactionClient, congregationId: number) {
-  return db.eventTemplate.findMany({
+const RESPONSIBLE_ROLE = { select: { id: true, key: true, name: true } } as const
+
+/**
+ * The meeting types, each with what its schedule templates hold (6b-0) and its responsibles as they hold them (6b-1b):
+ * its first programme template's, then its first duties template's.
+ */
+export async function getTemplates(db: TransactionClient, congregationId: number) {
+  const templates = await db.eventTemplate.findMany({
     where: { congregationId },
     include: {
       // Its items: those of the schedule templates it uses (6b-0), beside its events.
       _count: { select: { events: true, ...TEMPLATE_PROGRAMME_COUNT._count.select } },
-      scheduleTemplates: TEMPLATE_PROGRAMME_COUNT.scheduleTemplates,
-      responsibles: responsibleInclude,
+      scheduleTemplates: {
+        orderBy: TEMPLATE_PROGRAMME_COUNT.scheduleTemplates.orderBy,
+        select: {
+          scheduleTemplate: {
+            select: {
+              ...TEMPLATE_PROGRAMME_COUNT.scheduleTemplates.select.scheduleTemplate.select,
+              responsibleRole: RESPONSIBLE_ROLE,
+            },
+          },
+        },
+      },
     },
     orderBy: { name: 'asc' },
   })
+  return templates.map(template => ({
+    ...template,
+    responsibles: SCHEDULE_KINDS.flatMap(sort => {
+      const first = template.scheduleTemplates.find(link => link.scheduleTemplate.kind === sort)
+      return first?.scheduleTemplate.responsibleRole ? [first.scheduleTemplate.responsibleRole] : []
+    }),
+  }))
 }
 
 export function getTemplateById(db: TransactionClient, templateId: number, congregationId: number) {
@@ -135,8 +158,9 @@ export async function setTemplateResponsible(
       congregationId,
     },
   })
-  // Its schedule templates name their responsible role too.
+  // The schedule template of that scope holds the responsible (6b-1b): the row is only what a new one starts from.
   await syncTemplateScheduleTemplates(db, templateId, congregationId)
+  await setScopeTemplateRole(db, templateId, scope, roleId, congregationId)
   return responsible
 }
 
@@ -150,5 +174,27 @@ export async function removeTemplateResponsible(
     where: { templateId, scope, congregationId },
   })
   await syncTemplateScheduleTemplates(db, templateId, congregationId)
+  await setScopeTemplateRole(db, templateId, scope, null, congregationId)
   return removed
+}
+
+/** The role of the kind's first schedule template of a scope's sort: its programme's, or its duties'. */
+async function setScopeTemplateRole(
+  db: TransactionClient,
+  templateId: number,
+  scope: ResponsibilityScope,
+  roleId: number | null,
+  congregationId: number,
+) {
+  const kind = scope === ResponsibilityScope.Service ? ScheduleKind.Duty : ScheduleKind.Programme
+  const link = await db.eventKindScheduleTemplate.findFirst({
+    where: { eventKindId: templateId, congregationId, scheduleTemplate: { kind } },
+    orderBy: [{ order: 'asc' }, { scheduleTemplateId: 'asc' }],
+    select: { scheduleTemplateId: true },
+  })
+  if (link == null) return
+  await db.scheduleTemplate.update({
+    where: { id_congregationId: { id: link.scheduleTemplateId, congregationId } },
+    data: { responsibleRoleId: roleId },
+  })
 }

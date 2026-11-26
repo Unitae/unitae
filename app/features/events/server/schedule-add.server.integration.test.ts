@@ -1,6 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+import { setTemplateResponsible } from '~/features/events/index.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { Permission } from '~/shared/types/permission'
 
@@ -69,7 +70,7 @@ async function withMeeting(fn: (fixture: Fixture) => Promise<void>) {
           [programmeLead.roleId, 'programme'],
           [dutyLead.roleId, 'service'],
         ] as const) {
-          await tx.templateResponsible.create({ data: { templateId: midweekId, roleId, scope, congregationId } })
+          await setTemplateResponsible(db, midweekId, roleId, congregationId, scope as never)
         }
         await syncTemplateScheduleTemplates(db, midweekId, congregationId)
         const meeting = await createProgrammeOnDay(

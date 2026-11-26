@@ -20,6 +20,9 @@ vi.mock('~/shared/infra/db.server', () => ({
     templatePart: { create: vi.fn(), update: vi.fn(), delete: vi.fn() },
     templateServicePart: { aggregate: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
     templateResponsible: { upsert: vi.fn(), deleteMany: vi.fn() },
+    // The responsible goes on the kind's schedule template of its scope (6b-1b).
+    eventKindScheduleTemplate: { findFirst: vi.fn() },
+    scheduleTemplate: { update: vi.fn() },
     role: { findMany: vi.fn() },
     templatePartAllowedRole: { createMany: vi.fn() },
     templateServicePartAllowedRole: { createMany: vi.fn() },
@@ -55,23 +58,21 @@ beforeEach(() => {
 })
 
 describe('getTemplates', () => {
-  it('returns all templates for a congregation', async () => {
-    const fakeTemplates = [{ id: 1, name: 'Réunion de semaine' }]
-    vi.mocked(db.eventTemplate.findMany).mockResolvedValue(fakeTemplates as never)
+  it('names each template’s responsibles from its first programme and duties templates', async () => {
+    const role = (id: number) => ({ id, key: null, name: `R${id}` })
+    const link = (kind: string, id: number | null) => ({
+      scheduleTemplate: { kind, _count: { parts: 0, serviceParts: 0 }, responsibleRole: id == null ? null : role(id) },
+    })
+    vi.mocked(db.eventTemplate.findMany).mockResolvedValue([
+      { id: 1, name: 'Semaine', scheduleTemplates: [link('duty', 2), link('programme', 1), link('programme', 3)] },
+      { id: 2, name: 'Vide', scheduleTemplates: [link('programme', null)] },
+    ] as never)
 
     const result = await getTemplates(db, 1)
-    expect(result).toEqual(fakeTemplates)
-  })
-
-  it("pulls the responsible's role so the list can render its name", async () => {
-    vi.mocked(db.eventTemplate.findMany).mockResolvedValue([] as never)
-
-    await getTemplates(db, 1)
-
-    const args = vi.mocked(db.eventTemplate.findMany).mock.calls[0][0]
-    expect(args?.include?.responsibles).toMatchObject({
-      include: { role: { select: { id: true, key: true, name: true } } },
-    })
+    expect(result.map(each => [each.name, each.responsibles])).toEqual([
+      ['Semaine', [role(1), role(2)]],
+      ['Vide', []],
+    ])
   })
 })
 

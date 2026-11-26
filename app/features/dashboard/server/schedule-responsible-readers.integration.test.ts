@@ -14,7 +14,9 @@ const adapter = new PrismaPg({
 })
 const testDb = new PrismaClient({ adapter })
 
-const { seedDefaultTemplates, syncTemplateScheduleTemplates } = await import('~/features/events/index.server')
+const { seedDefaultTemplates, syncTemplateScheduleTemplates, setTemplateResponsible } = await import(
+  '~/features/events/index.server'
+)
 const { createProgrammeOnDay } = await import('~/features/events/server/programme-creation.server')
 const { getOpenParts, programmeResponsibleRoleIds } = await import('./get-open-parts.server')
 const { getResponsibleConflicts } = await import('./get-responsible-conflicts.server')
@@ -54,7 +56,7 @@ async function withMeeting(fn: (fixture: Fixture) => Promise<void>) {
           [programmeLead.roleId, 'programme'],
           [dutyLead.roleId, 'service'],
         ] as const) {
-          await tx.templateResponsible.create({ data: { templateId: midweekId, roleId, scope, congregationId } })
+          await setTemplateResponsible(db, midweekId, roleId, congregationId, scope as never)
         }
         await syncTemplateScheduleTemplates(db, midweekId, congregationId)
         const soon = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
