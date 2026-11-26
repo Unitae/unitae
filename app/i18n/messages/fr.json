@@ -4448,7 +4448,7 @@
     "settings_schedule_templates_holders": "Aujourd’hui : {names}.",
     "settings_schedule_templates_holders_none": "Personne n’a ce rôle aujourd’hui.",
     "settings_schedule_templates_suggested_by": "Utilisé dans",
-    "settings_schedule_templates_suggested_none": "Ce modèle n’est pas encore utilisé",
+    "settings_schedule_templates_suggested_none": "Aucun type de réunion et aucune réunion publiée",
     "settings_schedule_templates_parts_label": "Parties",
     "settings_schedule_templates_services_label": "Services",
     "settings_schedule_templates_add_service": "Ajouter un service",
