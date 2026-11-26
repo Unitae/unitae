@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('./template-page.queries', () => ({ getTemplatePage: vi.fn() }))
+vi.mock('./kind-items.queries', () => ({ getKindItems: vi.fn() }))
 
-const { getTemplatePage } = await import('./template-page.queries')
+const { getKindItems } = await import('./kind-items.queries')
 const { getScheduleTemplateItems } = await import('./schedule-template-items.queries')
 
 const findFirst = vi.fn()
@@ -32,7 +32,7 @@ const page = {
 
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(getTemplatePage).mockResolvedValue(page as never)
+  vi.mocked(getKindItems).mockResolvedValue(page as never)
   rooms.mockResolvedValue([
     { id: 50, name: null, key: 'main' },
     { id: 51, name: 'Salle B', key: null },
@@ -50,7 +50,7 @@ describe('getScheduleTemplateItems', () => {
 
     const items = await getScheduleTemplateItems(db as never, 30, 3)
 
-    expect(getTemplatePage).toHaveBeenCalledWith(db, 270, 3)
+    expect(getKindItems).toHaveBeenCalledWith(db, 270, 3)
     expect(items).toMatchObject({ kind: 'programme', kindId: 270, roles: [{ id: 5 }], presets: [{ id: 6 }] })
     expect(items?.parts.map(part => part.id)).toEqual([1, 2])
     expect(items?.services).toEqual([])
@@ -88,6 +88,6 @@ describe('getScheduleTemplateItems', () => {
 
     expect(await getScheduleTemplateItems(db as never, 40, 3)).toMatchObject({ kindId: null, parts: [], services: [] })
     expect(await getScheduleTemplateItems(db as never, 41, 3)).toBeNull()
-    expect(getTemplatePage).not.toHaveBeenCalled()
+    expect(getKindItems).not.toHaveBeenCalled()
   })
 })

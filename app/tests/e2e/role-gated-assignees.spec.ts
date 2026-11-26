@@ -5,45 +5,40 @@ const ADMIN_EMAIL = E2E_ADMIN_EMAIL
 const ADMIN_PASSWORD = E2E_ADMIN_PASSWORD
 
 const TEMPLATES_URL_RE = /\/settings\/templates/
-const TEMPLATE_URL_RE = /\/settings\/templates\/\d+$/
+const TEMPLATE_URL_RE = /\/settings\/schedule-templates\?template=\d+/
 const SECOND_SPEAKER_LABEL_RE = /Deuxième orateur/i
 const PUBLISHER_DEFAULT_RE = /Proclamateur \(par défaut\)/i
 const ALLOWED_SPEAKER_RE = /Rôles autorisés comme orateur/i
 const ADD_ROLE_RE = /Ajouter un rôle/i
-const TEMPLATE_LINK_RE = /Réunion|Mémorial|Memorial|Midweek|Weekend/i
 const ORATEUR_RE = /Orateur/i
 const SAVE_BUTTON_RE = /Enregistrer|Save/i
-const EDIT_PART_RE = /^Modifier /
 const EVENT_LINK_RE = /Réunion|Memorial|Mémorial/i
 const PARTS_FILLED_RE = /\d+\/\d+/
 
-// A template opens as one page, its parts editable in place by a programme manager.
+// A programme template opens in « Modèles de planning »'s panel, its parts editable at the panel's second level.
 async function openFirstTemplatePage(page: Page): Promise<boolean> {
-  await page.goto('/settings/templates')
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await page.goto('/settings/schedule-templates')
   await page.waitForLoadState('networkidle')
 
-  const firstTemplate = page.getByRole('link', { name: TEMPLATE_LINK_RE }).first()
-  if (!(await firstTemplate.isVisible({ timeout: 3000 }).catch(() => false))) {
-    return false
-  }
-  await firstTemplate.click()
+  const programme = page.locator('[data-row-primary]').filter({ hasText: 'Spirituel' }).first()
+  if (!(await programme.isVisible({ timeout: 3000 }).catch(() => false))) return false
+  await programme.click()
   await page.waitForURL(TEMPLATE_URL_RE, { timeout: 5000 }).catch(() => undefined)
-  await page.waitForLoadState('networkidle')
-  return page.url().match(TEMPLATE_URL_RE) != null
+  return TEMPLATE_URL_RE.test(page.url())
 }
 
 async function openFirstPartEditSheet(page: Page): Promise<boolean> {
-  // The template page lists its parts; each row has a pencil button that opens the part beside the list.
-  const partPencil = page.locator('[data-sortable]').first().getByRole('button', { name: EDIT_PART_RE })
+  const part = page.locator('[data-item^="part-"]').first()
   if (
-    !(await partPencil.waitFor({ timeout: 5000 }).then(
+    !(await part.waitFor({ timeout: 5000 }).then(
       () => true,
       () => false,
     ))
   ) {
     return false
   }
-  await partPencil.click()
+  await part.click()
   return true
 }
 

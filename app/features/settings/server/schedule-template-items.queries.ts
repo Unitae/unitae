@@ -1,7 +1,7 @@
 import { ScheduleKind } from '~/features/events'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { distinct } from '~/shared/utils/distinct'
-import { getTemplatePage } from './template-page.queries'
+import { getKindItems } from './kind-items.queries'
 
 /**
  * A schedule template's items as « Modèles de planning » edits them: a programme template's parts, or a duties
@@ -25,7 +25,7 @@ export async function getScheduleTemplateItems(
   })
   if (template == null) return null
   const kindId = template.eventKinds[0]?.eventKindId ?? null
-  const page = kindId == null ? null : await getTemplatePage(db, kindId, congregationId)
+  const page = kindId == null ? null : await getKindItems(db, kindId, congregationId)
   const own = (item: { scheduleTemplateId: number | null }) =>
     (item.scheduleTemplateId ?? scheduleTemplateId) === scheduleTemplateId
   const parts = template.kind === ScheduleKind.Programme ? (page?.template.parts ?? []).filter(own) : []

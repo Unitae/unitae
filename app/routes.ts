@@ -114,8 +114,6 @@ export default [
         index('features/settings/routes/templates/list.tsx'),
         route('new', 'features/settings/routes/templates/new.tsx'),
         route(':templateId', 'features/settings/routes/templates/template.tsx'),
-        route(':templateId/reorder-parts', 'features/settings/routes/templates/reorder-parts.tsx'),
-        route(':templateId/reorder-services', 'features/settings/routes/templates/reorder-services.tsx'),
       ]),
       route('schedule-templates', 'features/settings/routes/schedule-templates.tsx'),
       route('part-types', 'features/settings/routes/part-types.tsx'),

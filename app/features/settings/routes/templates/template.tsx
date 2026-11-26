@@ -1,14 +1,15 @@
 import { Callout, Status } from '@unitae/ui'
 import { Copy, MoreHorizontal, Trash2 } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { redirect, useFetcher } from 'react-router'
 import { isSystemTemplate } from '~/features/events'
 import { countMeetingsToMove } from '~/features/events/index.server'
+import { scheduleTemplateView } from '~/features/settings/model/schedule-template-view'
 import { getTemplatePage } from '~/features/settings/server/template-page.queries'
 import { ConfirmDialog } from '~/features/settings/ui/ConfirmDialog'
 import { SettingsHeader } from '~/features/settings/ui/SettingsHeader'
-import { TemplateEditor } from '~/features/settings/ui/TemplateEditor'
 import { TemplateInfoPanel } from '~/features/settings/ui/TemplateInfoPanel'
+import { TemplateSchedules } from '~/features/settings/ui/TemplateSchedules'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -62,7 +63,19 @@ export function loader({ params, context }: Route.LoaderArgs) {
             now: new Date(),
           })
         : 0
-    return { page, isManager, editable, builtIn, meetingsToMove }
+    // Each as « Modèles de planning » writes it; who holds a responsible role is that page's to say.
+    const schedules = page.scheduleTemplates.map(each => {
+      const { id, title, detail, responsible } = scheduleTemplateView(each, page.roles, new Map())
+      return { id, title, detail, responsible }
+    })
+    return {
+      page: { template: page.template, eventCount: page.eventCount },
+      schedules,
+      isManager,
+      editable,
+      builtIn,
+      meetingsToMove,
+    }
   })
 }
 
@@ -86,17 +99,15 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function TemplatePage({ loaderData }: Route.ComponentProps) {
-  const { page, isManager, editable, builtIn, meetingsToMove } = loaderData
+  const { page, schedules, isManager, editable, builtIn, meetingsToMove } = loaderData
   const moveFetcher = useFetcher()
   const { template } = page
   const infoFetcher = useFetcher()
   const menuFetcher = useFetcher()
   const [deleting, setDeleting] = useState(false)
   const [infoDirty, setInfoDirty] = useState(false)
-  const [editorDirty, setEditorDirty] = useState(false)
   const { blocker, setDirty } = useUnsavedChanges()
-  useEffect(() => setDirty(infoDirty || editorDirty), [infoDirty, editorDirty, setDirty])
-  const onEditorDirty = useCallback((dirty: boolean) => setEditorDirty(dirty), [])
+  useEffect(() => setDirty(infoDirty), [infoDirty, setDirty])
 
   const subtitle = builtIn
     ? m.settings_template_built_in_subtitle()
@@ -105,8 +116,7 @@ export default function TemplatePage({ loaderData }: Route.ComponentProps) {
       : m.settings_template_page_subtitle()
 
   return (
-    // The marker lets the app shell stop clipping as a scroll container, so the docked editor can stick.
-    <div data-sticky-content="" className={cn('flex flex-col', infoDirty && 'pb-20')}>
+    <div className={cn('flex flex-col', infoDirty && 'pb-20')}>
       <UnsavedChangesDialog blocker={blocker} />
       <SettingsHeader
         title={template.name}
@@ -177,18 +187,7 @@ export default function TemplatePage({ loaderData }: Route.ComponentProps) {
         {builtIn ? (
           <p className="text-muted-foreground text-sm">{m.settings_template_system_body_freeform()}</p>
         ) : (
-          <TemplateEditor
-            templateId={template.id}
-            parts={template.parts}
-            services={template.serviceParts}
-            roles={page.roles}
-            presets={page.presets}
-            sectionSuggestions={page.sectionSuggestions}
-            trackSuggestions={page.trackSuggestions}
-            editable={editable}
-            infoDirty={infoDirty}
-            onDirtyChange={onEditorDirty}
-          />
+          <TemplateSchedules rows={schedules} />
         )}
       </div>
 
