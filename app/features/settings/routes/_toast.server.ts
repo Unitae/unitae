@@ -14,7 +14,16 @@ export async function redirectWithToast(request: Request, to: string, message: s
   return redirect(to, { headers: await flashed(request, kind, message) })
 }
 
-/** After a dialog's or a panel's save through a fetcher: `{ ok: true }` closes it, and the layout shows `message`. */
-export async function okWithToast(request: Request, message: string) {
-  return data({ ok: true as const }, { headers: await flashed(request, 'success', message) })
+/**
+ * After a dialog's or a panel's save through a fetcher: `{ ok: true }` closes it, and the layout shows `message`.
+ * `extra` rides along, for a dialog that goes on to what it saved.
+ */
+export async function okWithToast<T extends object = Record<never, never>>(
+  request: Request,
+  message: string,
+  extra?: T,
+) {
+  return data({ ok: true as const, ...extra } as { ok: true } & T, {
+    headers: await flashed(request, 'success', message),
+  })
 }

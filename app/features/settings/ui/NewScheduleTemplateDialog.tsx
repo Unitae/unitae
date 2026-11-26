@@ -1,6 +1,6 @@
 import { Callout, SegmentedControl } from '@unitae/ui'
 import { useEffect, useId, useRef, useState } from 'react'
-import { useFetcher } from 'react-router'
+import { useFetcher, useNavigate } from 'react-router'
 import { NO_RESPONSIBLE } from '~/features/settings/schemas/schedule-template.schema'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
@@ -26,7 +26,9 @@ interface NewScheduleTemplateDialogProps {
 export function NewScheduleTemplateDialog({ open, onOpenChange, roles, returnFocus }: NewScheduleTemplateDialogProps) {
   // A fetcher of its own per opening: a refusal from an earlier one never shows on the next.
   const [opening, setOpening] = useState(0)
-  const fetcher = useFetcher<{ ok: false; errors: string[] }>({ key: `new-schedule-template-${opening}` })
+  const fetcher = useFetcher<{ ok: true; id: number } | { ok: false; errors: string[] }>({
+    key: `new-schedule-template-${opening}`,
+  })
   const id = useId()
   const [kind, setKind] = useState<'programme' | 'duty'>('programme')
   const [role, setRole] = useState(NO_RESPONSIBLE)
@@ -40,16 +42,17 @@ export function NewScheduleTemplateDialog({ open, onOpenChange, roles, returnFoc
     setRole(NO_RESPONSIBLE)
   }, [open])
 
-  // Created: the answer is a redirect to the page with the template open, which brings no data, so the data the
-  // submission found stays as it was; a refusal brings its own. Only a new refusal keeps the dialog open.
-  const sent = useRef<{ data: unknown } | null>(null)
+  // The answer says what happened: created, with its id, the dialog opens it in the panel and goes; refused, it stays
+  // with the reasons. Each answer is acted on once.
+  const navigate = useNavigate()
+  const handled = useRef<unknown>(null)
+  const answer = fetcher.state === 'idle' ? fetcher.data : undefined
   useEffect(() => {
-    if (fetcher.state === 'submitting' && sent.current == null) sent.current = { data: fetcher.data }
-    if (fetcher.state !== 'idle' || sent.current == null) return
-    const refused = fetcher.data !== sent.current.data && fetcher.data?.ok === false
-    sent.current = null
-    if (!refused) onOpenChange(false)
-  }, [fetcher.state, fetcher.data, onOpenChange])
+    if (answer == null || answer === handled.current || answer.ok !== true) return
+    handled.current = answer
+    onOpenChange(false)
+    navigate(`?template=${answer.id}`)
+  }, [answer, onOpenChange, navigate])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

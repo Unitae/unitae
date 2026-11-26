@@ -26,7 +26,7 @@ import { getRoleDisplayName } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { useMediaQuery } from '~/shared/ui/hooks/use-media-query'
 import { DiscardChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
-import { okWithToast, redirectWithToast } from './_toast.server'
+import { okWithToast } from './_toast.server'
 import type { Route } from './+types/schedule-templates'
 
 export const meta: Route.MetaFunction = () => [{ title: m.settings_schedule_templates_meta_title() }]
@@ -70,13 +70,12 @@ export async function action({ request, context }: Route.ActionArgs) {
   if (!context.get(permissionsContext).has(Permission.CanManageProgramTemplates)) throw redirect('/settings')
   const currentUser = context.get(currentAccountContext)
   const formData = await request.formData()
-  // « Nouveau modèle »: once created, it opens in the panel.
+  // « Nouveau modèle »: the dialog opens the template it created, from its id.
   if (formData.get('intent') === 'create-template') {
     return withScopeFromContext(context, async (db, congregationId) => {
       const result = await handleCreateScheduleTemplate(db, formData, { id: currentUser.id, congregationId })
       if (!result.ok) return data(result, { status: 400 })
-      const to = `/settings/schedule-templates?template=${result.id}`
-      return redirectWithToast(request, to, m.settings_schedule_templates_created())
+      return okWithToast(request, m.settings_schedule_templates_created(), { id: result.id })
     })
   }
   if (SCHEDULE_TEMPLATE_ITEM_INTENTS.includes(String(formData.get('intent')))) {

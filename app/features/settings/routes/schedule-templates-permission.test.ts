@@ -35,10 +35,7 @@ vi.mock('~/features/events/index.server', () => ({
 vi.mock('~/shared/domain/roles.server', () => ({ listDelegatableRoles: vi.fn(async () => []) }))
 vi.mock('~/features/settings/server/role-holders.queries', () => ({ holdersOfRoles: vi.fn(async () => new Map()) }))
 vi.mock('./_toast.server', () => ({
-  okWithToast: vi.fn(async () => ({ ok: true })),
-  redirectWithToast: vi.fn(
-    async (_request: Request, to: string) => new Response(null, { status: 302, headers: { Location: to } }),
-  ),
+  okWithToast: vi.fn(async (_request: Request, _message: string, extra?: object) => ({ ok: true, ...extra })),
 }))
 vi.mock('~/features/settings/server/schedule-template-create-action.server', () => ({
   handleCreateScheduleTemplate: vi.fn(async (_db: unknown, formData: FormData) => {
@@ -223,20 +220,18 @@ describe('schedule-templates action', () => {
 })
 
 describe('schedule-templates action, « Nouveau modèle »', () => {
-  it('creates a template and opens it in the panel, or says why not', async () => {
-    const created = await respond(() =>
-      action({
-        request: formRequest(URL, { intent: 'create-template', name: 'Zoom' }),
-        params: {},
-        context: routeContext([Permission.CanManageProgramTemplates]),
-      } as never),
-    )
+  it('creates a template and answers its id, for the dialog to open it, or says why not', async () => {
+    const created = await action({
+      request: formRequest(URL, { intent: 'create-template', name: 'Zoom' }),
+      params: {},
+      context: routeContext([Permission.CanManageProgramTemplates]),
+    } as never)
     const refused = await action({
       request: formRequest(URL, { intent: 'create-template', name: '' }),
       params: {},
       context: routeContext([Permission.CanManageProgramTemplates]),
     } as never)
-    expect(created.headers.get('Location')).toBe('/settings/schedule-templates?template=12')
+    expect(created).toEqual({ ok: true, id: 12 })
     expect(refused).toMatchObject({ init: { status: 400 }, data: { ok: false, errors: ['Donnez-lui un nom.'] } })
   })
 
