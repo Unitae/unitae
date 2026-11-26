@@ -31,3 +31,7 @@ Quando lhe é atribuída uma parte ou um serviço já publicado, recebe um e-mai
 ## No calendário
 
 A ligação do calendário adiciona ao Apple Calendar, Google Calendar ou Outlook as partes e os serviços publicados e mantém-nos atualizados. Crie a ligação em **A minha conta**, na página **Perfil**.
+
+## A designação impressa
+
+Numa parte de estudante, quem gere o programa pode também entregar-lhe a designação impressa (S-89). Nela constam o seu nome, o nome do interlocutor, a data e o número da parte.

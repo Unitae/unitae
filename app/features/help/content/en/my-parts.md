@@ -31,3 +31,7 @@ When you are given a published part or service, an e-mail tells you half an hour
 ## In your calendar
 
 Your calendar link adds your published parts and services to Apple Calendar, Google Calendar or Outlook, and keeps them up to date. You create it in **My account**, on the **Profile** page.
+
+## The printed assignment
+
+For a student part, the person who manages the programme can also give you the printed assignment slip (S-89). It shows your name, your assistant’s name, the date and the part’s number.
