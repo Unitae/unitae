@@ -140,7 +140,8 @@ export async function applyKindResponsibles(db: TransactionClient, templateId: n
 
 /**
  * Deletes the schedule templates only this template suggests: they go with it, every item in them first — the kind's
- * own rows and those a template holds under no kind (6b-1), which could not be left with no owner.
+ * own rows and those a template holds under no kind (6b-1), which could not be left with no owner. The kind's rows in
+ * a template another kind uses stay there, as that template's own.
  */
 export async function deleteTemplateScheduleTemplates(
   db: TransactionClient,
@@ -155,9 +156,15 @@ export async function deleteTemplateScheduleTemplates(
     select: { id: true },
   })
   const ids = only.map(each => each.id)
-  if (ids.length === 0) return
-  const where = { scheduleTemplateId: { in: ids }, congregationId }
-  await db.templatePart.deleteMany({ where })
-  await db.templateServicePart.deleteMany({ where })
-  await db.scheduleTemplate.deleteMany({ where: { id: { in: ids }, congregationId } })
+  if (ids.length > 0) {
+    const where = { scheduleTemplateId: { in: ids }, congregationId }
+    await db.templatePart.deleteMany({ where })
+    await db.templateServicePart.deleteMany({ where })
+    await db.scheduleTemplate.deleteMany({ where: { id: { in: ids }, congregationId } })
+  }
+  // Its rows in the templates other types still use become those templates' own (6b-2): the kind's cascade would take
+  // them out of a template another type gives its meetings.
+  const kept = { templateId, scheduleTemplateId: { not: null }, congregationId }
+  await db.templatePart.updateMany({ where: kept, data: { templateId: null } })
+  await db.templateServicePart.updateMany({ where: kept, data: { templateId: null } })
 }
