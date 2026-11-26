@@ -7,7 +7,7 @@ module: settings
 permission: CanManageProgramTemplates
 keywords: modèles de planning, modèle, planning, spirituel, services, parties, sections, salles, salle principale, en même temps, responsable, nouveau modèle, supprimer, réorganiser
 related: schedules
-order: 1
+order: 7
 ---
 
 Un modèle de planning donne leur contenu aux plannings des réunions : les parties d’un planning spirituel, ou les services, dans leur ordre, avec qui peut les prendre. Les nouvelles réunions le reçoivent ; les plannings déjà créés ne sont pas modifiés.
@@ -26,7 +26,7 @@ Un modèle qu’aucun type de réunion n’utilise s’ajoute à une réunion av
 
 - **Ajouter une partie hors section** ajoute une partie à la fin du modèle.
 - **Ajouter une section** crée une section avec sa première partie. Une section sans partie n’est pas gardée.
-- Le menu **…** d’une section la renomme ou lui ajoute une partie. Une section se supprime une fois vide.
+- **Ajouter une partie à** une section, sous elle, lui ajoute une partie. Son menu **…** la renomme, ou la supprime une fois vide.
 - Une partie s’ouvre d’un clic : son nom, sa section, sa durée, **Où** elle a lieu, et les rôles qui peuvent la prendre.
 - Pour changer l’ordre, faites glisser une partie ou une section ; sur un téléphone, touchez **Réorganiser les parties**.
 

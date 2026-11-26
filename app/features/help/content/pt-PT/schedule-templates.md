@@ -7,7 +7,7 @@ module: settings
 permission: CanManageProgramTemplates
 keywords: modelos de planeamento, modelo, planeamento, espiritual, serviços, partes, secções, salas, sala principal, ao mesmo tempo, responsável, novo modelo, eliminar, reorganizar
 related: schedules
-order: 1
+order: 7
 ---
 
 Um modelo de planeamento dá o conteúdo aos planeamentos das reuniões: as partes de um planeamento espiritual, ou os serviços, pela sua ordem, com quem os pode assumir. As novas reuniões recebem-no; os planeamentos já criados não são alterados.
@@ -26,7 +26,7 @@ Um modelo que nenhum tipo de reunião utiliza adiciona-se a uma reunião com **A
 
 - **Adicionar uma parte fora de secção** adiciona uma parte no fim do modelo.
 - **Adicionar uma secção** cria uma secção com a primeira parte. Uma secção sem partes não é guardada.
-- O menu **…** de uma secção renomeia-a ou adiciona-lhe uma parte. Uma secção elimina-se quando está vazia.
+- **Adicionar uma parte a** uma secção, por baixo dela, adiciona-lhe uma parte. O seu menu **…** renomeia-a, ou elimina-a quando está vazia.
 - Uma parte abre-se com um clique: o nome, a secção, a duração, **Onde** decorre e as funções que a podem assumir.
 - Para mudar a ordem, arraste uma parte ou uma secção; num telemóvel, toque em **Reorganizar as partes**.
 

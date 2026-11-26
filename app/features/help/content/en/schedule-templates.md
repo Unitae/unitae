@@ -7,7 +7,7 @@ module: settings
 permission: CanManageProgramTemplates
 keywords: schedule templates, template, schedule, spiritual, services, parts, sections, rooms, main room, at the same time, person in charge, new template, delete, reorder
 related: schedules
-order: 1
+order: 7
 ---
 
 A schedule template gives the meetings' schedules their content: the parts of a spiritual schedule, or the services, in their order, with who may take them. New meetings receive it; schedules already created are not changed.
@@ -26,7 +26,7 @@ A template no meeting type uses is added to a meeting with **Add a schedule**, o
 
 - **Add a part outside any section** adds a part at the end of the template.
 - **Add a section** creates a section with its first part. A section without parts is not kept.
-- A section's **…** menu renames it or adds a part to it. A section can be deleted once it is empty.
+- **Add a part to** a section, under it, adds a part to it. Its **…** menu renames it, or deletes it once it is empty.
 - Click a part to open it: its name, section, duration, **Where** it takes place, and the roles that may take it.
 - To change the order, drag a part or a section; on a phone, tap **Reorder the parts**.
 
