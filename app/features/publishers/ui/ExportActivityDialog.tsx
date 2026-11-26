@@ -1,9 +1,10 @@
 import { SegmentedControl } from '@unitae/ui'
 import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
+import { currentMonth, type ExportMonth, exportMonths, withMonth } from '~/features/publishers/model/export-months'
+import { ExportMonthField } from '~/features/publishers/ui/ExportMonthField'
 import type { MemberOption } from '~/features/publishers/ui/MemberMultiSelect'
 import { MemberMultiSelect } from '~/features/publishers/ui/MemberMultiSelect'
-import { formatMonthYear } from '~/features/publishers/ui/report-month-format'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/shared/ui/dialog'
@@ -14,8 +15,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 import { formatGroupName } from '~/shared/utils/format-group-name'
 
 type ExportFormat = 'xlsx' | 'pdfs' | 's1'
-/** A month as the activity page shows it; `month` is 0-indexed. */
-type ExportMonth = { month: number; year: number }
 // What actually gets downloaded: the user's format, or one S-21 PDF in single-publisher mode.
 type DownloadKind = ExportFormat | 'pdf'
 type ExportScope = 'all' | 'group' | 'members'
@@ -135,7 +134,11 @@ export function ExportActivityDialog({
           <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto">
             {!singlePublisher && <FormatField format={format} onFormatChange={setFormat} offersS1={month != null} />}
             {format === 's1' ? (
-              <MonthField month={reportMonth} months={withMonth(months, reportMonth)} onMonthChange={setReportMonth} />
+              <ExportMonthField
+                month={reportMonth}
+                months={withMonth(months, reportMonth)}
+                onMonthChange={setReportMonth}
+              />
             ) : (
               <YearField year={year} years={yearsForSelect} onYearChange={setYear} />
             )}
@@ -245,67 +248,6 @@ function YearField({
       </Select>
     </div>
   )
-}
-
-function MonthField({
-  month,
-  months,
-  onMonthChange,
-}: {
-  month: ExportMonth
-  months: ExportMonth[]
-  onMonthChange: (m: ExportMonth) => void
-}) {
-  const key = (value: ExportMonth) => `${value.year}-${value.month}`
-  return (
-    <div className="flex flex-col gap-2">
-      <Label htmlFor="export-month">{m.activity_export_dialog_month_label()}</Label>
-      <Select
-        value={key(month)}
-        onValueChange={value => onMonthChange(months.find(each => key(each) === value) ?? month)}
-      >
-        <SelectTrigger id="export-month">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {months.map(each => (
-            <SelectItem key={key(each)} value={key(each)}>
-              {formatMonthYear(each.month, each.year)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  )
-}
-
-/** The month under way, in the reader's clock: the dialog only renders once opened, on the client. */
-function currentMonth(): ExportMonth {
-  const now = new Date()
-  return { month: now.getMonth(), year: now.getFullYear() }
-}
-
-/** The list with the chosen month in it, so the select never shows a value it does not offer. */
-function withMonth(months: ExportMonth[], chosen: ExportMonth): ExportMonth[] {
-  const has = months.some(each => each.month === chosen.month && each.year === chosen.year)
-  return has ? months : [chosen, ...months]
-}
-
-/**
- * The months the S-1 can be exported for: those of the service years with reports (September to August, `serviceYears`
- * newest first, as the year select gets them), newest first, never one after `now`. The current month alone when no year
- * has a report yet.
- */
-export function exportMonths(serviceYears: number[], now: ExportMonth): ExportMonth[] {
-  const nowIndex = now.year * 12 + now.month
-  const months = serviceYears.flatMap(start =>
-    Array.from({ length: 12 }, (_, offset) => {
-      const index = start * 12 + 8 + (11 - offset)
-      return { month: index % 12, year: Math.floor(index / 12) }
-    }),
-  )
-  const past = months.filter(each => each.year * 12 + each.month <= nowIndex)
-  return past.length > 0 ? past : [now]
 }
 
 interface ScopeFieldProps {
