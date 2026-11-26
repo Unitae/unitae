@@ -39,14 +39,20 @@ export interface TemplateWithRelations {
 }
 
 /**
- * The template counts isAwaitingProgramme needs: whether it has a programme to give, the items of the schedule
- * templates it uses (6b-0), theirs under no kind as well as its own.
+ * The template counts isAwaitingProgramme needs: whether it has a programme to give. They follow the copy's rule
+ * (kindTemplate): its first programme template's parts, its first duties template's services, and its own rows not
+ * placed in a template yet.
  */
 export const TEMPLATE_PROGRAMME_COUNT = {
-  scheduleTemplates: {
-    select: { scheduleTemplate: { select: { _count: { select: { parts: true, serviceParts: true } } } } },
+  // biome-ignore lint/style/useNamingConvention: Prisma's relation count key
+  _count: {
+    select: { parts: { where: { scheduleTemplateId: null } }, serviceParts: { where: { scheduleTemplateId: null } } },
   },
-} as const
+  scheduleTemplates: {
+    orderBy: [{ order: 'asc' }, { scheduleTemplateId: 'asc' }],
+    select: { scheduleTemplate: { select: { kind: true, _count: { select: { parts: true, serviceParts: true } } } } },
+  },
+} satisfies Prisma.EventTemplateInclude
 
 const PARTS = {
   orderBy: [{ order: 'asc' }, { id: 'asc' }],
@@ -74,20 +80,19 @@ type LoadedKind = Prisma.EventTemplateGetPayload<{ include: typeof TEMPLATE_INCL
 
 /**
  * A kind as loaded with TEMPLATE_INCLUDE, its items those of its first programme template and its first duties
- * template (an event holds one schedule of each sort) — that template's own and the kind's rows in it; another kind's
- * rows in a shared template are its own business — then the kind's not placed yet.
+ * template (an event holds one schedule of each sort), then the kind's not placed yet: the rule its counts follow too
+ * (TEMPLATE_PROGRAMME_COUNT, programmeTemplate).
  */
 export function kindTemplate<T extends LoadedKind>(loaded: T): Omit<T, 'scheduleTemplates'> & TemplateWithRelations {
   // A kind read without its links (an older caller, a test's stub) has only its own items.
   const { scheduleTemplates = [], ...kind } = loaded
   const first = (sort: string) => scheduleTemplates.find(link => link.scheduleTemplate.kind === sort)?.scheduleTemplate
-  const ours = (item: { templateId: number | null }) => item.templateId == null || item.templateId === kind.id
   const byOrder = (a: { order: number; id: number }, b: { order: number; id: number }) =>
     a.order - b.order || a.id - b.id
   return {
     ...kind,
-    parts: [...(first(ScheduleKind.Programme)?.parts.filter(ours) ?? []), ...kind.parts].sort(byOrder),
-    serviceParts: [...(first(ScheduleKind.Duty)?.serviceParts.filter(ours) ?? []), ...kind.serviceParts].sort(byOrder),
+    parts: [...(first(ScheduleKind.Programme)?.parts ?? []), ...kind.parts].sort(byOrder),
+    serviceParts: [...(first(ScheduleKind.Duty)?.serviceParts ?? []), ...kind.serviceParts].sort(byOrder),
   }
 }
 

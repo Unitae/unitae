@@ -102,4 +102,79 @@ describe('a meeting type’s items, from the schedule templates it uses', () => 
     expect(read.items).toEqual(['programme:Discours', 'duty:Porte'])
     expect(read.fromTemplates).toEqual(read.ids)
   })
+
+  // One rule for what a meeting copies and what the counts say, or a meeting could wait for a programme it never gets.
+  it('counts what a new meeting copies: the first template of each sort, and the kind’s rows not placed', async () => {
+    let read: Record<string, unknown> | undefined
+    try {
+      await testDb.$transaction(
+        async tx => {
+          const stamp = `kind-rule-${process.pid}-${globalThis.performance.now().toString().replace('.', '')}`
+          const congregationId = (await tx.congregation.create({ data: { name: stamp, slug: stamp, active: true } })).id
+          await tx.$executeRawUnsafe(`SET LOCAL app.congregation_id = '${String(congregationId)}'`)
+          const db = tx as unknown as TransactionClient
+          const actorId = (
+            await tx.userAccount.create({ data: { email: `${stamp}@test.com`, password: 'x', congregationId } })
+          ).id
+          const kind = (name: string, weekDay: number) =>
+            tx.eventTemplate.create({
+              data: { name, key: `${stamp}-${weekDay}`, weekDay, startTime: '19:00', endTime: '21:00', congregationId },
+            })
+          const part = (name: string, data: { scheduleTemplateId?: number; templateId?: number }) =>
+            tx.templatePart.create({ data: { name, section: '', track: '', order: 0, ...data, congregationId } })
+          // Two programme templates: only the first is the kind's programme.
+          const two = await kind('Deux', 3)
+          const first = await tx.scheduleTemplate.create({
+            data: { name: 'Premier', kind: 'programme', congregationId },
+          })
+          const second = await tx.scheduleTemplate.create({
+            data: { name: 'Second', kind: 'programme', congregationId },
+          })
+          await part('A', { scheduleTemplateId: first.id })
+          await part('B', { scheduleTemplateId: second.id })
+          await part('C', { scheduleTemplateId: second.id })
+          await tx.eventKindScheduleTemplate.createMany({
+            data: [
+              { eventKindId: two.id, scheduleTemplateId: first.id, order: 0, congregationId },
+              { eventKindId: two.id, scheduleTemplateId: second.id, order: 1, congregationId },
+            ],
+          })
+          // No link, its rows not placed yet.
+          const loose = await kind('Libre', 4)
+          await part('D', { templateId: loose.id })
+          await part('E', { templateId: loose.id })
+
+          const counted = async (id: number) =>
+            programmeTemplate(
+              await tx.eventTemplate.findFirstOrThrow({
+                where: { id },
+                select: { key: true, ...TEMPLATE_PROGRAMME_COUNT },
+              }),
+            )?.parts
+          const copied = async (id: number, day: string) => {
+            const created = await createProgrammeOnDay(
+              db,
+              { templateId: id, day },
+              { congregationId, timezone: 'Europe/Paris', actorId },
+            )
+            return (await tx.item.findMany({ where: { eventId: created.id }, select: { name: true } })).map(
+              each => each.name,
+            )
+          }
+          read = {
+            two: { counted: await counted(two.id), copied: await copied(two.id, '2099-03-04') },
+            loose: { counted: await counted(loose.id), copied: await copied(loose.id, '2099-03-05') },
+          }
+          throw new Rollback()
+        },
+        { timeout: 30_000 },
+      )
+    } catch (error) {
+      if (!(error instanceof Rollback)) throw error
+    }
+    expect(read).toEqual({
+      two: { counted: 1, copied: ['A'] },
+      loose: { counted: 2, copied: ['D', 'E'] },
+    })
+  })
 })

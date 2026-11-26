@@ -93,7 +93,7 @@ export async function getEventProgramme(db: TransactionClient, eventId: number, 
 
 /** A template read with TEMPLATE_PROGRAMME_COUNT, its schedule templates' items as one `_count`. */
 function withTotals<T extends ProgrammeTemplateCounts>({ scheduleTemplates, ...template }: T) {
-  const counted = programmeTemplate({ key: template.key, scheduleTemplates })
+  const counted = programmeTemplate({ key: template.key, _count: template._count, scheduleTemplates })
   return { ...template, _count: { parts: counted?.parts ?? 0, serviceParts: counted?.services ?? 0 } }
 }
 

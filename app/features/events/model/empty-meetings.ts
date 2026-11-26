@@ -21,10 +21,14 @@ export function isAwaitingProgramme(event: {
   return event.parts === 0 && event.services === 0
 }
 
-/** A kind as selected with TEMPLATE_PROGRAMME_COUNT: its key, and how many items each schedule template it uses holds. */
+/**
+ * A kind as selected with TEMPLATE_PROGRAMME_COUNT: its key, its own rows not placed in a schedule template, and the
+ * schedule templates it uses in order, each with its sort and how many items it holds.
+ */
 export interface ProgrammeTemplateCounts {
   key: string | null
-  scheduleTemplates: { scheduleTemplate: { _count: { parts: number; serviceParts: number } } }[]
+  _count?: { parts: number; serviceParts: number }
+  scheduleTemplates: { scheduleTemplate: { kind?: string; _count: { parts: number; serviceParts: number } } }[]
 }
 
 /** The same counts as one total, as the meeting page's payload carries them. */
@@ -38,12 +42,18 @@ export function programmeTemplate(
   template: ProgrammeTemplateCounts | ProgrammeTemplateTotals | null,
 ): { key: string | null; parts: number; services: number } | null {
   if (template == null) return null
-  if ('_count' in template) {
+  if (!('scheduleTemplates' in template)) {
     return { key: template.key, parts: template._count.parts, services: template._count.serviceParts }
   }
-  const sum = (of: 'parts' | 'serviceParts') =>
-    template.scheduleTemplates.reduce((total, link) => total + link.scheduleTemplate._count[of], 0)
-  return { key: template.key, parts: sum('parts'), services: sum('serviceParts') }
+  // The copy's rule (kindTemplate): the first template of each sort, then the kind's rows not placed yet.
+  const first = (sort: string) =>
+    template.scheduleTemplates.find(link => (link.scheduleTemplate.kind ?? sort) === sort)?.scheduleTemplate._count
+  const unplaced = template._count ?? { parts: 0, serviceParts: 0 }
+  return {
+    key: template.key,
+    parts: (first(ScheduleKind.Programme)?.parts ?? 0) + unplaced.parts,
+    services: (first(ScheduleKind.Duty)?.serviceParts ?? 0) + unplaced.serviceParts,
+  }
 }
 
 /**

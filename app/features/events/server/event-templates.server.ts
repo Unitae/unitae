@@ -20,9 +20,9 @@ export function getTemplates(db: TransactionClient, congregationId: number) {
   return db.eventTemplate.findMany({
     where: { congregationId },
     include: {
-      _count: { select: { events: true } },
-      // Its items: those of the schedule templates it uses (6b-0).
-      ...TEMPLATE_PROGRAMME_COUNT,
+      // Its items: those of the schedule templates it uses (6b-0), beside its events.
+      _count: { select: { events: true, ...TEMPLATE_PROGRAMME_COUNT._count.select } },
+      scheduleTemplates: TEMPLATE_PROGRAMME_COUNT.scheduleTemplates,
       responsibles: responsibleInclude,
     },
     orderBy: { name: 'asc' },
