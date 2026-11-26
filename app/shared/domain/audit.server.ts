@@ -51,6 +51,7 @@ export const AuditAction = {
   ServicePartAllowedRolesChanged: 'service_role.allowed_roles.changed',
   ScheduleTemplateCreated: 'schedule_template.created',
   ScheduleTemplateUpdated: 'schedule_template.updated',
+  ScheduleTemplateDeleted: 'schedule_template.deleted',
   PartPresetCreated: 'part_preset.created',
   PartPresetUpdated: 'part_preset.updated',
   PartPresetDeleted: 'part_preset.deleted',

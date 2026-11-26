@@ -4533,6 +4533,64 @@
     "settings_schedule_templates_new_contents": "Schedule type",
     "settings_schedule_templates_create": "Create template",
     "settings_schedule_templates_created": "Schedule template created.",
+    "settings_schedule_templates_actions": "Template actions",
+    "settings_schedule_templates_delete": "Delete template",
+    "settings_schedule_templates_delete_title": "Delete “{name}”?",
+    "settings_schedule_templates_delete_kinds": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{kinds} no longer uses it: its new meetings come without this schedule.",
+                "countPlural=*": "{kinds} no longer use it: their new meetings come without this schedule."
+            }
+        }
+    ],
+    "settings_schedule_templates_delete_unused": "“Add a schedule” no longer offers it.",
+    "settings_schedule_templates_delete_schedules_parts": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "The schedule already created from this template keeps its name, its parts and its assignments.",
+                "countPlural=*": "The {count} schedules already created from this template keep their name, their parts and their assignments."
+            }
+        }
+    ],
+    "settings_schedule_templates_delete_schedules_services": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "The schedule already created from this template keeps its name, its services and its assignments.",
+                "countPlural=*": "The {count} schedules already created from this template keep their name, their services and their assignments."
+            }
+        }
+    ],
+    "settings_schedule_templates_delete_responsible": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "It no longer has a person in charge: those who manage the programs see to it.",
+                "countPlural=*": "They no longer have a person in charge: those who manage the programs see to them."
+            }
+        }
+    ],
+    "settings_schedule_templates_delete_final": "This deletion is permanent.",
+    "settings_schedule_templates_deleted": "Schedule template deleted.",
     "settings_presets_subtitle": "What each part of a program is, and the message sent to the person who receives it.",
     "settings_presets_new_button": "New type",
     "settings_presets_form_name_label": "Name",
@@ -6433,6 +6491,7 @@
     "audit_log_action_service_role_allowed_roles_changed": "Service roles changed",
     "audit_log_action_part_preset_created": "Part type created",
     "audit_log_action_schedule_template_updated": "Schedule template changed",
+    "audit_log_action_schedule_template_deleted": "Schedule template deleted",
     "audit_log_action_schedule_template_created": "Schedule template created",
     "audit_log_action_part_preset_updated": "Part type changed",
     "audit_log_action_part_preset_deleted": "Part type deleted",

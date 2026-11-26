@@ -88,6 +88,7 @@ export const AUDIT_ACTIONS: readonly { action: string; group: AuditGroup; label:
   },
   { action: 'schedule_template.created', group: 'programmes', label: m.audit_log_action_schedule_template_created },
   { action: 'schedule_template.updated', group: 'programmes', label: m.audit_log_action_schedule_template_updated },
+  { action: 'schedule_template.deleted', group: 'programmes', label: m.audit_log_action_schedule_template_deleted },
   { action: 'part_preset.created', group: 'programmes', label: m.audit_log_action_part_preset_created },
   { action: 'part_preset.updated', group: 'programmes', label: m.audit_log_action_part_preset_updated },
   { action: 'part_preset.deleted', group: 'programmes', label: m.audit_log_action_part_preset_deleted },
