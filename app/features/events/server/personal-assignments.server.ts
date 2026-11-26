@@ -7,6 +7,7 @@ import {
   asEventServicePart,
   ITEM_ORIGIN_INCLUDE,
   PART_ITEMS,
+  PART_ITEMS_BY_DATE,
   SERVICE_ITEMS,
 } from '~/features/events/server/item-projection.server'
 import { ITEM_ROOMS, PART_HELD_BY } from '~/features/events/server/item-rooms.queries'
@@ -55,6 +56,9 @@ export async function getPersonalAssignments(
             event: { startDate: { gte: since } },
           },
           include: { ...ITEM_ORIGIN_INCLUDE, ...ITEM_ROOMS, event: true },
+          // In the programme's order: two parts at the same time list as the programme lists them, not as the plan
+          // happens to return them.
+          orderBy: PART_ITEMS_BY_DATE,
         })
       : Promise.resolve([]),
     memberId != null

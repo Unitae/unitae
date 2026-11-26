@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { type ItemWithRooms, itemsPerRoom, partsInRooms } from './part-rooms'
+import { heldBy, type ItemWithRooms, itemsPerRoom, partsInRooms } from './part-rooms'
 
 // The one reading of a programme's parts in their rooms: today's copies (a part in two rooms is two items, each in
 // its room) and R4's shape (one item, a row per room) read the same.
@@ -249,5 +249,57 @@ describe('itemsPerRoom', () => {
       assignee: { id: 7, firstname: 'Paul' },
     }
     expect(() => itemsPerRoom([one])).toThrow(WITHOUT_ROOMS_RE)
+  })
+})
+
+describe('heldBy', () => {
+  const twoRooms = () => {
+    const one = {
+      ...item(5, { name: 'Lecture', assigneeId: 7, rooms: [{ room: MAIN }, { room: SALLE_B }] }),
+      assignee: { id: 7, firstname: 'Paul' },
+      assistant: null as { id: number; firstname: string } | null,
+    }
+    one.rooms = one.rooms?.map(row => {
+      const main = row.roomId === MAIN.id
+      return {
+        ...row,
+        assigneeId: main ? 7 : 8,
+        assistantId: main ? null : 9,
+        hasConflict: !main,
+        assignee: main ? { id: 7, firstname: 'Paul' } : { id: 8, firstname: 'Jean' },
+        assistant: main ? null : { id: 9, firstname: 'Luc' },
+      }
+    })
+    return one
+  }
+
+  it('reads a part as its holder’s room: his slot, his partner, his conflict, without the rows', () => {
+    const asJean = heldBy(twoRooms(), 8)
+    expect([asJean.assigneeId, asJean.assistantId, asJean.hasConflict, asJean.assistant?.firstname]).toEqual([
+      8,
+      9,
+      true,
+      'Luc',
+    ])
+    expect('rooms' in asJean).toBe(false)
+    // The second speaker of that room finds it the same way.
+    expect(heldBy(twoRooms(), [9]).assigneeId).toBe(8)
+  })
+
+  it('reads a copy as it is, and a part nobody named holds as the item', () => {
+    const copy = item(1, { name: 'Discours', assigneeId: 7, rooms: [{ room: MAIN, assigneeId: 7 }] })
+    const { rooms, ...asItself } = copy
+    expect(heldBy(copy, 7)).toEqual(asItself)
+    expect(heldBy(twoRooms(), 99).assigneeId).toBe(7)
+  })
+
+  it('refuses rows read without the people the item was read with', () => {
+    const one = twoRooms()
+    // As the item's people were read, but its rows' were not.
+    one.rooms = one.rooms?.map(row => {
+      const { assignee, assistant, ...bare } = row as typeof row & { assignee?: unknown; assistant?: unknown }
+      return bare
+    })
+    expect(() => heldBy(one, 8)).toThrow(WITHOUT_ROOMS_RE)
   })
 })

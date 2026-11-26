@@ -200,6 +200,7 @@ export function heldBy<T extends { rooms?: ItemRoomRow[] } & RowPeople>(
     | undefined
   const { rooms, ...rest } = item
   if (row == null) return rest
+  assertRowPeople(item, row)
   // Each field is the item's own type: a row carries the same people, read the same way.
   return {
     ...rest,
