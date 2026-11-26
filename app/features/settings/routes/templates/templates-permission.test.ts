@@ -38,6 +38,7 @@ vi.mock('~/features/settings/server/template-page.queries', () => ({
       },
       eventCount: 3,
       scheduleTemplates: [],
+      allScheduleTemplates: [],
       roles: [],
     }
   }),

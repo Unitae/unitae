@@ -37,6 +37,12 @@ export {
 } from './server/item-projection.server'
 export { ITEM_ROOMS, PART_CONFLICT_OF, PART_HELD_BY } from './server/item-rooms.queries'
 export {
+  type AddKindScheduleTemplateRefusal,
+  addKindScheduleTemplate,
+  orderKindScheduleTemplates,
+  removeKindScheduleTemplate,
+} from './server/kind-schedule-templates.server'
+export {
   findLastAssignmentsForMembers,
   findNextAbsencesForMembers,
   findUpcomingAbsencesForMember,

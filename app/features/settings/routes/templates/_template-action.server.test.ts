@@ -33,6 +33,18 @@ vi.mock('~/features/events/index.server', () => {
       writes.push(`move-meetings ${id} ${ctx.timeZone} ${ctx.actorId}`)
       return { moved: 2, removed: 0 }
     }),
+    addKindScheduleTemplate: vi.fn(async (_db: unknown, id: number, scheduleTemplateId: number) => {
+      writes.push(`use ${id} ${scheduleTemplateId}`)
+      return scheduleTemplateId === 66 ? { ok: false, reason: 'sort-used' } : { ok: true }
+    }),
+    removeKindScheduleTemplate: vi.fn(async (_db: unknown, id: number, scheduleTemplateId: number) => {
+      writes.push(`stop ${id} ${scheduleTemplateId}`)
+      return { ok: true }
+    }),
+    orderKindScheduleTemplates: vi.fn(async (_db: unknown, id: number, ids: number[]) => {
+      writes.push(`order ${id} ${ids.join(',')}`)
+      return { ok: true }
+    }),
     deleteTemplate: vi.fn(async (_db: unknown, id: number) => {
       writes.push(`delete ${id}`)
       return { ok: true, name: 'Réunion' }
@@ -155,5 +167,55 @@ describe('handleTemplateAction', () => {
     const result = await handleTemplateAction(dbWith('midweek'), 4, form({ intent: 'duplicate' }), MANAGER)
     expect(result).toMatchObject({ kind: 'moved', to: '/settings/templates/99' })
     expect(writes).toEqual(['duplicate 4'])
+  })
+
+  // The schedule templates it uses (6b-2): the managers', like its other fields since 6a-1c.
+  it('uses, stops using and orders its schedule templates for a manager', async () => {
+    const run = (fields: Record<string, string | string[]>) => {
+      const formData = new FormData()
+      for (const [name, value] of Object.entries(fields)) {
+        for (const each of [value].flat()) formData.append(name, each)
+      }
+      return handleTemplateAction(dbWith('midweek'), 4, formData, MANAGER)
+    }
+    expect(await run({ intent: 'use-schedule-template', scheduleTemplateId: '12' })).toMatchObject({ kind: 'saved' })
+    expect(await run({ intent: 'stop-schedule-template', scheduleTemplateId: '12' })).toMatchObject({ kind: 'saved' })
+    expect(await run({ intent: 'order-schedule-templates', scheduleTemplateId: ['13', '12'] })).toMatchObject({
+      kind: 'saved',
+    })
+    expect(writes).toEqual(['use 4 12', 'stop 4 12', 'order 4 13,12'])
+  })
+
+  it('says why a second template of a sort is refused, and takes no id that is not one', async () => {
+    const refusal = await handleTemplateAction(
+      dbWith('midweek'),
+      4,
+      form({ intent: 'use-schedule-template', scheduleTemplateId: '66' }),
+      MANAGER,
+    )
+    expect(refusal?.kind).toBe('refused')
+    writes.length = 0
+    expect(
+      await handleTemplateAction(
+        dbWith('midweek'),
+        4,
+        form({ intent: 'use-schedule-template', scheduleTemplateId: 'x' }),
+        MANAGER,
+      ),
+    ).toMatchObject({ kind: 'refused' })
+    expect(writes).toEqual([])
+  })
+
+  it('leaves its schedule templates to the managers, and a built-in template takes none', async () => {
+    const intents = ['use-schedule-template', 'stop-schedule-template', 'order-schedule-templates']
+    for (const intent of intents) {
+      expect(
+        await handleTemplateAction(dbWith('midweek'), 4, form({ intent, scheduleTemplateId: '12' }), RESPONSIBLE),
+      ).toBeNull()
+      expect(
+        (await handleTemplateAction(dbWith('freeform'), 4, form({ intent, scheduleTemplateId: '12' }), MANAGER))?.kind,
+      ).toBe('refused')
+    }
+    expect(writes).toEqual([])
   })
 })

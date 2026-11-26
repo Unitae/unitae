@@ -77,6 +77,11 @@ export const AUDIT_ACTIONS: readonly { action: string; group: AuditGroup; label:
   { action: 'event_template.deleted', group: 'programmes', label: m.audit_log_action_event_template_deleted },
   { action: 'event_template.duplicated', group: 'programmes', label: m.audit_log_action_event_template_duplicated },
   {
+    action: 'event_template.schedule_templates.changed',
+    group: 'programmes',
+    label: m.audit_log_action_event_template_schedule_templates_changed,
+  },
+  {
     action: 'event_template.responsibles.changed',
     group: 'programmes',
     label: m.audit_log_action_event_template_responsibles_changed,

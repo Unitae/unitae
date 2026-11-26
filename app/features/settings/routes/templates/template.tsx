@@ -2,7 +2,7 @@ import { Callout, Status } from '@unitae/ui'
 import { Copy, MoreHorizontal, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { redirect, useFetcher } from 'react-router'
-import { isSystemTemplate } from '~/features/events'
+import { isSystemTemplate, ScheduleKind } from '~/features/events'
 import { countMeetingsToMove } from '~/features/events/index.server'
 import { scheduleTemplateView } from '~/features/settings/model/schedule-template-view'
 import { getTemplatePage } from '~/features/settings/server/template-page.queries'
@@ -64,16 +64,26 @@ export function loader({ params, context }: Route.LoaderArgs) {
           })
         : 0
     // Each as « Modèles de planning » writes it; who holds a responsible role is that page's to say.
-    const schedules = page.scheduleTemplates.map(each => {
+    const row = (each: (typeof page.allScheduleTemplates)[number]) => {
       const { id, title, detail, responsible } = scheduleTemplateView(each, page.roles, new Map())
       return { id, title, detail, responsible }
-    })
+    }
+    const schedules = page.scheduleTemplates.map(row)
+    // One of each sort at most (6b-2): the templates of a sort it uses none of, or null when it uses both.
+    const usedSorts = new Set(page.scheduleTemplates.map(each => each.kind))
+    const candidates =
+      usedSorts.size < Object.values(ScheduleKind).length
+        ? page.allScheduleTemplates
+            .filter(each => !usedSorts.has(each.kind))
+            .map(each => ({ ...row(each), suggestedBy: scheduleTemplateView(each, page.roles, new Map()).suggestedBy }))
+        : null
     // What the page reads of the type, and no more: its parts and services are « Modèles de planning »'s.
     const { name, key, color, weekDay, startTime, endTime, attendanceKind } = page.template
     const template = { name, key, color, weekDay, startTime, endTime, attendanceKind }
     return {
       page: { template, eventCount: page.eventCount },
       schedules,
+      candidates,
       isManager,
       editable,
       builtIn,
@@ -102,7 +112,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function TemplatePage({ loaderData }: Route.ComponentProps) {
-  const { page, schedules, isManager, editable, builtIn, meetingsToMove } = loaderData
+  const { page, schedules, candidates, isManager, editable, builtIn, meetingsToMove } = loaderData
   const moveFetcher = useFetcher()
   const { template } = page
   const infoFetcher = useFetcher()
@@ -190,7 +200,7 @@ export default function TemplatePage({ loaderData }: Route.ComponentProps) {
         {builtIn ? (
           <p className="text-muted-foreground text-sm">{m.settings_template_system_body_freeform()}</p>
         ) : (
-          <TemplateSchedules rows={schedules} />
+          <TemplateSchedules rows={schedules} candidates={candidates} editable={editable} />
         )}
       </div>
 

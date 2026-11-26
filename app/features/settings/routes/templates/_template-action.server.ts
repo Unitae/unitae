@@ -1,7 +1,15 @@
 import { parseWithZod } from '@conform-to/zod/v4'
 import { data } from 'react-router'
 import { isSystemTemplate } from '~/features/events'
-import { deleteTemplate, duplicateTemplate, moveEmptyMeetings, updateTemplate } from '~/features/events/index.server'
+import {
+  addKindScheduleTemplate,
+  deleteTemplate,
+  duplicateTemplate,
+  moveEmptyMeetings,
+  orderKindScheduleTemplates,
+  removeKindScheduleTemplate,
+  updateTemplate,
+} from '~/features/events/index.server'
 import { updateTemplateSchema } from '~/features/settings/schemas/template.schema'
 import type { TemplateActionResult } from '~/features/settings/server/template-item-action.server'
 
@@ -78,6 +86,9 @@ export async function handleTemplateAction(
 
   if (!actor.isManager) return null
 
+  const scheduleIntent = await handleScheduleTemplatesIntent(db, templateId, formData, actor)
+  if (scheduleIntent !== undefined) return scheduleIntent
+
   if (intent === 'duplicate') {
     const copy = await duplicateTemplate(db, templateId, congregationId, actorId)
     if (!copy) return null
@@ -105,4 +116,42 @@ export async function handleTemplateAction(
   }
 
   return null
+}
+
+const ID = /^[1-9][0-9]*$/
+
+/**
+ * The schedule templates the type uses (6b-2): « Utiliser un modèle », « Retirer », and their order. Undefined for any
+ * other intent.
+ */
+async function handleScheduleTemplatesIntent(
+  db: TransactionClient,
+  templateId: number,
+  formData: FormData,
+  actor: TemplateActor,
+): Promise<TemplateActionResult | null | undefined> {
+  const intent = formData.get('intent')
+  if (
+    intent !== 'use-schedule-template' &&
+    intent !== 'stop-schedule-template' &&
+    intent !== 'order-schedule-templates'
+  )
+    return undefined
+  const { congregationId, id: actorId } = actor
+  const raw = formData.getAll('scheduleTemplateId').map(String)
+  if (raw.length === 0 || !raw.every(each => ID.test(each))) {
+    return refused({ status: 'error', error: { '': [m.common_generic_error()] } })
+  }
+  const ids = raw.map(Number)
+  const saved: TemplateActionResult = { kind: 'saved', message: m.settings_template_schedules_saved() }
+  if (intent === 'order-schedule-templates') {
+    return (await orderKindScheduleTemplates(db, templateId, ids, congregationId, actorId)) ? saved : null
+  }
+  if (intent === 'stop-schedule-template') {
+    return (await removeKindScheduleTemplate(db, templateId, ids[0], congregationId, actorId)) ? saved : null
+  }
+  const used = await addKindScheduleTemplate(db, templateId, ids[0], congregationId, actorId)
+  if (used == null) return null
+  if (!used.ok) return refused({ status: 'error', error: { '': [m.settings_template_schedules_sort_used()] } }, 409)
+  return saved
 }
