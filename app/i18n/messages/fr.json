@@ -4533,6 +4533,64 @@
     "settings_schedule_templates_new_contents": "Type de planning",
     "settings_schedule_templates_create": "Créer le modèle",
     "settings_schedule_templates_created": "Modèle de planning créé.",
+    "settings_schedule_templates_actions": "Actions du modèle",
+    "settings_schedule_templates_delete": "Supprimer le modèle",
+    "settings_schedule_templates_delete_title": "Supprimer « {name} » ?",
+    "settings_schedule_templates_delete_kinds": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{kinds} ne l’utilise plus : ses nouvelles réunions arrivent sans ce planning.",
+                "countPlural=*": "{kinds} ne l’utilisent plus : leurs nouvelles réunions arrivent sans ce planning."
+            }
+        }
+    ],
+    "settings_schedule_templates_delete_unused": "Il n’est plus proposé par « Ajouter un planning ».",
+    "settings_schedule_templates_delete_schedules_parts": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Le planning déjà créé à partir de ce modèle garde son nom, ses parties et ses attributions.",
+                "countPlural=*": "Les {count} plannings déjà créés à partir de ce modèle gardent leur nom, leurs parties et leurs attributions."
+            }
+        }
+    ],
+    "settings_schedule_templates_delete_schedules_services": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Le planning déjà créé à partir de ce modèle garde son nom, ses services et ses attributions.",
+                "countPlural=*": "Les {count} plannings déjà créés à partir de ce modèle gardent leur nom, leurs services et leurs attributions."
+            }
+        }
+    ],
+    "settings_schedule_templates_delete_responsible": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Il n’a plus de responsable : ceux qui gèrent les programmes s’en occupent.",
+                "countPlural=*": "Ils n’ont plus de responsable : ceux qui gèrent les programmes s’en occupent."
+            }
+        }
+    ],
+    "settings_schedule_templates_delete_final": "Cette suppression est définitive.",
+    "settings_schedule_templates_deleted": "Modèle de planning supprimé.",
     "settings_presets_subtitle": "Ce qu’est chaque partie d’un programme, et le message envoyé à la personne qui la reçoit.",
     "settings_presets_new_button": "Nouveau type",
     "settings_presets_form_name_label": "Nom",
@@ -6433,6 +6491,7 @@
     "audit_log_action_service_role_allowed_roles_changed": "Rôles d’un service modifiés",
     "audit_log_action_part_preset_created": "Type de partie créé",
     "audit_log_action_schedule_template_updated": "Modèle de planning modifié",
+    "audit_log_action_schedule_template_deleted": "Modèle de planning supprimé",
     "audit_log_action_schedule_template_created": "Modèle de planning créé",
     "audit_log_action_part_preset_updated": "Type de partie modifié",
     "audit_log_action_part_preset_deleted": "Type de partie supprimé",

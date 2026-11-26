@@ -4533,6 +4533,64 @@
     "settings_schedule_templates_new_contents": "Tipo de planeamento",
     "settings_schedule_templates_create": "Criar o modelo",
     "settings_schedule_templates_created": "Modelo de planeamento criado.",
+    "settings_schedule_templates_actions": "Ações do modelo",
+    "settings_schedule_templates_delete": "Eliminar o modelo",
+    "settings_schedule_templates_delete_title": "Eliminar «{name}»?",
+    "settings_schedule_templates_delete_kinds": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "{kinds} deixa de o utilizar: as suas novas reuniões chegam sem este planeamento.",
+                "countPlural=*": "{kinds} deixam de o utilizar: as suas novas reuniões chegam sem este planeamento."
+            }
+        }
+    ],
+    "settings_schedule_templates_delete_unused": "«Adicionar um planeamento» deixa de o propor.",
+    "settings_schedule_templates_delete_schedules_parts": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "O planeamento já criado a partir deste modelo mantém o nome, as partes e as designações.",
+                "countPlural=*": "Os {count} planeamentos já criados a partir deste modelo mantêm o nome, as partes e as designações."
+            }
+        }
+    ],
+    "settings_schedule_templates_delete_schedules_services": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "O planeamento já criado a partir deste modelo mantém o nome, os serviços e as designações.",
+                "countPlural=*": "Os {count} planeamentos já criados a partir deste modelo mantêm o nome, os serviços e as designações."
+            }
+        }
+    ],
+    "settings_schedule_templates_delete_responsible": [
+        {
+            "declarations": [
+                "input count",
+                "local countPlural = count: plural"
+            ],
+            "selectors": ["countPlural"],
+            "match": {
+                "countPlural=one": "Deixa de ter responsável: quem gere os programas trata dele.",
+                "countPlural=*": "Deixam de ter responsável: quem gere os programas trata deles."
+            }
+        }
+    ],
+    "settings_schedule_templates_delete_final": "Esta eliminação é definitiva.",
+    "settings_schedule_templates_deleted": "Modelo de planeamento eliminado.",
     "settings_presets_subtitle": "O que é cada parte do programa e que mensagem é enviada à pessoa a quem é atribuída.",
     "settings_presets_new_button": "Novo tipo",
     "settings_presets_form_name_label": "Nome",
@@ -6433,6 +6491,7 @@
     "audit_log_action_service_role_allowed_roles_changed": "Funções de serviço alteradas",
     "audit_log_action_part_preset_created": "Tipo de parte criado",
     "audit_log_action_schedule_template_updated": "Modelo de planeamento alterado",
+    "audit_log_action_schedule_template_deleted": "Modelo de planeamento eliminado",
     "audit_log_action_schedule_template_created": "Modelo de planeamento criado",
     "audit_log_action_part_preset_updated": "Tipo de parte alterado",
     "audit_log_action_part_preset_deleted": "Tipo de parte eliminado",

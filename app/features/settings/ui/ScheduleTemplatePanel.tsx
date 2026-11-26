@@ -13,6 +13,7 @@ import {
 } from '~/features/events'
 import { partsInListOrder, templatePlaces } from '~/features/settings/model/schedule-template-list'
 import type { ScheduleTemplateView } from '~/features/settings/model/schedule-template-view'
+import { ScheduleTemplateDeleteMenu } from '~/features/settings/ui/ScheduleTemplateDeleteMenu'
 import { ScheduleTemplateForm } from '~/features/settings/ui/ScheduleTemplateForm'
 import { itemMark, ScheduleTemplateItemList } from '~/features/settings/ui/ScheduleTemplateItemList'
 import { type TemplateRoom, TemplateRooms } from '~/features/settings/ui/TemplateRooms'
@@ -259,6 +260,8 @@ export function ScheduleTemplatePanel({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+    ) : item == null ? (
+      <ScheduleTemplateDeleteMenu template={template} onDeleted={onClose} />
     ) : undefined
   const back = { label: template.title, onClick: onBack, returnFocus: () => rowOf(left.current) }
   // « 4 sur 16 »: an existing part among the parts as the list shows them.

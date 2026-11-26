@@ -11,6 +11,7 @@ import {
   handleCreateScheduleTemplate,
   refusalMessage,
 } from '~/features/settings/server/schedule-template-create-action.server'
+import { handleDeleteScheduleTemplate } from '~/features/settings/server/schedule-template-delete-action.server'
 import {
   handleScheduleTemplateItem,
   SCHEDULE_TEMPLATE_ITEM_INTENTS,
@@ -79,6 +80,15 @@ export async function action({ request, context }: Route.ActionArgs) {
       const result = await handleCreateScheduleTemplate(db, formData, { id: currentUser.id, congregationId })
       if (!result.ok) return data(result, { status: 400 })
       return okWithToast(request, m.settings_schedule_templates_created(), { id: result.id })
+    })
+  }
+  // « Supprimer le modèle », from the panel open on it.
+  if (formData.get('intent') === 'delete-template') {
+    return withScopeFromContext(context, async (db, congregationId) => {
+      const template = new URL(request.url).searchParams.get('template')
+      const result = await handleDeleteScheduleTemplate(db, template, { id: currentUser.id, congregationId })
+      if (!result.ok) return data(result, { status: 409 })
+      return okWithToast(request, m.settings_schedule_templates_deleted())
     })
   }
   if (SCHEDULE_TEMPLATE_ITEM_INTENTS.includes(String(formData.get('intent')))) {

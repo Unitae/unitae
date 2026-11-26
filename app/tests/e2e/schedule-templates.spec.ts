@@ -421,9 +421,11 @@ test.describe('Schedule templates: a part in the template panel', () => {
     }
   })
 
-  // « Nouveau modèle »: a refusal first, then the template, which opens in the panel with its empty list. Created once
-  // and reused by later runs (the page cannot delete one yet), so a run leaves no template of its own behind.
-  test('creates a schedule template after a refused name, and opens it with nothing in it', async ({ page }) => {
+  // « Nouveau modèle »: a refusal first, then the template, which opens in the panel with its empty list, then
+  // « Supprimer le modèle ». One a failed run left behind is reused, and deleted this time.
+  test('creates a schedule template after a refused name, opens it with nothing in it, and deletes it', async ({
+    page,
+  }) => {
     const name = 'E2E Nouveau modèle'
     await page.goto('/settings/schedule-templates')
     const existing = page.locator('[data-row-primary]').filter({ hasText: name })
@@ -451,5 +453,15 @@ test.describe('Schedule templates: a part in the template panel', () => {
     await expect(page.locator('[data-row-primary]').filter({ hasText: name })).toHaveCount(1)
     // A template no kind uses shows its list, empty, with its first service to add.
     await expect(page.getByRole('button', { name: 'Ajouter un service' })).toBeVisible()
+
+    // « Supprimer le modèle »: the dialog says it was used nowhere, and the template leaves the list.
+    await page.getByRole('button', { name: 'Actions du modèle' }).click()
+    await page.getByRole('menuitem', { name: 'Supprimer le modèle' }).click()
+    const confirm = page.getByRole('alertdialog')
+    await expect(confirm).toContainText('Il n’est plus proposé par « Ajouter un planning ».')
+    await confirm.getByRole('button', { name: 'Supprimer le modèle' }).click()
+    await expect(confirm).toHaveCount(0)
+    await expect(page).not.toHaveURL(TEMPLATE_RE)
+    await expect(page.locator('[data-row-primary]').filter({ hasText: name })).toHaveCount(0)
   })
 })

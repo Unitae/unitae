@@ -37,6 +37,12 @@ vi.mock('~/features/settings/server/role-holders.queries', () => ({ holdersOfRol
 vi.mock('./_toast.server', () => ({
   okWithToast: vi.fn(async (_request: Request, _message: string, extra?: object) => ({ ok: true, ...extra })),
 }))
+vi.mock('~/features/settings/server/schedule-template-delete-action.server', () => ({
+  handleDeleteScheduleTemplate: vi.fn(async (_db: unknown, template: string | null) => {
+    saved.push(['delete', template])
+    return template === '404' ? { ok: false, errors: ['gone'] } : { ok: true }
+  }),
+}))
 vi.mock('~/features/settings/server/schedule-template-create-action.server', () => ({
   handleCreateScheduleTemplate: vi.fn(async (_db: unknown, formData: FormData) => {
     saved.push(['create', formData.get('name')])
@@ -239,6 +245,39 @@ describe('schedule-templates action, « Nouveau modèle »', () => {
     const response = await respond(() =>
       action({
         request: formRequest(URL, { intent: 'create-template', name: 'Zoom' }),
+        params: {},
+        context: routeContext(rights),
+      } as never),
+    )
+    expect(response.headers.get('Location')).toBe('/settings')
+    expect(saved).toEqual([])
+  })
+})
+
+describe('schedule-templates action, « Supprimer le modèle »', () => {
+  it('deletes the template the panel is open on, or says it is gone', async () => {
+    const deleted = await action({
+      request: formRequest(`${URL}?template=3`, { intent: 'delete-template' }),
+      params: {},
+      context: routeContext([Permission.CanManageProgramTemplates]),
+    } as never)
+    const gone = await action({
+      request: formRequest(`${URL}?template=404`, { intent: 'delete-template' }),
+      params: {},
+      context: routeContext([Permission.CanManageProgramTemplates]),
+    } as never)
+    expect(deleted).toEqual({ ok: true })
+    expect(gone).toMatchObject({ init: { status: 409 }, data: { ok: false } })
+    expect(saved).toEqual([
+      ['delete', '3'],
+      ['delete', '404'],
+    ])
+  })
+
+  it.each(OTHER_RIGHTS.map(rights => [rights] as const))('refuses to delete one for anyone else (%s)', async rights => {
+    const response = await respond(() =>
+      action({
+        request: formRequest(`${URL}?template=3`, { intent: 'delete-template' }),
         params: {},
         context: routeContext(rights),
       } as never),
