@@ -51,7 +51,12 @@ export function ExportActivityDialog({
   month,
 }: ExportActivityDialogProps) {
   const startYear = initialExportYear(availableYears, defaultYear)
-  const [format, setFormat] = useState<ExportFormat>('pdfs')
+  // The S-1 comes first when it is offered: the month's report is the export the secretary makes most often.
+  const startFormat: ExportFormat = month != null && publisherId == null ? 's1' : 'pdfs'
+  const months = exportMonths(availableYears, currentMonth())
+  const startMonth = month ?? months[0]
+  const [format, setFormat] = useState<ExportFormat>(startFormat)
+  const [reportMonth, setReportMonth] = useState<ExportMonth>(startMonth)
   const [year, setYear] = useState<number>(startYear)
   const [scope, setScope] = useState<ExportScope>('all')
   const [groupId, setGroupId] = useState<number | null>(null)
@@ -64,7 +69,8 @@ export function ExportActivityDialog({
   const scopeDisabled = singlePublisher || format !== 'pdfs'
 
   function reset() {
-    setFormat('pdfs')
+    setFormat(startFormat)
+    setReportMonth(startMonth)
     setYear(startYear)
     setScope('all')
     setGroupId(null)
@@ -80,7 +86,7 @@ export function ExportActivityDialog({
 
   async function handleExport() {
     setError(null)
-    const url = buildExportUrl({ format, year, scope, groupId, publisherIds, publisherId, month })
+    const url = buildExportUrl({ format, year, scope, groupId, publisherIds, publisherId, month: reportMonth })
     if (url == null) {
       setError(m.activity_export_dialog_error_scope())
       return
@@ -99,7 +105,7 @@ export function ExportActivityDialog({
 
       const kind: DownloadKind = singlePublisher ? 'pdf' : format
       const disposition = response.headers.get('Content-Disposition') ?? ''
-      const filename = filenameFromDisposition(disposition) ?? fallbackFilename(kind, year, month)
+      const filename = filenameFromDisposition(disposition) ?? fallbackFilename(kind, year, reportMonth)
       const blob = await response.blob()
       saveBlob(blob, filename)
       handleClose(false)
@@ -127,8 +133,12 @@ export function ExportActivityDialog({
           </div>
         ) : (
           <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto">
-            {!singlePublisher && <FormatField format={format} onFormatChange={setFormat} month={month} />}
-            {format !== 's1' && <YearField year={year} years={yearsForSelect} onYearChange={setYear} />}
+            {!singlePublisher && <FormatField format={format} onFormatChange={setFormat} offersS1={month != null} />}
+            {format === 's1' ? (
+              <MonthField month={reportMonth} months={withMonth(months, reportMonth)} onMonthChange={setReportMonth} />
+            ) : (
+              <YearField year={year} years={yearsForSelect} onYearChange={setYear} />
+            )}
             {!scopeDisabled && (
               <ScopeField
                 scope={scope}
@@ -167,11 +177,11 @@ function submitLabel(scope: ExportScope | null, picked: number): string {
 function FormatField({
   format,
   onFormatChange,
-  month,
+  offersS1,
 }: {
   format: ExportFormat
   onFormatChange: (f: ExportFormat) => void
-  month?: ExportMonth
+  offersS1: boolean
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -181,6 +191,15 @@ function FormatField({
         onValueChange={value => onFormatChange(value as ExportFormat)}
         className="flex flex-col gap-2"
       >
+        {offersS1 && (
+          <label htmlFor="export-format-s1" className="flex cursor-pointer items-start gap-2 rounded-md border p-3">
+            <RadioGroupItem value="s1" id="export-format-s1" className="mt-0.5" />
+            <div className="flex flex-col gap-0.5">
+              <span className="font-medium text-sm">{m.activity_export_dialog_format_s1()}</span>
+              <span className="text-muted-foreground text-xs">{m.activity_export_dialog_format_s1_hint()}</span>
+            </div>
+          </label>
+        )}
         <label htmlFor="export-format-pdfs" className="flex cursor-pointer items-start gap-2 rounded-md border p-3">
           <RadioGroupItem value="pdfs" id="export-format-pdfs" className="mt-0.5" />
           <div className="flex flex-col gap-0.5">
@@ -195,17 +214,6 @@ function FormatField({
             <span className="text-muted-foreground text-xs">{m.activity_export_dialog_format_xlsx_hint()}</span>
           </div>
         </label>
-        {month != null && (
-          <label htmlFor="export-format-s1" className="flex cursor-pointer items-start gap-2 rounded-md border p-3">
-            <RadioGroupItem value="s1" id="export-format-s1" className="mt-0.5" />
-            <div className="flex flex-col gap-0.5">
-              <span className="font-medium text-sm">{m.activity_export_dialog_format_s1()}</span>
-              <span className="text-muted-foreground text-xs">
-                {m.activity_export_dialog_format_s1_hint({ month: formatMonthYear(month.month, month.year) })}
-              </span>
-            </div>
-          </label>
-        )}
       </RadioGroup>
     </div>
   )
@@ -237,6 +245,67 @@ function YearField({
       </Select>
     </div>
   )
+}
+
+function MonthField({
+  month,
+  months,
+  onMonthChange,
+}: {
+  month: ExportMonth
+  months: ExportMonth[]
+  onMonthChange: (m: ExportMonth) => void
+}) {
+  const key = (value: ExportMonth) => `${value.year}-${value.month}`
+  return (
+    <div className="flex flex-col gap-2">
+      <Label htmlFor="export-month">{m.activity_export_dialog_month_label()}</Label>
+      <Select
+        value={key(month)}
+        onValueChange={value => onMonthChange(months.find(each => key(each) === value) ?? month)}
+      >
+        <SelectTrigger id="export-month">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {months.map(each => (
+            <SelectItem key={key(each)} value={key(each)}>
+              {formatMonthYear(each.month, each.year)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  )
+}
+
+/** The month under way, in the reader's clock: the dialog only renders once opened, on the client. */
+function currentMonth(): ExportMonth {
+  const now = new Date()
+  return { month: now.getMonth(), year: now.getFullYear() }
+}
+
+/** The list with the chosen month in it, so the select never shows a value it does not offer. */
+function withMonth(months: ExportMonth[], chosen: ExportMonth): ExportMonth[] {
+  const has = months.some(each => each.month === chosen.month && each.year === chosen.year)
+  return has ? months : [chosen, ...months]
+}
+
+/**
+ * The months the S-1 can be exported for: those of the service years with reports (September to August, `serviceYears`
+ * newest first, as the year select gets them), newest first, never one after `now`. The current month alone when no year
+ * has a report yet.
+ */
+export function exportMonths(serviceYears: number[], now: ExportMonth): ExportMonth[] {
+  const nowIndex = now.year * 12 + now.month
+  const months = serviceYears.flatMap(start =>
+    Array.from({ length: 12 }, (_, offset) => {
+      const index = start * 12 + 8 + (11 - offset)
+      return { month: index % 12, year: Math.floor(index / 12) }
+    }),
+  )
+  const past = months.filter(each => each.year * 12 + each.month <= nowIndex)
+  return past.length > 0 ? past : [now]
 }
 
 interface ScopeFieldProps {
