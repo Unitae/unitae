@@ -3,6 +3,7 @@
 export { releaseAccountEvents } from './server/account-events.server'
 export { kindOfSlot } from './server/allowed-roles.server'
 export { type LastWeekMeeting, listLastWeekAttendance, listMeetingsUnderWay } from './server/attendance.queries'
+export { createScheduleTemplate } from './server/create-schedule-template.server'
 export { getNextDaysOffs } from './server/days-off.server'
 export { deleteTemplate } from './server/delete-template.server'
 export { duplicateTemplate } from './server/duplicate-template.server'

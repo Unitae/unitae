@@ -34,7 +34,15 @@ vi.mock('~/features/events/index.server', () => ({
 }))
 vi.mock('~/shared/domain/roles.server', () => ({ listDelegatableRoles: vi.fn(async () => []) }))
 vi.mock('~/features/settings/server/role-holders.queries', () => ({ holdersOfRoles: vi.fn(async () => new Map()) }))
-vi.mock('./_toast.server', () => ({ okWithToast: vi.fn(async () => ({ ok: true })) }))
+vi.mock('./_toast.server', () => ({
+  okWithToast: vi.fn(async (_request: Request, _message: string, extra?: object) => ({ ok: true, ...extra })),
+}))
+vi.mock('~/features/settings/server/schedule-template-create-action.server', () => ({
+  handleCreateScheduleTemplate: vi.fn(async (_db: unknown, formData: FormData) => {
+    saved.push(['create', formData.get('name')])
+    return formData.get('name') === '' ? { ok: false, errors: ['Donnez-lui un nom.'] } : { ok: true, id: 12 }
+  }),
+}))
 vi.mock('~/features/settings/server/schedule-template-items.queries', () => ({
   getScheduleTemplateItems: vi.fn(async (_db: unknown, id: number) => {
     itemsAsked.push(id)
@@ -207,6 +215,35 @@ describe('schedule-templates action', () => {
       context: routeContext([Permission.CanManageProgramTemplates]),
     } as never)
     expect(result).toMatchObject({ init: { status: 409 } })
+    expect(saved).toEqual([])
+  })
+})
+
+describe('schedule-templates action, « Nouveau modèle »', () => {
+  it('creates a template and answers its id, for the dialog to open it, or says why not', async () => {
+    const created = await action({
+      request: formRequest(URL, { intent: 'create-template', name: 'Zoom' }),
+      params: {},
+      context: routeContext([Permission.CanManageProgramTemplates]),
+    } as never)
+    const refused = await action({
+      request: formRequest(URL, { intent: 'create-template', name: '' }),
+      params: {},
+      context: routeContext([Permission.CanManageProgramTemplates]),
+    } as never)
+    expect(created).toEqual({ ok: true, id: 12 })
+    expect(refused).toMatchObject({ init: { status: 400 }, data: { ok: false, errors: ['Donnez-lui un nom.'] } })
+  })
+
+  it.each(OTHER_RIGHTS.map(rights => [rights] as const))('refuses to create one for anyone else (%s)', async rights => {
+    const response = await respond(() =>
+      action({
+        request: formRequest(URL, { intent: 'create-template', name: 'Zoom' }),
+        params: {},
+        context: routeContext(rights),
+      } as never),
+    )
+    expect(response.headers.get('Location')).toBe('/settings')
     expect(saved).toEqual([])
   })
 })

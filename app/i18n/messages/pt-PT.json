@@ -4438,15 +4438,14 @@
     "settings_schedule_templates_meta_title": "Modelos de planeamento - Unitae",
     "settings_schedule_templates_subtitle": "Esta página serve para criar modelos de planeamento, para não refazer todos os planeamentos à mão de cada vez; qualquer alteração aqui reflete-se nos programas futuros.",
     "settings_schedule_templates_name": "Nome",
-    "settings_schedule_templates_name_hint": "Os planeamentos já criados mantêm o seu nome.",
     "settings_schedule_templates_responsible": "Responsável",
     "settings_schedule_templates_responsible_none": "Nenhum responsável designado",
     "settings_schedule_templates_responsible_none_short": "Nenhum",
-    "settings_schedule_templates_responsible_hint": "O titular e os adjuntos desta função preenchem e publicam os planeamentos feitos a partir deste modelo, em todas as reuniões.",
+    "settings_schedule_templates_responsible_hint": "O titular e os adjuntos deste papel podem preencher e publicar os planeamentos criados a partir deste modelo, em todas as reuniões.",
     "settings_schedule_templates_holders": "Atualmente: {names}.",
     "settings_schedule_templates_holders_none": "Atualmente, ninguém tem esta função.",
     "settings_schedule_templates_suggested_by": "Utilizado em",
-    "settings_schedule_templates_suggested_none": "Nenhum tipo: adiciona-se a partir da reunião, com «Adicionar um planeamento».",
+    "settings_schedule_templates_suggested_none": "Este modelo ainda não é utilizado",
     "settings_schedule_templates_parts_label": "Partes",
     "settings_schedule_templates_services_label": "Serviços",
     "settings_schedule_templates_add_service": "Adicionar um serviço",
@@ -4479,8 +4478,7 @@
             }
         }
     ],
-    "settings_schedule_templates_list_note": "As alterações a esta lista aplicam-se de imediato. Os planeamentos já criados não são afetados: só as novas reuniões as recebem.",
-    "settings_schedule_templates_no_kind": "Nenhum tipo utiliza este modelo: o seu conteúdo edita-se quando um tipo o utilizar.",
+    "settings_schedule_templates_list_note": "Os planeamentos já criados não serão alterados; só as novas reuniões têm em conta as alterações feitas aqui.",
     "settings_schedule_templates_save_part": "Guardar a parte",
     "settings_schedule_templates_save_service": "Guardar o serviço",
     "settings_schedule_templates_section_renamed": "Secção renomeada.",
@@ -4509,7 +4507,6 @@
             }
         }
     ],
-    "settings_schedule_templates_used_none": "Nenhum planeamento feito a partir deste modelo",
     "settings_schedule_templates_kinds": [
         {
             "declarations": [
@@ -4526,10 +4523,16 @@
     "settings_schedule_templates_kinds_none": "nenhum tipo",
     "settings_schedule_templates_saved": "Modelo de planeamento guardado.",
     "settings_schedule_templates_error_name": "Dê-lhe um nome.",
+    "settings_schedule_templates_error_name_taken": "Outro modelo já tem este nome: escolha outro.",
     "settings_schedule_templates_error_name_long": "O nome: no máximo, 80 caracteres.",
     "settings_schedule_templates_error_role": "Esta função não pode ser responsável por um modelo: recarregue a página.",
     "settings_schedule_templates_error_vanished": "Este modelo já não existe: recarregue a página.",
-    "settings_schedule_templates_empty": "Ainda não há modelos de planeamento: nascem com as partes ou os serviços de um tipo, em Modelos de programa.",
+    "settings_schedule_templates_empty": "Ainda não há modelos de planeamento: crie o primeiro com «Novo modelo».",
+    "settings_schedule_templates_new": "Novo modelo",
+    "settings_schedule_templates_new_title": "Novo modelo de planeamento",
+    "settings_schedule_templates_new_contents": "Tipo de planeamento",
+    "settings_schedule_templates_create": "Criar o modelo",
+    "settings_schedule_templates_created": "Modelo de planeamento criado.",
     "settings_presets_subtitle": "O que é cada parte do programa e que mensagem é enviada à pessoa a quem é atribuída.",
     "settings_presets_new_button": "Novo tipo",
     "settings_presets_form_name_label": "Nome",
@@ -6430,6 +6433,7 @@
     "audit_log_action_service_role_allowed_roles_changed": "Funções de serviço alteradas",
     "audit_log_action_part_preset_created": "Tipo de parte criado",
     "audit_log_action_schedule_template_updated": "Modelo de planeamento alterado",
+    "audit_log_action_schedule_template_created": "Modelo de planeamento criado",
     "audit_log_action_part_preset_updated": "Tipo de parte alterado",
     "audit_log_action_part_preset_deleted": "Tipo de parte eliminado",
     "audit_log_action_calendar_feed_token_created": "Ligação do calendário criada",
@@ -7855,7 +7859,7 @@
     "settings_schedule_templates_room_gone": "Esta sala já não existe: a lista acabou de ser recarregada.",
     "settings_schedule_templates_room_main_stays": "A sala principal fica sempre: mude-lhe o nome se for preciso.",
     "settings_schedule_templates_rooms_title": "Salas",
-    "settings_schedule_templates_rooms_hint": "As salas onde as partes decorrem ao mesmo tempo. Adicionar uma sala pede o seu nome; as suas partes escolhem-se depois, parte a parte.",
+    "settings_schedule_templates_rooms_hint": "Os nomes das salas onde partes do programa decorrem ao mesmo tempo.",
     "settings_schedule_templates_room_whole": "toda a congregação",
     "settings_schedule_templates_room_parts": [
         {

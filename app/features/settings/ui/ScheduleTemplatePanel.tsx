@@ -94,7 +94,7 @@ export function ScheduleTemplatePanel({
     of: template.kind === 'duty' ? 'services' : 'parts',
     parts: items?.parts ?? [],
     services: items?.services ?? [],
-    enabled: items?.kindId != null,
+    enabled: items != null,
     docked,
   })
   const [version, setVersion] = useState(0)
@@ -127,10 +127,9 @@ export function ScheduleTemplatePanel({
     wasOpen.current = item != null
   }, [item, docked])
 
+  // How many schedules were made from it; nothing while none is (user, 2026-11-26).
   const description =
-    template.schedules === 0
-      ? m.settings_schedule_templates_used_none()
-      : m.settings_schedule_templates_used({ count: template.schedules })
+    template.schedules === 0 ? undefined : m.settings_schedule_templates_used({ count: template.schedules })
   const copy =
     item?.kind === 'service'
       ? serviceEditorCopy('template', item.id != null)
@@ -149,10 +148,9 @@ export function ScheduleTemplatePanel({
         id={FORM_ID}
         formRef={fields.ref}
       />
-      {template.kind !== 'duty' && items != null && items.kindId != null && <TemplateRooms rooms={items.rooms} />}
-      {items == null || items.kindId == null ? (
-        <p className="text-muted-foreground text-sm">{m.settings_schedule_templates_no_kind()}</p>
-      ) : (
+      {template.kind !== 'duty' && items != null && <TemplateRooms rooms={items.rooms} />}
+      {/* Every template's items are its own, a kind using it or not (6a-1c-2). */}
+      {items != null && (
         <ScheduleTemplateItemList
           kind={template.kind === 'duty' ? 'service' : 'part'}
           parts={order.parts}
