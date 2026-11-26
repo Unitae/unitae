@@ -1,5 +1,5 @@
 import { Panel } from '@unitae/ui'
-import { UserPlus, X } from 'lucide-react'
+import { FileDown, UserPlus, X } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Fragment } from 'react'
 import { resolvePartCapability } from '~/features/events/model/part-capability'
@@ -38,6 +38,10 @@ interface EventAssignmentsPanelProps {
   canViewPublishers: boolean
   /** Finished message per part, when there is someone to send it to. */
   shareTexts: Record<number, string>
+  /** The event, for the links to its parts' S-89 slips. */
+  eventId: number
+  /** The parts whose S-89 slip the reader may print. */
+  slipPartIds: readonly number[]
   /** The part open in the assignment editor, highlighted. */
   selectedId: number | null
   onAssign: (part: AssignedPart, trigger: HTMLElement) => void
@@ -66,6 +70,8 @@ export function EventAssignmentsPanel({
   canAssign,
   canViewPublishers,
   shareTexts,
+  eventId,
+  slipPartIds,
   selectedId,
   onAssign,
   onUnassign,
@@ -109,7 +115,7 @@ export function EventAssignmentsPanel({
               <th scope="col" className="w-[27%] px-3 font-medium">
                 {m.programs_view_reader_col()}
               </th>
-              <th scope="col" className="w-[5.5rem] pr-4.5">
+              <th scope="col" className="w-[7.5rem] pr-4.5">
                 <span className="sr-only">{m.common_actions()}</span>
               </th>
             </tr>
@@ -145,6 +151,11 @@ export function EventAssignmentsPanel({
                         canAssign={canAssign}
                         canViewPublishers={canViewPublishers}
                         shareText={shareTexts[part.id]}
+                        slipHref={
+                          slipPartIds.includes(part.id)
+                            ? `/programs/events/${eventId}/parts/${part.id}/slip`
+                            : undefined
+                        }
                         onAssign={trigger => onAssign(part, trigger)}
                         onUnassign={onUnassign}
                       />
@@ -172,6 +183,7 @@ interface PartRowProps {
   canAssign: boolean
   canViewPublishers: boolean
   shareText: string | undefined
+  slipHref: string | undefined
   onAssign: (trigger: HTMLElement) => void
   onUnassign: (target: UnassignTarget) => void
 }
@@ -183,6 +195,7 @@ function PartRow({
   canAssign,
   canViewPublishers,
   shareText,
+  slipHref,
   onAssign,
   onUnassign,
 }: PartRowProps) {
@@ -265,6 +278,7 @@ function PartRow({
               part={part}
               assigned={assigned}
               shareText={shareText}
+              slipHref={slipHref}
               onAssign={onAssign}
               onUnassign={onUnassign}
             />
@@ -279,6 +293,7 @@ function PartActions({
   part,
   assigned,
   shareText,
+  slipHref,
   onAssign,
   onUnassign,
 }: {
@@ -286,11 +301,24 @@ function PartActions({
   /** Who is in the main slot, when someone is. */
   assigned: string | null
   shareText: string | undefined
+  slipHref: string | undefined
   onAssign: (trigger: HTMLElement) => void
   onUnassign: (target: UnassignTarget) => void
 }) {
   return (
     <>
+      {slipHref && assigned && (
+        <Button variant="ghost" size="icon-sm" className="size-7" asChild>
+          <a
+            href={slipHref}
+            download
+            aria-label={m.slip_download_label({ name: assigned })}
+            title={m.slip_download_label({ name: assigned })}
+          >
+            <FileDown className="size-3.5" />
+          </a>
+        </Button>
+      )}
       {shareText && assigned && (
         <ShareAssignmentButton
           text={shareText}
