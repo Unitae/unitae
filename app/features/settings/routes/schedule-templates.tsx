@@ -3,7 +3,7 @@ import { Plus } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { data, redirect, type ShouldRevalidateFunctionArgs, useFetcher } from 'react-router'
 import { listScheduleTemplatesForSettings, updateScheduleTemplate } from '~/features/events/index.server'
-import { onlyHelpPanelChanged } from '~/features/help'
+import { HelpEntryButton, onlyHelpPanelChanged } from '~/features/help'
 import { scheduleTemplateView } from '~/features/settings/model/schedule-template-view'
 import { scheduleTemplateSchema } from '~/features/settings/schemas/schedule-template.schema'
 import { holdersOfRoles } from '~/features/settings/server/role-holders.queries'
@@ -159,6 +159,7 @@ export default function ScheduleTemplatesPage({ loaderData }: Route.ComponentPro
       <SettingsHeader
         title={m.settings_entry_schedule_templates()}
         subtitle={m.settings_schedule_templates_subtitle()}
+        help={<HelpEntryButton slug="schedule-templates" />}
         actions={
           <Button size="sm" ref={newButton} onClick={() => setCreating(true)}>
             <Plus />
