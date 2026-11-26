@@ -3,6 +3,7 @@ import { listBoardItems, resolveProgrammeLink } from '~/features/display-board/i
 import { VISIBLE_EVENT, VISIBLE_ITEM } from '~/features/events'
 import {
   getNextDaysOffs,
+  PART_CONFLICT_OF,
   PART_ITEMS,
   PART_ITEMS_BY_DATE,
   PART_TIE_BREAK,
@@ -95,8 +96,8 @@ export async function getConflictingAssignments(db: TransactionClient, userId: n
         // Conflicts in a draft schedule are not urgent: it isn't public yet. They only surface via the events-list
         // amber badge for managers, and block the release step.
         ...VISIBLE_ITEM,
-        hasConflict: true,
-        OR: [{ assigneeId: userId }, { assistantId: userId }],
+        // A conflict is its room's (parallel rooms): the room that holds me, flagged.
+        ...PART_CONFLICT_OF(userId),
         event: { startDate: { gte: now } },
       },
       select: {
