@@ -6,7 +6,9 @@ import type { TransactionClient } from '~/shared/infra/db.server'
  * Two meetings of one kind whose first part is held in « Salle principale » and « Salle B », a speaker in each:
  * `copies` as the app writes it today (an item per room), `rows` as R4 will (one item, a row per room). Every reader
  * moving to `partsInRooms` must show them alike. The kind and its programme template must exist (seedDefaultTemplates
- * and syncTemplateScheduleTemplates); the people are the caller's.
+ * and syncTemplateScheduleTemplates); the people are the caller's. The `rows` meeting is for reading only until R4:
+ * the item's trigger still moves its one room row on a write of its people, conflict or track, and with two rows
+ * that write fails on their unique (item, room).
  */
 export async function seedMeetingsInRooms(
   db: TransactionClient,
