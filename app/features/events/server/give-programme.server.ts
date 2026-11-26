@@ -44,7 +44,6 @@ export interface TemplateWithRelations {
  * placed in a template yet.
  */
 export const TEMPLATE_PROGRAMME_COUNT = {
-  // biome-ignore lint/style/useNamingConvention: Prisma's relation count key
   _count: {
     select: { parts: { where: { scheduleTemplateId: null } }, serviceParts: { where: { scheduleTemplateId: null } } },
   },

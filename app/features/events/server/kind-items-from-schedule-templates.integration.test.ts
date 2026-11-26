@@ -20,6 +20,7 @@ const testDb = new PrismaClient({
 const { createProgrammeOnDay } = await import('./programme-creation.server')
 const { TEMPLATE_PROGRAMME_COUNT } = await import('./give-programme.server')
 const { programmeTemplate } = await import('~/features/events/model/empty-meetings')
+const { getProgrammeCreationData } = await import('./programme-creation.queries')
 
 class Rollback extends Error {}
 
@@ -161,7 +162,23 @@ describe('a meeting type’s items, from the schedule templates it uses', () => 
               each => each.name,
             )
           }
+          // The creation form says what « Créer » gives, before anything is created.
+          const form = await getProgrammeCreationData(db, {
+            congregationId,
+            timezone: 'Europe/Paris',
+            today: '2099-03-01',
+            templateIds: [two.id, loose.id],
+          })
+          const offered = (id: number) => {
+            const row = form.templates.find(each => each.id === id)
+            return {
+              parts: row?.parts,
+              schedules: row?.schedules.map(each => `${each.kind}:${each.name ?? '-'}:${each.items}`),
+            }
+          }
+          const offers = { two: offered(two.id), loose: offered(loose.id) }
           read = {
+            offers,
             two: { counted: await counted(two.id), copied: await copied(two.id, '2099-03-04') },
             loose: { counted: await counted(loose.id), copied: await copied(loose.id, '2099-03-05') },
           }
@@ -173,6 +190,10 @@ describe('a meeting type’s items, from the schedule templates it uses', () => 
       if (!(error instanceof Rollback)) throw error
     }
     expect(read).toEqual({
+      offers: {
+        two: { parts: 1, schedules: ['programme:Premier:1'] },
+        loose: { parts: 2, schedules: ['programme:-:2'] },
+      },
       two: { counted: 1, copied: ['A'] },
       loose: { counted: 2, copied: ['D', 'E'] },
     })

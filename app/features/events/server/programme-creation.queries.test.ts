@@ -20,7 +20,8 @@ function template(id: number, name: string, weekDay: number | null) {
     weekDay,
     startTime: '19:00',
     endTime: '20:45',
-    _count: { parts: 15, serviceParts: 4 },
+    // None of its rows left outside a schedule template.
+    _count: { parts: 0, serviceParts: 0 },
     scheduleTemplates: [
       { scheduleTemplate: { name: null, kind: 'programme', _count: { parts: 15, serviceParts: 0 } } },
       { scheduleTemplate: { name: 'Services', kind: 'duty', _count: { parts: 0, serviceParts: 4 } } },
