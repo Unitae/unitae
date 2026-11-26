@@ -5,7 +5,7 @@ title: Como introduzo os relatórios de serviço de campo?
 summary: O relatório mensal de cada publicador, a partir da página do grupo ou da página Atividade, e as correções posteriores.
 module: activity
 permission: CanRecordActivity, CanCorrectActivity, CanManagePublishers, GroupLeader
-keywords: relatório, relatórios, serviço de campo, introduzir, mês, grupo, superintendente de grupo, ajudante, secretário, horas, estudos bíblicos, pregou, pioneiro auxiliar, crédito, sem relatório, corrigir, eliminar
+keywords: relatório, relatórios, serviço de campo, introduzir, mês, grupo, superintendente de grupo, ajudante, secretário, horas, estudos bíblicos, pregou, pioneiro auxiliar, crédito, sem relatório, corrigir, eliminar, filial, totais, irregulares
 related: pioneers, activity-exports
 order: 1
 ---
@@ -34,6 +34,8 @@ Um pioneiro passou tempo numa escola, num projeto de construção ou numa missã
 ## A partir da página Atividade
 
 Com o direito de ver a atividade, **Congregação › Atividade** apresenta os relatórios de toda a congregação, mês a mês. Abre no mês atual, ou no mês que acabou de terminar enquanto não tiver chegado nenhum relatório deste mês; **Mês anterior** e **Mês seguinte** mudam o mês. O filtro **Relatório › Sem relatório** mostra apenas os que faltam: clique em **Introduzir** numa linha e guarde, tal como a partir do grupo.
+
+Os números acima da lista são os que a filial pede: os relatórios dos publicadores, pioneiros auxiliares e pioneiros regulares que pregaram, com as suas horas e estudos bíblicos, e depois o total da congregação. Um relatório conta com o serviço do seu mês. Os pioneiros especiais e os missionários não entram em nenhuma linha, mas os seus estudos bíblicos contam para a congregação. O crédito de horas nunca entra. Em **Congregação**, os irregulares são os que entregaram um relatório sem terem pregado, à parte os inativos.
 
 ## Corrigir ou eliminar um relatório
 
