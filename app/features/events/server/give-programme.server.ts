@@ -1,10 +1,10 @@
 import type { Prisma } from '~/database/generated/client'
+import { roomLabel } from '~/features/events/model/part-places'
 import { ScheduleKind } from '~/features/events/model/schedule.type'
 import { ITEM_SLOT, type PartRoleKind } from '~/features/events/server/allowed-roles.server'
 import { templateItemsOf } from '~/features/events/server/item-projection.server'
 import type { CreatedProgramme, CreationContext } from '~/features/events/server/programme-creation.server'
 import { eventSchedulesOf } from '~/features/events/server/schedules.server'
-import * as m from '~/i18n/paraglide/messages'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -192,7 +192,7 @@ function placesOf(part: TemplateWithRelations['parts'][number]): { track: string
   if (rooms.length <= 1)
     return [{ track: rooms.length === 0 ? part.track : '', trackOrder: rooms.length === 0 ? part.trackOrder : null }]
   return rooms.map(room => ({
-    track: room.name ?? (room.key === 'main' ? m.settings_schedule_templates_main_hall() : ''),
+    track: roomLabel({ name: room.name, isMain: room.key === 'main' }),
     trackOrder: room.order + 1,
   }))
 }

@@ -54,7 +54,7 @@ describe('roomsTakenAway', () => {
 describe('roomLabel', () => {
   it('reads an unnamed main room « Salle principale », any other by its name', () => {
     expect(roomLabel(places.rooms[0] as PartPlaces['rooms'][number])).toBe('Salle principale')
-    expect(roomLabel({ id: 50, name: 'Auditorium', isMain: true })).toBe('Auditorium')
+    expect(roomLabel({ name: 'Auditorium', isMain: true })).toBe('Auditorium')
     expect(roomLabel(places.rooms[1] as PartPlaces['rooms'][number])).toBe('Salle B')
   })
 })
