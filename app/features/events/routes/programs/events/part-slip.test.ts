@@ -23,7 +23,13 @@ vi.mock('~/features/events/server/event-part-assignments.server', () => ({ getEv
 const canChangeEvent = vi.fn()
 const canPublishEvent = vi.fn()
 const canFillSchedule = vi.fn()
-vi.mock('~/features/events/server/schedule-rights.server', () => ({ canChangeEvent, canPublishEvent, canFillSchedule }))
+// Opening asks the same of the duties as filling them here: one duties schedule.
+vi.mock('~/features/events/server/schedule-rights.server', () => ({
+  canChangeEvent,
+  canPublishEvent,
+  canFillSchedule,
+  canFillSomeSchedule: canFillSchedule,
+}))
 
 const renderPdfResponse = vi.fn()
 vi.mock('~/shared/infra/pdf.server', () => ({ renderPdfResponse, sanitizeFilename: (name: string) => name }))

@@ -97,7 +97,6 @@ export function EventView({
   canRelease,
   canUnrelease,
   canAssign,
-  canAssignService,
   fillableSchedules,
   canViewPublishers,
   users,
@@ -126,17 +125,6 @@ export function EventView({
   const target = panel.target
   const part = target?.kind === 'part' ? event.eventParts.find(item => item.id === target.id) : undefined
   const service = target?.kind === 'service' ? event.eventServiceParts.find(item => item.id === target.id) : undefined
-  // ↑ ↓ walk the parts, or the services, in the programme's order.
-  const walk = part
-    ? panel.walk(
-        'part',
-        event.eventParts.map(item => item.id),
-      )
-    : panel.walk(
-        'service',
-        event.eventServiceParts.map(item => item.id),
-      )
-
   // The duties schedules, each its own section (one per template the kind uses, user 2026-11-27); a service of no
   // schedule (written before schedules) is the first's.
   const dutySchedules = event.schedules.filter(schedule => schedule.kind === ScheduleKind.Duty)
@@ -148,6 +136,20 @@ export function EventView({
     const scheduleId = scheduleOfService(event.eventServiceParts.find(item => item.id === id))
     return scheduleId != null && fillableSchedules.includes(scheduleId)
   }
+
+  // ↑ ↓ walk the parts in the programme's order, or the services the reader fills, section by section: never into a
+  // section that is another responsible's.
+  const walk = part
+    ? panel.walk(
+        'part',
+        event.eventParts.map(item => item.id),
+      )
+    : panel.walk(
+        'service',
+        dutySchedules
+          .filter(schedule => fillableSchedules.includes(schedule.id))
+          .flatMap(schedule => servicesOf(schedule.id).map(item => item.id)),
+      )
 
   // `?item=part-12` opens that item's panel: the absences page links here to reassign a part someone is away for. It
   // was `?assign=` with the old rows' ids (plan T12); such a link now opens the event alone, never another slot.

@@ -16,9 +16,9 @@ export function mayOpenEvent(status: string, rights: EventPageRights): boolean {
 
 /**
  * Whether a reader sees a schedule's items on the event's page (spec §5.3, D45): a published one, or a draft they may
- * act on — changing or publishing the event, or filling that kind. A reader sees nothing of the others, not even that
- * they exist. It goes by kind, as the rights do (canFillSchedule): every writer makes one schedule of a kind today; a
- * second duty schedule (PR 6/7) asks for a right per schedule here.
+ * act on — changing or publishing the event, or filling it. A reader sees nothing of the others, not even that they
+ * exist. `fillsThis` is the reader's right on this very schedule (a meeting may hold several duties schedules, each its
+ * own responsible's); without it, the kind's right decides.
  */
 export function maySeeSchedule(
   schedule: { kind: string; status: string },

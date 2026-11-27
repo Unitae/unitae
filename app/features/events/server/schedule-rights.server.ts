@@ -54,6 +54,26 @@ export async function canFillSchedule(
 }
 
 /**
+ * Whether the caller fills some schedule of one kind on the event: what opening a draft meeting, and seeing it listed,
+ * asks of a schedule's responsible (a meeting may hold several duties schedules, each its own responsible's). Acting
+ * on items still asks canFillSchedule, by the schedule each action names.
+ */
+export async function canFillSomeSchedule(
+  db: TransactionClient,
+  can: (permission: Permission) => boolean,
+  userId: number,
+  event: { id: number; templateId: number | null },
+  kind: ItemKind,
+  congregationId: number,
+): Promise<boolean> {
+  if (fillsEverySchedule(can)) return true
+  const roleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
+  if (roleIds.length === 0) return false
+  const facts = (await eventFacts(db, [event], congregationId)).get(event.id) ?? NO_FACTS
+  return fillsSome(event, facts, kind, roleIds)
+}
+
+/**
  * The kinds (event templates) suggesting a schedule template the caller is responsible for (D28, D49): the kinds whose
  * events they create and change, and the kinds they may move an event to. Sorted.
  */
@@ -202,6 +222,14 @@ function fills(
   return first != null && answersForEvery([first], roleIds)
 }
 
+/** Some schedule of the kind is the caller's: each answered for alone, or the kind's first suggested while it holds none. */
+function fillsSome(event: { templateId: number | null }, facts: EventFacts, kind: ItemKind, roleIds: number[]) {
+  const scheduleKind = SCHEDULE_KIND_OF[kind]
+  const own = facts.schedules.filter(schedule => schedule.kind === scheduleKind)
+  if (own.length > 0) return own.some(schedule => answersForEvery([schedule], roleIds))
+  return fills(event, facts, kind, roleIds)
+}
+
 /** D49: the responsible of every schedule it holds — of every template its kind suggests while it holds none. */
 function publishes(event: { templateId: number | null }, facts: EventFacts, roleIds: number[]) {
   if (event.templateId == null) return false
@@ -285,7 +313,7 @@ export interface ScheduleRights {
   canPublish: boolean
   /** canFillSchedule, its programme. */
   canAssignParts: boolean
-  /** canFillSchedule, its duties. */
+  /** canFillSomeSchedule, its duties: some duties schedule is the caller's (a meeting may hold several). */
   canAssignServices: boolean
 }
 
@@ -335,7 +363,8 @@ export async function scheduleRightsFor(
           canDelete: manages || deletes(event, own, roleIds, kindIds),
           canPublish: publishesAll || publishes(event, own, roleIds),
           canAssignParts: fillsAll || fills(event, own, 'part', roleIds),
-          canAssignServices: fillsAll || fills(event, own, 'service', roleIds),
+          // Some duties schedule is theirs: what opening and listing the meeting asks (a meeting may hold several).
+          canAssignServices: fillsAll || fillsSome(event, own, 'service', roleIds),
         },
       ]
     }),

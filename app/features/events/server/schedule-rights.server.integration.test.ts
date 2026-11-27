@@ -24,6 +24,7 @@ const {
   canChangeEventsOfKind,
   canDeleteEvent,
   canFillSchedule,
+  canFillSomeSchedule,
   canPublishEvent,
   filterEventsByRight,
   responsibleKindIds,
@@ -161,6 +162,13 @@ describe('Fill a schedule (items, assignees): « Attribuer », « Gérer », or 
       // A schedule of another event, or of the other kind, is not this one's.
       const programme = await db.schedule.findFirstOrThrow({ where: { eventId: meeting.id, kind: 'programme' } })
       expect(await fill(dutyLead, programme.id)).toBe(false)
+      // Opening the meeting (and seeing it listed) takes filling some duties schedule, not every one.
+      expect([
+        await canFillSomeSchedule(db, nothing, visioLead, meeting, 'service', congregationId),
+        await canFillSomeSchedule(db, nothing, dutyLead, meeting, 'service', congregationId),
+      ]).toEqual([true, true])
+      const listed = await scheduleRightsFor(db, nothing, visioLead, [meeting], congregationId)
+      expect(listed.rightsOf.get(meeting.id)?.canAssignServices).toBe(true)
       // Named with the other kind's schedule, by that schedule's own responsible: still not a service's.
       expect(await fill(programmeLead, programme.id)).toBe(false)
       expect(await canFillSchedule(db, nothing, dutyLead, meeting, 'part', congregationId, services.id)).toBe(false)
@@ -528,7 +536,7 @@ describe('Bulk publish and delete: per selected event, by the rule above', () =>
 // The screens list many events at once (plan §10, 5a-3): scheduleRightsFor reads them together and must answer exactly
 // what each single rule answers, for every reader and every shape of event.
 describe('The rights of many events at once agree with each rule', () => {
-  it('gives every account, on every event, what canChangeEvent, canDeleteEvent, canPublishEvent and canFillSchedule give', async () => {
+  it('gives every account, on every event, what canChangeEvent, canDeleteEvent, canPublishEvent, canFillSchedule and canFillSomeSchedule give', async () => {
     await inCongregation(async fixture => {
       const { db, congregationId, programmeLead, dutyLead, weekendLead, nobody, meeting } = fixture
       const events = [
@@ -606,7 +614,8 @@ describe('The rights of many events at once agree with each rule', () => {
             canDelete: await canDeleteEvent(db, can, userId, event, congregationId),
             canPublish: await canPublishEvent(db, can, userId, event, congregationId),
             canAssignParts: await canFillSchedule(db, can, userId, event, 'part', congregationId),
-            canAssignServices: await canFillSchedule(db, can, userId, event, 'service', congregationId),
+            // Some duties schedule is theirs: what opening and listing a meeting asks (a meeting may hold several).
+            canAssignServices: await canFillSomeSchedule(db, can, userId, event, 'service', congregationId),
           })
         }
       }

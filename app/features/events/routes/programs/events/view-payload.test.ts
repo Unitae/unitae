@@ -34,6 +34,8 @@ const state = vi.hoisted(() => ({
   /** A second duties schedule (3, « Visioconférence »), its own responsible's; and the duties schedules the reader fills. */
   secondDuties: null as string | null,
   fills: [] as number[],
+  /** The meeting itself: a draft is work in progress, opened only by whoever may act on it. */
+  eventStatus: 'released',
 }))
 
 vi.mock('~/features/events/server/event-part-assignments.server', () => ({
@@ -41,7 +43,7 @@ vi.mock('~/features/events/server/event-part-assignments.server', () => ({
     Promise.resolve({
       id: 40,
       name: 'Réunion',
-      status: 'released',
+      status: state.eventStatus,
       templateId: 3,
       // A kind with parts to give: an empty programme waits for its own (programmeAwaits).
       template: {
@@ -191,6 +193,7 @@ beforeEach(() => {
   state.changeable = []
   state.secondDuties = null
   state.fills = []
+  state.eventStatus = 'released'
 })
 
 // A meeting holding two duties schedules (one per template its type uses, user 2026-11-27), each its own
@@ -211,6 +214,22 @@ describe('the event page with two duties schedules', () => {
     expect(data.event.schedules.map(schedule => schedule.id)).toEqual([3])
     expect(data.event.eventServiceParts.map(service => service.id)).toEqual([5])
     expect(data.fillableSchedules).toEqual([3])
+  })
+
+  // A meeting under preparation is a draft, when its duties responsibles need it most.
+  it('opens a draft meeting to the responsible of one of its duties schedules', async () => {
+    state.eventStatus = 'draft'
+    state.statuses = { programme: 'draft', duty: 'draft' }
+    state.secondDuties = 'draft'
+    state.fills = [3]
+    state.services = [
+      { id: 2, name: 'Sono', scheduleId: 2 },
+      { id: 5, name: 'Zoom', scheduleId: 3 },
+    ] as never
+    const data = (await loader({ params: { eventId: '40' }, context: readerContext() } as never)) as {
+      event: { schedules: { id: number }[] }
+    }
+    expect(data.event.schedules.map(schedule => schedule.id)).toEqual([3])
   })
 
   it('sends every reader both once published, each fillable only by its own responsible', async () => {

@@ -72,13 +72,6 @@ export function loader({ params, context }: Route.LoaderArgs) {
     // As create-programme: an empty meeting of a kind takes its programme from whoever may change it (D28).
     const canCreateProgramme = canEdit && event.templateId != null
     const canAssignAnything = canAssign || canAssignService
-    const rights = { canEdit, canPublish, canAssign, canAssignService }
-    // « Publier » / « Retirer » for an event holding no schedule, by canPublishEvent (D46); one holding schedules offers
-    // each section's and « Tout publier » (publishAll, below).
-    const actions = (await publishActionsFor(db, can, currentUser.id, [event], congregationId, () => canPublish)).get(
-      event.id,
-    ) ?? { canRelease: false, canUnrelease: false }
-    refuseDraft(event.status, rights)
     // Each duties schedule is filled by its own responsible (a meeting may hold several, one per template its kind
     // uses): asked of each, by its id.
     const duties = event.schedules.filter(schedule => schedule.kind === ScheduleKind.Duty)
@@ -93,6 +86,14 @@ export function loader({ params, context }: Route.LoaderArgs) {
         )
       ).flat(),
     )
+    // Opening the meeting takes filling some duties schedule, not every one: a draft is when its responsibles need it.
+    const rights = { canEdit, canPublish, canAssign, canAssignService: canAssignService || fillable.size > 0 }
+    // « Publier » / « Retirer » for an event holding no schedule, by canPublishEvent (D46); one holding schedules offers
+    // each section's and « Tout publier » (publishAll, below).
+    const actions = (await publishActionsFor(db, can, currentUser.id, [event], congregationId, () => canPublish)).get(
+      event.id,
+    ) ?? { canRelease: false, canUnrelease: false }
+    refuseDraft(event.status, rights)
     // A draft schedule reaches only whoever may act on it (spec §5.3, D45): the others' items never leave the server.
     const hidden = new Set(
       event.schedules

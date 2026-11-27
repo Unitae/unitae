@@ -3,7 +3,12 @@ import { mayOpenEvent, maySeeSchedule } from '~/features/events/model/programme-
 import { ScheduleKind } from '~/features/events/model/schedule.type'
 import { buildStudentSlip, isStudentSlipPart } from '~/features/events/model/student-slip'
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
-import { canChangeEvent, canFillSchedule, canPublishEvent } from '~/features/events/server/schedule-rights.server'
+import {
+  canChangeEvent,
+  canFillSchedule,
+  canFillSomeSchedule,
+  canPublishEvent,
+} from '~/features/events/server/schedule-rights.server'
 import { StudentSlipDocument } from '~/features/events/ui/pdf/StudentSlipDocument'
 import * as m from '~/i18n/paraglide/messages'
 import { getLocale } from '~/i18n/paraglide/runtime'
@@ -46,7 +51,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
       canChangeEvent(db, can, currentUser.id, event, congregationId),
       canPublishEvent(db, can, currentUser.id, event, congregationId),
       canFillSchedule(db, can, currentUser.id, event, 'part', congregationId),
-      canFillSchedule(db, can, currentUser.id, event, 'service', congregationId),
+      // Opening takes filling some duties schedule (a meeting may hold several), as the event page.
+      canFillSomeSchedule(db, can, currentUser.id, event, 'service', congregationId),
     ])
     const rights = { canEdit, canPublish, canAssign, canAssignService }
     if (!mayOpenEvent(event.status, rights)) throw redirect('/programs')
