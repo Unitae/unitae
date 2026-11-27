@@ -113,37 +113,57 @@ test.describe('Meeting type: the schedule templates it uses', () => {
       .toBe(true)
   })
 
-  // Several duties templates (user, 2026-11-27): a type takes a second one beside its own, then gives it back.
+  // Several duties templates (user, 2026-11-27): a type takes a second one beside its own, then gives it back. The demo's
+  // services templates are all unnamed, greyed beside the type's own (next case): the case names one of its own first,
+  // and deletes it after. One a failed run left behind is reused.
   test('uses a second services template beside its own, and removes it', async ({ page }) => {
-    await page.goto('/settings/templates')
-    const type = page.getByRole('link', { name: 'Réunion du week-end' }).first()
-    if ((await type.count()) === 0) test.skip()
-    await type.click()
-    await page.waitForURL(TYPE_PAGE_RE)
-    const removes = page.getByRole('button', { name: REMOVE_RE })
-    await expect(removes.first()).toBeVisible()
-    const before = await removes.count()
-    const usedIds = await page
-      .locator('section [data-schedule-template-id]')
-      .evaluateAll(links => links.map(link => link.getAttribute('data-schedule-template-id')))
-    await page.getByRole('button', { name: 'Utiliser un modèle' }).click()
-    const dialog = page.getByRole('dialog', { name: 'Utiliser un modèle de planning' })
-    // A named one: an unnamed one beside the unnamed one the type uses is greyed (the next case).
-    const offered = dialog.locator('button:not([disabled])[data-schedule-template-id]').filter({ hasText: 'service' })
-    if ((await offered.count()) === 0) test.skip()
-    const added = await offered.first().getAttribute('data-schedule-template-id')
-    expect(usedIds).not.toContain(added)
-    await Promise.all([saved(page), offered.first().click()])
+    const name = 'E2E Second services'
+    await page.goto('/settings/schedule-templates')
+    if ((await page.locator('[data-row-primary]').filter({ hasText: name }).count()) === 0) {
+      await page.getByRole('button', { name: 'Nouveau modèle', exact: true }).click()
+      const create = page.getByRole('dialog')
+      await create.getByLabel('Nom').fill(name)
+      await create.getByRole('button', { name: 'Services', exact: true }).click()
+      await create.getByRole('button', { name: 'Créer le modèle' }).click()
+      await expect(create).toHaveCount(0)
+    }
     try {
-      await expect(removes).toHaveCount(before + 1)
+      await page.goto('/settings/templates')
+      const type = page.getByRole('link', { name: 'Réunion du week-end' }).first()
+      if ((await type.count()) === 0) test.skip()
+      await type.click()
+      await page.waitForURL(TYPE_PAGE_RE)
+      const removes = page.getByRole('button', { name: REMOVE_RE })
+      await expect(removes.first()).toBeVisible()
+      const before = await removes.count()
+      await page.getByRole('button', { name: 'Utiliser un modèle' }).click()
+      const dialog = page.getByRole('dialog', { name: 'Utiliser un modèle de planning' })
+      const offered = dialog.locator('button:not([disabled])[data-schedule-template-id]').filter({ hasText: name })
+      await expect(offered).toHaveCount(1)
+      const added = await offered.getAttribute('data-schedule-template-id')
+      await Promise.all([saved(page), offered.click()])
+      const used = page.locator(`section [data-schedule-template-id="${added}"]`)
+      try {
+        await expect(removes).toHaveCount(before + 1)
+        await expect(used).toHaveCount(1)
+      } finally {
+        // Leaves the type as it found it.
+        if ((await used.count()) > 0) {
+          await Promise.all([saved(page), page.getByRole('button', { name: REMOVE_RE }).last().click()])
+        }
+      }
+      await expect(removes).toHaveCount(before)
     } finally {
-      // Leaves the type as it found it.
-      const extra = page.locator(`section [data-schedule-template-id="${added}"]`)
-      if ((await extra.count()) > 0) {
-        await Promise.all([saved(page), removes.last().click()])
+      await page.goto('/settings/schedule-templates')
+      const row = page.locator('[data-row-primary]').filter({ hasText: name })
+      if ((await row.count()) > 0) {
+        await row.first().click()
+        await page.getByRole('button', { name: 'Actions du modèle' }).click()
+        await page.getByRole('menuitem', { name: 'Supprimer le modèle' }).click()
+        await page.getByRole('alertdialog').getByRole('button', { name: 'Supprimer le modèle' }).click()
+        await expect(page.locator('[data-row-primary]').filter({ hasText: name })).toHaveCount(0)
       }
     }
-    await expect(removes).toHaveCount(before)
   })
 
   // Two unnamed services schedules would both read « Services » (user, 2026-11-27): the second is named first.
