@@ -43,6 +43,8 @@ export interface TemplateWithRelations {
     /** The duties template it belongs to: a meeting gets one schedule per template (user, 2026-11-27). */
     scheduleTemplateId?: number | null
   }[]
+  /** Every duties template the kind uses, in its order, empty ones included (kindTemplate). */
+  dutiesTemplateIds?: number[]
 }
 
 /**
@@ -100,6 +102,7 @@ export function kindTemplate<T extends LoadedKind>(loaded: T): Omit<T, 'schedule
   const firstDuties = duties[0]?.scheduleTemplate.id ?? null
   return {
     ...kind,
+    dutiesTemplateIds: duties.map(link => link.scheduleTemplate.id),
     parts: [...(first(ScheduleKind.Programme)?.parts ?? []), ...kind.parts].sort(byOrder),
     serviceParts: [
       ...duties.flatMap(link => [...link.scheduleTemplate.serviceParts].sort(byOrder)),
@@ -148,11 +151,13 @@ export async function giveProgramme(
     congregationId,
   )
   const groups = byDutiesTemplate(template.serviceParts)
-  const dutiesTemplates = [...groups.keys()].flatMap(id => (id == null ? [] : [id]))
+  const first = [...groups.keys()][0]
+  // Every duties template the kind uses, empty ones too: a schedule from one of them is that template's, never adopted.
+  const used = template.dutiesTemplateIds ?? [...groups.keys()].flatMap(id => (id == null ? [] : [id]))
   for (const [scheduleTemplateId, services] of groups) {
     // The first template's services fill a duties schedule the meeting already holds from none of its kind's duties
     // templates (a meeting created ahead, given one by hand), as they did before a kind could use several.
-    const adopt = scheduleTemplateId === dutiesTemplates[0] ? dutiesTemplates : undefined
+    const adopt = scheduleTemplateId != null && scheduleTemplateId === first ? used : undefined
     const dutiesId =
       scheduleTemplateId == null
         ? await eventScheduleId(db, eventId, ScheduleKind.Duty, congregationId, { takeEventStatus })

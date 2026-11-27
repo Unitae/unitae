@@ -47,7 +47,10 @@ describe('createMeetingProgramme', () => {
     const created = await createMeetingProgramme(db as never, 55, CTX)
 
     expect(created).toEqual({ id: 55, templateId: 270, day: '2026-11-19' })
-    expect(giveProgramme).toHaveBeenCalledWith(db, TEMPLATE, 55, '2026-11-19', CTX, { reused: true })
+    // kindTemplate's copy: the kind uses no duties template here.
+    expect(giveProgramme).toHaveBeenCalledWith(db, { ...TEMPLATE, dutiesTemplateIds: [] }, 55, '2026-11-19', CTX, {
+      reused: true,
+    })
   })
 
   // Whoever creates the programme prepares the meeting; its name and hours, perhaps moved for that week, stay.

@@ -155,10 +155,15 @@ describe('a type using several duties templates', () => {
             data: { name: 'Visite', kind: 'programme', congregationId },
           })
           const accueil = await tx.scheduleTemplate.create({ data: { name: 'Accueil', kind: 'duty', congregationId } })
+          const visio = await tx.scheduleTemplate.create({ data: { name: 'Visio', kind: 'duty', congregationId } })
+          // Used by the type, with nothing in it yet.
+          const empty = await tx.scheduleTemplate.create({ data: { name: 'Vide', kind: 'duty', congregationId } })
           await tx.eventKindScheduleTemplate.createMany({
             data: [
               { eventKindId: kind.id, scheduleTemplateId: programme.id, order: 0, congregationId },
               { eventKindId: kind.id, scheduleTemplateId: accueil.id, order: 1, congregationId },
+              { eventKindId: kind.id, scheduleTemplateId: visio.id, order: 2, congregationId },
+              { eventKindId: kind.id, scheduleTemplateId: empty.id, order: 3, congregationId },
             ],
           })
           await tx.templatePart.create({
@@ -174,6 +179,9 @@ describe('a type using several duties templates', () => {
           await tx.templateServicePart.create({
             data: { name: 'Porte', key: `porte-${stamp}`, order: 0, scheduleTemplateId: accueil.id, congregationId },
           })
+          await tx.templateServicePart.create({
+            data: { name: 'Zoom', key: `zoom-${stamp}`, order: 0, scheduleTemplateId: visio.id, congregationId },
+          })
           const meeting = (day: string, status: string) =>
             tx.event.create({
               data: {
@@ -186,6 +194,18 @@ describe('a type using several duties templates', () => {
               },
             })
           const held = await meeting('2099-04-01', 'draft')
+          // An empty schedule from the type's empty template, made first: its template is the type's, never adopted.
+          const fromEmpty = await tx.schedule.create({
+            data: {
+              eventId: held.id,
+              kind: 'duty',
+              name: 'Vide',
+              order: 1,
+              status: 'draft',
+              scheduleTemplateId: empty.id,
+              congregationId,
+            },
+          })
           const byHand = await tx.schedule.create({
             data: { eventId: held.id, kind: 'duty', name: 'ZZ Accueil', order: 1, status: 'draft', congregationId },
           })
@@ -197,12 +217,26 @@ describe('a type using several duties templates', () => {
             tx.schedule.findMany({
               where: { eventId },
               orderBy: [{ order: 'asc' }, { id: 'asc' }],
-              select: { id: true, kind: true, status: true, _count: { select: { items: true } } },
+              select: {
+                id: true,
+                kind: true,
+                status: true,
+                scheduleTemplateId: true,
+                _count: { select: { items: true } },
+              },
             })
+          const named = (each: { id: number; scheduleTemplateId: number | null }) =>
+            each.id === byHand.id
+              ? 'by hand'
+              : each.id === fromEmpty.id
+                ? 'empty'
+                : each.scheduleTemplateId === visio.id
+                  ? 'visio'
+                  : 'other'
           read = {
             held: (await schedules(held.id)).map(each => ({
               kind: each.kind,
-              byHand: each.id === byHand.id,
+              schedule: named(each),
               items: each._count.items,
             })),
             published: (await schedules(published.id)).map(each => `${each.kind}:${each.status}`),
@@ -215,11 +249,15 @@ describe('a type using several duties templates', () => {
       if (!(error instanceof Rollback)) throw error
     }
     expect(read).toEqual({
+      // The first template's services fill the hand-made schedule (not the one from the type's empty template); the
+      // second template gets a schedule of its own.
       held: [
-        { kind: 'programme', byHand: false, items: 1 },
-        { kind: 'duty', byHand: true, items: 1 },
+        { kind: 'programme', schedule: 'other', items: 1 },
+        { kind: 'duty', schedule: 'empty', items: 0 },
+        { kind: 'duty', schedule: 'by hand', items: 1 },
+        { kind: 'duty', schedule: 'visio', items: 1 },
       ],
-      published: ['programme:published', 'duty:published'],
+      published: ['programme:published', 'duty:published', 'duty:published'],
     })
   })
 })
