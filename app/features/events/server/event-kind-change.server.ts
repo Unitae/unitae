@@ -30,7 +30,8 @@ export interface KindChange {
 }
 
 /**
- * Why a change is refused though the caller may make it: two schedules of one kind, a template the kind does not
+ * Why a change is refused though the caller may make it: two programmes, or a template the meeting keeps added again
+ * (`kind-held`), a template the kind does not
  * suggest (or that brings nothing of its kind), or a meeting that changed since the dialog listed its schedules.
  */
 export type KindChangeRefusal = 'kind-held' | 'not-suggested' | 'stale'

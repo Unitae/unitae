@@ -133,13 +133,10 @@ function refusalOf(
   },
   kind: ScheduleKind,
   counts: { parts: number; serviceParts: number } | null,
-  scheduleTemplateId: number | null = null,
+  template: { id: number } | null = null,
 ): ScheduleAddRefusal | null {
   if (kind === ScheduleKind.Programme && event.schedules.some(schedule => schedule.kind === kind)) return 'kind-held'
-  if (
-    scheduleTemplateId != null &&
-    event.schedules.some(schedule => schedule.scheduleTemplateId === scheduleTemplateId)
-  )
+  if (template != null && event.schedules.some(schedule => schedule.scheduleTemplateId === template.id))
     return 'present'
   const awaits = isAwaitingProgramme({
     parts: event._count.items,
@@ -150,8 +147,8 @@ function refusalOf(
 }
 
 /**
- * Adds a schedule to an event. Null when the event or the template is not the congregation's. Refused when the event
- * already holds one of its kind, or, for one that brings no item of its kind (empty, or a template with nothing of
+ * Adds a schedule to an event. Null when the event or the template is not the congregation's. Refused for a programme
+ * where the event holds one, for a template it holds already (duties schedules are as many as wanted), or, for one that brings no item of its kind (empty, or a template with nothing of
  * it), while the meeting awaits its programme: « Créer le programme » would fill it with the template's items. A
  * meeting the job created ahead becomes its author's, as editing it does. The event's template row is locked, then
  * the event's, the order « Créer le programme » takes them in.
@@ -175,7 +172,7 @@ export async function addSchedule(
   const event = await lockEventForAdd(db, eventId, congregationId)
   if (event == null) return null
   const counts = template && { parts: template.parts.length, serviceParts: template.serviceParts.length }
-  const reason = refusalOf(event, kind, counts, template?.id ?? null)
+  const reason = refusalOf(event, kind, counts, template)
   if (reason != null) {
     logger.info('schedule add refused', { reason, eventId, kind, congregationId, actorId })
     return { reason }
