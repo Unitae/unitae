@@ -140,7 +140,12 @@ export async function mayReadSlotFacts(
   congregationId: number,
   slot: { kind: 'part' | 'service'; assignmentId: number | null },
 ): Promise<boolean> {
-  if (!(await canFillSchedule(db, can, userId, event, slot.kind, congregationId))) return false
+  // A service's own schedule (a meeting may hold several duties schedules, each with its responsible).
+  const scheduleId =
+    slot.kind === 'service' && slot.assignmentId != null
+      ? await scheduleOfItems(db, [slot.assignmentId], congregationId)
+      : null
+  if (!(await canFillSchedule(db, can, userId, event, slot.kind, congregationId, scheduleId))) return false
   if (slot.assignmentId == null) return true
   return assignmentBelongsToEvent(db, slot.kind, slot.assignmentId, event.id, congregationId)
 }

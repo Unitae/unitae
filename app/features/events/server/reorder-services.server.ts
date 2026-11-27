@@ -5,20 +5,22 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 // Dragging services: an event's (that meeting only) and a template's (the order its new programmes start with).
 
 /**
- * Puts an event's services in the given order. Writes nothing and answers false unless `orderedIds` is exactly this
- * event's services, each once: the caller was authorised on this event, not on whichever one a posted id belongs to,
- * and a service left out would end up tied with the moved ones. Stricter than parts, which accept a subset.
+ * Puts an event's services in the given order, or one duties schedule's when `scheduleId` names it (a meeting may hold
+ * several, each with its responsible). Writes nothing and answers false unless `orderedIds` is exactly those services,
+ * each once: the caller was authorised on this event or schedule, not on whichever one a posted id belongs to, and a
+ * service left out would end up tied with the moved ones. Stricter than parts, which accept a subset.
  */
 export async function reorderServiceAssignments(
   db: TransactionClient,
   congregationId: number,
   eventId: number,
   orderedIds: number[],
+  scheduleId: number | null = null,
 ): Promise<boolean> {
   // Two reorders of the congregation's event services at once would interleave their writes.
   await db.$executeRawUnsafe('SELECT pg_advisory_xact_lock($1, $2)', 1_000_004, congregationId)
   const services = await db.item.findMany({
-    where: { eventId, congregationId, ...SERVICE_ITEMS },
+    where: { eventId, congregationId, ...SERVICE_ITEMS, ...(scheduleId == null ? {} : { scheduleId }) },
     select: { id: true },
   })
   if (!isTheWholeList(orderedIds, services)) return false
