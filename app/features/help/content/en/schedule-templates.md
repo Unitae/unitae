@@ -20,9 +20,9 @@ A schedule template gives the meetings' schedules their content: the parts of a 
 4. Choose its **Person in charge**, or **No person in charge assigned**.
 5. Click **Create template**: it opens, empty, ready for its parts or services.
 
-A template no meeting type uses is added to a meeting with **Add a schedule**, on the meeting's page.
+A template no event type uses is added to a meeting with **Add a schedule**, on the meeting's page.
 
-For a meeting type to use it, open that type in **Settings › Event types**: under **Schedules used**, **Use a template** offers the templates of a kind the type doesn't have yet. A type uses at most one spiritual template and one services template. The arrows change their order, and the cross removes one: its parts and services stay in the template, and meetings already created keep their schedules. Only new meetings follow these changes.
+For an event type to use it, open that type in **Settings › Event types**: under **Schedules used**, **Use a template** offers the templates of a kind the type doesn't have yet. A type uses at most one spiritual template and one services template. The arrows change their order, and the cross removes one: its parts and services stay in the template, and meetings already created keep their schedules. Only new meetings follow these changes.
 
 ## Its parts and sections
 
@@ -51,4 +51,4 @@ The holder and the deputies of the chosen role can fill in and publish the sched
 
 ## Delete a template
 
-In the template's panel, open the **…** menu and choose **Delete template**. The dialog says what goes and what stays: the meeting types that use it no longer receive it, and schedules already created keep their name, content and assignments. The deletion is permanent.
+In the template's panel, open the **…** menu and choose **Delete template**. The dialog says what goes and what stays: the event types that use it no longer receive it, and schedules already created keep their name, content and assignments. The deletion is permanent.

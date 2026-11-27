@@ -20,9 +20,9 @@ Un modèle de planning donne leur contenu aux plannings des réunions : les part
 4. Choisissez son **Responsable**, ou **Aucun responsable désigné**.
 5. Cliquez sur **Créer le modèle** : il s’ouvre, vide, prêt à recevoir ses parties ou ses services.
 
-Un modèle qu’aucun type de réunion n’utilise s’ajoute à une réunion avec **Ajouter un planning**, sur la page de la réunion.
+Un modèle qu’aucun type d’évènement n’utilise s’ajoute à une réunion avec **Ajouter un planning**, sur la page de la réunion.
 
-Pour qu’un type de réunion l’utilise, ouvrez ce type dans **Réglages › Types d’évènement** : sous **Plannings utilisés**, **Utiliser un modèle** propose les modèles d’une sorte que le type n’a pas encore. Un type utilise au plus un modèle spirituel et un modèle de services. Les flèches changent leur ordre, et la croix en retire un : ses parties et ses services restent dans le modèle, et les réunions déjà créées gardent leurs plannings. Seules les nouvelles réunions suivent ces changements.
+Pour qu’un type d’évènement l’utilise, ouvrez ce type dans **Réglages › Types d’évènement** : sous **Plannings utilisés**, **Utiliser un modèle** propose les modèles d’une sorte que le type n’a pas encore. Un type utilise au plus un modèle spirituel et un modèle de services. Les flèches changent leur ordre, et la croix en retire un : ses parties et ses services restent dans le modèle, et les réunions déjà créées gardent leurs plannings. Seules les nouvelles réunions suivent ces changements.
 
 ## Ses parties et ses sections
 
@@ -51,4 +51,4 @@ Le titulaire et les adjoints du rôle choisi peuvent remplir et publier les plan
 
 ## Supprimer un modèle
 
-Dans le panneau du modèle, ouvrez le menu **…** et choisissez **Supprimer le modèle**. La fenêtre dit ce qui part et ce qui reste : les types de réunion qui l’utilisent n’en reçoivent plus, et les plannings déjà créés gardent leur nom, leur contenu et leurs attributions. La suppression est définitive.
+Dans le panneau du modèle, ouvrez le menu **…** et choisissez **Supprimer le modèle**. La fenêtre dit ce qui part et ce qui reste : les types d’évènement qui l’utilisent n’en reçoivent plus, et les plannings déjà créés gardent leur nom, leur contenu et leurs attributions. La suppression est définitive.

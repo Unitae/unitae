@@ -20,9 +20,9 @@ Um modelo de planeamento dá o conteúdo aos planeamentos das reuniões: as part
 4. Escolha o **Responsável**, ou **Nenhum responsável designado**.
 5. Clique em **Criar o modelo**: abre-se, vazio, pronto para receber as partes ou os serviços.
 
-Um modelo que nenhum tipo de reunião utiliza adiciona-se a uma reunião com **Adicionar um planeamento**, na página da reunião.
+Um modelo que nenhum tipo de evento utiliza adiciona-se a uma reunião com **Adicionar um planeamento**, na página da reunião.
 
-Para que um tipo de reunião o utilize, abra esse tipo em **Definições › Tipos de evento**: em **Planeamentos utilizados**, **Usar um modelo** propõe os modelos de um género que o tipo ainda não tem. Um tipo utiliza no máximo um modelo espiritual e um modelo de serviços. As setas mudam a sua ordem e a cruz retira um: as respetivas partes e serviços ficam no modelo, e as reuniões já criadas mantêm os seus planeamentos. Só as novas reuniões seguem estas alterações.
+Para que um tipo de evento o utilize, abra esse tipo em **Definições › Tipos de evento**: em **Planeamentos utilizados**, **Usar um modelo** propõe os modelos de um género que o tipo ainda não tem. Um tipo utiliza no máximo um modelo espiritual e um modelo de serviços. As setas mudam a sua ordem e a cruz retira um: as respetivas partes e serviços ficam no modelo, e as reuniões já criadas mantêm os seus planeamentos. Só as novas reuniões seguem estas alterações.
 
 ## As partes e as secções
 
@@ -51,4 +51,4 @@ O titular e os adjuntos da função escolhida podem preencher e publicar os plan
 
 ## Eliminar um modelo
 
-No painel do modelo, abra o menu **…** e escolha **Eliminar o modelo**. A janela indica o que sai e o que fica: os tipos de reunião que o utilizam deixam de o receber, e os planeamentos já criados mantêm o nome, o conteúdo e as designações. A eliminação é definitiva.
+No painel do modelo, abra o menu **…** e escolha **Eliminar o modelo**. A janela indica o que sai e o que fica: os tipos de evento que o utilizam deixam de o receber, e os planeamentos já criados mantêm o nome, o conteúdo e as designações. A eliminação é definitiva.
