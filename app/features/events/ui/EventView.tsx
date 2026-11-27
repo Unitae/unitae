@@ -62,6 +62,8 @@ interface EventViewProps {
   canUnrelease: boolean
   canAssign: boolean
   canAssignService: boolean
+  /** The duties schedules the reader fills: a meeting may hold several, each its own responsible's. */
+  fillableSchedules: number[]
   canViewPublishers: boolean
   /** Everyone who may be picked, and per slot the ones eligible for it. */
   users: PersonOption[]
@@ -96,6 +98,7 @@ export function EventView({
   canUnrelease,
   canAssign,
   canAssignService,
+  fillableSchedules,
   canViewPublishers,
   users,
   partCandidates,
@@ -134,11 +137,24 @@ export function EventView({
         event.eventServiceParts.map(item => item.id),
       )
 
+  // The duties schedules, each its own section (one per template the kind uses, user 2026-11-27); a service of no
+  // schedule (written before schedules) is the first's.
+  const dutySchedules = event.schedules.filter(schedule => schedule.kind === ScheduleKind.Duty)
+  const firstDuties = dutySchedules[0]?.id ?? null
+  const scheduleOfService = (item: { scheduleId?: number | null } | undefined) => item?.scheduleId ?? firstDuties
+  const servicesOf = (scheduleId: number) =>
+    event.eventServiceParts.filter(item => scheduleOfService(item) === scheduleId)
+  const fillsService = (id: number) => {
+    const scheduleId = scheduleOfService(event.eventServiceParts.find(item => item.id === id))
+    return scheduleId != null && fillableSchedules.includes(scheduleId)
+  }
+
   // `?item=part-12` opens that item's panel: the absences page links here to reassign a part someone is away for. It
   // was `?assign=` with the old rows' ids (plan T12); such a link now opens the event alone, never another slot.
   useOpenParam('item', value => {
     const slot = parseAssignKey(value)
-    if (slot != null && (slot.kind === 'part' ? canAssign : canAssignService)) panel.open({ ...slot, trigger: null })
+    if (slot != null && (slot.kind === 'part' ? canAssign : fillsService(slot.id)))
+      panel.open({ ...slot, trigger: null })
   })
   useEffect(() => setDirty(panel.dirty), [panel.dirty, setDirty])
   useCloseOnSave(partFetcher, panel.close)
@@ -171,13 +187,10 @@ export function EventView({
   // tells of a schedule hidden from them (D45).
   const shownKinds = new Set(event.schedules.map(schedule => schedule.kind))
   const showsProgramme = awaitingProgramme || shownKinds.has(ScheduleKind.Programme)
-  const showsDuties = shownKinds.has(ScheduleKind.Duty)
-  // Each schedule its own section: its title and kind, its responsible (D37), its status and its « Publier ». By
-  // kind, while an event holds one schedule of each (see maySeeSchedule): its items carry no schedule of their own.
+  // Each schedule its own section: its title and kind, its responsible (D37), its status and its « Publier ».
   const programmeSchedule = event.schedules.find(schedule => schedule.kind === ScheduleKind.Programme)
-  const dutySchedule = event.schedules.find(schedule => schedule.kind === ScheduleKind.Duty)
   const mayEditStructure = (schedule: EventScheduleView) =>
-    canEdit && (schedule.kind === ScheduleKind.Programme ? canAssign : canAssignService)
+    canEdit && (schedule.kind === ScheduleKind.Programme ? canAssign : fillableSchedules.includes(schedule.id))
   const editLink = (schedule: EventScheduleView, className: string) =>
     mayEditStructure(schedule) && (
       <Button variant="ghost" size="sm" className={className} asChild>
@@ -192,12 +205,7 @@ export function EventView({
       title: <ScheduleTitle schedule={schedule} />,
       actions: (
         <>
-          <ScheduleStatusControl
-            eventId={event.id}
-            schedule={schedule}
-            fill={fill}
-            unfilled={unfilledOf(schedule.kind)}
-          />
+          <ScheduleStatusControl eventId={event.id} schedule={schedule} fill={fill} unfilled={unfilledOf(schedule)} />
           {/* « Modifier le planning » (D38): its structure on its own page, for whoever changes the meeting and fills it. */}
           {editLink(schedule, 'max-md:hidden')}
           {schedule.mayChange && (
@@ -223,7 +231,7 @@ export function EventView({
           {schedule.responsible != null && <ScheduleResponsibleLine schedule={schedule} />}
         </>
       ),
-      intro: <ScheduleConflictNotice schedule={schedule} items={itemsOf(schedule.kind)} />,
+      intro: <ScheduleConflictNotice schedule={schedule} items={itemsOf(schedule)} />,
       // On a phone, « Publier » and « Modifier le planning » below the rows, which stay unfolded (the user's choice).
       // Only when there is a button to put there: a reader who can act on nothing gets no empty strip.
       foot: (schedulePublishAction(schedule) != null || mayEditStructure(schedule)) && (
@@ -232,7 +240,7 @@ export function EventView({
             eventId={event.id}
             schedule={schedule}
             fill={fill}
-            unfilled={unfilledOf(schedule.kind)}
+            unfilled={unfilledOf(schedule)}
             placement="foot"
           />
           {editLink(schedule, 'h-11')}
@@ -241,12 +249,15 @@ export function EventView({
     }
   const bySchedule = event.schedules.length > 0
   const assignedParts = event.eventParts.filter(item => item.assigneeId ?? item.externalSpeakerId).length
-  const filledServices = event.eventServiceParts.filter(item => item.assigneeId).length
-  const itemsOf = (kind: string) => (kind === ScheduleKind.Programme ? event.eventParts : event.eventServiceParts)
-  // Slots nobody holds, by kind: publishing a schedule that has some asks first (the user's rule).
-  const unfilled = unfilledSlots({ parts: event.eventParts, services: event.eventServiceParts })
-  const unfilledOf = (kind: string) => (kind === ScheduleKind.Programme ? unfilled.programme : unfilled.duty)
-  const draftsUnfilled = unfilledToPublish(event.schedules, unfilled)
+  const filledOf = (scheduleId: number) => servicesOf(scheduleId).filter(item => item.assigneeId).length
+  const itemsOf = (schedule: EventScheduleView) =>
+    schedule.kind === ScheduleKind.Programme ? event.eventParts : servicesOf(schedule.id)
+  // Slots nobody holds, per schedule: publishing a schedule that has some asks first (the user's rule).
+  const unfilledOf = (schedule: EventScheduleView) =>
+    schedule.kind === ScheduleKind.Programme
+      ? unfilledSlots({ parts: event.eventParts, services: [] }).programme
+      : unfilledSlots({ parts: [], services: servicesOf(schedule.id) }).duty
+  const draftsUnfilled = unfilledToPublish(event.schedules, unfilledOf)
   // Each speaker and each reader: what a schedule deleted takes with it.
   const programmeAssignments =
     event.eventParts.filter(item => item.assigneeId != null).length +
@@ -294,7 +305,7 @@ export function EventView({
           title: scheduleTitle(schedule),
           kind: schedule.kind,
           status: schedule.status,
-          assignments: schedule.kind === ScheduleKind.Programme ? programmeAssignments : filledServices,
+          assignments: schedule.kind === ScheduleKind.Programme ? programmeAssignments : filledOf(schedule.id),
           removable: schedule.mayChange,
         }))}
         hasAttendance={hasAttendance}
@@ -321,21 +332,26 @@ export function EventView({
               )}
             />
           )}
-          {showsDuties && (
-            <EventServiceAssignmentsPanel
-              services={event.eventServiceParts}
-              canAssign={canAssignService}
-              canViewPublishers={canViewPublishers}
-              selectedId={target?.kind === 'service' ? target.id : null}
-              onAssign={(item, trigger) => panel.request({ kind: 'service', id: item.id, trigger })}
-              onUnassign={setUnassignTarget}
-              heading={headingOf(
-                dutySchedule,
-                m.programs_view_services_filled({ count: filledServices, total: event.eventServiceParts.length }),
-                filledServices,
-              )}
-            />
-          )}
+          {dutySchedules.map(schedule => {
+            const services = servicesOf(schedule.id)
+            const filled = filledOf(schedule.id)
+            return (
+              <EventServiceAssignmentsPanel
+                key={schedule.id}
+                services={services}
+                canAssign={fillableSchedules.includes(schedule.id)}
+                canViewPublishers={canViewPublishers}
+                selectedId={target?.kind === 'service' ? target.id : null}
+                onAssign={(item, trigger) => panel.request({ kind: 'service', id: item.id, trigger })}
+                onUnassign={setUnassignTarget}
+                heading={headingOf(
+                  schedule,
+                  m.programs_view_services_filled({ count: filled, total: services.length }),
+                  filled,
+                )}
+              />
+            )
+          })}
           {/* The board's closing note: where published schedules go, and who is told. */}
           {bySchedule && <p className="text-faint text-sm">{m.programs_schedules_footer()}</p>}
         </div>

@@ -18,10 +18,14 @@ export async function loader(args: Route.LoaderArgs) {
   const data = await editLoader(args as never)
   const schedule = data.event.schedules.find(candidate => candidate.id === scheduleId)
   const isProgramme = schedule?.kind === ScheduleKind.Programme
-  if (schedule == null || !(isProgramme ? data.canFillParts : data.canFillServices)) {
-    throw redirect(`/programs/events/${data.event.id}`)
+  // A duties schedule is its own responsible's (a meeting may hold several): that one's right, not the kind's.
+  const fills = schedule != null && (isProgramme ? data.canFillParts : data.fillableSchedules.includes(schedule.id))
+  if (schedule == null || !fills) throw redirect(`/programs/events/${data.event.id}`)
+  return {
+    ...data,
+    canFillServices: !isProgramme || data.canFillServices,
+    focus: { id: schedule.id, kind: schedule.kind as ScheduleKind, name: schedule.name },
   }
-  return { ...data, focus: { id: schedule.id, kind: schedule.kind as ScheduleKind, name: schedule.name } }
 }
 
 /** The editor's own action: changing the event, then the right of the schedule each intent fills. */

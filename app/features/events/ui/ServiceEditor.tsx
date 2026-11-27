@@ -22,6 +22,8 @@ export interface ServiceEditorProps {
   /** Receives the form element, e.g. to count its changes. */
   formRef?: (form: HTMLFormElement | null) => void
   className?: string
+  /** The duties schedule a new service goes into, on its « Modifier le planning » page (a meeting may hold several). */
+  scheduleId?: number | null
 }
 
 /** The id of the service form, for a submit button placed outside it. */
@@ -39,7 +41,7 @@ export function serviceEditorCopy(mode: PartEditorMode, isEditing: boolean) {
 }
 
 /** The fields of a service (sound, attendants…), for an event or a template. Remount it to start again. */
-export function ServiceEditor({ service, mode, fetcher, roles, formRef, className }: ServiceEditorProps) {
+export function ServiceEditor({ service, mode, fetcher, roles, formRef, className, scheduleId }: ServiceEditorProps) {
   const rolesLabelId = useId()
   const intent = mode === 'template' ? 'upsert-service-role' : service != null ? 'update-service' : 'add-service'
   const nameField = mode === 'template' ? 'roleName' : 'serviceName'
@@ -49,6 +51,9 @@ export function ServiceEditor({ service, mode, fetcher, roles, formRef, classNam
       <input type="hidden" name="intent" value={intent} />
       {mode === 'template' && service?.id && <input type="hidden" name="roleId" value={service.id} />}
       {mode === 'event' && service?.id && <input type="hidden" name="serviceItemId" value={service.id} />}
+      {mode === 'event' && service == null && scheduleId != null && (
+        <input type="hidden" name="scheduleId" value={scheduleId} />
+      )}
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor={nameField}>{m.programs_edit_part_name_label()}</Label>

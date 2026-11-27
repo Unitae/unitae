@@ -20,8 +20,14 @@ export function mayOpenEvent(status: string, rights: EventPageRights): boolean {
  * they exist. It goes by kind, as the rights do (canFillSchedule): every writer makes one schedule of a kind today; a
  * second duty schedule (PR 6/7) asks for a right per schedule here.
  */
-export function maySeeSchedule(schedule: { kind: string; status: string }, rights: EventPageRights): boolean {
+export function maySeeSchedule(
+  schedule: { kind: string; status: string },
+  rights: EventPageRights,
+  /** Whether the reader fills this very schedule: a meeting may hold several duties schedules, each its own. */
+  fillsThis?: boolean,
+): boolean {
   if (schedule.status === ScheduleStatus.Published || rights.canEdit || rights.canPublish) return true
+  if (fillsThis != null) return fillsThis
   return schedule.kind === ScheduleKind.Programme ? rights.canAssign : rights.canAssignService
 }
 

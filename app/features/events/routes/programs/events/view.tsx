@@ -79,15 +79,44 @@ export function loader({ params, context }: Route.LoaderArgs) {
       event.id,
     ) ?? { canRelease: false, canUnrelease: false }
     refuseDraft(event.status, rights)
+    // Each duties schedule is filled by its own responsible (a meeting may hold several, one per template its kind
+    // uses): asked of each, by its id.
+    const duties = event.schedules.filter(schedule => schedule.kind === ScheduleKind.Duty)
+    const fillable = new Set(
+      (
+        await Promise.all(
+          duties.map(async schedule =>
+            (await canFillSchedule(db, can, currentUser.id, event, 'service', congregationId, schedule.id))
+              ? [schedule.id]
+              : [],
+          ),
+        )
+      ).flat(),
+    )
     // A draft schedule reaches only whoever may act on it (spec §5.3, D45): the others' items never leave the server.
-    // By kind, while an event holds one schedule of each (see maySeeSchedule).
-    const hidden = new Set(event.schedules.filter(schedule => !maySeeSchedule(schedule, rights)).map(s => s.kind))
+    const hidden = new Set(
+      event.schedules
+        .filter(schedule => {
+          const fillsThis = schedule.kind === ScheduleKind.Duty ? fillable.has(schedule.id) : undefined
+          return !maySeeSchedule(schedule, rights, fillsThis)
+        })
+        .map(schedule => schedule.id),
+    )
+    const programmeHidden = event.schedules.some(
+      schedule => schedule.kind === ScheduleKind.Programme && hidden.has(schedule.id),
+    )
+    // A service of no schedule (data written before schedules) is the first duties schedule's.
+    const firstDuties = duties[0]?.id ?? null
+    const scheduleOf = (service: { scheduleId?: number | null }) => service.scheduleId ?? firstDuties
     // Not even that a hidden schedule exists: its status leaves with neither its items nor the list of schedules.
     const shown = {
       ...event,
-      schedules: event.schedules.filter(schedule => !hidden.has(schedule.kind)),
-      eventParts: hidden.has(ScheduleKind.Programme) ? [] : event.eventParts,
-      eventServiceParts: hidden.has(ScheduleKind.Duty) ? [] : event.eventServiceParts,
+      schedules: event.schedules.filter(schedule => !hidden.has(schedule.id)),
+      eventParts: programmeHidden ? [] : event.eventParts,
+      eventServiceParts: event.eventServiceParts.filter(service => {
+        const scheduleId = scheduleOf(service)
+        return scheduleId == null || !hidden.has(scheduleId)
+      }),
     }
 
     // Each schedule the reader sees, as its section shows it: its responsible (D37) and whether they may publish it.
@@ -127,8 +156,11 @@ export function loader({ params, context }: Route.LoaderArgs) {
       const roleId = roleOf(schedule)
       const responsible = roleId == null ? undefined : responsibles.get(roleId)
       const mayPublish = mine.has(schedule.id)
-      // By kind, while an event holds one schedule of each (see maySeeSchedule): its items are its kind's.
-      const items = schedule.kind === ScheduleKind.Programme ? shown.eventParts.length : shown.eventServiceParts.length
+      // Its own items: the programme's parts, or the services of this duties schedule.
+      const items =
+        schedule.kind === ScheduleKind.Programme
+          ? shown.eventParts.length
+          : shown.eventServiceParts.filter(service => scheduleOf(service) === schedule.id).length
       return {
         id: schedule.id,
         kind: schedule.kind,
@@ -155,19 +187,21 @@ export function loader({ params, context }: Route.LoaderArgs) {
     // The delete dialog says what deleting does: with counts, only the programme goes.
     const hasAttendance = canDelete && (await eventHasAttendance(db, eventId, congregationId))
 
-    const users = canAssignAnything
-      ? await db.member.findMany({
-          where: { congregationId, leftAt: null },
-          orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
-        })
-      : []
+    const users =
+      canAssignAnything || fillable.size > 0
+        ? await db.member.findMany({
+            where: { congregationId, leftAt: null },
+            orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
+          })
+        : []
 
     // Least recently here first: the order a planner rotates through.
     const externalSpeakers = canAssign ? await listExternalSpeakerOptions(db, congregationId) : []
 
-    const candidates = canAssignAnything
-      ? await buildAssignmentCandidates(db, event, users, congregationId)
-      : { partCandidates: {}, serviceCandidates: {} }
+    const candidates =
+      canAssignAnything || fillable.size > 0
+        ? await buildAssignmentCandidates(db, event, users, congregationId)
+        : { partCandidates: {}, serviceCandidates: {} }
     // Eligibility lists are per-slot data; hand back only the family the caller
     // may actually fill.
     const partCandidates = canAssign ? candidates.partCandidates : {}
@@ -199,7 +233,9 @@ export function loader({ params, context }: Route.LoaderArgs) {
       canRelease: actions.canRelease,
       canUnrelease: actions.canUnrelease,
       canAssign,
-      canAssignService,
+      // Some duties schedule is theirs to fill; `fillableSchedules` says which (each its own responsible's).
+      canAssignService: canAssignService || fillable.size > 0,
+      fillableSchedules: [...fillable],
       canViewPublishers: can(Permission.CanViewPublishers),
       users: users.map(({ id, firstname, lastname }) => ({ id, firstname, lastname })),
       externalSpeakers,

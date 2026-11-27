@@ -31,6 +31,9 @@ const state = vi.hoisted(() => ({
   services: [{ id: 2, name: 'Sono' }] as { id: number; name: string }[],
   /** The schedules the reader may rename or delete. */
   changeable: [] as number[],
+  /** A second duties schedule (3, « Visioconférence »), its own responsible's; and the duties schedules the reader fills. */
+  secondDuties: null as string | null,
+  fills: [] as number[],
 }))
 
 vi.mock('~/features/events/server/event-part-assignments.server', () => ({
@@ -63,6 +66,18 @@ vi.mock('~/features/events/server/event-part-assignments.server', () => ({
           key: null,
           scheduleTemplate: { responsibleRoleId: 9 },
         },
+        ...(state.secondDuties == null
+          ? []
+          : [
+              {
+                id: 3,
+                kind: 'duty',
+                status: state.secondDuties,
+                name: 'Visioconférence',
+                key: null,
+                scheduleTemplate: { responsibleRoleId: 10 },
+              },
+            ]),
       ],
       eventParts: state.parts,
       eventServiceParts: state.services,
@@ -73,8 +88,23 @@ vi.mock('~/features/events/server/schedule-rights.server', () => ({
   canChangeEvent: () => Promise.resolve(state.rights.change),
   canDeleteEvent: () => Promise.resolve(false),
   canPublishEvent: () => Promise.resolve(state.rights.publish),
-  canFillSchedule: (_db: unknown, _can: unknown, _user: number, _event: unknown, kind: 'part' | 'service') =>
-    Promise.resolve(kind === 'part' ? state.rights.part : state.rights.service),
+  // Named, a duties schedule is the reader's when it is in `fills` (when a case sets it); otherwise as the kind's right.
+  canFillSchedule: (
+    _db: unknown,
+    _can: unknown,
+    _user: number,
+    _event: unknown,
+    kind: 'part' | 'service',
+    _congregationId: number,
+    scheduleId?: number | null,
+  ) =>
+    Promise.resolve(
+      scheduleId != null && state.fills.length > 0
+        ? state.fills.includes(scheduleId)
+        : kind === 'part'
+          ? state.rights.part
+          : state.rights.service,
+    ),
 }))
 
 vi.mock('~/features/events/server/attendance.queries', () => ({ eventHasAttendance: () => Promise.resolve(false) }))
@@ -159,6 +189,45 @@ beforeEach(() => {
   state.parts = [{ id: 1, name: 'Discours' }]
   state.services = [{ id: 2, name: 'Sono' }]
   state.changeable = []
+  state.secondDuties = null
+  state.fills = []
+})
+
+// A meeting holding two duties schedules (one per template its type uses, user 2026-11-27), each its own
+// responsible's: a draft reaches only whoever fills that one, with its services and no other's.
+describe('the event page with two duties schedules', () => {
+  it('sends a reader the draft duties schedule they fill, and nothing of the other', async () => {
+    state.statuses = { programme: 'draft', duty: 'draft' }
+    state.secondDuties = 'draft'
+    state.fills = [3]
+    state.services = [
+      { id: 2, name: 'Sono', scheduleId: 2 },
+      { id: 5, name: 'Zoom', scheduleId: 3 },
+    ] as never
+    const data = (await loader({ params: { eventId: '40' }, context: readerContext() } as never)) as {
+      event: { eventServiceParts: { id: number }[]; schedules: { id: number }[] }
+      fillableSchedules: number[]
+    }
+    expect(data.event.schedules.map(schedule => schedule.id)).toEqual([3])
+    expect(data.event.eventServiceParts.map(service => service.id)).toEqual([5])
+    expect(data.fillableSchedules).toEqual([3])
+  })
+
+  it('sends every reader both once published, each fillable only by its own responsible', async () => {
+    state.secondDuties = 'published'
+    state.fills = [2]
+    state.services = [
+      { id: 2, name: 'Sono', scheduleId: 2 },
+      { id: 5, name: 'Zoom', scheduleId: 3 },
+    ] as never
+    const data = (await loader({ params: { eventId: '40' }, context: readerContext() } as never)) as {
+      event: { eventServiceParts: { id: number }[]; schedules: { id: number }[] }
+      fillableSchedules: number[]
+    }
+    expect(data.event.schedules.map(schedule => schedule.id)).toEqual([2, 3])
+    expect(data.event.eventServiceParts.map(service => service.id)).toEqual([2, 5])
+    expect(data.fillableSchedules).toEqual([2])
+  })
 })
 
 describe('the event page’s publishing', () => {
