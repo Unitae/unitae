@@ -28,6 +28,14 @@ function archivedKind(value: string | undefined, key: string, congregationId: nu
   return null
 }
 
+/**
+ * The built-in type's old seeded French name reads as 20261203090000_freeform_kind_spelling renamed it, so restoring an
+ * archive made before gives what migrating live data gave; any other name stays as the archive has it.
+ */
+function restoredName(record: { key: string; name: string }): string {
+  return record.key === EventTemplateKey.Freeform && record.name === 'Autre événement' ? 'Autre évènement' : record.name
+}
+
 /** The template's hours when the archive carries them; an older archive leaves them as they are. */
 function hours(record: { startTime?: string; endTime?: string }) {
   return {
@@ -57,10 +65,11 @@ export async function importEventTemplates(
     endTime?: string
   }>(zip, 'programme-templates')
 
-  for (const record of records) {
+  for (const archived of records) {
     // An archive from before the day-off events were dropped has their template: it is not restored, and its events
     // come back as absences only (importEvents).
-    if (record.key === EventTemplateKey.DayOff) continue
+    if (archived.key === EventTemplateKey.DayOff) continue
+    const record = { ...archived, name: restoredName(archived) }
     const kind = archivedKind(record.attendanceKind, record.key, congregationId)
     const existing = await db.eventTemplate.findFirst({ where: { key: record.key, congregationId } })
     if (existing) {

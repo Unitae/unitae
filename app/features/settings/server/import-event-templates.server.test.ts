@@ -151,3 +151,34 @@ describe('importEventTemplates — hours', () => {
     expect(data).not.toHaveProperty('endTime')
   })
 })
+
+// An archive made before 20261203090000_freeform_kind_spelling carries the built-in type's old seeded name: restoring it
+// gives what the migration gave live data, and leaves any other name as the archive has it.
+describe('importEventTemplates — the built-in type’s spelling', () => {
+  it('restores the old seeded name as « Autre évènement », on an existing type and a new one', async () => {
+    db.eventTemplate.findFirst.mockResolvedValueOnce({ id: 30 }).mockResolvedValueOnce(null)
+    readNdjsonFile.mockResolvedValue([
+      template({ key: 'freeform', name: 'Autre événement', isRecurring: false }),
+      template({ id: 4, key: 'freeform', name: 'Autre événement', isRecurring: false }),
+    ])
+
+    await importEventTemplates({} as never, db as never, new EntityIdMap(), 1)
+
+    expect([
+      db.eventTemplate.update.mock.calls[0][0].data.name,
+      db.eventTemplate.create.mock.calls[0][0].data.name,
+    ]).toEqual(['Autre évènement', 'Autre évènement'])
+  })
+
+  it('keeps a name the congregation chose, and the same words on a type of another key', async () => {
+    db.eventTemplate.findFirst.mockResolvedValue(null)
+    readNdjsonFile.mockResolvedValue([
+      template({ key: 'freeform', name: 'Divers', isRecurring: false }),
+      template({ id: 4, key: 'own', name: 'Autre événement' }),
+    ])
+
+    await importEventTemplates({} as never, db as never, new EntityIdMap(), 1)
+
+    expect(db.eventTemplate.create.mock.calls.map(call => call[0].data.name)).toEqual(['Divers', 'Autre événement'])
+  })
+})
