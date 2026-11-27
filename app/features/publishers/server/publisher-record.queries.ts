@@ -3,6 +3,7 @@ import {
   ENROLMENT_MODES,
   enrolmentMonthOptions,
   enrolmentTypeOf,
+  enrolmentYears,
 } from '~/features/publishers/model/pioneer-enrolment-form'
 import { serviceYearMonths, toServiceYear } from '~/features/publishers/model/pioneer-pace'
 import type { EnrolmentOptions } from '~/features/publishers/model/publisher-record.type'
@@ -89,13 +90,15 @@ export async function getPublisherRecord(
 
 /**
  * What the record's enrolment dialogs offer: this month and the next, each with the congregation's auxiliary rate for
- * its own service year (the two can straddle September), the year's rate for every service, a span of years around
- * now, and whether the congregation uses permanent auxiliary pioneers. `now` is read on the congregation's calendar.
+ * its own service year (the two can straddle September), the year's rate for every service, the years from the
+ * publisher's baptism to two years ahead (`enrolmentYears`), and whether the congregation uses permanent auxiliary
+ * pioneers. `now` is read on the congregation's calendar.
  */
 export async function getEnrolmentOptions(
   db: TransactionClient,
   congregationId: number,
   now: Date,
+  publisherId: number,
 ): Promise<EnrolmentOptions> {
   const months = enrolmentMonthOptions(now)
   const current = toServiceYear(now.getMonth(), now.getFullYear())
@@ -105,6 +108,10 @@ export async function getEnrolmentOptions(
   )
   const rate = (serviceYear: number, type: PublisherType) =>
     goals.get(serviceYear)?.find(goal => goal.type === type)?.effectiveRate ?? 0
+  const member = await db.member.findFirst({
+    where: { id: publisherId, congregationId },
+    select: { baptismDate: true },
+  })
   const permanentAuxiliary = await getBoolSetting(
     db,
     CongregationSettingKey.PermanentAuxiliaryPioneerProfileActivated,
@@ -116,7 +123,7 @@ export async function getEnrolmentOptions(
       ...option,
       auxiliaryGoal: rate(toServiceYear(option.month, option.year), PublisherType.PionnierAuxiliaires),
     })),
-    years: Array.from({ length: 5 }, (_, index) => now.getFullYear() - 2 + index),
+    years: enrolmentYears(now, member?.baptismDate ?? null),
     rates: Object.fromEntries(ENROLMENT_MODES.map(mode => [mode, rate(current, enrolmentTypeOf(mode))])) as Record<
       (typeof ENROLMENT_MODES)[number],
       number

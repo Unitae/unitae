@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
 import { PublisherType } from '~/shared/types/publisher-type'
-import { auxiliaryGoalOptions, enrolmentModeOf, enrolmentMonthOptions, enrolmentTypeOf } from './pioneer-enrolment-form'
+import {
+  auxiliaryGoalOptions,
+  enrolmentModeOf,
+  enrolmentMonthOptions,
+  enrolmentTypeOf,
+  enrolmentYears,
+} from './pioneer-enrolment-form'
 
 describe('enrolmentMonthOptions', () => {
   it('returns the current month and the next one', () => {
@@ -66,5 +72,25 @@ describe('enrolmentTypeOf', () => {
     expect(enrolmentTypeOf('permanent')).toBe(PublisherType.PionnierPermanant)
     expect(enrolmentTypeOf('special')).toBe(PublisherType.PionnierSpecial)
     expect(enrolmentTypeOf('missionary')).toBe(PublisherType.Missionnaire)
+  })
+})
+
+describe('enrolmentYears', () => {
+  const now = new Date(2026, 10, 27)
+
+  // A brother pioneering since long before Unitae was installed must be recorded from his real first month.
+  it('reaches back to the year of baptism, and two years ahead', () => {
+    const years = enrolmentYears(now, new Date('1987-05-02T00:00:00Z'))
+    expect(years[0]).toBe(1987)
+    expect(years.at(-1)).toBe(2028)
+    expect(years).toHaveLength(2028 - 1987 + 1)
+  })
+
+  it('reaches back fifty years when no baptism date is recorded', () => {
+    expect(enrolmentYears(now, null)[0]).toBe(1976)
+  })
+
+  it('keeps the two years before now for someone baptized lately', () => {
+    expect(enrolmentYears(now, new Date('2026-03-01T00:00:00Z'))).toEqual([2024, 2025, 2026, 2027, 2028])
   })
 })

@@ -52,6 +52,23 @@ export function enrolmentMonthOptions(now: Date): MonthRef[] {
 // The reduced monthly-auxiliary goal, offered alongside the congregation's configured rate for the
 // months a lower requirement applies. Not configurable — a congregation that wants a different
 // standard changes the auxiliary rate in the pioneer-goals settings instead.
+// Without a baptism date, how far back the first month of a stint can go.
+const YEARS_BACK_WITHOUT_BAPTISM = 50
+// How far ahead a stint can be planned.
+const YEARS_AHEAD = 2
+
+/**
+ * The years a stint's first or last month can fall in: from the year of baptism, since a pioneer is baptized (fifty
+ * years back without a date), never fewer than the two years before now, to two years ahead. A brother pioneering since
+ * long before the congregation used Unitae is recorded from his real first month (#584).
+ */
+export function enrolmentYears(now: Date, baptismDate: Date | null): number[] {
+  const current = now.getFullYear()
+  const fallback = current - YEARS_BACK_WITHOUT_BAPTISM
+  const first = Math.min(baptismDate?.getUTCFullYear() ?? fallback, current - 2)
+  return Array.from({ length: current + YEARS_AHEAD - first + 1 }, (_, index) => first + index)
+}
+
 export const REDUCED_AUXILIARY_GOAL = 15
 
 // The goals a monthly-auxiliary enrolment can be created at: the congregation's configured auxiliary

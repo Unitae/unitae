@@ -101,15 +101,28 @@ describe('getPublisherRecord', () => {
 describe('getEnrolmentOptions', () => {
   it('offers this month and the next with their auxiliary rate, the rates of the year and the services in use', async () => {
     const { db } = fakeDb(null)
-    const options = await getEnrolmentOptions(db, 1, new Date('2027-08-14T10:00:00Z'))
+    const options = await getEnrolmentOptions(db, 1, new Date('2027-08-14T10:00:00Z'), 12)
     // August closes service year 2026, September opens 2027 and its rate.
     expect(options.months).toEqual([
       { month: 7, year: 2027, auxiliaryGoal: 30 },
       { month: 8, year: 2027, auxiliaryGoal: 25 },
     ])
     expect(options.rates).toMatchObject({ 'monthly-aux': 30, 'permanent-aux': 30, permanent: 50, special: 100 })
-    expect(options.years).toEqual([2025, 2026, 2027, 2028, 2029])
+    // No record to read a baptism from: fifty years back, two ahead.
+    expect([options.years[0], options.years.at(-1)]).toEqual([1977, 2029])
+
     expect(options.hidePermanentAuxiliary).toBe(true)
+  })
+})
+
+describe('getEnrolmentOptions years', () => {
+  it('offers the years from the publisher’s baptism', async () => {
+    const { db, findFirst } = fakeDb(ROW)
+    const options = await getEnrolmentOptions(db, 1, new Date('2027-08-14T10:00:00Z'), 12)
+
+    expect(options.years[0]).toBe(2000)
+    expect(options.years.at(-1)).toBe(2029)
+    expect(findFirst.mock.calls[0][0]).toMatchObject({ where: { id: 12, congregationId: 1 } })
   })
 })
 

@@ -46,7 +46,7 @@ export async function loadRecordBlocks(db: TransactionClient, rights: PublisherR
       ? getPioneerActivityForMember(db, publisherId, congregationId, pioneerYear, now)
       : skip(null),
     rights.canSeeEnrolments ? getEnrolmentsForMember(db, publisherId, congregationId) : skip([]),
-    rights.canManageEnrolments ? getEnrolmentOptions(db, congregationId, now) : skip(null),
+    rights.canManageEnrolments ? getEnrolmentOptions(db, congregationId, now, publisherId) : skip(null),
     rights.canViewAttributions ? findActiveAttributionsForPublisher(db, publisherId, congregationId) : skip([]),
     rights.canViewPrograms ? findUpcomingAssignmentsForMember(db, publisherId, congregation, clock) : skip(null),
     rights.canViewAbsences ? findUpcomingAbsencesForMember(db, publisherId, congregation, clock) : skip(null),

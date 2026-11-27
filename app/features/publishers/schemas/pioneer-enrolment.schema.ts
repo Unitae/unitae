@@ -6,6 +6,10 @@ import { PublisherType } from '~/shared/types/publisher-type'
 // omitted end / goal reads as absent (an ongoing stint), not as 0.
 const emptyToUndefined = (v: unknown) => (v === '' || v == null ? undefined : v)
 
+// A stint can begin long before the congregation used Unitae (#584): only a year no one could have pioneered in is
+// refused. The dialogs offer the years from the publisher's baptism (enrolmentYears).
+const EARLIEST_YEAR = 1900
+
 // Field-shape validation at the boundary (spec §4): a pioneer type (never Normal), a positive
 // per-person goal when present, an end on or after the start, and end bounds set-or-absent together.
 // The non-overlap invariant lives in the aggregate + DB; end-bounds pairing is mirrored here as
@@ -14,9 +18,9 @@ export const pioneerEnrolmentSchema = z
   .object({
     type: z.nativeEnum(PublisherType),
     startMonth: z.coerce.number().int().min(0).max(11),
-    startYear: z.coerce.number().int().min(2022),
+    startYear: z.coerce.number().int().min(EARLIEST_YEAR),
     endMonth: z.preprocess(emptyToUndefined, z.coerce.number().int().min(0).max(11).optional()),
-    endYear: z.preprocess(emptyToUndefined, z.coerce.number().int().min(2022).optional()),
+    endYear: z.preprocess(emptyToUndefined, z.coerce.number().int().min(EARLIEST_YEAR).optional()),
     monthlyGoal: z.preprocess(emptyToUndefined, z.coerce.number().int().positive().optional()),
   })
   .superRefine((val, ctx) => {
@@ -49,7 +53,7 @@ export type PioneerEnrolmentInput = z.infer<typeof pioneerEnrolmentSchema>
 // (ENROLMENT_MODES); the route maps it to the stored type.
 
 const month = z.coerce.number().int().min(0).max(11)
-const year = z.coerce.number().int().min(2022)
+const year = z.coerce.number().int().min(EARLIEST_YEAR)
 const enrolmentId = z.coerce.number().int().positive()
 const mode = z.enum(ENROLMENT_MODES)
 const optionalGoal = z.preprocess(emptyToUndefined, z.coerce.number().int().positive().max(200).optional())

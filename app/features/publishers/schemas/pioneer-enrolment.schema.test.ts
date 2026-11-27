@@ -102,3 +102,17 @@ describe('enrolmentActionSchema', () => {
     expect(parse({ intent: 'remove', enrolmentId: '' }).success).toBe(false)
   })
 })
+
+describe('pioneer enrolment years', () => {
+  // A stint begun long ago is recorded from its real first month (#584).
+  it('accepts a start year long before Unitae, in the dialog and the record schema', () => {
+    expect(
+      enrolmentActionSchema.safeParse({ intent: 'create', mode: 'permanent', startMonth: '8', startYear: '1987' })
+        .success,
+    ).toBe(true)
+    expect(
+      pioneerEnrolmentSchema.safeParse({ type: PublisherType.PionnierPermanant, startMonth: '8', startYear: '1987' })
+        .success,
+    ).toBe(true)
+  })
+})
