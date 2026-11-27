@@ -58,19 +58,30 @@ beforeEach(() => {
 })
 
 describe('getTemplates', () => {
-  it('names each template’s responsibles from its first programme and duties templates', async () => {
+  it('names each template’s responsibles from its first programme template and every duties template', async () => {
     const role = (id: number) => ({ id, key: null, name: `R${id}` })
     const link = (kind: string, id: number | null) => ({
       scheduleTemplate: { kind, _count: { parts: 0, serviceParts: 0 }, responsibleRole: id == null ? null : role(id) },
     })
     vi.mocked(db.eventTemplate.findMany).mockResolvedValue([
-      { id: 1, name: 'Semaine', scheduleTemplates: [link('duty', 2), link('programme', 1), link('programme', 3)] },
+      // Every duties template's role, each once; the first programme template's alone.
+      {
+        id: 1,
+        name: 'Semaine',
+        scheduleTemplates: [
+          link('duty', 2),
+          link('programme', 1),
+          link('programme', 3),
+          link('duty', 4),
+          link('duty', 2),
+        ],
+      },
       { id: 2, name: 'Vide', scheduleTemplates: [link('programme', null)] },
     ] as never)
 
     const result = await getTemplates(db, 1)
     expect(result.map(each => [each.name, each.responsibles])).toEqual([
-      ['Semaine', [role(1), role(2)]],
+      ['Semaine', [role(1), role(2), role(4)]],
       ['Vide', []],
     ])
   })
