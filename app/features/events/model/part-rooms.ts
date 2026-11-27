@@ -214,3 +214,29 @@ export function heldBy<T extends { rooms?: ItemRoomRow[] } & RowPeople>(
     ...('externalSpeaker' in row && { externalSpeaker: row.externalSpeaker }),
   } as Omit<T, 'rooms'>
 }
+
+/** The people and conflict of one room row, as publishing reads them. */
+interface AssignmentRow {
+  assigneeId: number | null
+  assistantId?: number | null
+  hasConflict: boolean
+}
+
+/**
+ * Who holds each room of each item and whether it is flagged, for publishing (R4): a line per room row, its people and
+ * conflict in the place of the item's, under the item's own id (release checks and notices act on items, never on a
+ * room line); an item without rows (a service, an item written before rooms) is a line of its own.
+ */
+export function assignmentLines<T extends AssignmentRow & { rooms?: AssignmentRow[] }>(
+  items: readonly T[],
+): Omit<T, 'rooms'>[] {
+  return items.flatMap(({ rooms, ...item }) => {
+    if (rooms == null || rooms.length === 0) return [item]
+    return rooms.map(row => ({
+      ...item,
+      assigneeId: row.assigneeId,
+      ...('assistantId' in item && { assistantId: row.assistantId ?? null }),
+      hasConflict: row.hasConflict,
+    }))
+  })
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { heldBy, type ItemWithRooms, itemsPerRoom, partsInRooms } from './part-rooms'
+import { assignmentLines, heldBy, type ItemWithRooms, itemsPerRoom, partsInRooms } from './part-rooms'
 
 // The one reading of a programme's parts in their rooms: today's copies (a part in two rooms is two items, each in
 // its room) and R4's shape (one item, a row per room) read the same.
@@ -311,5 +311,37 @@ describe('heldBy', () => {
       return bare
     })
     expect(() => heldBy(one, 8)).toThrow(WITHOUT_ROOMS_RE)
+  })
+})
+
+// What publishing reads (R4): who holds each room of a part and whether it is flagged, under the item's own id (release
+// notices and checks act on items), the item itself when it has no row.
+describe('assignmentLines', () => {
+  const part = (rooms?: { assigneeId: number | null; assistantId: number | null; hasConflict: boolean }[]) => ({
+    id: 4,
+    name: 'Lecture',
+    assigneeId: 7,
+    assistantId: null as number | null,
+    hasConflict: false,
+    rooms,
+  })
+
+  it('gives a line per room, each with its room’s people and conflict, under the item’s id', () => {
+    const lines = assignmentLines([
+      part([
+        { assigneeId: 7, assistantId: null, hasConflict: false },
+        { assigneeId: 8, assistantId: 9, hasConflict: true },
+      ]),
+    ])
+    expect(lines).toEqual([
+      { id: 4, name: 'Lecture', assigneeId: 7, assistantId: null, hasConflict: false },
+      { id: 4, name: 'Lecture', assigneeId: 8, assistantId: 9, hasConflict: true },
+    ])
+  })
+
+  it('reads an item without rows (a service, an item written before rooms) as itself', () => {
+    const { rooms: _, ...service } = part()
+    expect(assignmentLines([part()])).toEqual([service])
+    expect(assignmentLines([part([])])).toEqual([service])
   })
 })
