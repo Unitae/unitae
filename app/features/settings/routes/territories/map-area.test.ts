@@ -45,7 +45,9 @@ describe('the area to cover', () => {
   it('downloads the perimeter as a GeoJSON polygon, named after the congregation', async () => {
     const response = await download()
     expect(response.headers.get('Content-Type')).toBe('application/geo+json')
-    expect(response.headers.get('Content-Disposition')).toBe('attachment; filename="zone les lilas.geojson"')
+    expect(response.headers.get('Content-Disposition')).toBe(
+      `attachment; filename="zone les lilas.geojson"; filename*=UTF-8''zone%20les%20lilas.geojson`,
+    )
     const feature = await response.json()
     expect(feature.geometry.coordinates[0]).toEqual([
       [2.2, 48.2],

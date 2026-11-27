@@ -43,9 +43,9 @@ export function isStudentSlipPart(part: SlipPart, event: SlipEvent): boolean {
   const programme = event.schedules.find(schedule => schedule.kind === ScheduleKind.Programme)
   if (programme?.status !== ScheduleStatus.Published) return false
   if (part.assigneeId == null || part.assignee == null || part.externalSpeaker != null) return false
-  // Without a section the part has no number on the slip, and the programme does not print it either.
+  // Without a section the part has no number, on the programme or on the slip (the song, the prayer).
   if (part.section === '') return false
-  // Nothing is guessed: a part with no kind has no slip until the person in charge picks one.
+  // The kind's option alone decides: a part with no kind has no slip, whatever its section or name.
   return part.preset?.printsStudentSlip === true
 }
 
@@ -56,8 +56,9 @@ const numberingKey = (part: SlipPart) => JSON.stringify([part.section, part.orde
  * no section) aside. A part held in several rooms is one part, so its copies share the number. Null for a part with no
  * section, which the programme does not number.
  *
- * Assumes the programme numbers its parts as the printed one does: Trésors 1 to 3, Ministère 4 to 6, Vie chrétienne
- * from 7. A template that breaks that convention prints the wrong number, which is why the field is named here.
+ * Assumes the template's sections and order follow the printed workbook, which numbers the parts of its sections one
+ * after another (Trésors 1 to 3, Ministère 4 to 6, Vie chrétienne from 7). A template that reorders them, or leaves a
+ * numbered part without a section, prints a wrong number.
  */
 export function slipPartNumber(parts: readonly SlipPart[], partId: number): number | null {
   const keys: string[] = []

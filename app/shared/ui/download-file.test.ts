@@ -7,4 +7,13 @@ describe('filenameFromDisposition', () => {
     expect(filenameFromDisposition('attachment; filename=report.xlsx')).toBe('report.xlsx')
     expect(filenameFromDisposition('inline')).toBeNull()
   })
+
+  it('prefers the UTF-8 name over its ASCII stand-in', () => {
+    const header = `attachment; filename="S-21-____.pdf"; filename*=UTF-8''S-21-%D0%9E%D0%BB%D0%B5%D0%B3.pdf`
+    expect(filenameFromDisposition(header)).toBe('S-21-Олег.pdf')
+  })
+
+  it('falls back on the ASCII name when the UTF-8 one does not decode', () => {
+    expect(filenameFromDisposition(`attachment; filename="a.pdf"; filename*=UTF-8''%E0%A4%A.pdf`)).toBe('a.pdf')
+  })
 })

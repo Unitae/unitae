@@ -3,6 +3,7 @@ import { Font, pdf } from '@react-pdf/renderer'
 import { createElement, type ReactElement } from 'react'
 import logger from '~/shared/infra/logger.server'
 import { PdfDemoContext } from '~/shared/ui/pdf-demo-mark'
+import { contentDisposition } from '~/shared/utils/content-disposition'
 
 export function sanitizeFilename(s: string): string {
   return s.replace(/[/\\?%*:|"<>]/g, '_').slice(0, 50)
@@ -102,7 +103,7 @@ export async function renderPdfResponse(
     status: 200,
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Disposition': contentDisposition(filename),
       'Content-Length': String(blob.size),
       'Cache-Control': 'private, no-store',
     },

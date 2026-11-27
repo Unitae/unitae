@@ -1,6 +1,7 @@
 import type { BoardDocument } from '~/database/generated/client'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
+import { contentDisposition } from '~/shared/utils/content-disposition'
 import { deleteBoardFile, getBoardFile, saveBoardFile } from './document-storage.server'
 import { createVersionForUpload } from './document-versions.server'
 import { FileValidationError, validateBoardFile } from './file-validation.server'
@@ -8,13 +9,6 @@ import { thumbnailQueue } from './thumbnail-queue.server'
 
 export function saveFile(congregationId: number, file: File): Promise<string> {
   return saveBoardFile(congregationId, file)
-}
-
-function buildContentDisposition(title: string): string {
-  const filename = `${title}.pdf`
-  const asciiFallback = filename.replace(/[^\x20-\x7E]/g, '_').replace(/"/g, '')
-  const utf8Encoded = encodeURIComponent(filename)
-  return `inline; filename="${asciiFallback}"; filename*=UTF-8''${utf8Encoded}`
 }
 
 export async function getFileStream(document: Pick<BoardDocument, 'uri' | 'title'>): Promise<Response | null> {
@@ -26,7 +20,7 @@ export async function getFileStream(document: Pick<BoardDocument, 'uri' | 'title
     status: 200,
     headers: {
       'Content-Type': file.contentType,
-      'Content-Disposition': buildContentDisposition(document.title),
+      'Content-Disposition': contentDisposition(`${document.title}.pdf`, 'inline'),
     },
   })
 }

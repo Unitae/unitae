@@ -1,7 +1,19 @@
-const CONTENT_DISPOSITION_FILENAME_RE = /filename="?([^"]+)"?/
+const CONTENT_DISPOSITION_FILENAME_RE = /filename="?([^";]+)"?/
+const CONTENT_DISPOSITION_UTF8_RE = /filename\*=UTF-8''([^;]+)/i
 
-/** The file name a download response announces in its Content-Disposition header, if any. */
+/**
+ * The file name a download response announces in its Content-Disposition header, if any: the UTF-8 `filename*` first
+ * (a name in Cyrillic or with « œ »), the plain `filename` otherwise.
+ */
 export function filenameFromDisposition(contentDisposition: string): string | null {
+  const utf8 = contentDisposition.match(CONTENT_DISPOSITION_UTF8_RE)?.[1]
+  if (utf8 != null) {
+    try {
+      return decodeURIComponent(utf8)
+    } catch {
+      // A malformed escape: the ASCII name still names the file.
+    }
+  }
   return contentDisposition.match(CONTENT_DISPOSITION_FILENAME_RE)?.[1] ?? null
 }
 

@@ -4,6 +4,7 @@ import { getMapArea } from '~/features/territories/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import { congregationContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
+import { contentDisposition } from '~/shared/utils/content-disposition'
 import type { Route } from './+types/map-area'
 
 // « Télécharger la zone à couvrir »: an instance without a base map hands its host the congregation's area as GeoJSON
@@ -25,6 +26,6 @@ export async function loader({ context }: Route.LoaderArgs) {
       .replace(UNSAFE_FILENAME, '_')
       .toLowerCase()
   return new Response(JSON.stringify(areaFeature(mapArea), null, 2), {
-    headers: { 'Content-Type': 'application/geo+json', 'Content-Disposition': `attachment; filename="${filename}"` },
+    headers: { 'Content-Type': 'application/geo+json', 'Content-Disposition': contentDisposition(filename) },
   })
 }

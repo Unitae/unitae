@@ -34,4 +34,4 @@ A ligação do calendário adiciona ao Apple Calendar, Google Calendar ou Outloo
 
 ## A designação impressa
 
-Numa parte de estudante, quem gere o programa pode também entregar-lhe a designação impressa (S-89). Nela constam o seu nome, o nome do interlocutor, a data e o número da parte.
+Numa parte de estudante, quem gere o programa pode também entregar-lhe a designação impressa (S-89). Nela constam o seu nome, o nome do ajudante, a data, o número da parte e a sala.

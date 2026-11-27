@@ -55,3 +55,12 @@ describe('renderPdfBuffer', () => {
     expect(page.text).toBe('Engage la conversation')
   })
 })
+
+describe('renderPdfResponse filename', () => {
+  it('answers a student named in Cyrillic with the PDF, not an error', async () => {
+    const response = await renderPdfResponse(sheet('Devoir'), 'S-89_F-Олег Петренко.pdf')
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get('Content-Disposition')).toContain("filename*=UTF-8''S-89_F-")
+  })
+})

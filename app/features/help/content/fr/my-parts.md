@@ -34,4 +34,4 @@ Votre lien d’agenda ajoute vos parties et vos services publiés à Apple Calen
 
 ## Le devoir imprimé
 
-Pour une partie d’élève, le responsable du programme peut aussi vous remettre le devoir imprimé (S-89). Il porte votre nom, celui de votre interlocuteur, la date et le numéro de la partie.
+Pour une partie d’élève, le responsable du programme peut aussi vous remettre le devoir imprimé (S-89). Il porte votre nom, celui de votre interlocuteur, la date, le numéro de la partie et la salle.

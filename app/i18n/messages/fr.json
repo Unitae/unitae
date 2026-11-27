@@ -6399,7 +6399,7 @@
     "settings_template_responsibles_moved": "Qui remplit et publie ses plannings se règle sur chaque modèle de planning :",
     "settings_presets_form_has_reader_hint": "Une seconde personne sur la partie.",
     "settings_presets_form_student_slip": "Fiche de devoir de l’élève (S-89)",
-    "settings_presets_form_student_slip_hint": "Sur un programme de semaine publié, l’élève peut recevoir sa fiche à imprimer.",
+    "settings_presets_form_student_slip_hint": "Sur un programme de semaine publié, la personne qui remplit le programme peut imprimer la fiche de l’élève.",
     "settings_presets_form_insert": "Insérer :",
     "settings_part_types_col_type": "Type",
     "settings_part_types_col_speaker": "Personne",
