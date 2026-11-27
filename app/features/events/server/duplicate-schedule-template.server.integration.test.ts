@@ -85,9 +85,6 @@ describe('duplicateScheduleTemplate', () => {
       const salleB = await tx.scheduleTemplateRoom.create({
         data: { name: 'Salle B', order: 1, scheduleTemplateId: source.id, congregationId },
       })
-      const main = await tx.scheduleTemplateRoom.findFirstOrThrow({
-        where: { scheduleTemplateId: source.id, key: 'main' },
-      })
       const base = { track: '', scheduleTemplateId: source.id, congregationId }
       const reading = await tx.templatePart.create({
         data: {
@@ -100,7 +97,13 @@ describe('duplicateScheduleTemplate', () => {
           templateId: kind,
         },
       })
-      await tx.templatePart.create({ data: { ...base, name: 'Prière', section: '', order: 1, readerLabel: 'Frère' } })
+      const prayer = await tx.templatePart.create({
+        data: { ...base, name: 'Prière', section: '', order: 1, readerLabel: 'Frère' },
+      })
+      // A role in the reader's slot: the copy keeps each role's slot.
+      await tx.templatePartAllowedRole.create({
+        data: { partId: prayer.id, roleId: role, asKind: 'reader', congregationId },
+      })
       await tx.templatePartAllowedRole.create({
         data: { partId: reading.id, roleId: role, asKind: 'speaker', congregationId },
       })
@@ -166,7 +169,7 @@ describe('duplicateScheduleTemplate', () => {
         presetId: null,
         allowExternalSpeaker: false,
         templateId: null,
-        allowedRoles: [],
+        allowedRoles: [{ roleId: read.role, asKind: 'reader' }],
         // Every part is held in the main room, as its source.
         rooms: [{ room: { key: 'main', name: 'Auditorium' } }],
       },
