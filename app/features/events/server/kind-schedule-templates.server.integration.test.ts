@@ -138,6 +138,22 @@ describe('addKindScheduleTemplate', () => {
     expect(read).toEqual({ first: { ok: true }, second: { ok: true }, again: { ok: false, reason: 'used' } })
   })
 
+  // A schedule without a name reads as its template's (user, 2026-11-27): two unnamed ones on a meeting read alike.
+  it('refuses a second unnamed duties template, and takes a named one beside an unnamed', async () => {
+    const read = await inCongregation(async ({ tx, db, kindId, congregationId, actorId }) => {
+      const unnamed = async () =>
+        (await tx.scheduleTemplate.create({ data: { name: null, key: 'services', kind: 'duty', congregationId } })).id
+      const [first, second] = [await unnamed(), await unnamed()]
+      const named = (await tx.scheduleTemplate.create({ data: { name: 'Nettoyage', kind: 'duty', congregationId } })).id
+      return {
+        first: await addKindScheduleTemplate(db, kindId, first, congregationId, actorId),
+        second: await addKindScheduleTemplate(db, kindId, second, congregationId, actorId),
+        named: await addKindScheduleTemplate(db, kindId, named, congregationId, actorId),
+      }
+    })
+    expect(read).toEqual({ first: { ok: true }, second: { ok: false, reason: 'unnamed' }, named: { ok: true } })
+  })
+
   it('answers null for a type or a template of another congregation, or none at all', async () => {
     const read = await inCongregation(async ({ db, kindId, loose, congregationId, actorId }) => ({
       kind: await addKindScheduleTemplate(db, -1, loose.duty, congregationId, actorId),

@@ -153,14 +153,15 @@ export function loader({ params, context }: Route.LoaderArgs) {
       services: event.eventServiceParts.length,
       template: programmeTemplate(event.template),
     })
-    // The template each schedule was made from: « Changer le type » never adds a template the meeting holds.
+    // The template each schedule was made from: « Changer le type » never adds a template the meeting holds, and a
+    // schedule without a name reads as its template's (user, 2026-11-27).
     const templateOf = new Map(
       (
         await db.schedule.findMany({
           where: { eventId: event.id, congregationId },
-          select: { id: true, scheduleTemplateId: true },
+          select: { id: true, scheduleTemplateId: true, scheduleTemplate: { select: { name: true } } },
         })
-      ).map(row => [row.id, row.scheduleTemplateId]),
+      ).map(row => [row.id, { id: row.scheduleTemplateId, name: row.scheduleTemplate?.name ?? null }]),
     )
     const schedules = shown.schedules.map(schedule => {
       const roleId = roleOf(schedule)
@@ -174,9 +175,9 @@ export function loader({ params, context }: Route.LoaderArgs) {
       return {
         id: schedule.id,
         kind: schedule.kind,
-        templateId: templateOf.get(schedule.id) ?? null,
+        templateId: templateOf.get(schedule.id)?.id ?? null,
         status: schedule.status,
-        name: schedule.name,
+        name: schedule.name ?? templateOf.get(schedule.id)?.name ?? null,
         responsible: roleId == null || responsible == null ? null : responsibleForPage(roleId, responsible, viewer),
         mayPublish,
         mayChange: changeable.has(schedule.id),

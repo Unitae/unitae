@@ -969,6 +969,7 @@
     "settings_template_schedules_use": "Usar um modelo",
     "settings_template_schedules_sort_used": "Este tipo já utiliza um modelo espiritual: retire-o primeiro.",
     "settings_template_schedules_used": "Este tipo já utiliza este modelo.",
+    "settings_template_schedules_unnamed": "Este tipo já utiliza um modelo de serviços sem nome: dê primeiro um nome a este em Modelos de planeamento, para que os seus planeamentos se distingam.",
     "settings_template_schedules_saved": "Planeamentos atualizados.",
     "settings_template_schedules_hint": "As novas reuniões deste tipo recebem estes planeamentos. As respetivas partes e serviços definem-se em “Modelos de planeamento”.",
     "settings_template_schedules_empty": "Nenhum planeamento: as novas reuniões deste tipo começam vazias.",

@@ -969,6 +969,7 @@
     "settings_template_schedules_use": "Use a template",
     "settings_template_schedules_sort_used": "This type already uses a spiritual template: remove it first.",
     "settings_template_schedules_used": "This type already uses this template.",
+    "settings_template_schedules_unnamed": "This type already uses an unnamed services template: first give this one a name in Schedule templates, so their schedules can be told apart.",
     "settings_template_schedules_saved": "Schedules updated.",
     "settings_template_schedules_hint": "New meetings of this type get these schedules. Their parts and services are set in “Schedule templates”.",
     "settings_template_schedules_empty": "No schedule: new meetings of this type start empty.",

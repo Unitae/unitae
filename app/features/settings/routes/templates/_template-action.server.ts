@@ -154,7 +154,11 @@ async function handleScheduleTemplatesIntent(
   if (used == null) return null
   if (!used.ok) {
     const message =
-      used.reason === 'used' ? m.settings_template_schedules_used() : m.settings_template_schedules_sort_used()
+      used.reason === 'used'
+        ? m.settings_template_schedules_used()
+        : used.reason === 'unnamed'
+          ? m.settings_template_schedules_unnamed()
+          : m.settings_template_schedules_sort_used()
     return refused({ status: 'error', error: { '': [message] } }, 409)
   }
   return saved
