@@ -376,7 +376,7 @@ export const HELP_SHOTS: HelpShot[] = [
     viewport: { width: 1600, height: 900 },
   },
   {
-    // activity-exports: « Exporter » on the Activité page, its format, service year and scope.
+    // activity-exports: « Exporter » on the Activité page, its format and period.
     id: 'activity-export',
     account: MARC,
     path: '/publishers/activity',

@@ -46,6 +46,23 @@ describe('buildExportUrl', () => {
     ).toBe('/publishers/7/activity/pdf?year=2024')
   })
 
+  it('points the S-1 at the chosen month, whatever the year and scope say', () => {
+    expect(
+      buildExportUrl({
+        format: 's1',
+        year: 2024,
+        scope: 'group',
+        groupId: 3,
+        publisherIds: [],
+        month: { month: 9, year: 2026 },
+      }),
+    ).toBe('/attendance/branch-report.pdf?month=9&year=2026')
+  })
+
+  it('has no S-1 without a month', () => {
+    expect(buildExportUrl({ format: 's1', year: 2025, scope: 'all', groupId: null, publisherIds: [] })).toBeNull()
+  })
+
   it('ignores format and scope for a single publisher — the S-21 is always one PDF', () => {
     expect(
       buildExportUrl({ format: 'xlsx', year: 2024, scope: 'group', groupId: 3, publisherIds: [1], publisherId: 7 }),

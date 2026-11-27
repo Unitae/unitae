@@ -1,5 +1,6 @@
 // Public server-only surface of the publishers feature.
 
+export { type BranchReport, getBranchReport } from './server/branch-report.queries'
 export { getGroups } from './server/groups.server'
 export * as memberAggregate from './server/member.aggregate'
 export { getPioneerActivitySummary } from './server/pioneer-activity.queries'

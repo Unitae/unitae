@@ -6,5 +6,6 @@ export const attendanceRoutes = [
     route('record', 'features/events/routes/attendance/record.tsx'),
     route('record.pdf', 'features/events/routes/attendance/record-pdf.tsx'),
     route('attendance.xlsx', 'features/events/routes/attendance/spreadsheet.tsx'),
+    route('branch-report.pdf', 'features/events/routes/attendance/branch-report-pdf.tsx'),
   ]),
 ] satisfies RouteConfig
