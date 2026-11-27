@@ -167,8 +167,11 @@ describe('Fill a schedule (items, assignees): « Attribuer », « Gérer », or 
         await canFillSomeSchedule(db, nothing, visioLead, meeting, 'service', congregationId),
         await canFillSomeSchedule(db, nothing, dutyLead, meeting, 'service', congregationId),
       ]).toEqual([true, true])
-      const listed = await scheduleRightsFor(db, nothing, visioLead, [meeting], congregationId)
-      expect(listed.rightsOf.get(meeting.id)?.canAssignServices).toBe(true)
+      // Listed, they open it, the draft duties schedule shown being theirs alone; not every duties schedule is theirs.
+      const listed = (await scheduleRightsFor(db, nothing, visioLead, [meeting], congregationId)).rightsOf.get(
+        meeting.id,
+      )
+      expect(listed).toMatchObject({ opensForDuties: true, canAssignServices: false, fillsDuties: [second.id] })
       // Named with the other kind's schedule, by that schedule's own responsible: still not a service's.
       expect(await fill(programmeLead, programme.id)).toBe(false)
       expect(await canFillSchedule(db, nothing, dutyLead, meeting, 'part', congregationId, services.id)).toBe(false)
@@ -614,8 +617,10 @@ describe('The rights of many events at once agree with each rule', () => {
             canDelete: await canDeleteEvent(db, can, userId, event, congregationId),
             canPublish: await canPublishEvent(db, can, userId, event, congregationId),
             canAssignParts: await canFillSchedule(db, can, userId, event, 'part', congregationId),
+            canAssignServices: await canFillSchedule(db, can, userId, event, 'service', congregationId),
             // Some duties schedule is theirs: what opening and listing a meeting asks (a meeting may hold several).
-            canAssignServices: await canFillSomeSchedule(db, can, userId, event, 'service', congregationId),
+            opensForDuties: await canFillSomeSchedule(db, can, userId, event, 'service', congregationId),
+            fillsDuties: expect.any(Array),
           })
         }
       }

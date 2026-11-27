@@ -77,7 +77,8 @@ export function loader({ request, context }: Route.LoaderArgs) {
         canEdit: rights.canEdit,
         canPublish: rights.canPublish,
         canAssign: rights.canAssignParts,
-        canAssignService: rights.canAssignServices,
+        // Some duties schedule of it is theirs: a meeting may hold several, each its own responsible's.
+        canAssignService: rights.opensForDuties,
       })
       if (!opens) return []
       const ahead = item.startDate >= now

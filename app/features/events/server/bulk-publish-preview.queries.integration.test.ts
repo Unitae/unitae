@@ -183,6 +183,44 @@ describe('bulkPublishPreview, what bulk « Publier » announces', () => {
     })
   })
 
+  // A meeting holding two duties schedules (one per template its type uses), each its own responsible's: the draft of
+  // the other reaches neither the preview nor its counts.
+  it('says nothing of another duties schedule’s draft to one duties schedule’s responsible', async () => {
+    await withMeeting(async ({ db, congregationId, dutyLead, meetingId, duties }) => {
+      const weekend = await db.eventTemplate.findFirstOrThrow({
+        where: { key: 'weekend-meeting' },
+        select: { id: true },
+      })
+      await db.event.update({
+        where: { id_congregationId: { id: meetingId, congregationId } },
+        data: { templateId: weekend.id },
+      })
+      const role = await db.role.create({ data: { key: `visio-${congregationId}`, name: 'v', congregationId } })
+      const visio = await db.scheduleTemplate.create({
+        data: { name: 'Visioconférence', kind: 'duty', responsibleRoleId: role.id, congregationId },
+      })
+      const other = await db.schedule.create({
+        data: {
+          eventId: meetingId,
+          kind: 'duty',
+          name: 'Visioconférence',
+          order: 2,
+          status: 'draft',
+          scheduleTemplateId: visio.id,
+          congregationId,
+        },
+      })
+      await db.item.create({
+        data: { eventId: meetingId, scheduleId: other.id, name: 'Zoom', order: 0, congregationId },
+      })
+
+      const preview = await bulkPublishPreview(db, nothing, dutyLead, [meetingId], congregationId)
+
+      expect(ids(preview.publish)).toEqual([duties.id])
+      expect([...preview.notYours, ...preview.conflicts, ...preview.empty, ...preview.awaiting]).toEqual([])
+    })
+  })
+
   it('reads several meetings at once: a programme still to give held back, the other meeting published', async () => {
     await withMeeting(async ({ db, congregationId, actorId, meetingId, programme, duties }) => {
       const midweekId = (await db.eventTemplate.findFirstOrThrow({ where: { key: 'midweek-meeting' } })).id
