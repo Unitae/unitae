@@ -1,22 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-// Schedules are written beside the items (the schedules' expand step); their own tests cover them.
-vi.mock('~/features/events/server/schedules.server', () => ({
-  attachEventItems: vi.fn(),
-  deleteEventSchedules: vi.fn(),
-  eventScheduleId: vi.fn(),
-  setEventSchedulesStatus: vi.fn(),
-}))
-vi.mock('~/features/events/server/schedule-templates.server', () => ({
-  deleteTemplateScheduleTemplates: vi.fn(),
-  syncTemplateScheduleTemplates: vi.fn(),
-}))
+// « Dupliquer » on a meeting type: another type using the same schedule templates (user, 2026-11-27); the items stay in
+// them, the integration test reads what its meetings get.
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     eventTemplate: { findFirst: vi.fn(), create: vi.fn() },
-    templatePartAllowedRole: { createMany: vi.fn() },
-    templateServicePartAllowedRole: { createMany: vi.fn() },
+    eventKindScheduleTemplate: { createMany: vi.fn() },
   },
 }))
 
@@ -29,304 +19,73 @@ const { duplicateTemplate } = await import('./duplicate-template.server')
 const { audit } = await import('~/shared/domain/audit.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
+const source = (overrides: Record<string, unknown> = {}) => ({
+  id: 4,
+  name: 'Réunion de semaine',
+  key: 'midweek-meeting',
+  description: 'Vie et ministère',
+  weekDay: 4,
+  isRecurring: true,
+  attendanceKind: 'midweek',
+  startTime: '19:00',
+  endTime: '20:45',
+  scheduleTemplates: [
+    { scheduleTemplateId: 8, order: 0 },
+    { scheduleTemplateId: 3, order: 1 },
+  ],
+  ...overrides,
+})
+
 beforeEach(() => {
   vi.resetAllMocks()
+  vi.mocked(db.eventTemplate.create).mockResolvedValue({ id: 40, name: 'Réunion de semaine (copie)' } as never)
 })
 
 describe('duplicateTemplate', () => {
-  it('returns null when source template not found', async () => {
-    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue(null as never)
-
-    const result = await duplicateTemplate(db, 99, 1, 9)
-
-    expect(result).toBeNull()
-    expect(vi.mocked(db.eventTemplate.create)).not.toHaveBeenCalled()
+  it('answers null for a type it cannot read, and for a built-in one, writing nothing', async () => {
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValueOnce(null as never)
+    expect(await duplicateTemplate(db, 99, 1, 9)).toBeNull()
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValueOnce(source({ key: 'freeform' }) as never)
+    expect(await duplicateTemplate(db, 4, 1, 9)).toBeNull()
+    expect(vi.mocked(db.eventTemplate.create).mock.calls).toEqual([])
   })
 
-  // System templates are looked up by `key` at runtime. Duplicating them would
-  // produce a row with an untethered `-copy-<ts>` suffix; the UI hides the
-  // action but this is the server-side belt-and-suspenders check.
-  it('returns null when the source is a system template', async () => {
-    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({
-      id: 1,
-      key: 'freeform',
-      name: 'Autre événement',
-      parts: [],
-      serviceParts: [],
-    } as never)
+  it('copies the type’s own fields and links its schedule templates, in their order', async () => {
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue(source() as never)
 
-    const result = await duplicateTemplate(db, 1, 1, 9)
+    const copy = await duplicateTemplate(db, 4, 1, 9)
 
-    expect(result).toBeNull()
-    expect(vi.mocked(db.eventTemplate.create)).not.toHaveBeenCalled()
-  })
-
-  it('copies allowed-role lists from source parts and service roles to the duplicate', async () => {
-    const source = {
-      id: 5,
-      name: 'Reunion',
-      key: 'midweek',
-      description: '',
-      weekDay: 2,
-      isRecurring: true,
-      parts: [
-        {
-          id: 10,
-          name: 'Discours',
-          section: '',
-          track: '',
-          order: 1,
-          durationMin: 30,
-          allowExternalSpeaker: false,
-          allowedRoles: [
-            { roleId: 100, asKind: 'speaker' },
-            { roleId: 200, asKind: 'reader' },
-          ],
-        },
-        {
-          id: 11,
-          name: 'Cantique',
-          section: '',
-          track: '',
-          order: 2,
-          durationMin: 5,
-          allowExternalSpeaker: false,
-          allowedRoles: [],
-        },
-      ],
-      serviceParts: [
-        { id: 20, name: 'Son', key: 'sono', allowedRoles: [{ roleId: 300 }] },
-        { id: 21, name: 'Stage', key: 'stage', allowedRoles: [] },
-      ],
-    }
-    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue(source as never)
-
-    const duplicated = {
-      id: 99,
-      name: 'Reunion (copie)',
-      parts: [
-        { id: 510, order: 1 },
-        { id: 511, order: 2 },
-      ],
-      serviceParts: [
-        { id: 520, name: 'Son' },
-        { id: 521, name: 'Stage' },
-      ],
-    }
-    vi.mocked(db.eventTemplate.create).mockResolvedValue(duplicated as never)
-    vi.mocked(db.templatePartAllowedRole.createMany).mockResolvedValue({ count: 2 } as never)
-    vi.mocked(db.templateServicePartAllowedRole.createMany).mockResolvedValue({ count: 1 } as never)
-
-    await duplicateTemplate(db, 5, 7, 9)
-
-    // Speaker role for the first part
-    expect(vi.mocked(db.templatePartAllowedRole.createMany)).toHaveBeenCalledWith({
-      data: [{ partId: 510, roleId: 100, asKind: 'speaker', congregationId: 7 }],
-      skipDuplicates: true,
-    })
-    // Reader role for the first part
-    expect(vi.mocked(db.templatePartAllowedRole.createMany)).toHaveBeenCalledWith({
-      data: [{ partId: 510, roleId: 200, asKind: 'reader', congregationId: 7 }],
-      skipDuplicates: true,
-    })
-    // Service-role allowed-roles for the first service role
-    expect(vi.mocked(db.templateServicePartAllowedRole.createMany)).toHaveBeenCalledWith({
-      data: [{ servicePartId: 520, roleId: 300, congregationId: 7 }],
-      skipDuplicates: true,
-    })
-    // Empty lists are skipped
-    expect(vi.mocked(db.templatePartAllowedRole.createMany)).toHaveBeenCalledTimes(2)
-    expect(vi.mocked(db.templateServicePartAllowedRole.createMany)).toHaveBeenCalledTimes(1)
-  })
-
-  // A duplicated template must carry the source's per-part role labels; without
-  // this, admins who clone a template lose their custom labels silently.
-  it('copies speakerLabel and readerLabel from source parts to the duplicate (Layer 4)', async () => {
-    const source = {
-      id: 5,
-      name: 'Reunion',
-      key: 'midweek',
-      description: '',
-      weekDay: 2,
-      isRecurring: true,
-      parts: [
-        {
-          id: 10,
-          name: 'Bible reading',
-          section: '',
-          track: '',
-          order: 1,
-          durationMin: 5,
-          allowExternalSpeaker: false,
-          // Distinct sentinels per part so an ordering regression in the copy
-          // loop (swapping parts[0] and parts[1]) fails visibly.
-          speakerLabel: 'STUDENT-SENTINEL-P1',
-          readerLabel: null,
-          allowedRoles: [],
-        },
-        {
-          id: 11,
-          name: 'Return visit',
-          section: '',
-          track: '',
-          order: 2,
-          durationMin: 10,
-          allowExternalSpeaker: false,
-          speakerLabel: 'STUDENT-SENTINEL-P2',
-          readerLabel: 'HOUSEHOLDER-SENTINEL-P2',
-          allowedRoles: [],
-        },
-      ],
-      serviceParts: [],
-    }
-    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue(source as never)
-    vi.mocked(db.eventTemplate.create).mockResolvedValue({
-      id: 99,
-      name: 'Reunion (copie)',
-      parts: [],
-      serviceParts: [],
-    } as never)
-
-    await duplicateTemplate(db, 5, 7, 9)
-
-    const createCall = vi.mocked(db.eventTemplate.create).mock.calls[0][0] as {
-      data: { parts: { create: Array<{ speakerLabel: string | null; readerLabel: string | null }> } }
-    }
-    const createdParts = createCall.data.parts.create
-    expect(createdParts[0]).toMatchObject({ speakerLabel: 'STUDENT-SENTINEL-P1', readerLabel: null })
-    expect(createdParts[1]).toMatchObject({
-      speakerLabel: 'STUDENT-SENTINEL-P2',
-      readerLabel: 'HOUSEHOLDER-SENTINEL-P2',
-    })
-  })
-})
-
-describe('duplicateTemplate and the part kind', () => {
-  // The kind is what gives a part its share message, its slot labels and its
-  // external-speaker rule. A copy that loses it looks identical in the list
-  // and behaves like an unclassified part everywhere else.
-  it('copies how the template counts in attendance', async () => {
-    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({
-      id: 5,
-      name: 'Reunion',
-      key: 'midweek',
-      description: '',
-      weekDay: 2,
+    expect(copy?.id).toBe(40)
+    expect(vi.mocked(db.eventTemplate.create).mock.calls[0][0].data).toMatchObject({
+      description: 'Vie et ministère',
+      weekDay: 4,
       isRecurring: true,
       attendanceKind: 'midweek',
-      parts: [],
-      serviceParts: [],
-    } as never)
-    vi.mocked(db.eventTemplate.create).mockResolvedValue({ id: 6, parts: [], serviceParts: [] } as never)
-
-    await duplicateTemplate(db, 5, 1, 9)
-
-    expect(vi.mocked(db.eventTemplate.create).mock.calls[0]?.[0]?.data).toEqual(
-      expect.objectContaining({ attendanceKind: 'midweek' }),
-    )
-  })
-
-  it('carries presetId onto the duplicated parts', async () => {
-    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({
-      id: 5,
-      name: 'Reunion',
-      key: 'midweek',
-      description: '',
-      weekDay: 2,
-      isRecurring: true,
-      parts: [
-        {
-          id: 10,
-          name: 'Discours public',
-          section: '',
-          track: '',
-          trackOrder: 3,
-          order: 1,
-          durationMin: 30,
-          allowExternalSpeaker: true,
-          speakerLabel: null,
-          readerLabel: null,
-          presetId: 55,
-          allowedRoles: [],
-        },
-      ],
-      serviceParts: [],
-    } as never)
-    vi.mocked(db.eventTemplate.create).mockResolvedValue({ id: 6, parts: [], serviceParts: [] } as never)
-
-    await duplicateTemplate(db, 5, 1, 9)
-
-    const created = vi.mocked(db.eventTemplate.create).mock.calls[0]?.[0]?.data?.parts?.create as
-      | Record<string, unknown>[]
-      | undefined
-    expect(created?.[0]).toEqual(expect.objectContaining({ presetId: 55, trackOrder: 3 }))
-  })
-
-  it('leaves an unclassified part unclassified', async () => {
-    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({
-      id: 5,
-      name: 'Reunion',
-      key: 'midweek',
-      description: '',
-      weekDay: 2,
-      isRecurring: true,
-      parts: [
-        {
-          id: 10,
-          name: '1re partie',
-          section: '',
-          track: '',
-          trackOrder: null,
-          order: 1,
-          durationMin: 3,
-          allowExternalSpeaker: false,
-          speakerLabel: null,
-          readerLabel: null,
-          presetId: null,
-          allowedRoles: [],
-        },
-      ],
-      serviceParts: [],
-    } as never)
-    vi.mocked(db.eventTemplate.create).mockResolvedValue({ id: 6, parts: [], serviceParts: [] } as never)
-
-    await duplicateTemplate(db, 5, 1, 9)
-
-    const created = vi.mocked(db.eventTemplate.create).mock.calls[0]?.[0]?.data?.parts?.create as
-      | Record<string, unknown>[]
-      | undefined
-    expect(created?.[0]).toEqual(expect.objectContaining({ presetId: null }))
-  })
-
-  it('says in the audit log which template the copy comes from', async () => {
-    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({
-      id: 1,
-      key: 'meeting',
-      name: 'Reunion',
-      description: null,
-      weekDay: 3,
-      isRecurring: true,
       startTime: '19:00',
-      endTime: '21:00',
-      parts: [],
-      serviceParts: [],
-    } as never)
-    vi.mocked(db.eventTemplate.create).mockResolvedValue({
-      id: 2,
-      name: 'Reunion (copie)',
-      parts: [],
-      serviceParts: [],
-    } as never)
-
-    await duplicateTemplate(db, 1, 1, 9)
-
-    expect(audit).toHaveBeenCalledWith({
-      action: 'event_template.duplicated',
+      endTime: '20:45',
       congregationId: 1,
-      actorId: 9,
-      entityType: 'EventTemplate',
-      entityId: 2,
-      metadata: { from: 1 },
+    })
+    expect(vi.mocked(db.eventKindScheduleTemplate.createMany).mock.calls[0][0]).toEqual({
+      data: [
+        { eventKindId: 40, scheduleTemplateId: 8, order: 0, congregationId: 1 },
+        { eventKindId: 40, scheduleTemplateId: 3, order: 1, congregationId: 1 },
+      ],
+    })
+  })
+
+  it('links nothing for a type using no template', async () => {
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue(source({ scheduleTemplates: [] }) as never)
+    await duplicateTemplate(db, 4, 1, 9)
+    expect(vi.mocked(db.eventKindScheduleTemplate.createMany).mock.calls).toEqual([])
+  })
+
+  it('says in the audit log which type the copy comes from', async () => {
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue(source() as never)
+    await duplicateTemplate(db, 4, 1, 9)
+    expect(vi.mocked(audit).mock.calls[0][0]).toMatchObject({
+      action: 'event_template.duplicated',
+      entityId: 40,
+      metadata: { from: 4 },
     })
   })
 })

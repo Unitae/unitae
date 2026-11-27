@@ -278,17 +278,15 @@ describe('templates written with their schedule templates', () => {
     })
   })
 
-  it('gives a duplicated template schedule templates of its own, its items inside', async () => {
+  // « Dupliquer » makes another type using the same schedule templates (user, 2026-11-27).
+  it('gives a duplicated template the schedule templates of its source, not copies', async () => {
     await inCongregation(async ({ db, congregationId, actorId, template, scheduleTemplates }) => {
       const midweek = await template('Réunion de semaine', { parts: 2, services: 1 })
 
       const copy = await duplicateTemplate(db, midweek, congregationId, actorId)
 
       expect(copy).not.toBeNull()
-      expect(await scheduleTemplates(copy?.id ?? 0)).toMatchObject([
-        { kind: 'programme', name: copy?.name, items: 2 },
-        { kind: 'duty', name: null, items: 1 },
-      ])
+      expect(await scheduleTemplates(copy?.id ?? 0)).toEqual(await scheduleTemplates(midweek))
     })
   })
 

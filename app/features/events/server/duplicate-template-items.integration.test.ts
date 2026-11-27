@@ -4,9 +4,9 @@ import { PrismaClient } from '~/database/generated/client'
 import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
-// « Dupliquer » copies what a new meeting of the type gets (6b-0): its schedule templates' items, those filed under the
-// type and those written from « Modèles de planning » under none (6b-1), with who may take each. In a congregation of
-// its own, rolled back.
+// « Dupliquer » on a meeting type makes another type using the same schedule templates, not copies of them (user,
+// 2026-11-27): its new meetings get the same items, and a part added to a template later reaches both types. In a
+// congregation of its own, rolled back.
 
 const testDb = new PrismaClient({
   adapter: new PrismaPg({
@@ -17,6 +17,7 @@ const testDb = new PrismaClient({
 })
 
 const { duplicateTemplate } = await import('./duplicate-template.server')
+const { kindTemplate, TEMPLATE_INCLUDE } = await import('./give-programme.server')
 
 class Rollback extends Error {}
 
@@ -26,7 +27,7 @@ afterAll(async () => {
 })
 
 describe('duplicateTemplate', () => {
-  it('copies the items of the type’s schedule templates, whatever kind they are filed under', async () => {
+  it('makes a type using the same templates, in their order, copying nothing', async () => {
     let read: Record<string, unknown> | undefined
     try {
       await testDb.$transaction(
@@ -38,41 +39,58 @@ describe('duplicateTemplate', () => {
           const actorId = (
             await tx.userAccount.create({ data: { email: `${stamp}@test.com`, password: 'x', congregationId } })
           ).id
-          const role = await tx.role.create({ data: { key: `r-${stamp}`, name: 'Sono', congregationId } })
-          const kind = await tx.eventTemplate.create({ data: { name: 'Visite', key: stamp, congregationId } })
+          const kind = await tx.eventTemplate.create({
+            data: { name: 'Visite', key: stamp, weekDay: 2, startTime: '19:00', endTime: '20:45', congregationId },
+          })
           const programme = await tx.scheduleTemplate.create({
             data: { name: 'Visite', kind: 'programme', congregationId },
           })
           const duties = await tx.scheduleTemplate.create({ data: { name: 'Accueil', kind: 'duty', congregationId } })
           await tx.eventKindScheduleTemplate.createMany({
             data: [
-              { eventKindId: kind.id, scheduleTemplateId: programme.id, order: 0, congregationId },
-              { eventKindId: kind.id, scheduleTemplateId: duties.id, order: 1, congregationId },
+              { eventKindId: kind.id, scheduleTemplateId: duties.id, order: 0, congregationId },
+              { eventKindId: kind.id, scheduleTemplateId: programme.id, order: 1, congregationId },
             ],
           })
           const part = { section: '', track: '', scheduleTemplateId: programme.id, congregationId }
           await tx.templatePart.create({ data: { ...part, name: 'Du type', order: 0, templateId: kind.id } })
           await tx.templatePart.create({ data: { ...part, name: 'Du modèle', order: 1 } })
-          const service = await tx.templateServicePart.create({
+          await tx.templateServicePart.create({
             data: { name: 'Porte', key: 'porte', order: 0, scheduleTemplateId: duties.id, congregationId },
           })
-          await tx.templateServicePartAllowedRole.create({
-            data: { servicePartId: service.id, roleId: role.id, congregationId },
+          const counts = async () => ({
+            templates: await tx.scheduleTemplate.count({ where: { congregationId } }),
+            parts: await tx.templatePart.count({ where: { congregationId } }),
+            services: await tx.templateServicePart.count({ where: { congregationId } }),
           })
+          const before = await counts()
 
           const copy = await duplicateTemplate(db, kind.id, congregationId, actorId)
-          const copied = await tx.eventTemplate.findFirstOrThrow({
-            where: { id: copy?.id ?? -1 },
-            select: {
-              parts: { orderBy: { order: 'asc' }, select: { name: true } },
-              serviceParts: { select: { name: true, allowedRoles: { select: { roleId: true } } } },
-            },
-          })
+          const copyId = copy?.id ?? -1
+          const items = async (id: number) => {
+            const loaded = kindTemplate(
+              await tx.eventTemplate.findFirstOrThrow({ where: { id }, include: TEMPLATE_INCLUDE }),
+            )
+            return [...loaded.parts.map(each => each.name), ...loaded.serviceParts.map(each => each.name)]
+          }
+          const afterCopy = { counts: await counts(), copied: await items(copyId) }
+          await tx.templatePart.create({ data: { ...part, name: 'Ajoutée', order: 2 } })
           read = {
-            parts: copied.parts.map(each => each.name),
-            services: copied.serviceParts.map(
-              each => `${each.name}:${each.allowedRoles.map(r => r.roleId === role.id)}`,
-            ),
+            before,
+            afterCopy,
+            copy: await tx.eventTemplate.findFirstOrThrow({
+              where: { id: copyId },
+              select: { weekDay: true, startTime: true, endTime: true },
+            }),
+            links: (
+              await tx.eventKindScheduleTemplate.findMany({
+                where: { eventKindId: copyId },
+                orderBy: { order: 'asc' },
+                select: { scheduleTemplateId: true },
+              })
+            ).map(each => each.scheduleTemplateId),
+            expected: [duties.id, programme.id],
+            later: [await items(kind.id), await items(copyId)],
           }
           throw new Rollback()
         },
@@ -81,6 +99,15 @@ describe('duplicateTemplate', () => {
     } catch (error) {
       if (!(error instanceof Rollback)) throw error
     }
-    expect(read).toEqual({ parts: ['Du type', 'Du modèle'], services: ['Porte:true'] })
+    expect(read?.afterCopy).toEqual({
+      counts: read?.before,
+      copied: ['Du type', 'Du modèle', 'Porte'],
+    })
+    expect(read?.copy).toEqual({ weekDay: 2, startTime: '19:00', endTime: '20:45' })
+    expect(read?.links).toEqual(read?.expected)
+    expect(read?.later).toEqual([
+      ['Du type', 'Du modèle', 'Ajoutée', 'Porte'],
+      ['Du type', 'Du modèle', 'Ajoutée', 'Porte'],
+    ])
   })
 })
