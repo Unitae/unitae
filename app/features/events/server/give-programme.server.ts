@@ -4,7 +4,7 @@ import { ScheduleKind } from '~/features/events/model/schedule.type'
 import { ITEM_SLOT, type PartRoleKind } from '~/features/events/server/allowed-roles.server'
 import { templateItemsOf } from '~/features/events/server/item-projection.server'
 import type { CreatedProgramme, CreationContext } from '~/features/events/server/programme-creation.server'
-import { eventSchedulesOf } from '~/features/events/server/schedules.server'
+import { eventScheduleId, eventScheduleOfTemplate, eventSchedulesOf } from '~/features/events/server/schedules.server'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -35,7 +35,14 @@ export interface TemplateWithRelations {
     /** The rooms it is held in (none read as the main room alone). */
     rooms?: { room: { name: string | null; key: string | null; order: number } }[]
   }[]
-  serviceParts: { id: number; name: string; order: number; allowedRoles: { roleId: number }[] }[]
+  serviceParts: {
+    id: number
+    name: string
+    order: number
+    allowedRoles: { roleId: number }[]
+    /** The duties template it belongs to: a meeting gets one schedule per template (user, 2026-11-27). */
+    scheduleTemplateId?: number | null
+  }[]
 }
 
 /**
@@ -71,15 +78,16 @@ export const TEMPLATE_INCLUDE = {
   serviceParts: { ...SERVICES, where: { scheduleTemplateId: null } },
   scheduleTemplates: {
     orderBy: [{ order: 'asc' }, { scheduleTemplateId: 'asc' }],
-    select: { scheduleTemplate: { select: { kind: true, parts: PARTS, serviceParts: SERVICES } } },
+    select: { scheduleTemplate: { select: { id: true, kind: true, parts: PARTS, serviceParts: SERVICES } } },
   },
 } satisfies Prisma.EventTemplateInclude
 
 type LoadedKind = Prisma.EventTemplateGetPayload<{ include: typeof TEMPLATE_INCLUDE }>
 
 /**
- * A kind as loaded with TEMPLATE_INCLUDE, its items those of its first programme template and its first duties
- * template (an event holds one schedule of each sort), then the kind's not placed yet: the rule its counts follow too
+ * A kind as loaded with TEMPLATE_INCLUDE, its items those of its first programme template (an event holds one
+ * programme) and of every duties template, in the kind's order (one schedule each, user 2026-11-27), then the kind's
+ * not placed yet, the services among them with its first duties template: the rule its counts follow too
  * (TEMPLATE_PROGRAMME_COUNT, programmeTemplate).
  */
 export function kindTemplate<T extends LoadedKind>(loaded: T): Omit<T, 'scheduleTemplates'> & TemplateWithRelations {
@@ -88,10 +96,15 @@ export function kindTemplate<T extends LoadedKind>(loaded: T): Omit<T, 'schedule
   const first = (sort: string) => scheduleTemplates.find(link => link.scheduleTemplate.kind === sort)?.scheduleTemplate
   const byOrder = (a: { order: number; id: number }, b: { order: number; id: number }) =>
     a.order - b.order || a.id - b.id
+  const duties = scheduleTemplates.filter(link => link.scheduleTemplate.kind === ScheduleKind.Duty)
+  const firstDuties = duties[0]?.scheduleTemplate.id ?? null
   return {
     ...kind,
     parts: [...(first(ScheduleKind.Programme)?.parts ?? []), ...kind.parts].sort(byOrder),
-    serviceParts: [...(first(ScheduleKind.Duty)?.serviceParts ?? []), ...kind.serviceParts].sort(byOrder),
+    serviceParts: [
+      ...duties.flatMap(link => [...link.scheduleTemplate.serviceParts].sort(byOrder)),
+      ...[...kind.serviceParts].sort(byOrder).map(service => ({ ...service, scheduleTemplateId: firstDuties })),
+    ],
   }
 }
 
@@ -118,17 +131,33 @@ export async function giveProgramme(
 ): Promise<CreatedProgramme> {
   const { congregationId } = ctx
   const event = { id: eventId }
-  // Each item goes into the event's schedule of its kind, made from the template's.
-  const kinds = [
-    ...(template.parts.length > 0 ? [ScheduleKind.Programme] : []),
-    ...(template.serviceParts.length > 0 ? [ScheduleKind.Duty] : []),
-  ]
-  const { programme: programmeId, duty: dutiesId } = await eventSchedulesOf(db, eventId, kinds, congregationId)
-  await writeTemplateItems(
+  // Its parts go into the event's programme, made from the kind's; its services into one schedule per duties template
+  // they come from (user, 2026-11-27), those of none into the event's duties schedule.
+  // Read once, before any is made, as eventSchedulesOf does: on an event holding none, every schedule this action
+  // brings takes the event's status; beside one it holds, they start as drafts (D52).
+  const takeEventStatus = (await db.schedule.count({ where: { eventId, congregationId } })) === 0
+  const { programme: programmeId } = await eventSchedulesOf(
     db,
-    { eventId: event.id, programmeId, dutiesId, parts: template.parts, services: template.serviceParts },
+    eventId,
+    template.parts.length > 0 ? [ScheduleKind.Programme] : [],
     congregationId,
   )
+  await writeTemplateItems(
+    db,
+    { eventId: event.id, programmeId, dutiesId: null, parts: template.parts, services: [] },
+    congregationId,
+  )
+  for (const [scheduleTemplateId, services] of byDutiesTemplate(template.serviceParts)) {
+    const dutiesId =
+      scheduleTemplateId == null
+        ? await eventScheduleId(db, eventId, ScheduleKind.Duty, congregationId, { takeEventStatus })
+        : await eventScheduleOfTemplate(db, eventId, scheduleTemplateId, congregationId, { takeEventStatus })
+    await writeTemplateItems(
+      db,
+      { eventId: event.id, programmeId: null, dutiesId, parts: [], services },
+      congregationId,
+    )
+  }
 
   // Awaited, in the same transaction: the record of who created it stands or falls with the programme.
   await auditInTransaction(db, {
@@ -229,6 +258,16 @@ export async function writeTemplateItems(
       })
     }
   }
+}
+
+/** The services by the duties template they come from, in the order they come: one schedule each. */
+function byDutiesTemplate(services: TemplateWithRelations['serviceParts']) {
+  const groups = new Map<number | null, TemplateWithRelations['serviceParts']>()
+  for (const service of services) {
+    const key = service.scheduleTemplateId ?? null
+    groups.set(key, [...(groups.get(key) ?? []), service])
+  }
+  return groups
 }
 
 /**

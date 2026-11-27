@@ -45,14 +45,19 @@ export function programmeTemplate(
   if (!('scheduleTemplates' in template)) {
     return { key: template.key, parts: template._count.parts, services: template._count.serviceParts }
   }
-  // The copy's rule (kindTemplate): the first template of each sort, then the kind's rows not placed yet.
-  const first = (sort: string) =>
-    template.scheduleTemplates.find(link => (link.scheduleTemplate.kind ?? sort) === sort)?.scheduleTemplate._count
+  // The copy's rule (kindTemplate): its first programme template, every duties template (one schedule each, user
+  // 2026-11-27), then the kind's rows not placed yet.
+  const programme = template.scheduleTemplates.find(
+    link => (link.scheduleTemplate.kind ?? ScheduleKind.Programme) === ScheduleKind.Programme,
+  )?.scheduleTemplate._count
+  const duties = template.scheduleTemplates
+    .filter(link => link.scheduleTemplate.kind === ScheduleKind.Duty)
+    .reduce((sum, link) => sum + link.scheduleTemplate._count.serviceParts, 0)
   const unplaced = template._count ?? { parts: 0, serviceParts: 0 }
   return {
     key: template.key,
-    parts: (first(ScheduleKind.Programme)?.parts ?? 0) + unplaced.parts,
-    services: (first(ScheduleKind.Duty)?.serviceParts ?? 0) + unplaced.serviceParts,
+    parts: (programme?.parts ?? 0) + unplaced.parts,
+    services: duties + unplaced.serviceParts,
   }
 }
 

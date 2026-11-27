@@ -124,8 +124,9 @@ function byWeekThenName(a: CreationTemplate, b: CreationTemplate): number {
 }
 
 /**
- * What « Créer » gives a new meeting of the kind, as kindTemplate copies it: its parts and services, and one schedule
- * of each sort that has items (none empty), in the order the kind lists its templates.
+ * What « Créer » gives a new meeting of the kind, as kindTemplate copies it: its parts and services, its programme
+ * schedule and one schedule per duties template (user, 2026-11-27) that has items (none empty), in the order the kind
+ * lists its templates. The kind's own items not placed yet go with its first template of their sort.
  */
 function copiedBy(row: {
   _count: { parts: number; serviceParts: number }
@@ -133,23 +134,32 @@ function copiedBy(row: {
     scheduleTemplate: { name: string | null; kind: string; _count: { parts: number; serviceParts: number } }
   }[]
 }) {
-  const sorts = [ScheduleKind.Programme, ScheduleKind.Duty].map(kind => {
-    const at = row.scheduleTemplates.findIndex(link => link.scheduleTemplate.kind === kind)
-    const template = row.scheduleTemplates[at]?.scheduleTemplate
-    const of = kind === ScheduleKind.Programme ? 'parts' : 'serviceParts'
-    return {
-      kind,
-      at: at < 0 ? Number.MAX_SAFE_INTEGER : at,
-      name: template?.name ?? null,
-      items: (template?._count[of] ?? 0) + row._count[of],
-    }
-  })
-  const [parts, services] = sorts
+  const links = row.scheduleTemplates.map((link, at) => ({ at, ...link.scheduleTemplate }))
+  const programme = links.find(link => link.kind === ScheduleKind.Programme)
+  const duties = links
+    .filter(link => link.kind === ScheduleKind.Duty)
+    .map(link => ({ at: link.at, name: link.name, services: link._count.serviceParts }))
+  // No duties template: the kind's own services still make one, unnamed.
+  const dutySchedules = duties.length > 0 ? duties : [{ at: Number.MAX_SAFE_INTEGER, name: null, services: 0 }]
+  const schedules = [
+    {
+      kind: ScheduleKind.Programme,
+      at: programme?.at ?? Number.MAX_SAFE_INTEGER,
+      name: programme?.name ?? null,
+      items: (programme?._count.parts ?? 0) + row._count.parts,
+    },
+    ...dutySchedules.map((duty, index) => ({
+      kind: ScheduleKind.Duty,
+      at: duty.at,
+      name: duty.name,
+      items: duty.services + (index === 0 ? row._count.serviceParts : 0),
+    })),
+  ]
   return {
-    parts: parts?.items ?? 0,
-    services: services?.items ?? 0,
-    schedules: sorts
-      .filter(sort => sort.items > 0)
+    parts: schedules[0]?.items ?? 0,
+    services: schedules.slice(1).reduce((sum, schedule) => sum + schedule.items, 0),
+    schedules: schedules
+      .filter(schedule => schedule.items > 0)
       .sort((a, b) => a.at - b.at)
       .map(({ name, kind, items }) => ({ name, kind, items })),
   }

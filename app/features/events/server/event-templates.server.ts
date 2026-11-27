@@ -1,7 +1,7 @@
 import type { AttendanceKind } from '~/features/events/model/attendance-kind.type'
 import { isSystemTemplate } from '~/features/events/model/event-template.type'
 import { ResponsibilityScope } from '~/features/events/model/responsibility-scope.type'
-import { SCHEDULE_KINDS, ScheduleKind } from '~/features/events/model/schedule.type'
+import { ScheduleKind } from '~/features/events/model/schedule.type'
 import { TEMPLATE_PROGRAMME_COUNT } from '~/features/events/server/give-programme.server'
 import { syncTemplateScheduleTemplates } from '~/features/events/server/schedule-templates.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
@@ -20,8 +20,25 @@ const responsibleInclude = {
 const RESPONSIBLE_ROLE = { select: { id: true, key: true, name: true } } as const
 
 /**
+ * A type's responsibles as its schedule templates hold them: its first programme template's, then every duties
+ * template's (one schedule each, user 2026-11-27), each role once.
+ */
+function responsiblesOf(
+  links: {
+    scheduleTemplate: { kind: string; responsibleRole: { id: number; key: string; name: string | null } | null }
+  }[],
+) {
+  const programme = links.find(link => link.scheduleTemplate.kind === ScheduleKind.Programme)
+  const duties = links.filter(link => link.scheduleTemplate.kind === ScheduleKind.Duty)
+  const roles = [programme, ...duties].flatMap(link =>
+    link?.scheduleTemplate.responsibleRole ? [link.scheduleTemplate.responsibleRole] : [],
+  )
+  return roles.filter((role, index) => roles.findIndex(other => other.id === role.id) === index)
+}
+
+/**
  * The meeting types, each with what its schedule templates hold (6b-0) and its responsibles as they hold them (6b-1b):
- * its first programme template's, then its first duties template's.
+ * its first programme template's, then every duties template's.
  */
 export async function getTemplates(db: TransactionClient, congregationId: number) {
   const templates = await db.eventTemplate.findMany({
@@ -45,10 +62,7 @@ export async function getTemplates(db: TransactionClient, congregationId: number
   })
   return templates.map(template => ({
     ...template,
-    responsibles: SCHEDULE_KINDS.flatMap(sort => {
-      const first = template.scheduleTemplates.find(link => link.scheduleTemplate.kind === sort)
-      return first?.scheduleTemplate.responsibleRole ? [first.scheduleTemplate.responsibleRole] : []
-    }),
+    responsibles: responsiblesOf(template.scheduleTemplates),
   }))
 }
 

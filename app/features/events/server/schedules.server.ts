@@ -103,6 +103,53 @@ export async function eventScheduleId(
   return created.id
 }
 
+/**
+ * The event's schedule made from this schedule template, made on the spot when it has none: for a kind using several
+ * duties templates, a meeting gets one schedule per template (user, 2026-11-27). Its status follows D52 as
+ * eventScheduleId's; the event's row is locked before it is made, so two writers make it once.
+ */
+export async function eventScheduleOfTemplate(
+  db: TransactionClient,
+  eventId: number,
+  scheduleTemplateId: number,
+  congregationId: number,
+  { takeEventStatus = false }: { takeEventStatus?: boolean } = {},
+): Promise<number> {
+  const find = () =>
+    db.schedule.findFirst({ where: { eventId, scheduleTemplateId, congregationId }, select: { id: true } })
+  const existing = await find()
+  if (existing) return existing.id
+  const template = await db.scheduleTemplate.findFirst({
+    where: { id: scheduleTemplateId, congregationId },
+    select: { kind: true, name: true, key: true },
+  })
+  if (!template) throw new NotFoundError('ScheduleTemplate', scheduleTemplateId)
+  await db.$queryRaw`SELECT "id" FROM "Event" WHERE "id" = ${eventId} AND "congregationId" = ${congregationId} FOR UPDATE`
+  const madeMeanwhile = await find()
+  if (madeMeanwhile) return madeMeanwhile.id
+  const event = await db.event.findFirst({
+    where: { id: eventId, congregationId },
+    select: { status: true, _count: { select: { schedules: true } } },
+  })
+  if (!event) throw new NotFoundError('Event', eventId)
+  const status =
+    takeEventStatus || event._count.schedules === 0 ? scheduleStatusFor(event.status) : ScheduleStatus.Draft
+  const kind = template.kind as ScheduleKind
+  const created = await db.schedule.create({
+    data: {
+      eventId,
+      kind,
+      order: SCHEDULE_ORDER[kind],
+      status,
+      scheduleTemplateId,
+      name: template.name,
+      key: template.key,
+      congregationId,
+    },
+  })
+  return created.id
+}
+
 async function findEventSchedule(
   db: TransactionClient,
   eventId: number,

@@ -6,6 +6,7 @@ vi.mock('~/features/events/server/schedules.server', () => ({
   attachEventItems: vi.fn(),
   deleteEventSchedules: vi.fn(),
   eventScheduleId: vi.fn(),
+  eventScheduleOfTemplate: vi.fn(),
   eventSchedulesOf: vi.fn(),
   setEventSchedulesStatus: vi.fn(),
 }))
@@ -31,6 +32,7 @@ vi.mock('~/shared/infra/db.server', () => ({
       deleteMany: vi.fn(),
     },
     item: { create: vi.fn() },
+    schedule: { count: vi.fn().mockResolvedValue(0) },
     itemAllowedRole: { createMany: vi.fn() },
     templateItem: { findMany: vi.fn() },
     $queryRaw: vi.fn(),
@@ -38,7 +40,9 @@ vi.mock('~/shared/infra/db.server', () => ({
   },
 }))
 
-const { eventSchedulesOf } = await import('~/features/events/server/schedules.server')
+const { eventScheduleId, eventScheduleOfTemplate, eventSchedulesOf } = await import(
+  '~/features/events/server/schedules.server'
+)
 const { createProgrammeOnDay, createProgrammeSeries, ProgrammeExistsError } = await import(
   './programme-creation.server'
 )
@@ -98,6 +102,9 @@ beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(db.event.findMany).mockResolvedValue([] as never)
   vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+  // A template's services go into a duties schedule of its own (user, 2026-11-27): one here.
+  vi.mocked(eventScheduleId).mockResolvedValue(DUTY_SCHEDULE)
+  vi.mocked(eventScheduleOfTemplate).mockResolvedValue(DUTY_SCHEDULE)
   vi.mocked(eventSchedulesOf).mockImplementation(async (_db, _eventId, kinds) => ({
     programme: kinds.includes('programme') ? PROGRAMME_SCHEDULE : null,
     duty: kinds.includes('duty') ? DUTY_SCHEDULE : null,
