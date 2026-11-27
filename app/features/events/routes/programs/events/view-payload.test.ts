@@ -14,7 +14,7 @@ vi.mock('~/shared/auth/route-context.server', async importOriginal => ({
   permissionsContext,
   congregationContext,
   withScopeFromContext: (_context: unknown, fn: (db: unknown) => unknown) =>
-    fn({ member: { findMany: () => Promise.resolve([]) } }),
+    fn({ member: { findMany: () => Promise.resolve([]) }, schedule: { findMany: () => Promise.resolve([]) } }),
 }))
 
 vi.mock('~/shared/infra/logger.server', () => {
@@ -269,6 +269,8 @@ describe('each schedule’s section', () => {
       {
         id: 2,
         kind: 'duty',
+        // The template it was made from: none read here (the fake holds none).
+        templateId: null,
         status: 'published',
         name: 'Services',
         responsible: { role: { key: 'services', name: 'Services' }, holders: [], youHoldIt: true },

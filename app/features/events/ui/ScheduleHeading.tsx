@@ -15,6 +15,8 @@ import { PublishUnfilledDialog } from './PublishUnfilledDialog'
 
 /** A schedule as its section on the event page shows it (D37, D43, D45: the reader sees only those they may). */
 export interface EventScheduleView {
+  /** The template it was made from, none for a schedule made empty. */
+  templateId?: number | null
   id: number
   kind: string
   status: string

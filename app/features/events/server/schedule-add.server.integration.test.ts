@@ -158,15 +158,21 @@ describe('addSchedule', () => {
     })
   })
 
-  it('refuses a kind the event already holds, while an event holds one schedule of each', async () => {
-    await withMeeting(async ({ db, congregationId, actorId, meetingId, programme }) => {
+  // One programme per meeting; as many duties schedules as wanted, each template once (user, 2026-11-27).
+  it('refuses a second programme and a duties template the meeting holds, and adds another duties schedule', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, meetingId, programme, duties }) => {
       const programmeTemplate = await templateOf(db, programme.id)
+      const dutiesTemplate = await templateOf(db, duties.id)
       expect(
         await addSchedule(db, meetingId, { scheduleTemplateId: programmeTemplate }, congregationId, actorId),
       ).toEqual({ reason: 'kind-held' })
-      expect(await addSchedule(db, meetingId, { name: 'Autre', kind: 'duty' }, congregationId, actorId)).toEqual({
-        reason: 'kind-held',
+      expect(await addSchedule(db, meetingId, { scheduleTemplateId: dutiesTemplate }, congregationId, actorId)).toEqual(
+        { reason: 'present' },
+      )
+      expect(await addSchedule(db, meetingId, { name: 'Autre', kind: 'duty' }, congregationId, actorId)).toMatchObject({
+        schedule: { kind: 'duty' },
       })
+      expect(await db.schedule.count({ where: { eventId: meetingId, kind: 'duty' } })).toBe(2)
     })
   })
 
@@ -406,7 +412,7 @@ describe('scheduleAddOptions, what « Ajouter un planning » offers', () => {
     })
   })
 
-  it('greys a suggestion whose kind the meeting holds from another template', async () => {
+  it('greys a programme the meeting holds from another template, and offers every duties template it lacks', async () => {
     await withMeeting(async ({ db, congregationId, actorId, meetingId, programme, duties }) => {
       const dutiesTemplate = await templateOf(db, duties.id)
       const programmeTemplate = await templateOf(db, programme.id)
@@ -419,22 +425,26 @@ describe('scheduleAddOptions, what « Ajouter un planning » offers', () => {
 
       const options = await scheduleAddOptions(db, manages, actorId, meetingId, congregationId)
 
+      // Its duties come from Nettoyage: the kind's own duties template still goes beside them.
       expect(options.suggested).toEqual([
         expect.objectContaining({ id: programmeTemplate, kind: 'programme' }),
-        expect.objectContaining({ id: dutiesTemplate, kind: 'duty', unavailable: 'kind-held' }),
+        expect.objectContaining({ id: dutiesTemplate, kind: 'duty' }),
       ])
-      // The other templates only of the kind it lacks.
-      expect(options.others.every(template => template.kind === 'programme')).toBe(true)
+      expect(options.suggested[1]?.unavailable).toBeUndefined()
+      // Among the others, the duties template it holds, greyed as present.
+      expect(options.others.find(template => template.id === other.id)?.unavailable).toBe('present')
     })
   })
 
   it('offers a responsible their own template only, never an empty one, and greys their own the event holds', async () => {
     await withMeeting(async ({ db, congregationId, programmeLead, dutyLead, meetingId, duties }) => {
       const dutiesTemplate = await templateOf(db, duties.id)
+      // Their duties are there already: shown greyed, as the programme's below (a meeting may take more duties).
       expect(await scheduleAddOptions(db, nothing, dutyLead, meetingId, congregationId)).toEqual({
-        suggested: [],
+        suggested: [expect.objectContaining({ id: dutiesTemplate, unavailable: 'present' })],
         others: [],
         emptyKinds: [],
+        asResponsible: true,
       })
       await db.schedule.delete({ where: { id: duties.id } })
       expect(await scheduleAddOptions(db, nothing, dutyLead, meetingId, congregationId)).toEqual({

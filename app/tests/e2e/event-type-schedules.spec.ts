@@ -112,4 +112,36 @@ test.describe('Meeting type: the schedule templates it uses', () => {
       .poll(() => page.evaluate(() => document.activeElement?.hasAttribute('data-row-primary') ?? false))
       .toBe(true)
   })
+
+  // Several duties templates (user, 2026-11-27): a type takes a second one beside its own, then gives it back.
+  test('uses a second services template beside its own, and removes it', async ({ page }) => {
+    await page.goto('/settings/templates')
+    const type = page.getByRole('link', { name: 'Réunion du week-end' }).first()
+    if ((await type.count()) === 0) test.skip()
+    await type.click()
+    await page.waitForURL(TYPE_PAGE_RE)
+    const removes = page.getByRole('button', { name: REMOVE_RE })
+    await expect(removes.first()).toBeVisible()
+    const before = await removes.count()
+    const usedIds = await page
+      .locator('section [data-schedule-template-id]')
+      .evaluateAll(links => links.map(link => link.getAttribute('data-schedule-template-id')))
+    await page.getByRole('button', { name: 'Utiliser un modèle' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Utiliser un modèle de planning' })
+    const offered = dialog.locator('[data-schedule-template-id]').filter({ hasText: 'Services' })
+    if ((await offered.count()) === 0) test.skip()
+    const added = await offered.first().getAttribute('data-schedule-template-id')
+    expect(usedIds).not.toContain(added)
+    await Promise.all([saved(page), offered.first().click()])
+    try {
+      await expect(removes).toHaveCount(before + 1)
+    } finally {
+      // Leaves the type as it found it.
+      const extra = page.locator(`section [data-schedule-template-id="${added}"]`)
+      if ((await extra.count()) > 0) {
+        await Promise.all([saved(page), removes.last().click()])
+      }
+    }
+    await expect(removes).toHaveCount(before)
+  })
 })

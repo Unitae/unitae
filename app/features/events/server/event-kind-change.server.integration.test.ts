@@ -209,6 +209,44 @@ describe('changeEventKind', () => {
     })
   })
 
+  // As many duties schedules as wanted, each template once (user, 2026-11-27): the old duties kept, the new kind's added.
+  it('keeps the old duties beside the new kind’s duties template', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, meetingId, weekendId, programme, duties }) => {
+      const weekend = await suggestedBy(db, weekendId)
+      const result = await changeEventKind(
+        db,
+        manages,
+        actorId,
+        meetingId,
+        { kindId: weekendId, keep: [programme.id, duties.id], remove: [], add: [weekend.duty] },
+        congregationId,
+      )
+      expect(result).not.toHaveProperty('reason')
+      expect(await db.schedule.count({ where: { eventId: meetingId, kind: 'duty' } })).toBe(2)
+    })
+  })
+
+  it('refuses adding a duties template the meeting keeps, changing nothing', async () => {
+    await withMeeting(async ({ db, congregationId, actorId, meetingId, weekendId, programme, duties }) => {
+      const weekend = await suggestedBy(db, weekendId)
+      await db.schedule.update({
+        where: { id_congregationId: { id: duties.id, congregationId } },
+        data: { scheduleTemplateId: weekend.duty },
+      })
+      const result = await changeEventKind(
+        db,
+        manages,
+        actorId,
+        meetingId,
+        { kindId: weekendId, keep: [programme.id, duties.id], remove: [], add: [weekend.duty] },
+        congregationId,
+      )
+      expect(result).toEqual({ reason: 'kind-held' })
+      expect(await db.schedule.count({ where: { eventId: meetingId, kind: 'duty' } })).toBe(1)
+      expect((await db.event.findFirstOrThrow({ where: { id: meetingId } })).templateId).not.toBe(weekendId)
+    })
+  })
+
   it('refuses a schedule template the new kind does not suggest', async () => {
     await withMeeting(async ({ db, congregationId, actorId, meetingId, weekendId, programme, duties }) => {
       const midweekDuties = (await db.schedule.findFirstOrThrow({ where: { id: duties.id } }))

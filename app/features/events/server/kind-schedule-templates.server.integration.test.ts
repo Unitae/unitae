@@ -116,12 +116,26 @@ describe('addKindScheduleTemplate', () => {
     expect(read.copied).toEqual({ parts: ['Du type'], services: ['Porte'] })
   })
 
-  it('refuses a second template of a sort the type uses, and one it uses already', async () => {
+  it('refuses a second programme template, and one the type uses already', async () => {
     const read = await inCongregation(async ({ db, kindId, own, loose, congregationId, actorId }) => ({
       second: await addKindScheduleTemplate(db, kindId, loose.programme, congregationId, actorId),
       again: await addKindScheduleTemplate(db, kindId, own, congregationId, actorId),
     }))
-    expect(read).toEqual({ second: { ok: false, reason: 'sort-used' }, again: { ok: false, reason: 'sort-used' } })
+    // A second programme is refused (a meeting holds one); the one it uses, as used.
+    expect(read).toEqual({ second: { ok: false, reason: 'sort-used' }, again: { ok: false, reason: 'used' } })
+  })
+
+  // Several duties templates (user, 2026-11-27): one schedule each on its meetings; a template once, a programme once.
+  it('lets a type use a second duties template, never the same one twice', async () => {
+    const read = await inCongregation(async ({ tx, db, kindId, loose, congregationId, actorId }) => {
+      const visio = (await tx.scheduleTemplate.create({ data: { name: 'Visio', kind: 'duty', congregationId } })).id
+      return {
+        first: await addKindScheduleTemplate(db, kindId, loose.duty, congregationId, actorId),
+        second: await addKindScheduleTemplate(db, kindId, visio, congregationId, actorId),
+        again: await addKindScheduleTemplate(db, kindId, visio, congregationId, actorId),
+      }
+    })
+    expect(read).toEqual({ first: { ok: true }, second: { ok: true }, again: { ok: false, reason: 'used' } })
   })
 
   it('answers null for a type or a template of another congregation, or none at all', async () => {

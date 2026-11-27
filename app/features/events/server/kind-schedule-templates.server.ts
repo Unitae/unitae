@@ -1,11 +1,13 @@
 import { isSystemTemplate } from '~/features/events/model/event-template.type'
+import { ScheduleKind } from '~/features/events/model/schedule.type'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
-// The schedule templates a meeting type uses, chosen on its page (6b-2). A new meeting copies the first template of
-// each sort (kindTemplate, 6b-0), so a type uses one of each at most: a second would never reach a meeting.
+// The schedule templates a meeting type uses, chosen on its page (6b-2): one programme template at most (a meeting
+// holds one programme), as many duties templates as wanted, each a schedule of its own on the type's new meetings (user,
+// 2026-11-27), each once.
 
-export type AddKindScheduleTemplateRefusal = 'sort-used' | 'system'
+export type AddKindScheduleTemplateRefusal = 'sort-used' | 'used' | 'system'
 
 function changed(kindId: number, congregationId: number, actorId: number, metadata: Record<string, unknown>) {
   audit({
@@ -49,9 +51,11 @@ export async function addKindScheduleTemplate(
   if (kind == null || template == null) return null
   // « Autre évènement » holds no schedule: its meetings take one from the meeting page.
   if (isSystemTemplate(kind.key)) return { ok: false, reason: 'system' }
-  if (kind.scheduleTemplates.some(link => link.scheduleTemplate.kind === template.kind)) {
-    return { ok: false, reason: 'sort-used' }
+  if (kind.scheduleTemplates.some(link => link.scheduleTemplateId === scheduleTemplateId)) {
+    return { ok: false, reason: 'used' }
   }
+  const programmeHeld = kind.scheduleTemplates.some(link => link.scheduleTemplate.kind === ScheduleKind.Programme)
+  if (template.kind === ScheduleKind.Programme && programmeHeld) return { ok: false, reason: 'sort-used' }
   const order = Math.max(-1, ...kind.scheduleTemplates.map(link => link.order)) + 1
   await db.eventKindScheduleTemplate.create({
     data: { eventKindId: kindId, scheduleTemplateId, order, congregationId },

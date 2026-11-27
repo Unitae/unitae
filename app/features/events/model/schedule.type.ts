@@ -64,6 +64,7 @@ export interface ScheduleAddOption {
    * A suggestion the meeting cannot take, shown greyed with why (design round A): it is already there, or the
    * meeting holds a schedule of its kind (one of each).
    */
+  /** Greyed: a template the meeting holds (`present`), or a programme beside the one it holds (`kind-held`). */
   unavailable?: 'present' | 'kind-held'
 }
 

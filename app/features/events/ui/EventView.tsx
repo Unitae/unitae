@@ -306,6 +306,7 @@ export function EventView({
           id: schedule.id,
           title: scheduleTitle(schedule),
           kind: schedule.kind,
+          templateId: schedule.templateId ?? null,
           status: schedule.status,
           assignments: schedule.kind === ScheduleKind.Programme ? programmeAssignments : filledOf(schedule.id),
           removable: schedule.mayChange,

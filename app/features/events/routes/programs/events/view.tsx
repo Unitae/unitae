@@ -153,6 +153,15 @@ export function loader({ params, context }: Route.LoaderArgs) {
       services: event.eventServiceParts.length,
       template: programmeTemplate(event.template),
     })
+    // The template each schedule was made from: « Changer le type » never adds a template the meeting holds.
+    const templateOf = new Map(
+      (
+        await db.schedule.findMany({
+          where: { eventId: event.id, congregationId },
+          select: { id: true, scheduleTemplateId: true },
+        })
+      ).map(row => [row.id, row.scheduleTemplateId]),
+    )
     const schedules = shown.schedules.map(schedule => {
       const roleId = roleOf(schedule)
       const responsible = roleId == null ? undefined : responsibles.get(roleId)
@@ -165,6 +174,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
       return {
         id: schedule.id,
         kind: schedule.kind,
+        templateId: templateOf.get(schedule.id) ?? null,
         status: schedule.status,
         name: schedule.name,
         responsible: roleId == null || responsible == null ? null : responsibleForPage(roleId, responsible, viewer),

@@ -18,8 +18,8 @@ const rowLine = (row: TemplateScheduleRow) =>
 
 /**
  * The schedule templates a meeting type uses (« TourA-Reglages-Types »'s « Plannings »), in their order: each opens in
- * « Modèles de planning », where its parts or services are set. A manager adds one (« Utiliser un modèle », one of each
- * sort: a new meeting copies the first of each), removes one and moves it up or down (6b-2).
+ * « Modèles de planning », where its parts or services are set. A manager adds one (« Utiliser un modèle »: one
+ * programme, any duties templates, each a schedule of its own on new meetings), removes one and moves it up or down.
  */
 export function TemplateSchedules({
   typeId,
@@ -30,7 +30,7 @@ export function TemplateSchedules({
   /** The type whose templates these are: the list's action writes it (6b-2b). */
   typeId: number
   rows: TemplateScheduleRow[]
-  /** The templates it may come to use: of a sort it uses none of. Null when it uses one of each. */
+  /** The templates it may come to use: a programme one while it uses none, every duties template it does not use. */
   candidates: TemplateScheduleRow[] | null
   editable: boolean
 }) {
