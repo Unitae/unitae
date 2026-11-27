@@ -11,6 +11,7 @@ const SEVERAL_SERVICES_RE = /(?:[2-9]|\d{2,}) services/
 const DOWN_RE = /^Descendre /
 const IN_SECTION_RE = /section=[^&]+/
 const DELETE_RE = /Supprimer/
+const COPY_RE = /\(copie( \d+)?\)$/
 const PARALLEL_RE = /En même temps dans plusieurs salles/
 const WHOLE_RE = /Toute l’assemblée/
 const ROOMS_TAG_RE = /[2-9] salles/
@@ -490,5 +491,24 @@ test.describe('Schedule templates: a part in the template panel', () => {
     await expect(sheet.getByRole('button', { name: 'Plus d’actions' })).toHaveCount(0)
     const height = await sheet.evaluate(element => element.getBoundingClientRect().height)
     expect(height).toBeGreaterThanOrEqual(800 - 1)
+  })
+
+  // « Dupliquer » (user, 2026-11-27): the copy opens in the panel, named « … (copie) »; deleted after, to leave the data.
+  test('duplicates a template and opens the copy', async ({ page }) => {
+    await page.goto('/settings/schedule-templates')
+    const programme = page.locator('[data-row-primary]').filter({ hasText: 'Spirituel' }).first()
+    if ((await programme.count()) === 0) test.skip()
+    await programme.click()
+    await expect(page).toHaveURL(TEMPLATE_RE)
+    const original = page.url()
+    await page.getByRole('button', { name: 'Actions du modèle' }).click()
+    await page.getByRole('menuitem', { name: 'Dupliquer' }).click()
+    await expect.poll(() => page.url()).not.toBe(original)
+    await expect(page.getByRole('heading', { name: COPY_RE })).toBeVisible()
+
+    await page.getByRole('button', { name: 'Actions du modèle' }).click()
+    await page.getByRole('menuitem', { name: 'Supprimer le modèle' }).click()
+    await page.getByRole('alertdialog').getByRole('button', { name: DELETE_RE }).click()
+    await expect(page).not.toHaveURL(TEMPLATE_RE)
   })
 })

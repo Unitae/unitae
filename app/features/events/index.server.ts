@@ -7,6 +7,7 @@ export { createScheduleTemplate } from './server/create-schedule-template.server
 export { getNextDaysOffs } from './server/days-off.server'
 export { deleteScheduleTemplate } from './server/delete-schedule-template.server'
 export { deleteTemplate } from './server/delete-template.server'
+export { duplicateScheduleTemplate } from './server/duplicate-schedule-template.server'
 export { duplicateTemplate } from './server/duplicate-template.server'
 export { countMeetingsToMove, EMPTY_MEETING } from './server/empty-meetings.queries'
 export {

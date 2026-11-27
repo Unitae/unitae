@@ -49,6 +49,10 @@ Dans une partie, **Où** dit où elle a lieu :
 
 Le titulaire et les adjoints du rôle choisi peuvent remplir et publier les plannings créés à partir de ce modèle, sur toutes les réunions. Qui tient le rôle se change dans l’organigramme. Le nom et le responsable se changent en haut du panneau du modèle ; sur un téléphone, touchez d’abord **Modifier le nom et le responsable**.
 
+## Dupliquer un modèle
+
+Dans le panneau du modèle, ouvrez le menu **…** et choisissez **Dupliquer**. La copie s’ouvre, nommée « … (copie) » : mêmes parties, sections, salles, services et rôles qui peuvent les prendre, même responsable. Aucun type d’évènement ne l’utilise encore, et le modèle d’origine ne change pas.
+
 ## Supprimer un modèle
 
 Dans le panneau du modèle, ouvrez le menu **…** et choisissez **Supprimer le modèle**. La fenêtre dit ce qui part et ce qui reste : les types d’évènement qui l’utilisent n’en reçoivent plus, et les plannings déjà créés gardent leur nom, leur contenu et leurs attributions. La suppression est définitive.

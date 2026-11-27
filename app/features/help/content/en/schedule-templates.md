@@ -49,6 +49,10 @@ In a part, **Where** says where it takes place:
 
 The holder and the deputies of the chosen role can fill in and publish the schedules created from this template, on every meeting. Who holds the role is changed in the organization chart. The name and the person in charge are changed at the top of the template's panel; on a phone, first tap **Edit the name and the person in charge**.
 
+## Duplicate a template
+
+In the template's panel, open the **…** menu and choose **Duplicate**. The copy opens, named “… (copy)”: the same parts, sections, rooms, services and roles that may take them, the same person in charge. No event type uses it yet, and the original template does not change.
+
 ## Delete a template
 
 In the template's panel, open the **…** menu and choose **Delete template**. The dialog says what goes and what stays: the event types that use it no longer receive it, and schedules already created keep their name, content and assignments. The deletion is permanent.

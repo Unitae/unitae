@@ -49,6 +49,10 @@ Numa parte, **Onde** indica onde decorre:
 
 O titular e os adjuntos da função escolhida podem preencher e publicar os planeamentos criados a partir deste modelo, em todas as reuniões. Quem tem a função muda-se no organigrama. O nome e o responsável mudam-se no topo do painel do modelo; num telemóvel, toque primeiro em **Alterar o nome e o responsável**.
 
+## Duplicar um modelo
+
+No painel do modelo, abra o menu **…** e escolha **Duplicar**. A cópia abre-se com o nome “… (cópia)”: as mesmas partes, secções, salas, serviços e funções que os podem assumir, o mesmo responsável. Ainda nenhum tipo de evento a utiliza, e o modelo original não muda.
+
 ## Eliminar um modelo
 
 No painel do modelo, abra o menu **…** e escolha **Eliminar o modelo**. A janela indica o que sai e o que fica: os tipos de evento que o utilizam deixam de o receber, e os planeamentos já criados mantêm o nome, o conteúdo e as designações. A eliminação é definitiva.
