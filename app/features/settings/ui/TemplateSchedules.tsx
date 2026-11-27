@@ -186,13 +186,23 @@ export function TemplateSchedules({
                     className="flex min-h-11 w-full flex-col items-start rounded-md px-2.5 py-1.5 text-left text-sm outline-none transition-colors duration-(--u-duration-fast) hover:bg-hover focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
                   >
                     <span className="font-medium">{row.title}</span>
-                    <span className="text-faint text-xs">
-                      {row.unavailable === 'unnamed' ? m.settings_template_schedules_unnamed_hint() : rowLine(row)}
-                    </span>
+                    <span className="text-faint text-xs">{rowLine(row)}</span>
+                    {/* Under its line, which tells two unnamed templates apart: the one to go and name. */}
+                    {row.unavailable === 'unnamed' && (
+                      <span className="text-muted-foreground text-xs">
+                        {m.settings_template_schedules_unnamed_hint()}
+                      </span>
+                    )}
                   </button>
                 </li>
               ))}
             </ul>
+          )}
+          {/* Every one greyed: where they are named is one click away, as when there is none. */}
+          {candidates != null && candidates.length > 0 && candidates.every(row => row.unavailable != null) && (
+            <Button variant="outline" size="sm" className="self-start" asChild>
+              <Link to="/settings/schedule-templates">{m.settings_template_schedules_use_open()}</Link>
+            </Button>
           )}
         </DialogContent>
       </Dialog>
