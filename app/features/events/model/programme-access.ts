@@ -31,6 +31,39 @@ export function maySeeSchedule(
   return schedule.kind === ScheduleKind.Programme ? rights.canAssign : rights.canAssignService
 }
 
+interface SlotTotals {
+  total: number
+  filled: number
+  flagged: number
+}
+
+/**
+ * The slots a reader is counted on the programmes list: those of the schedules they see (maySeeSchedule), parts and
+ * services apart. A draft duties schedule counts for its own responsible only (`fillsDuties`): a reader is not counted
+ * what they cannot see (user, 2026-11-27).
+ */
+export function countsSeen(
+  schedules: { id: number; kind: string; status: string; slots: SlotTotals }[],
+  rights: EventPageRights,
+  fillsDuties: readonly number[],
+): { parts: SlotTotals; services: SlotTotals } {
+  const add = (kind: ScheduleKind) =>
+    schedules
+      .filter(schedule => schedule.kind === kind)
+      .filter(schedule =>
+        maySeeSchedule(schedule, rights, kind === ScheduleKind.Duty ? fillsDuties.includes(schedule.id) : undefined),
+      )
+      .reduce(
+        (sum, { slots }) => ({
+          total: sum.total + slots.total,
+          filled: sum.filled + slots.filled,
+          flagged: sum.flagged + slots.flagged,
+        }),
+        { total: 0, filled: 0, flagged: 0 },
+      )
+  return { parts: add(ScheduleKind.Programme), services: add(ScheduleKind.Duty) }
+}
+
 /**
  * What a schedule's own button does (D8): « Publier » on a draft the reader may publish that publishing would not
  * refuse (`publishable`), « Repasser en brouillon » on a published one they may withdraw, nothing otherwise.

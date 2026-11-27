@@ -92,6 +92,55 @@ export async function listProgrammes(
   })
 }
 
+/** A schedule of a listed meeting with its own slots, for the page to count only what the reader sees. */
+export interface ScheduleSlots {
+  id: number
+  kind: string
+  status: string
+  slots: SlotCounts
+}
+
+/**
+ * Each meeting's schedules with their own slots, by event id (user, 2026-11-27: a draft schedule the reader cannot see
+ * is not counted). Slots count as listProgrammes counts them: a part held in several rooms is a slot in each.
+ */
+export async function scheduleSlotCounts(
+  db: TransactionClient,
+  eventIds: readonly number[],
+  congregationId: number,
+): Promise<Map<number, ScheduleSlots[]>> {
+  const schedules = await db.schedule.findMany({
+    where: { eventId: { in: [...eventIds] }, congregationId },
+    select: {
+      id: true,
+      eventId: true,
+      kind: true,
+      status: true,
+      items: {
+        select: {
+          assigneeId: true,
+          externalSpeakerId: true,
+          hasConflict: true,
+          rooms: { select: { assigneeId: true, externalSpeakerId: true, hasConflict: true } },
+        },
+      },
+    },
+    orderBy: [{ order: 'asc' }, { id: 'asc' }],
+  })
+  const byEvent = new Map<number, ScheduleSlots[]>()
+  for (const { eventId, items, ...schedule } of schedules) {
+    // A part's rooms are its slots; a service has no rooms and is one.
+    const slots = items.flatMap(item =>
+      (item.rooms.length > 0 ? item.rooms : [item]).map(room => ({
+        filled: room.assigneeId != null || room.externalSpeakerId != null,
+        hasConflict: room.hasConflict,
+      })),
+    )
+    byEvent.set(eventId, [...(byEvent.get(eventId) ?? []), { ...schedule, slots: counts(slots) }])
+  }
+  return byEvent
+}
+
 /** Whether a programme exists at all, drafts counted only for a reader who may see them: the empty list says which. */
 export async function congregationHasProgrammes(
   db: TransactionClient,

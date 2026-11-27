@@ -3,9 +3,13 @@ import { Link, redirect, type ShouldRevalidateFunctionArgs } from 'react-router'
 
 import { EventStatus } from '~/features/events/model/event-status.type'
 import { listPeriod, selectedPreset } from '~/features/events/model/list-period'
-import { mayOpenEvent } from '~/features/events/model/programme-access'
+import { countsSeen, mayOpenEvent } from '~/features/events/model/programme-access'
 import { publishActionsFor } from '~/features/events/server/event-publishing.server'
-import { congregationHasProgrammes, listProgrammes } from '~/features/events/server/programme-list.queries'
+import {
+  congregationHasProgrammes,
+  listProgrammes,
+  scheduleSlotCounts,
+} from '~/features/events/server/programme-list.queries'
 import { scheduleRightsFor } from '~/features/events/server/schedule-rights.server'
 import { PeriodMenu } from '~/features/events/ui/PeriodMenu'
 import { ProgrammeList } from '~/features/events/ui/ProgrammeList'
@@ -68,22 +72,30 @@ export function loader({ request, context }: Route.LoaderArgs) {
       id => rightsOf.get(id)?.canPublish === true,
     )
 
+    // Counted by schedule: a draft schedule the reader cannot see is not counted (user, 2026-11-27).
+    const slotsOf = await scheduleSlotCounts(
+      db,
+      items.map(item => item.id),
+      congregationId,
+    )
+
     // Only what the page shows: no template ids, drafts only for whoever may act on them (the event page's own rule),
     // and the assignments to review only for whoever may reassign them, until the programme is held.
     const programmes = items.flatMap(item => {
       const rights = rightsOf.get(item.id)
       if (rights == null) throw new Error(`No rights for programme ${item.id}`)
-      const opens = mayOpenEvent(item.status, {
+      const pageRights = {
         canEdit: rights.canEdit,
         canPublish: rights.canPublish,
         canAssign: rights.canAssignParts,
         // Some duties schedule of it is theirs: a meeting may hold several, each its own responsible's.
         canAssignService: rights.opensForDuties,
-      })
-      if (!opens) return []
+      }
+      if (!mayOpenEvent(item.status, pageRights)) return []
+      const { parts, services } = countsSeen(slotsOf.get(item.id) ?? [], pageRights, rights.fillsDuties)
       const ahead = item.startDate >= now
       const review = ahead
-        ? (rights.canAssignParts ? item.parts.flagged : 0) + (rights.canAssignServices ? item.services.flagged : 0)
+        ? (rights.canAssignParts ? parts.flagged : 0) + (rights.canAssignServices ? services.flagged : 0)
         : 0
       return [
         {
@@ -93,8 +105,8 @@ export function loader({ request, context }: Route.LoaderArgs) {
           endDate: item.endDate,
           status: item.status,
           kind: item.kind,
-          parts: { total: item.parts.total, filled: item.parts.filled },
-          services: { total: item.services.total, filled: item.services.filled },
+          parts: { total: parts.total, filled: parts.filled },
+          services: { total: services.total, filled: services.filled },
           awaitingProgramme: item.awaitingProgramme,
           review,
           canEdit: rights.canEdit,
