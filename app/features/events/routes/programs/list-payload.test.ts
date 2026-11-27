@@ -61,6 +61,8 @@ const responsibleFor = vi.hoisted(() => ({
   programme: [] as number[],
   service: [] as number[],
   deletes: [] as number[],
+  /** Kinds whose meetings hold a duties schedule the reader answers for, beside one they do not (several per meeting). */
+  someDuties: [] as number[],
 }))
 vi.mock('~/features/events/server/schedule-rights.server', () => ({
   scheduleRightsFor: (
@@ -85,6 +87,8 @@ vi.mock('~/features/events/server/schedule-rights.server', () => ({
             canPublish: can('can-publish-programs') || (programme && services),
             canAssignParts: fills || programme,
             canAssignServices: fills || services,
+            opensForDuties: fills || services || answers(responsibleFor.someDuties, templateId),
+            fillsDuties: [],
           },
         ]
       }),
@@ -124,11 +128,12 @@ afterAll(() => vi.useRealTimers())
 
 async function load(
   permissions: Permission[],
-  responsible: { programme?: number[]; service?: number[]; deletes?: number[] } = {},
+  responsible: { programme?: number[]; service?: number[]; deletes?: number[]; someDuties?: number[] } = {},
 ) {
   responsibleFor.programme = responsible.programme ?? []
   responsibleFor.service = responsible.service ?? []
   responsibleFor.deletes = responsible.deletes ?? []
+  responsibleFor.someDuties = responsible.someDuties ?? []
   const context = {
     get: (key: symbol) => {
       if (key === permissionsContext) return new Set([Permission.CanViewPrograms, ...permissions])
@@ -189,6 +194,17 @@ describe('/programs — what the list receives', () => {
       [34, { edit: true, delete: true, publish: true, review: 0 }],
     ])
     expect(data.canCreate).toBe(true)
+  })
+
+  // A meeting holding two duties schedules: the responsible of one opens its draft, under preparation, from the list.
+  it('lists a draft to the responsible of one of its duties schedules, with nothing of the others to review', async () => {
+    const data = await load([], { someDuties: [5] })
+
+    expect(rows(data)).toEqual([
+      [30, { edit: false, delete: false, publish: false, review: 0 }],
+      [31, { edit: false, delete: false, publish: false, review: 0 }],
+      [32, { edit: false, delete: false, publish: false, review: 0 }],
+    ])
   })
 
   it('lets someone who may only publish select every programme to publish it, with nothing to review', async () => {
