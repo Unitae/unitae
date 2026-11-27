@@ -29,7 +29,7 @@ O ficheiro ZIP só inclui os publicadores com pelo menos um relatório no ano. O
 
 ## O relatório do mês para a filial (S-1)
 
-O S-1 retoma os números acima da lista: os relatórios, estudos bíblicos e horas dos publicadores, pioneiros auxiliares e pioneiros regulares que pregaram. Acrescenta os **publicadores ativos**, os que indicaram ter pregado nesse mês ou nos cinco meses anteriores, e a **assistência média à reunião de fim de semana** do mês, se tiver o direito de consultar a assistência. Uma reunião só entra na média quando os seus dois números estão introduzidos. O nome do secretário, quem ocupa o cargo no **Organigrama** e não o seu adjunto, fica escrito na linha da assinatura. A localidade, a região e o número da congregação ficam por preencher à mão.
+O S-1 retoma os números acima da lista: os relatórios, estudos bíblicos e horas dos publicadores, pioneiros auxiliares e pioneiros regulares que pregaram. Acrescenta os **publicadores ativos**, os que indicaram ter pregado nesse mês ou nos cinco meses anteriores, e a **média da assistência à reunião de fim de semana** do mês, se tiver o direito de consultar a assistência. Uma reunião só entra na média quando os seus dois números estão introduzidos. O nome do secretário, quem ocupa o cargo no **Organigrama** e não o seu adjunto, fica escrito na linha da assinatura. A cidade, o distrito ou província e o número da congregação ficam por preencher à mão.
 
 ## O registo de um publicador
 
