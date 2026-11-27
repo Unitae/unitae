@@ -1,7 +1,7 @@
 import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { unassignPart, unassignServicePart } from '~/features/events/server/event-part-assignments.server'
-import { resolveEventItem } from '~/features/events/server/events-auth.server'
+import { resolveEventItem, scheduleOfItems } from '~/features/events/server/events-auth.server'
 import {
   buildAssignmentContext,
   dispatchAssignmentDiffs,
@@ -45,11 +45,6 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const event = await findProgrammeEvent(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
 
-    // « Attribuer », « Gérer », or the responsible of this schedule's template (plan §10, D7).
-    if (!(await canFillSchedule(db, can, currentUser.id, event, kind, congregationId))) {
-      throw redirect('/programs')
-    }
-
     // The item's id under `item` (plan T12); `id` is the old row's, from a page the previous image rendered.
     const assignmentId = await resolveEventItem(
       db,
@@ -59,6 +54,11 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       congregationId,
     )
     if (assignmentId == null) throw redirect('/programs')
+    // « Attribuer », « Gérer », or the responsible of this item's schedule (plan §10, D7): a meeting may hold several.
+    const scheduleId = await scheduleOfItems(db, [assignmentId], congregationId)
+    if (!(await canFillSchedule(db, can, currentUser.id, event, kind, congregationId, scheduleId))) {
+      throw redirect('/programs')
+    }
 
     const cong = context.get(congregationContext)
     // `didRemove` gates the success flash so a stale double-submit that finds

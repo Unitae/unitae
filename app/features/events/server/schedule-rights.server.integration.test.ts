@@ -126,6 +126,44 @@ afterAll(async () => {
 })
 
 describe('Fill a schedule (items, assignees): « Attribuer », « Gérer », or the responsible of its template', () => {
+  // Several duties schedules on one meeting (each from its own template, with its own responsible): an action naming
+  // its schedule asks for that one's responsible alone; one naming only the kind still asks for every one.
+  it('lets each duties schedule’s responsible fill theirs alone, named by the schedule', async () => {
+    await inCongregation(async ({ db, congregationId, dutyLead, meeting }) => {
+      const visioRole = await db.role.create({ data: { key: `visio-${congregationId}`, name: 'v', congregationId } })
+      const visio = await db.scheduleTemplate.create({
+        data: { name: 'Visioconférence', kind: 'duty', responsibleRoleId: visioRole.id, congregationId },
+      })
+      const visioLead = (
+        await db.userAccount.create({
+          data: { email: `visio-${congregationId}@test.com`, password: 'x', congregationId },
+        })
+      ).id
+      await db.userRoleAssignment.create({ data: { userId: visioLead, roleId: visioRole.id, congregationId } })
+      const services = await db.schedule.findFirstOrThrow({ where: { eventId: meeting.id, kind: 'duty' } })
+      const second = await db.schedule.create({
+        data: {
+          eventId: meeting.id,
+          kind: 'duty',
+          order: 2,
+          name: 'Visioconférence',
+          status: 'draft',
+          scheduleTemplateId: visio.id,
+          congregationId,
+        },
+      })
+      const fill = (userId: number, scheduleId?: number) =>
+        canFillSchedule(db, nothing, userId, meeting, 'service', congregationId, scheduleId)
+
+      expect([await fill(dutyLead, services.id), await fill(dutyLead, second.id)]).toEqual([true, false])
+      expect([await fill(visioLead, second.id), await fill(visioLead, services.id)]).toEqual([true, false])
+      expect([await fill(dutyLead), await fill(visioLead)]).toEqual([false, false])
+      // A schedule of another event, or of the other kind, is not this one's.
+      const programme = await db.schedule.findFirstOrThrow({ where: { eventId: meeting.id, kind: 'programme' } })
+      expect(await fill(dutyLead, programme.id)).toBe(false)
+    })
+  })
+
   it('lets « Attribuer » and « Gérer » fill both schedules, holding no role', async () => {
     await inCongregation(async ({ db, congregationId, nobody, meeting }) => {
       for (const can of [only(Permission.CanAssignProgramParts), only(Permission.CanManagePrograms)]) {

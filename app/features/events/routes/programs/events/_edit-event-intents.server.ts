@@ -58,6 +58,36 @@ export function kindsFilledBy(intent: FormDataEntryValue | null): readonly ItemK
   return isEditIntent(name) ? FILL_INTENT_KINDS[name] : []
 }
 
+/**
+ * The duties schedule a service intent names, whose responsible alone the route then asks for: the one a service is
+ * added to, or the one the service updated or deleted is in. Null when it names none, or an item of another event: the
+ * route then asks for every duties schedule, and the intent refuses the item.
+ */
+export async function serviceScheduleNamed(
+  db: TransactionClient,
+  intent: FormDataEntryValue | null,
+  formData: FormData,
+  checks: IntentChecks,
+  congregationId: number,
+): Promise<number | null> {
+  if (intent === 'add-service') {
+    const posted = Number(formData.get('scheduleId'))
+    return Number.isInteger(posted) && posted > 0 ? posted : null
+  }
+  if (intent !== 'update-service' && intent !== 'delete-service') return null
+  const field = (name: string) => {
+    const value = formData.get(name)
+    return typeof value === 'string' && value !== '' ? value : undefined
+  }
+  const itemId = await checks.itemInEvent('service', {
+    itemId: field('serviceItemId'),
+    legacyId: field('serviceAssignmentId'),
+  })
+  if (itemId == null) return null
+  const item = await db.item.findFirst({ where: { id: itemId, congregationId }, select: { scheduleId: true } })
+  return item?.scheduleId ?? null
+}
+
 /** The decisions that depend on who is asking, made by the route. */
 export interface IntentChecks {
   /**
@@ -257,6 +287,7 @@ async function handleAddService(
       name: submission.value.serviceName,
       allowedRoleIds: submission.value.allowedRoleIds,
       congregationId,
+      scheduleId: submission.value.scheduleId ?? null,
     },
     actorId,
   )

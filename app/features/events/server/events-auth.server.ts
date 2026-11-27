@@ -155,3 +155,17 @@ export async function canManageAnyProgram(
   // A responsible of a schedule template some kind suggests (D28).
   return (await responsibleKindIds(db, userId, congregationId)).length > 0
 }
+
+/**
+ * The one schedule these items are in, for a rights check naming it (a meeting may hold several duties schedules); null
+ * when they are in several, in none, or are not the congregation's: the check then asks for every schedule of the kind.
+ */
+export async function scheduleOfItems(db: TransactionClient, itemIds: readonly number[], congregationId: number) {
+  if (itemIds.length === 0) return null
+  const rows = await db.item.findMany({
+    where: { id: { in: [...itemIds] }, congregationId },
+    select: { scheduleId: true },
+  })
+  const ids = new Set(rows.map(row => row.scheduleId))
+  return rows.length === itemIds.length && ids.size === 1 ? ([...ids][0] ?? null) : null
+}

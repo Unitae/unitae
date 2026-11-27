@@ -1,4 +1,5 @@
 import { redirect } from 'react-router'
+import { scheduleOfItems } from '~/features/events/server/events-auth.server'
 import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
 import { reorderServiceAssignments } from '~/features/events/server/reorder-services.server'
 import { canFillSchedule } from '~/features/events/server/schedule-rights.server'
@@ -31,8 +32,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const event = await findProgrammeEvent(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
 
-    // « Attribuer », « Gérer », or the responsible of this schedule's template (plan §10, D7).
-    if (!(await canFillSchedule(db, can, currentUser.id, event, 'service', congregationId))) {
+    // « Attribuer », « Gérer », or the responsible of the schedule these services are in (plan §10, D7); of every duties
+    // schedule when they are not all in one.
+    const scheduleId = await scheduleOfItems(db, orderedIds, congregationId)
+    if (!(await canFillSchedule(db, can, currentUser.id, event, 'service', congregationId, scheduleId))) {
       throw redirect('/programs')
     }
 
