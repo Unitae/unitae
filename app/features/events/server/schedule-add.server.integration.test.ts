@@ -260,7 +260,7 @@ describe('addSchedule, beside what the event holds', () => {
     })
   })
 
-  it('carries a template’s rooms and its parts’ rooms into a duplicated meeting type', async () => {
+  it('gives a duplicated meeting type the same template, its rooms with it', async () => {
     await withMeeting(async ({ db, congregationId, actorId, programme }) => {
       const programmeTemplate = await templateOf(db, programme.id)
       const first = await db.templatePart.findFirstOrThrow({
@@ -281,22 +281,22 @@ describe('addSchedule, beside what the event holds', () => {
         congregationId,
       )
       if (first.templateId == null) throw new Error('a kind’s part')
+      // The copy uses the same programme template (user, 2026-11-27): its rooms and its parts' rooms with it.
       const copy = await duplicateTemplate(db, first.templateId, congregationId, actorId)
-      const copied = await db.templatePart.findFirstOrThrow({
-        where: { templateId: copy?.id, order: first.order },
-        select: { scheduleTemplateId: true, rooms: { select: { room: { select: { key: true, name: true } } } } },
+      const links = await db.eventKindScheduleTemplate.findMany({
+        where: { eventKindId: copy?.id ?? -1 },
+        select: { scheduleTemplateId: true },
       })
+      expect(links.map(link => link.scheduleTemplateId)).toContain(programmeTemplate)
       const rooms = await db.scheduleTemplateRoom.findMany({
-        where: { scheduleTemplateId: copied.scheduleTemplateId as number },
+        where: { scheduleTemplateId: programmeTemplate },
         orderBy: { order: 'asc' },
         select: { key: true, name: true },
       })
-      expect(copied.scheduleTemplateId).not.toBe(programmeTemplate)
       expect(rooms).toEqual([
         { key: 'main', name: 'Auditorium' },
         { key: null, name: 'Salle B' },
       ])
-      expect(copied.rooms.map(row => row.room.key ?? row.room.name).sort()).toEqual(['Salle B', 'main'])
     })
   })
 

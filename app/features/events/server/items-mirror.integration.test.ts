@@ -322,9 +322,11 @@ describe('old item tables mirrored into the new ones', () => {
         congregationId,
       )
       expect(moved).toMatchObject({ event: { id: second } })
+      // The copy uses the weekend's schedule templates (user, 2026-11-27): it mirrors no item of its own.
       const copy = await duplicateTemplate(db, weekend, congregationId, actorId)
       if (!copy) throw new Error('the template was not duplicated')
-      expect(await db.templateItem.count({ where: { templateId: copy.id } })).toBeGreaterThan(0)
+      expect(await db.templateItem.count({ where: { templateId: copy.id } })).toBe(0)
+      const weekendItems = await db.templateItem.count({ where: { templateId: weekend } })
       await inStep()
 
       await bulkDeleteEvents(db, [first, second], congregationId, actorId)
@@ -333,6 +335,8 @@ describe('old item tables mirrored into the new ones', () => {
       await inStep()
       expect(await db.item.count({ where: { eventId: { in: [first, second] } } })).toBe(0)
       expect(await db.templateItem.count({ where: { templateId: copy.id } })).toBe(0)
+      // Deleting the copy leaves the templates it shared, and the weekend's items, whole.
+      expect(await db.templateItem.count({ where: { templateId: weekend } })).toBe(weekendItems)
     })
   })
 

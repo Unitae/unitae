@@ -28,6 +28,8 @@ const { getTemplateById } = await import('./event-templates.server')
 const { upsertTemplateServicePart } = await import('./template-items.server')
 const { getEventProgramme } = await import('./event-part-assignments.server')
 const { duplicateTemplate } = await import('./duplicate-template.server')
+const { kindTemplate, TEMPLATE_INCLUDE } = await import('./give-programme.server')
+const { syncTemplateScheduleTemplates } = await import('./schedule-templates.server')
 const { createMeetingProgramme } = await import('./create-meeting-programme.server')
 const { seedDefaultTemplates } = await import('./seed-templates.server')
 
@@ -165,10 +167,14 @@ describe('the order of services', () => {
     expect(names).toEqual(['10 Audio-vidéo', '15 Accueil'])
   })
 
+  // A copy uses the same schedule templates (user, 2026-11-27): its meetings get the services in the same order.
   it('keeps the order in a duplicated template', async () => {
     const names = await withScope(ids.cong, async tx => {
+      await syncTemplateScheduleTemplates(tx, ids.template, ids.cong)
       const copy = await duplicateTemplate(tx, ids.template, ids.cong, ids.actor)
-      return copy ? templateServices(tx, copy.id) : []
+      if (!copy) return []
+      const loaded = await tx.eventTemplate.findFirstOrThrow({ where: { id: copy.id }, include: TEMPLATE_INCLUDE })
+      return kindTemplate(loaded).serviceParts.map(row => `${row.order} ${row.name}`)
     })
 
     expect(names).toEqual(['0 Sono', '12 Estrade', '30 Accueil', '45 Nettoyage'])

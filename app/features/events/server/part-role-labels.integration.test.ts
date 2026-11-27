@@ -8,7 +8,6 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
-import { duplicateTemplate } from '~/features/events/server/duplicate-template.server'
 import { createProgrammeSeries } from '~/features/events/server/programme-creation.server'
 import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 import { fillFromKind } from '~/tests/helpers/fill-from-kind'
@@ -171,25 +170,6 @@ describe('per-part role labels — end-to-end', () => {
     })
 
     expect(assignments).toEqual([
-      { name: 'Bible reading', speakerLabel: P1_SPEAKER, readerLabel: null },
-      { name: 'Return visit', speakerLabel: P2_SPEAKER, readerLabel: P2_READER },
-      { name: 'Instruction talk', speakerLabel: null, readerLabel: null },
-    ])
-  })
-
-  it('duplicateTemplate carries speakerLabel/readerLabel onto the cloned template parts', async () => {
-    const { templateId } = await seedTemplate(`duplicate-${ts}`)
-
-    const duplicated = await withScope(congId, tx => duplicateTemplate(tx, templateId, congId, managerAccountId))
-    expect(duplicated).not.toBeNull()
-
-    const parts = await testDb.templatePart.findMany({
-      where: { templateId: duplicated?.id, congregationId: congId },
-      orderBy: { order: 'asc' },
-      select: { name: true, speakerLabel: true, readerLabel: true },
-    })
-
-    expect(parts).toEqual([
       { name: 'Bible reading', speakerLabel: P1_SPEAKER, readerLabel: null },
       { name: 'Return visit', speakerLabel: P2_SPEAKER, readerLabel: P2_READER },
       { name: 'Instruction talk', speakerLabel: null, readerLabel: null },
