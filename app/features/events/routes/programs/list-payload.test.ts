@@ -40,8 +40,31 @@ const programme = (
   awaitingProgramme: id === 34,
 })
 
+// Each meeting's schedules, as scheduleSlotCounts reads them (its integration test): its programme and its services, of
+// the meeting's status, and `extraDraft`'s second duties schedule, a draft, on the meetings it names.
+const extraDraft = vi.hoisted(() => ({ events: [] as number[] }))
+const dutiesOf = (eventId: number) => eventId * 10 + 2
 vi.mock('~/features/events/server/programme-list.queries', () => ({
   congregationHasProgrammes: () => Promise.resolve(true),
+  scheduleSlotCounts: (_db: unknown, eventIds: number[]) =>
+    Promise.resolve(
+      new Map(
+        eventIds.map(id => {
+          const status = [32, 33, 34].includes(id) ? 'draft' : 'published'
+          const flagged = { 30: [1, 0], 31: [1, 1], 32: [1, 2] }[id] ?? [0, 0]
+          return [
+            id,
+            [
+              { id: id * 10 + 1, kind: 'programme', status, slots: { total: 7, filled: 5, flagged: flagged[0] } },
+              { id: dutiesOf(id), kind: 'duty', status, slots: { total: 4, filled: 3, flagged: flagged[1] } },
+              ...(extraDraft.events.includes(id)
+                ? [{ id: id * 10 + 3, kind: 'duty', status: 'draft', slots: { total: 2, filled: 0, flagged: 0 } }]
+                : []),
+            ],
+          ]
+        }),
+      ),
+    ),
   listProgrammes: () =>
     Promise.resolve([
       // Already held: nothing left to review on it.
@@ -88,7 +111,7 @@ vi.mock('~/features/events/server/schedule-rights.server', () => ({
             canAssignParts: fills || programme,
             canAssignServices: fills || services,
             opensForDuties: fills || services || answers(responsibleFor.someDuties, templateId),
-            fillsDuties: [],
+            fillsDuties: services || answers(responsibleFor.someDuties, templateId) ? [dutiesOf(id)] : [],
           },
         ]
       }),
@@ -165,6 +188,20 @@ describe('/programs — what the list receives', () => {
     expect(data.canCreate).toBe(false)
   })
 
+  // A reader is not counted what they cannot see (user, 2026-11-27).
+  it('counts a reader the published schedules only, a draft second duties schedule left out', async () => {
+    extraDraft.events = [31]
+    try {
+      const reader = await load([])
+      const manager = await load([Permission.CanManagePrograms])
+      const services = (data: typeof reader) => data.programmes.find(row => row.id === 31)?.services
+      expect(services(reader)).toEqual({ total: 4, filled: 3 })
+      expect(services(manager)).toEqual({ total: 6, filled: 3 })
+    } finally {
+      extraDraft.events = []
+    }
+  })
+
   it('gives the programme manager every programme and what to review on those still ahead', async () => {
     const data = await load([
       Permission.CanManagePrograms,
@@ -205,6 +242,16 @@ describe('/programs — what the list receives', () => {
       [31, { edit: false, delete: false, publish: false, review: 0 }],
       [32, { edit: false, delete: false, publish: false, review: 0 }],
     ])
+  })
+
+  // The parts side: a draft programme hidden from whoever answers only for a duties schedule of the meeting.
+  it('counts a duties schedule’s responsible its services on a draft, and none of the programme they cannot see', async () => {
+    const data = await load([], { someDuties: [5] })
+    const row = data.programmes.find(each => each.id === 32)
+    expect({ parts: row?.parts, services: row?.services }).toEqual({
+      parts: { total: 0, filled: 0 },
+      services: { total: 4, filled: 3 },
+    })
   })
 
   it('lets someone who may only publish select every programme to publish it, with nothing to review', async () => {

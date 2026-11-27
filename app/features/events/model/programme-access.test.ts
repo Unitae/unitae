@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { mayOpenEvent, maySeeSchedule, schedulePublishAction } from './programme-access'
+import { countsSeen, mayOpenEvent, maySeeSchedule, schedulePublishAction } from './programme-access'
 
 describe('mayOpenEvent', () => {
   const none = { canEdit: false, canPublish: false, canAssign: false, canAssignService: false }
@@ -56,5 +56,33 @@ describe('schedulePublishAction', () => {
     expect(schedulePublishAction({ status: 'draft', mayPublish: true, publishable: false })).toBeNull()
     expect(schedulePublishAction({ status: 'published', mayPublish: true, publishable: false })).toBe('unpublish')
     expect(schedulePublishAction({ status: 'published', mayPublish: false, publishable: false })).toBeNull()
+  })
+})
+
+// A reader is not counted what they cannot see (user, 2026-11-27): the programmes list adds up the schedules they see.
+describe('countsSeen', () => {
+  const none = { canEdit: false, canPublish: false, canAssign: false, canAssignService: false }
+  const slots = (total: number, filled: number, flagged = 0) => ({ total, filled, flagged })
+  const schedules = [
+    { id: 1, kind: 'programme', status: 'published', slots: slots(3, 2) },
+    { id: 2, kind: 'duty', status: 'published', slots: slots(2, 2) },
+    { id: 3, kind: 'duty', status: 'draft', slots: slots(4, 1, 1) },
+  ]
+
+  it('counts a plain reader the published schedules only', () => {
+    expect(countsSeen(schedules, none, [])).toEqual({ parts: slots(3, 2), services: slots(2, 2) })
+  })
+
+  it('counts a duties schedule’s responsible their draft, and not another one’s', () => {
+    expect(countsSeen(schedules, none, [3])).toEqual({ parts: slots(3, 2), services: slots(6, 3, 1) })
+    const draftProgramme = [{ ...schedules[0], status: 'draft' }, ...schedules.slice(1)]
+    expect(countsSeen(draftProgramme, none, [3]).parts).toEqual(slots(0, 0))
+  })
+
+  it('counts whoever may change or publish the meeting every schedule', () => {
+    expect(countsSeen(schedules, { ...none, canPublish: true }, [])).toEqual({
+      parts: slots(3, 2),
+      services: slots(6, 3, 1),
+    })
   })
 })
