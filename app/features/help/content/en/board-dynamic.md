@@ -29,7 +29,7 @@ A kind is offered only when the congregation has that data: groups, pioneers, an
    ![The choice of kind: program, field service groups, pioneers and organization chart](capture:board-dynamic-types)
 
 3. Give it a **Title** and choose its **Section**.
-4. For a program, choose in **Content** the meetings it shows, with their parts or their services, and their order.
+4. For a program, choose in **Content** the meetings it shows, with their parts or their services, and their order. For a type that uses several services schedules, tick under its row those the document shows: each reads under its name.
 5. In **Appearance**, choose the typeface, the accent colour and, depending on the kind, the layout. The preview shows the result, which stays readable printed, in colour or in black and white.
 6. Choose when it shows, then click **Add to the board**.
 

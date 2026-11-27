@@ -12,6 +12,7 @@ import {
   topicText,
   trackLabel,
 } from '~/features/display-board/model/programme-sheet'
+import type { ServiceSchedule } from '~/features/display-board/model/programme-sheet.type'
 import { programmeWeeks } from '~/features/display-board/model/programme-weeks'
 import { groupPartsBySlot, sectionColor } from '~/features/events'
 import * as m from '~/i18n/paraglide/messages'
@@ -70,6 +71,8 @@ export interface ProgrammeViewData {
   timeZone: string
   /** Last week's attendance, when the congregation shows it on the programme: a line under the week under way. */
   attendance?: AttendanceLineMeeting[] | null
+  /** The meetings' duties schedules' titles, their services grouped by them (withServiceSchedules). */
+  serviceSchedules?: Record<number, ServiceSchedule>
 }
 
 type Unit = ProgrammeUnit<ProgrammeEvent>
@@ -157,13 +160,19 @@ function TrackedPart({ parts }: { parts: PartAssignment[] }) {
 function Services({
   services,
   hasParts,
+  title,
 }: {
   services: NonNullable<ProgrammeEvent['eventServiceParts']>
   hasParts: boolean
+  /** The duties schedule's, when the meeting holds several; « Services » otherwise. */
+  title?: string
 }) {
   const { query } = useBoardReading()
   const [collapsed, setCollapsed] = usePersistedState('programme-services-collapsed', false)
-  const label = m.board_viewer_services_label({ count: String(services.length) })
+  const label =
+    title == null
+      ? m.board_viewer_services_label({ count: String(services.length) })
+      : m.board_viewer_schedule_services_label({ name: title, count: String(services.length) })
   const folded = hasParts && collapsed && query == null
   return (
     <div className="mt-3 flex flex-col">
@@ -240,7 +249,15 @@ function Meeting({ unit, past, timeZone }: { unit: Unit; past: boolean; timeZone
             )}
           </div>
         ))}
-      {unit.services.length > 0 && <Services services={unit.services} hasParts={unit.showParts} />}
+      {/* Schedule by schedule when the meeting holds several, each under its title. */}
+      {unit.serviceGroups.map((group, index) => (
+        <Services
+          key={group.services[0]?.id ?? index}
+          services={group.services}
+          hasParts={unit.showParts}
+          title={unit.serviceGroups.length > 1 ? (group.title ?? m.board_programme_services_title()) : undefined}
+        />
+      ))}
     </section>
   )
 }
@@ -287,7 +304,15 @@ function WeekRail({
   )
 }
 
-export function ProgrammeView({ events, showServices, config, now, timeZone, attendance }: ProgrammeViewData) {
+export function ProgrammeView({
+  events,
+  showServices,
+  config,
+  now,
+  timeZone,
+  attendance,
+  serviceSchedules,
+}: ProgrammeViewData) {
   const { query } = useBoardReading()
   const [showPast, setShowPast] = useState(false)
 
@@ -302,7 +327,7 @@ export function ProgrammeView({ events, showServices, config, now, timeZone, att
   }
 
   const { configMap, groupBy } = programmePdfOptions({ events, config, showServices })
-  const units = programmeUnits(events, configMap, groupBy)
+  const units = programmeUnits(events, configMap, groupBy, serviceSchedules)
   const today = dayOf(new Date(now), timeZone)
   const isPast = (unit: Unit) => dayOf(unit.event.startDate, timeZone) < today
 

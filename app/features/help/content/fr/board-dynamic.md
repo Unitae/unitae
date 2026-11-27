@@ -29,7 +29,7 @@ Un type n’est proposé que si l’assemblée a ces données : des groupes, des
    ![Le choix du type : programme, groupes de prédication, pionniers et organigramme](capture:board-dynamic-types)
 
 3. Donnez-lui un **Titre** et choisissez sa **Section**.
-4. Pour un programme, choisissez dans **Contenu** les réunions qu’il montre, avec leurs parties ou leurs services, et leur ordre.
+4. Pour un programme, choisissez dans **Contenu** les réunions qu’il montre, avec leurs parties ou leurs services, et leur ordre. Pour un type qui utilise plusieurs plannings de services, cochez sous sa ligne ceux que le document montre : chacun s’y lit sous son nom.
 5. Dans **Apparence**, choisissez la police, la couleur d’accent et, selon le type, la mise en page. L’aperçu montre le résultat, qui reste lisible imprimé, en couleur comme en noir et blanc.
 6. Choisissez quand il s’affiche, puis cliquez sur **Ajouter au tableau**.
 

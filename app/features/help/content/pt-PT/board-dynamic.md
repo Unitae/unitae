@@ -29,7 +29,7 @@ Um tipo só é proposto se a congregação tiver esses dados: grupos, pioneiros,
    ![A escolha do tipo: programa, grupos de serviço de campo, pioneiros e organigrama](capture:board-dynamic-types)
 
 3. Dê-lhe um **Título** e escolha a **Secção**.
-4. Para um programa, escolha em **Conteúdo** as reuniões que mostra, com as respetivas partes ou serviços, e a ordem.
+4. Para um programa, escolha em **Conteúdo** as reuniões que mostra, com as respetivas partes ou serviços, e a ordem. Para um tipo que utiliza vários planeamentos de serviços, marque sob a sua linha os que o documento mostra: cada um lê-se sob o seu nome.
 5. Em **Aspeto**, escolha o tipo de letra, a cor de destaque e, conforme o tipo, a disposição. A pré-visualização mostra o resultado, que continua legível impresso, a cores ou a preto e branco.
 6. Escolha quando aparece e clique em **Adicionar ao quadro de anúncios**.
 

@@ -6,6 +6,7 @@ import {
   frenchSpacing,
   leaderLayout,
   programmeUnits,
+  serviceGroups,
   topicRuns,
   trackLabel,
 } from './programme-sheet'
@@ -133,5 +134,32 @@ describe('programmeUnits', () => {
     )
 
     expect(unit.services).toEqual([])
+  })
+})
+
+// A meeting may hold several duties schedules (user, 2026-11-27): its services read schedule by schedule, each titled.
+describe('serviceGroups', () => {
+  const service = (name: string, scheduleId: number | null) => ({ name, scheduleId })
+
+  it('keeps one untitled list for a single schedule, as before', () => {
+    const services = [service('Sono', 4), service('Micros', 4)]
+    expect(serviceGroups(services, { 4: { title: 'Services', order: 1 } })).toEqual([{ title: null, services }])
+  })
+
+  it('splits several schedules in their order, each under its title', () => {
+    const services = [service('Salle', 9), service('Sono', 4), service('Micros', 4)]
+    const schedules = { 4: { title: 'Sono et accueil', order: 1 }, 9: { title: 'Nettoyage', order: 2 } }
+    expect(serviceGroups(services, schedules)).toEqual([
+      { title: 'Sono et accueil', services: [service('Sono', 4), service('Micros', 4)] },
+      { title: 'Nettoyage', services: [service('Salle', 9)] },
+    ])
+  })
+
+  it('titles an unnamed schedule as none, for the reader to label it', () => {
+    const services = [service('Sono', 4), service('Salle', 9)]
+    expect(serviceGroups(services, { 4: { title: null, order: 1 }, 9: { title: 'Nettoyage', order: 2 } })).toEqual([
+      { title: null, services: [service('Sono', 4)] },
+      { title: 'Nettoyage', services: [service('Salle', 9)] },
+    ])
   })
 })

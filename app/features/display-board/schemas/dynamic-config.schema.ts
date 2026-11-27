@@ -4,6 +4,8 @@ const eventTemplateConfigSchema = z.object({
   templateId: z.number().int().positive(),
   parts: z.boolean(),
   services: z.boolean(),
+  /** The duties schedule templates whose services it shows, when the type uses several; absent: every one. */
+  dutyTemplates: z.array(z.number().int().positive()).optional(),
 })
 
 const programmeDynamicConfigSchema = z.object({

@@ -33,7 +33,13 @@ export interface ProgrammeSheetEvent {
   // Absent when the query left services out; the sheet then prints none. The assignee is
   // optional for the same reason — a query that includes services conditionally types it so —
   // and a missing one prints as unassigned, never as an error.
-  eventServiceParts?: { name: string; assignee?: ProgrammeSheetMember | null }[]
+  eventServiceParts?: { name: string; assignee?: ProgrammeSheetMember | null; scheduleId?: number | null }[]
+}
+
+/** A duties schedule as a programme document titles its services: its name, its template's (null: « Services »). */
+export interface ServiceSchedule {
+  title: string | null
+  order: number
 }
 
 export interface ProgrammeSheetTemplateOptions {

@@ -11,6 +11,8 @@ const congregationContext = Symbol('congregationContext')
 const settingsFindFirst = vi.fn()
 const fakeDb = {
   boardDynamicDocumentSettings: { findFirst: settingsFindFirst },
+  // A programme's duties schedules, for titling its services: none here.
+  schedule: { findMany: () => Promise.resolve([]) },
 }
 
 const requirePermission = vi.fn()

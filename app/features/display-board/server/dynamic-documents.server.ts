@@ -11,6 +11,7 @@ import {
   getOrganigramVersion,
   hasOrganigram,
 } from '~/features/display-board/server/organigram-document.server'
+import { keepChosenServices } from '~/features/display-board/server/programme-schedules.server'
 // Cross-feature import via the events barrel (deep-importing another
 // feature's model directly is forbidden by the boundaries lint rule).
 import { itemsPerRoom, VISIBLE_EVENT, VISIBLE_ITEM } from '~/features/events'
@@ -392,7 +393,13 @@ export async function getDynamicDocumentData(
       // Multi-template mode: fetch events for all configured templates
       const templateIds = config.templates.map(t => t.templateId)
       const anyServices = config.templates.some(t => t.services)
-      const events = await fetchProgrammeByIds(db, congregationId, templateIds, anyServices)
+      // The duties schedules each type's settings choose, when it uses several.
+      const events = await keepChosenServices(
+        db,
+        await fetchProgrammeByIds(db, congregationId, templateIds, anyServices),
+        config,
+        congregationId,
+      )
       return {
         type: DynamicType.Programme,
         events,
