@@ -128,7 +128,8 @@ test.describe('Meeting type: the schedule templates it uses', () => {
       .evaluateAll(links => links.map(link => link.getAttribute('data-schedule-template-id')))
     await page.getByRole('button', { name: 'Utiliser un modèle' }).click()
     const dialog = page.getByRole('dialog', { name: 'Utiliser un modèle de planning' })
-    const offered = dialog.locator('[data-schedule-template-id]').filter({ hasText: 'Services' })
+    // A named one: an unnamed one beside the unnamed one the type uses is greyed (the next case).
+    const offered = dialog.locator('button:not([disabled])[data-schedule-template-id]').filter({ hasText: 'service' })
     if ((await offered.count()) === 0) test.skip()
     const added = await offered.first().getAttribute('data-schedule-template-id')
     expect(usedIds).not.toContain(added)
@@ -142,6 +143,32 @@ test.describe('Meeting type: the schedule templates it uses', () => {
         await Promise.all([saved(page), removes.last().click()])
       }
     }
+    await expect(removes).toHaveCount(before)
+  })
+
+  // Two unnamed services schedules would both read « Services » (user, 2026-11-27): the second is named first.
+  test('greys an unnamed services template beside the unnamed one the type uses, with where to name it', async ({
+    page,
+  }) => {
+    await page.goto('/settings/templates')
+    const type = page.getByRole('link', { name: 'Réunion du week-end' }).first()
+    if ((await type.count()) === 0) test.skip()
+    await type.click()
+    await page.waitForURL(TYPE_PAGE_RE)
+    const removes = page.getByRole('button', { name: REMOVE_RE })
+    await expect(removes.first()).toBeVisible()
+    const before = await removes.count()
+    await page.getByRole('button', { name: 'Utiliser un modèle' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Utiliser un modèle de planning' })
+    const greyed = dialog.locator('button[disabled][data-schedule-template-id]')
+    if ((await greyed.count()) === 0) test.skip()
+    await expect(greyed.first()).toContainText('nommez-le d’abord dans « Modèles de planning »')
+    // Its line stays: it tells two unnamed templates apart.
+    await expect(greyed.first()).toContainText('service')
+    if ((await dialog.locator('button:not([disabled])[data-schedule-template-id]').count()) === 0) {
+      await expect(dialog.getByRole('link', { name: 'Ouvrir « Modèles de planning »' })).toBeVisible()
+    }
+    await page.keyboard.press('Escape')
     await expect(removes).toHaveCount(before)
   })
 })
