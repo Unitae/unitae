@@ -152,7 +152,8 @@ export function programmeUnits<E extends ProgrammeSheetEvent>(
   // A meeting the document's choice of duties schedules leaves with nothing to show is left out (#689).
   const shown = ordered.filter(event => {
     const config = event.templateId ? configMap.get(event.templateId) : null
-    return !config?.narrowed || config.parts || (event.eventServiceParts ?? []).length > 0
+    const parts = (config?.parts ?? true) && event.eventParts.length > 0
+    return !config?.narrowed || parts || (event.eventServiceParts ?? []).length > 0
   })
   return shown.map(event => {
     const config = event.templateId ? configMap.get(event.templateId) : null

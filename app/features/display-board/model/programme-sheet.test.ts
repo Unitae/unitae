@@ -153,6 +153,17 @@ describe('programmeUnits', () => {
     expect(units[0]?.serviceGroups.map(group => group.title)).toEqual(['Visio'])
   })
 
+  // Its programme a draft (no parts read), its services all of another schedule: nothing to show though « Programme »
+  // is ticked.
+  it('leaves out a narrowed meeting with no parts to show, its programme column ticked', () => {
+    const units = programmeUnits(
+      [{ ...event(1, 1, 'Vie et ministère'), eventServiceParts: [] }],
+      new Map([[1, { parts: true, services: true, narrowed: true }]]),
+      'date',
+    )
+    expect(units).toEqual([])
+  })
+
   it('keeps an empty meeting and an untitled list where the type is not narrowed, as before', () => {
     const units = programmeUnits(
       [
