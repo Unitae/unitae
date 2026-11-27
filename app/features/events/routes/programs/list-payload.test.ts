@@ -111,7 +111,7 @@ vi.mock('~/features/events/server/schedule-rights.server', () => ({
             canAssignParts: fills || programme,
             canAssignServices: fills || services,
             opensForDuties: fills || services || answers(responsibleFor.someDuties, templateId),
-            fillsDuties: services ? [dutiesOf(id)] : [],
+            fillsDuties: services || answers(responsibleFor.someDuties, templateId) ? [dutiesOf(id)] : [],
           },
         ]
       }),
@@ -242,6 +242,16 @@ describe('/programs — what the list receives', () => {
       [31, { edit: false, delete: false, publish: false, review: 0 }],
       [32, { edit: false, delete: false, publish: false, review: 0 }],
     ])
+  })
+
+  // The parts side: a draft programme hidden from whoever answers only for a duties schedule of the meeting.
+  it('counts a duties schedule’s responsible its services on a draft, and none of the programme they cannot see', async () => {
+    const data = await load([], { someDuties: [5] })
+    const row = data.programmes.find(each => each.id === 32)
+    expect({ parts: row?.parts, services: row?.services }).toEqual({
+      parts: { total: 0, filled: 0 },
+      services: { total: 4, filled: 3 },
+    })
   })
 
   it('lets someone who may only publish select every programme to publish it, with nothing to review', async () => {
