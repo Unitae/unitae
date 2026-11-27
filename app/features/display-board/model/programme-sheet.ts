@@ -113,10 +113,15 @@ export interface ServiceGroup<S> {
 export function serviceGroups<S extends { scheduleId?: number | null }>(
   services: S[],
   schedules: Readonly<Record<number, ServiceSchedule>>,
+  /** The document chose this schedule among the type's: it says its name even alone. */
+  titleAlone = false,
 ): ServiceGroup<S>[] {
   const keyOf = (service: S) => service.scheduleId ?? -1
   const keys = [...new Set(services.map(keyOf))]
-  if (keys.length <= 1) return services.length === 0 ? [] : [{ title: null, services }]
+  if (keys.length <= 1) {
+    const title = titleAlone && keys[0] != null ? (schedules[keys[0]]?.title ?? null) : null
+    return services.length === 0 ? [] : [{ title, services }]
+  }
   const order = (key: number) => schedules[key]?.order ?? Number.MAX_SAFE_INTEGER
   return keys
     .sort((a, b) => order(a) - order(b) || a - b)
@@ -144,7 +149,12 @@ export function programmeUnits<E extends ProgrammeSheetEvent>(
         })
       : events
   const seen = new Set<number>()
-  return ordered.map(event => {
+  // A meeting the document's choice of duties schedules leaves with nothing to show is left out (#689).
+  const shown = ordered.filter(event => {
+    const config = event.templateId ? configMap.get(event.templateId) : null
+    return !config?.narrowed || config.parts || (event.eventServiceParts ?? []).length > 0
+  })
+  return shown.map(event => {
     const config = event.templateId ? configMap.get(event.templateId) : null
     let templateHeading: string | null = null
     if (groupBy === 'template' && event.templateId && !seen.has(event.templateId)) {
@@ -159,7 +169,7 @@ export function programmeUnits<E extends ProgrammeSheetEvent>(
       templateHeading,
       showParts: config?.parts ?? true,
       services,
-      serviceGroups: serviceGroups(services, schedules),
+      serviceGroups: serviceGroups(services, schedules, config?.narrowed === true),
     }
   })
 }

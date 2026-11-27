@@ -255,7 +255,11 @@ function Meeting({ unit, past, timeZone }: { unit: Unit; past: boolean; timeZone
           key={group.services[0]?.id ?? index}
           services={group.services}
           hasParts={unit.showParts}
-          title={unit.serviceGroups.length > 1 ? (group.title ?? m.board_programme_services_title()) : undefined}
+          title={
+            unit.serviceGroups.length > 1 || group.title != null
+              ? (group.title ?? m.board_programme_services_title())
+              : undefined
+          }
         />
       ))}
     </section>

@@ -135,6 +135,37 @@ describe('programmeUnits', () => {
 
     expect(unit.services).toEqual([])
   })
+
+  // A document narrowing a type's duties schedules (dutyTemplates): the one left keeps its name, and a meeting it leaves
+  // with nothing to show is left out (#689 review).
+  it('titles the one schedule a narrowed type shows, and leaves out a meeting it empties', () => {
+    const withServices = (day: number, scheduleId: number | null) => ({
+      ...event(1, day, 'Vie et ministère'),
+      eventServiceParts: scheduleId == null ? [] : [{ name: 'Zoom', assignee: null, scheduleId }],
+    })
+    const units = programmeUnits(
+      [withServices(1, null), withServices(8, 7)],
+      new Map([[1, { parts: false, services: true, narrowed: true }]]),
+      'date',
+      { 7: { title: 'Visio', order: 2 } },
+    )
+    expect(units.map(unit => unit.event.startDate.getUTCDate())).toEqual([8])
+    expect(units[0]?.serviceGroups.map(group => group.title)).toEqual(['Visio'])
+  })
+
+  it('keeps an empty meeting and an untitled list where the type is not narrowed, as before', () => {
+    const units = programmeUnits(
+      [
+        { ...event(1, 1, 'Vie et ministère'), eventServiceParts: [] },
+        { ...event(1, 8, 'Vie et ministère'), eventServiceParts: [{ name: 'Zoom', assignee: null, scheduleId: 7 }] },
+      ],
+      new Map([[1, { parts: false, services: true }]]),
+      'date',
+      { 7: { title: 'Visio', order: 2 } },
+    )
+    expect(units).toHaveLength(2)
+    expect(units[1]?.serviceGroups.map(group => group.title)).toEqual([null])
+  })
 })
 
 // A meeting may hold several duties schedules (user, 2026-11-27): its services read schedule by schedule, each titled.

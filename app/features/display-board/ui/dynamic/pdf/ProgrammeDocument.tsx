@@ -157,7 +157,7 @@ function Meeting({ unit, first, fit }: { unit: ProgrammeUnit; first: boolean; fi
       {/* Schedule by schedule when the meeting holds several, each under its title; one untitled grid otherwise. */}
       {unit.serviceGroups.map((group, groupIndex) => (
         <View key={groupIndex} style={[styles.services, styles.serviceGrid]}>
-          {unit.serviceGroups.length > 1 && (
+          {(unit.serviceGroups.length > 1 || group.title != null) && (
             <SheetText style={styles.serviceTitle}>
               {sanitizeText(group.title ?? m.board_programme_services_title())}
             </SheetText>

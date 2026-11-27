@@ -45,4 +45,6 @@ export interface ServiceSchedule {
 export interface ProgrammeSheetTemplateOptions {
   parts: boolean
   services: boolean
+  /** The document chose some of the type's duties schedules (dutyTemplates): the one left says its name. */
+  narrowed?: boolean
 }
