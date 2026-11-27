@@ -191,6 +191,32 @@ describe('itemsPerRoom', () => {
     expect(itemsPerRoom(items)).toEqual(items)
   })
 
+  // R4 (no dual-write): the writers put a part's people on its rows only, so a part in one room reads its row's people,
+  // its place staying the item's (a copy's track, read before R4's writers).
+  it('reads a one-room item’s people from its row, its place from the item', () => {
+    const one = item(3, {
+      name: 'Discours',
+      order: 1,
+      track: 'Salle B',
+      trackOrder: 2,
+      assigneeId: 7,
+      assistantId: 9,
+      hasConflict: false,
+      rooms: [{ room: SALLE_B, assigneeId: 8 }],
+    })
+    one.rooms = one.rooms?.map(row => ({ ...row, assistantId: null, hasConflict: true }))
+    const [read] = itemsPerRoom([one])
+    expect([read?.id, read?.track, read?.trackOrder]).toEqual([3, 'Salle B', 2])
+    expect([read?.assigneeId, read?.assistantId, read?.hasConflict]).toEqual([8, null, true])
+  })
+
+  it('reads a one-room item’s people records from its row, when read with it', () => {
+    const person = (id: number, firstname: string) => ({ id, firstname })
+    const one = { ...item(3, { name: 'Discours', rooms: [{ room: MAIN }] }), assignee: person(7, 'Paul') }
+    one.rooms = one.rooms?.map(row => ({ ...row, assignee: person(8, 'Jean') }))
+    expect(itemsPerRoom([one])[0]?.assignee).toEqual(person(8, 'Jean'))
+  })
+
   it('reads an item with a row per room as one copy per room, its room’s people and place on each', () => {
     const one = item(5, {
       name: 'Lecture',
