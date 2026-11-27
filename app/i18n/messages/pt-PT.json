@@ -6349,7 +6349,6 @@
         }
     ],
     "settings_template_built_in_subtitle": "Tipo integrado",
-    "settings_template_info": "Detalhes",
     "settings_template_color_hint": "Um ponto desta cor identifica o tipo nas listas e no calendário.",
     "settings_template_attendance_label": "Assistência",
     "settings_template_attendance_none": "Não contabilizada",
@@ -6361,7 +6360,7 @@
     "settings_template_duplicate": "Duplicar",
     "settings_template_delete": "Eliminar…",
     "settings_template_delete_title": "Eliminar este tipo?",
-    "settings_template_delete_description": "“{name}”, as respetivas partes e serviços e quem os dirige serão removidos. Ainda não foi criado nenhum programa com este modelo.",
+    "settings_template_delete_description": "“{name}” será removido, com os modelos de planeamento que só ele utiliza. Os que outro tipo utiliza ficam. Ainda não foi criado nenhum programa com este tipo.",
     "settings_template_delete_in_use": [
         {
             "declarations": [
@@ -6377,7 +6376,6 @@
     ],
     "settings_template_saved": "Tipo guardado.",
     "settings_template_responsibles_moved": "Quem preenche e publica os seus planeamentos define-se em cada modelo de planeamento:",
-    "settings_template_read_only": "Pode ver este tipo, mas não o pode alterar.",
     "settings_presets_form_has_reader_hint": "Uma segunda pessoa na parte.",
     "settings_presets_form_student_slip": "Designação de estudante (S-89)",
     "settings_presets_form_student_slip_hint": "Num programa de meio de semana publicado, o estudante pode receber a sua designação para imprimir.",

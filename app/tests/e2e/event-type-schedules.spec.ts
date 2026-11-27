@@ -1,16 +1,16 @@
 import { expect, type Page, test } from '@playwright/test'
 import { E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD, login } from './helpers/auth'
 
-// Réglages › a meeting type's page, « Plannings utilisés » (6b-2): a manager stops using a template, uses it again from
+// Réglages › « Types d’évènement », a type in the side panel, « Plannings utilisés » (6b-2): a manager stops using a template, uses it again from
 // « Utiliser un modèle », and moves it up and back down. Each change shows once its answer is back.
 const REMOVE_RE = /^Retirer « (.+) »$/
 const UP_RE = /^Monter /
 const DOWN_RE = /^Descendre /
-const TYPE_PAGE_RE = /\/settings\/templates\/\d+/
+const TYPE_PAGE_RE = /\/settings\/templates\?type=\d+/
 
 const saved = (page: Page) =>
   page.waitForResponse(
-    response => response.request().method() === 'POST' && response.url().includes('/settings/templates/'),
+    response => response.request().method() === 'POST' && response.url().includes('/settings/templates'),
   )
 
 test.describe('Meeting type: the schedule templates it uses', () => {
@@ -29,7 +29,8 @@ test.describe('Meeting type: the schedule templates it uses', () => {
     await type.click()
     await page.waitForURL(TYPE_PAGE_RE)
     const removes = page.getByRole('button', { name: REMOVE_RE })
-    await expect(page.getByText('Plannings utilisés')).toBeVisible()
+    // The panel's rows come with the type's data: wait for them before counting.
+    await expect(removes.first()).toBeVisible()
     if ((await removes.count()) < 2) test.skip()
     const titles = async () =>
       Promise.all(
@@ -69,5 +70,46 @@ test.describe('Meeting type: the schedule templates it uses', () => {
         await again(page.getByRole('dialog')).click()
       }
     }
+  })
+
+  // Another type opened while the name holds a change asks first; « Rester » keeps the change in the open type.
+  test('asks before another type drops a change not saved', async ({ page }) => {
+    await page.goto('/settings/templates')
+    const first = page.getByRole('link', { name: 'Réunion du week-end' }).first()
+    const other = page.getByRole('link', { name: 'Réunion de semaine' }).first()
+    if ((await first.count()) === 0 || (await other.count()) === 0) test.skip()
+    await first.click()
+    await page.waitForURL(TYPE_PAGE_RE)
+    const name = page.getByLabel('Nom')
+    await name.fill('Réunion du week-end (brouillon)')
+    await other.click()
+    const dialog = page.getByRole('alertdialog')
+    await expect(dialog).toBeVisible()
+    await dialog.getByRole('button', { name: 'Rester' }).click()
+    await expect(name).toHaveValue('Réunion du week-end (brouillon)')
+    await page.getByRole('button', { name: 'Annuler' }).click()
+    await expect(name).toHaveValue('Réunion du week-end')
+    // Closed with its ×, focus goes back to the type's row.
+    await page.getByRole('button', { name: 'Fermer' }).click()
+    await expect(first).toBeFocused()
+  })
+
+  // « Dupliquer » opens the copy; « Supprimer… » removes it and focus lands on the list, not the page's body.
+  test('duplicates a type, deletes the copy, and puts focus on the list', async ({ page }) => {
+    await page.goto('/settings/templates')
+    const type = page.getByRole('link', { name: 'Réunion du week-end' }).first()
+    if ((await type.count()) === 0) test.skip()
+    await type.click()
+    await page.waitForURL(TYPE_PAGE_RE)
+    const original = page.url()
+    await page.getByRole('button', { name: 'Plus d’actions' }).click()
+    await page.getByRole('menuitem', { name: 'Dupliquer' }).click()
+    await expect.poll(() => page.url()).not.toBe(original)
+    await page.getByRole('button', { name: 'Supprimer…' }).click()
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Supprimer' }).click()
+    await expect.poll(() => page.url()).not.toContain('type=')
+    await expect
+      .poll(() => page.evaluate(() => document.activeElement?.hasAttribute('data-row-primary') ?? false))
+      .toBe(true)
   })
 })

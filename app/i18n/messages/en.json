@@ -6349,7 +6349,6 @@
         }
     ],
     "settings_template_built_in_subtitle": "Built-in type",
-    "settings_template_info": "Details",
     "settings_template_color_hint": "A dot of this colour marks the type in lists and the calendar.",
     "settings_template_attendance_label": "Attendance",
     "settings_template_attendance_none": "Not counted",
@@ -6361,7 +6360,7 @@
     "settings_template_duplicate": "Duplicate",
     "settings_template_delete": "Delete…",
     "settings_template_delete_title": "Delete this type?",
-    "settings_template_delete_description": "“{name}”, its parts, its services and who runs it are removed. No program created so far used it.",
+    "settings_template_delete_description": "“{name}” is removed, with the schedule templates only it uses. Those another type uses stay. No program created so far used it.",
     "settings_template_delete_in_use": [
         {
             "declarations": [
@@ -6377,7 +6376,6 @@
     ],
     "settings_template_saved": "Type saved.",
     "settings_template_responsibles_moved": "Who fills and publishes its schedules is set on each schedule template:",
-    "settings_template_read_only": "You see this type without being able to change it.",
     "settings_presets_form_has_reader_hint": "A second person on the part.",
     "settings_presets_form_student_slip": "Student assignment slip (S-89)",
     "settings_presets_form_student_slip_hint": "On a published midweek programme, the student can get his slip to print.",

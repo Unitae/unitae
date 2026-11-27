@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Since 6a-1c a meeting type is the templates' managers' alone (CanManageProgramTemplates): its responsible, a
-// programme reader or a programme manager without that right is sent away from the list, the type's page and its
+// programme reader or a programme manager without that right is sent away from the list, the type's panel and its
 // actions, and nothing is written. Services are stubbed: nothing here reaches a database.
 
 const { calls } = vi.hoisted(() => ({ calls: [] as string[] }))
@@ -53,6 +53,7 @@ vi.mock('./_template-action.server', () => ({
 const { Permission } = await import('~/shared/types/permission')
 const { formRequest, respond, routeContext } = await import('~/tests/helpers/route-action')
 const list = await import('./list')
+const { getTemplates } = await import('~/features/events/index.server')
 const template = await import('./template')
 
 const URL = 'https://unitae.example.test/settings/templates'
@@ -81,42 +82,85 @@ describe('the meeting types list', () => {
   })
 })
 
-describe('a meeting type’s page', () => {
-  it.each(OTHER_RIGHTS)('sends anyone else back to the list, before reading it (%s)', async (...rights) => {
+// A type's own page became its side panel on the list (6b-2b): the old address leads there, reading nothing.
+describe('a meeting type’s old page', () => {
+  it('leads to the type in the list’s panel, before reading anything', async () => {
     const response = await respond(() =>
       template.loader({
         request: new Request(`${URL}/270`),
         params: { templateId: '270' },
-        context: routeContext(rights),
+        context: routeContext([]),
       } as never),
     )
-    expect(response.headers.get('Location')).toBe('/settings/templates')
+    expect(response.headers.get('Location')).toBe('/settings/templates?type=270')
     expect(calls).toEqual([])
   })
-
-  it.each(OTHER_RIGHTS)('refuses its actions to anyone else, writing nothing (%s)', async (...rights) => {
+  it.each(OTHER_RIGHTS)('sends a post from anyone else back to Réglages (%s)', async (...rights) => {
     const response = await respond(() =>
       template.action({
-        request: formRequest(`${URL}/270`, { intent: 'update-template', name: 'Renommée' }),
+        request: formRequest(`${URL}/270`, { intent: 'update-template' }),
         params: { templateId: '270' },
         context: routeContext(rights),
       } as never),
     )
-    expect(response.headers.get('Location')).toBe('/settings/templates')
+    expect(response.headers.get('Location')).toBe('/settings')
+  })
+
+  it('sends a post from a tab left on it to the panel, writing nothing', async () => {
+    const response = await respond(() =>
+      template.action({
+        request: formRequest(`${URL}/270`, { intent: 'update-template', name: 'Renommée' }),
+        params: { templateId: '270' },
+        context: routeContext([Permission.CanManageProgramTemplates]),
+      } as never),
+    )
+    expect(response.headers.get('Location')).toBe('/settings/templates?type=270')
     expect(calls).toEqual([])
   })
 })
 
-describe('the meeting type page, what it sends', () => {
+describe('a meeting type’s side panel', () => {
+  it.each(OTHER_RIGHTS)('refuses its actions to anyone else, writing nothing (%s)', async (...rights) => {
+    const response = await respond(() =>
+      list.action({
+        request: formRequest(URL, { intent: 'update-template', typeId: '270', name: 'Renommée' }),
+        params: {},
+        context: routeContext(rights),
+      } as never),
+    )
+    expect(response.headers.get('Location')).toBe('/settings')
+    expect(calls).toEqual([])
+  })
+
   it('sends the type’s own fields only: its parts and services are « Modèles de planning »’s', async () => {
-    const result = (await template.loader({
-      request: new Request(`${URL}/4`),
-      params: { templateId: '4' },
+    vi.mocked(getTemplates).mockResolvedValueOnce([
+      {
+        id: 4,
+        key: 'midweek-meeting',
+        name: 'Réunion de semaine',
+        _count: {},
+        scheduleTemplates: [],
+        responsibles: [],
+      },
+    ] as never)
+    const result = (await list.loader({
+      request: new Request(`${URL}?type=4`),
+      params: {},
       context: routeContext([Permission.CanManageProgramTemplates]),
-    } as never)) as { page: { template: Record<string, unknown>; eventCount: number } }
-    expect(Object.keys(result.page.template).sort()).toEqual(
+    } as never)) as { type: { template: Record<string, unknown>; eventCount: number } }
+    expect(Object.keys(result.type.template).sort()).toEqual(
       ['attendanceKind', 'color', 'endTime', 'key', 'name', 'startTime', 'weekDay'].sort(),
     )
-    expect(result.page.eventCount).toBe(3)
+    expect(result.type.eventCount).toBe(3)
+  })
+
+  it('opens no panel for a type the list does not hold', async () => {
+    const result = (await list.loader({
+      request: new Request(`${URL}?type=999`),
+      params: {},
+      context: routeContext([Permission.CanManageProgramTemplates]),
+    } as never)) as { type: unknown }
+    expect(result.type).toBeNull()
+    expect(calls).not.toContain('getTemplatePage')
   })
 })

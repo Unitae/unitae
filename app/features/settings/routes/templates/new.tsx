@@ -43,5 +43,9 @@ export async function action({ request, context }: Route.ActionArgs) {
     })
   })
 
-  return redirectWithToast(request, `/settings/templates/${template.id}`, m.settings_template_new_success({ name }))
+  return redirectWithToast(
+    request,
+    `/settings/templates?type=${template.id}`,
+    m.settings_template_new_success({ name }),
+  )
 }

@@ -165,7 +165,7 @@ describe('handleTemplateAction', () => {
 
   it('opens the copy after a manager duplicates the template', async () => {
     const result = await handleTemplateAction(dbWith('midweek'), 4, form({ intent: 'duplicate' }), MANAGER)
-    expect(result).toMatchObject({ kind: 'moved', to: '/settings/templates/99' })
+    expect(result).toMatchObject({ kind: 'moved', to: '/settings/templates?type=99' })
     expect(writes).toEqual(['duplicate 4'])
   })
 
