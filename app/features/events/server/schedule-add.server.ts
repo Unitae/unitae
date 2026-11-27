@@ -148,10 +148,11 @@ function refusalOf(
 
 /**
  * Adds a schedule to an event. Null when the event or the template is not the congregation's. Refused for a programme
- * where the event holds one, for a template it holds already (duties schedules are as many as wanted), or, for one that brings no item of its kind (empty, or a template with nothing of
- * it), while the meeting awaits its programme: « Créer le programme » would fill it with the template's items. A
- * meeting the job created ahead becomes its author's, as editing it does. The event's template row is locked, then
- * the event's, the order « Créer le programme » takes them in.
+ * where the event holds one, for a template it holds already (duties schedules are as many as wanted), or, for one
+ * that brings no item of its kind (empty, or a template with nothing of it), while the meeting awaits its programme:
+ * « Créer le programme » would fill it with the template's items. A meeting the job created ahead becomes its
+ * author's, as editing it does. The event's template row is locked, then the event's, the order « Créer le
+ * programme » takes them in.
  */
 export async function addSchedule(
   db: TransactionClient,
