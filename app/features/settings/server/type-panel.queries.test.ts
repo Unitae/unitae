@@ -65,6 +65,19 @@ describe('getTypePanel', () => {
     expect(panel?.candidates?.map(each => [each.id, each.suggestedBy])).toEqual([[7, 'Mémorial']])
   })
 
+  // A second unnamed duties template would be refused: shown greyed, with why (user, 2026-11-27).
+  it('greys an unnamed duties template beside the unnamed one it uses, not a named one', async () => {
+    const used = [listed(9, 'programme'), { ...listed(7, 'duty'), name: null, key: 'services' }]
+    const all = [...used, { ...listed(6, 'duty'), name: null, key: 'services' }, listed(5, 'duty')]
+    // Unnamed: no name, a key (as the per-type templates the seed made).
+    vi.mocked(getTemplatePage).mockResolvedValue(page('midweek-meeting', used as never, all as never) as never)
+    const candidates = (await getTypePanel({} as never, 4, context))?.candidates ?? []
+    expect(candidates.map(each => [each.id, 'unavailable' in each ? each.unavailable : null])).toEqual([
+      [6, 'unnamed'],
+      [5, null],
+    ])
+  })
+
   // One programme at most, every duties template once (user, 2026-11-27).
   it('offers the duties templates it does not use, and no programme once it uses one', async () => {
     const used = [listed(9, 'programme'), listed(7, 'duty')]

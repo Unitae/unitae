@@ -9,7 +9,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 
 export type TemplateScheduleRow = Pick<ScheduleTemplateView, 'id' | 'title' | 'detail' | 'responsible'> &
   // The types using it, for a template it may come to use: unnamed templates all read « Services ».
-  Partial<Pick<ScheduleTemplateView, 'suggestedBy'>>
+  Partial<Pick<ScheduleTemplateView, 'suggestedBy'>> & {
+    /** A candidate it would refuse: unnamed beside the unnamed services template the type uses. */
+    unavailable?: 'unnamed'
+  }
 
 const rowLine = (row: TemplateScheduleRow) =>
   [row.detail, row.responsible ?? m.settings_schedule_templates_responsible_none(), row.suggestedBy]
@@ -174,16 +177,18 @@ export function TemplateSchedules({
                   <button
                     type="button"
                     data-schedule-template-id={row.id}
-                    disabled={busy}
+                    disabled={busy || row.unavailable != null}
                     onClick={() => {
                       picked.current = true
                       submit('use-schedule-template', [row.id])
                       setPicking(false)
                     }}
-                    className="flex min-h-11 w-full flex-col items-start rounded-md px-2.5 py-1.5 text-left text-sm outline-none transition-colors duration-(--u-duration-fast) hover:bg-hover focus-visible:ring-2 focus-visible:ring-ring"
+                    className="flex min-h-11 w-full flex-col items-start rounded-md px-2.5 py-1.5 text-left text-sm outline-none transition-colors duration-(--u-duration-fast) hover:bg-hover focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
                   >
                     <span className="font-medium">{row.title}</span>
-                    <span className="text-faint text-xs">{rowLine(row)}</span>
+                    <span className="text-faint text-xs">
+                      {row.unavailable === 'unnamed' ? m.settings_template_schedules_unnamed_hint() : rowLine(row)}
+                    </span>
                   </button>
                 </li>
               ))}
