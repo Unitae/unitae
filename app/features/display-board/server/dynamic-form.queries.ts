@@ -6,6 +6,7 @@ import {
   getDynamicDocumentData,
   listAvailableDynamicTypes,
 } from '~/features/display-board/server/dynamic-documents.server'
+import { kindDutyTemplates, withServiceSchedules } from '~/features/display-board/server/programme-schedules.server'
 import { getTemplates } from '~/features/events/index.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -34,12 +35,17 @@ export async function loadDynamicForm(
   const type = existing?.dynamicType ?? ('type' in target ? target.type : '')
   if (!isDynamicType(type)) return null
 
-  const [sections, templates, highlightedOthers] = await Promise.all([
+  const [sections, kinds, dutyTemplates, highlightedOthers] = await Promise.all([
     listSectionChoices(db, congregationId),
     // The templates a programme can show: every one of the congregation, the freeform one included.
     type === DynamicType.Programme ? getTemplates(db, congregationId) : [],
+    type === DynamicType.Programme
+      ? kindDutyTemplates(db, congregationId)
+      : Promise.resolve({} as Record<number, never>),
     countHighlighted(db, congregationId, existing ? { kind: 'dynamic', id: existing.id } : undefined),
   ])
+  // Each with its duties templates, among which its settings choose when it uses several.
+  const templates = kinds.map(kind => ({ ...kind, dutyTemplates: dutyTemplates[kind.id] ?? [] }))
   const document = existing
     ? {
         id: existing.id as number | null,
@@ -65,10 +71,14 @@ export async function loadDynamicForm(
         showServices: false,
         dynamicConfig: type === DynamicType.Programme ? defaultProgrammeConfig(templates) : null,
       }
-  const data = await getDynamicDocumentData(db, type, document.ref, congregationId, {
-    showServices: document.showServices,
-    dynamicConfig: document.dynamicConfig,
-  })
+  const data = await withServiceSchedules(
+    db,
+    await getDynamicDocumentData(db, type, document.ref, congregationId, {
+      showServices: document.showServices,
+      dynamicConfig: document.dynamicConfig,
+    }),
+    congregationId,
+  )
 
   return {
     document,

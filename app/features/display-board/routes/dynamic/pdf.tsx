@@ -6,6 +6,7 @@ import { sheetDataFor } from '~/features/display-board/model/programme-sheet-win
 import { parseAppearance } from '~/features/display-board/schemas/appearance.schema'
 import { getDynamicDocumentData } from '~/features/display-board/server/dynamic-documents.server'
 import { filterDynamicDataToEvent, readEventIdParam } from '~/features/display-board/server/event-filter.server'
+import { withServiceSchedules } from '~/features/display-board/server/programme-schedules.server'
 import { buildSectionVisibilityFilter } from '~/features/display-board/server/section-visibility.server'
 import { buildBoardSheet } from '~/features/display-board/ui/dynamic/pdf/board-sheet'
 import * as m from '~/i18n/paraglide/messages'
@@ -64,7 +65,9 @@ export function loader({ params, request, context }: Route.LoaderArgs) {
     })
     // A viewer opened on one event (notification deep link) downloads that event, not the month.
     const eventId = readEventIdParam(request)
-    const { data: filtered, requestedEventMissing } = filterDynamicDataToEvent(rawData, eventId)
+    const narrowed = filterDynamicDataToEvent(rawData, eventId)
+    const { requestedEventMissing } = narrowed
+    const filtered = await withServiceSchedules(db, narrowed.data, congregationId)
     if (!filtered) {
       // Not an empty document but an unreadable one: an unknown type, or a stored config that no
       // longer parses. The viewer shows its empty state too, so leave a trace for whoever looks.

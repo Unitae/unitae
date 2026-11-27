@@ -16,7 +16,12 @@ export function programmePdfOptions(programme: ProgrammeInput): {
 } {
   if (programme.config) {
     return {
-      configMap: new Map(programme.config.templates.map(t => [t.templateId, { parts: t.parts, services: t.services }])),
+      configMap: new Map(
+        programme.config.templates.map(t => [
+          t.templateId,
+          { parts: t.parts, services: t.services, ...(t.dutyTemplates ? { narrowed: true } : {}) },
+        ]),
+      ),
       groupBy: programme.config.groupBy,
     }
   }

@@ -40,7 +40,7 @@ interface DynamicDocumentFormProps {
   defaults: DynamicFormDefaults
   appearance: BoardAppearance
   sections: { id: number; name: string }[]
-  templates: { id: number; name: string }[]
+  templates: { id: number; name: string; dutyTemplates?: { id: number; title: string | null }[] }[]
   highlightedOthers: number
   data: DocumentData | null
   congregationName: string

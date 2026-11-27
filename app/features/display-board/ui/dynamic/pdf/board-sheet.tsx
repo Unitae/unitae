@@ -13,7 +13,7 @@ import { DynamicType, type ProgrammeDynamicConfig } from '~/features/display-boa
 import { organigramSheetSize } from '~/features/display-board/model/organigram-sheet'
 import { fitPioneersSheet, type SheetPioneer } from '~/features/display-board/model/pioneers-sheet'
 import { programmePdfOptions } from '~/features/display-board/model/programme-pdf-options'
-import type { ProgrammeSheetEvent } from '~/features/display-board/model/programme-sheet.type'
+import type { ProgrammeSheetEvent, ServiceSchedule } from '~/features/display-board/model/programme-sheet.type'
 import { fitGroupsSheet, type SheetPublisherGroup } from '~/features/display-board/model/publisher-groups-sheet'
 import { loadBoardPdfTypeface } from '~/features/display-board/server/board-pdf-fonts.server'
 import { getLocale } from '~/i18n/paraglide/runtime'
@@ -39,6 +39,8 @@ export type BoardSheetData =
       showServices: boolean
       /** Last week's attendance, when the congregation shows it on the programme. */
       attendance?: AttendanceLineMeeting[] | null
+      /** Its duties schedules' titles, its services grouped by them (withServiceSchedules). */
+      serviceSchedules?: Record<number, ServiceSchedule>
     }
 
 export interface BoardSheetOptions {
@@ -102,6 +104,7 @@ export async function buildBoardSheet(
           events={data.events}
           configMap={configMap}
           groupBy={groupBy}
+          serviceSchedules={data.serviceSchedules}
           timezone={options.timezone}
           measurer={measurer}
           attendance={

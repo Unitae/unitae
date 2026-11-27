@@ -1,6 +1,7 @@
 import { BOARD_LAYOUTS, type BoardLayout, isBoardLayout } from '~/features/display-board/model/board-appearance'
 import { auxiliaryMonthLabel } from '~/features/display-board/model/board-roster'
 import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
+import type { ServiceSchedule } from '~/features/display-board/model/programme-sheet.type'
 import type { getDynamicDocumentData } from '~/features/display-board/server/dynamic-documents.server'
 import { OrganigramChartView } from './OrganigramChartView'
 import { OrganigramView } from './OrganigramView'
@@ -10,7 +11,10 @@ import { PublisherGroupsView } from './PublisherGroupsView'
 
 // A dynamic document's content on the board screen, in the layout chosen for it.
 
-type DocumentData = NonNullable<Awaited<ReturnType<typeof getDynamicDocumentData>>>
+// A programme's comes with its duties schedules' titles (withServiceSchedules).
+type DocumentData = NonNullable<Awaited<ReturnType<typeof getDynamicDocumentData>>> & {
+  serviceSchedules?: Record<number, ServiceSchedule>
+}
 
 function layoutOf<T extends DynamicType>(type: T, layout: string | undefined): BoardLayout<T> {
   return isBoardLayout(type, layout) ? layout : BOARD_LAYOUTS[type][0]
@@ -54,6 +58,7 @@ export function DynamicDocumentView({
           now={now}
           timeZone={timeZone}
           attendance={data.attendance}
+          serviceSchedules={data.serviceSchedules}
         />
       )
     default:

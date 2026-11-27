@@ -21,6 +21,7 @@ import type {
   ProgrammeSheetEvent,
   ProgrammeSheetPart,
   ProgrammeSheetTemplateOptions,
+  ServiceSchedule,
 } from '~/features/display-board/model/programme-sheet.type'
 import { sheetContentBox } from '~/features/display-board/model/sheet-page'
 import type { TextMeasurer } from '~/features/display-board/model/sheet-text'
@@ -69,6 +70,7 @@ function makeStyles(s: number) {
     track: { marginLeft: TRACK_INDENT },
     services: { marginTop: 6 * k, paddingTop: 4 * k, borderTopWidth: 0.75, borderTopColor: BOARD_PDF_RULE },
     serviceGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+    serviceTitle: { ...text, width: '100%', fontWeight: 'bold', color: BOARD_PDF_MUTED },
     gridService: { width: '50%', flexDirection: 'row', paddingVertical: 1.5 * k, paddingRight: 10 },
     gridServiceName: { ...text, width: '40%', color: BOARD_PDF_MUTED },
     gridServiceWho: { ...text, width: '60%' },
@@ -152,9 +154,15 @@ function Meeting({ unit, first, fit }: { unit: ProgrammeUnit; first: boolean; fi
             )}
           </View>
         ))}
-      {unit.services.length > 0 && (
-        <View style={[styles.services, styles.serviceGrid]}>
-          {unit.services.map((service, index) => (
+      {/* Schedule by schedule when the meeting holds several, each under its title; one untitled grid otherwise. */}
+      {unit.serviceGroups.map((group, groupIndex) => (
+        <View key={groupIndex} style={[styles.services, styles.serviceGrid]}>
+          {(unit.serviceGroups.length > 1 || group.title != null) && (
+            <SheetText style={styles.serviceTitle}>
+              {sanitizeText(group.title ?? m.board_programme_services_title())}
+            </SheetText>
+          )}
+          {group.services.map((service, index) => (
             <View key={index} style={styles.gridService}>
               <SheetText style={styles.gridServiceName}>{sanitizeText(service.name)}</SheetText>
               <Who
@@ -164,7 +172,7 @@ function Meeting({ unit, first, fit }: { unit: ProgrammeUnit; first: boolean; fi
             </View>
           ))}
         </View>
-      )}
+      ))}
     </View>
   )
 }
@@ -181,7 +189,10 @@ export function ProgrammeDocument({
   accentColor,
   measurer,
   attendance,
+  serviceSchedules,
 }: {
+  /** The meetings' duties schedules' titles, their services grouped by them. */
+  serviceSchedules?: Record<number, ServiceSchedule>
   /** Last week's attendance, when the congregation shows it on the programme: a line at the head of the sheet. */
   attendance?: AttendanceLineMeeting[] | null
   events: ProgrammeSheetEvent[]
@@ -211,7 +222,7 @@ export function ProgrammeDocument({
             )}
           </SheetText>
         )}
-        {programmeUnits(events, configMap, groupBy).map((unit, index) => (
+        {programmeUnits(events, configMap, groupBy, serviceSchedules).map((unit, index) => (
           <View key={index}>
             {unit.templateHeading && (
               <SheetText style={fit.styles.templateHeading} minPresenceAhead={120}>

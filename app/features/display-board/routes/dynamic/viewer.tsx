@@ -13,6 +13,7 @@ import {
   markDynamicDocumentViewed,
 } from '~/features/display-board/server/dynamic-documents.server'
 import { filterDynamicDataToEvent, readEventIdParam } from '~/features/display-board/server/event-filter.server'
+import { withServiceSchedules } from '~/features/display-board/server/programme-schedules.server'
 import { buildSectionVisibilityFilter } from '~/features/display-board/server/section-visibility.server'
 import { BoardViewerHeader, formatViewerDate } from '~/features/display-board/ui/BoardViewerHeader'
 import { BoardMasthead } from '~/features/display-board/ui/dynamic/BoardMasthead'
@@ -91,7 +92,10 @@ export function loader({ params, request, context }: Route.LoaderArgs) {
       dynamicConfig: settings.dynamicConfig,
       attendance: { timeZone: timezone, now: new Date() },
     })
-    const { data, requestedEventMissing } = filterDynamicDataToEvent(rawData, eventIdFilter)
+    const narrowed = filterDynamicDataToEvent(rawData, eventIdFilter)
+    const { requestedEventMissing } = narrowed
+    // Its duties schedules' titles: a meeting may hold several, each its own group of services.
+    const data = await withServiceSchedules(db, narrowed.data, congregationId)
 
     // The download follows the narrowing, so the file matches what the reader sees.
     const narrowedToEvent = eventIdFilter != null && !requestedEventMissing

@@ -3,6 +3,7 @@ import type {
   ProgrammeSheetMember,
   ProgrammeSheetPart,
   ProgrammeSheetTemplateOptions,
+  ServiceSchedule,
 } from '~/features/display-board/model/programme-sheet.type'
 import { runsWidth, type TextMeasurer, type TextRun, wrapLines } from '~/features/display-board/model/sheet-text'
 import * as m from '~/i18n/paraglide/messages'
@@ -95,6 +96,39 @@ export interface ProgrammeUnit<E extends ProgrammeSheetEvent = ProgrammeSheetEve
   templateHeading: string | null
   showParts: boolean
   services: NonNullable<E['eventServiceParts']>
+  /** Its services schedule by schedule, each under its title; one untitled group when they are one schedule's. */
+  serviceGroups: ServiceGroup<NonNullable<E['eventServiceParts']>[number]>[]
+}
+
+export interface ServiceGroup<S> {
+  /** Null for a single schedule (« Services », as before) or an unnamed one. */
+  title: string | null
+  services: S[]
+}
+
+/**
+ * A meeting's services by duties schedule (user, 2026-11-27: a meeting may hold several), in the schedules' order, each
+ * under its title. Those of one schedule stay one untitled list, as the document always showed them.
+ */
+export function serviceGroups<S extends { scheduleId?: number | null }>(
+  services: S[],
+  schedules: Readonly<Record<number, ServiceSchedule>>,
+  /** The document chose this schedule among the type's: it says its name even alone. */
+  titleAlone = false,
+): ServiceGroup<S>[] {
+  const keyOf = (service: S) => service.scheduleId ?? -1
+  const keys = [...new Set(services.map(keyOf))]
+  if (keys.length <= 1) {
+    const title = titleAlone && keys[0] != null ? (schedules[keys[0]]?.title ?? null) : null
+    return services.length === 0 ? [] : [{ title, services }]
+  }
+  const order = (key: number) => schedules[key]?.order ?? Number.MAX_SAFE_INTEGER
+  return keys
+    .sort((a, b) => order(a) - order(b) || a - b)
+    .map(key => ({
+      title: schedules[key]?.title ?? null,
+      services: services.filter(service => keyOf(service) === key),
+    }))
 }
 
 /** The meetings in reading order, each with what its template shows: the sheet's and the board screen's. */
@@ -102,6 +136,8 @@ export function programmeUnits<E extends ProgrammeSheetEvent>(
   events: E[],
   configMap: Map<number, ProgrammeSheetTemplateOptions>,
   groupBy: 'date' | 'template',
+  /** The meetings' duties schedules, to title their services by (programmeServiceSchedules). */
+  schedules: Readonly<Record<number, ServiceSchedule>> = {},
 ): ProgrammeUnit<E>[] {
   const ordered =
     groupBy === 'template'
@@ -113,20 +149,28 @@ export function programmeUnits<E extends ProgrammeSheetEvent>(
         })
       : events
   const seen = new Set<number>()
-  return ordered.map(event => {
+  // A meeting the document's choice of duties schedules leaves with nothing to show is left out (#689).
+  const shown = ordered.filter(event => {
+    const config = event.templateId ? configMap.get(event.templateId) : null
+    const parts = (config?.parts ?? true) && event.eventParts.length > 0
+    return !config?.narrowed || parts || (event.eventServiceParts ?? []).length > 0
+  })
+  return shown.map(event => {
     const config = event.templateId ? configMap.get(event.templateId) : null
     let templateHeading: string | null = null
     if (groupBy === 'template' && event.templateId && !seen.has(event.templateId)) {
       seen.add(event.templateId)
       templateHeading = event.template?.name ?? null
     }
+    const services = ((config?.services ?? true) ? (event.eventServiceParts ?? []) : []) as NonNullable<
+      E['eventServiceParts']
+    >
     return {
       event,
       templateHeading,
       showParts: config?.parts ?? true,
-      services: ((config?.services ?? true) ? (event.eventServiceParts ?? []) : []) as NonNullable<
-        E['eventServiceParts']
-      >,
+      services,
+      serviceGroups: serviceGroups(services, schedules, config?.narrowed === true),
     }
   })
 }

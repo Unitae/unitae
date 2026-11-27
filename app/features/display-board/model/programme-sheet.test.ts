@@ -6,6 +6,7 @@ import {
   frenchSpacing,
   leaderLayout,
   programmeUnits,
+  serviceGroups,
   topicRuns,
   trackLabel,
 } from './programme-sheet'
@@ -133,5 +134,74 @@ describe('programmeUnits', () => {
     )
 
     expect(unit.services).toEqual([])
+  })
+
+  // A document narrowing a type's duties schedules (dutyTemplates): the one left keeps its name, and a meeting it leaves
+  // with nothing to show is left out (#689 review).
+  it('titles the one schedule a narrowed type shows, and leaves out a meeting it empties', () => {
+    const withServices = (day: number, scheduleId: number | null) => ({
+      ...event(1, day, 'Vie et ministère'),
+      eventServiceParts: scheduleId == null ? [] : [{ name: 'Zoom', assignee: null, scheduleId }],
+    })
+    const units = programmeUnits(
+      [withServices(1, null), withServices(8, 7)],
+      new Map([[1, { parts: false, services: true, narrowed: true }]]),
+      'date',
+      { 7: { title: 'Visio', order: 2 } },
+    )
+    expect(units.map(unit => unit.event.startDate.getUTCDate())).toEqual([8])
+    expect(units[0]?.serviceGroups.map(group => group.title)).toEqual(['Visio'])
+  })
+
+  // Its programme a draft (no parts read), its services all of another schedule: nothing to show though « Programme »
+  // is ticked.
+  it('leaves out a narrowed meeting with no parts to show, its programme column ticked', () => {
+    const units = programmeUnits(
+      [{ ...event(1, 1, 'Vie et ministère'), eventServiceParts: [] }],
+      new Map([[1, { parts: true, services: true, narrowed: true }]]),
+      'date',
+    )
+    expect(units).toEqual([])
+  })
+
+  it('keeps an empty meeting and an untitled list where the type is not narrowed, as before', () => {
+    const units = programmeUnits(
+      [
+        { ...event(1, 1, 'Vie et ministère'), eventServiceParts: [] },
+        { ...event(1, 8, 'Vie et ministère'), eventServiceParts: [{ name: 'Zoom', assignee: null, scheduleId: 7 }] },
+      ],
+      new Map([[1, { parts: false, services: true }]]),
+      'date',
+      { 7: { title: 'Visio', order: 2 } },
+    )
+    expect(units).toHaveLength(2)
+    expect(units[1]?.serviceGroups.map(group => group.title)).toEqual([null])
+  })
+})
+
+// A meeting may hold several duties schedules (user, 2026-11-27): its services read schedule by schedule, each titled.
+describe('serviceGroups', () => {
+  const service = (name: string, scheduleId: number | null) => ({ name, scheduleId })
+
+  it('keeps one untitled list for a single schedule, as before', () => {
+    const services = [service('Sono', 4), service('Micros', 4)]
+    expect(serviceGroups(services, { 4: { title: 'Services', order: 1 } })).toEqual([{ title: null, services }])
+  })
+
+  it('splits several schedules in their order, each under its title', () => {
+    const services = [service('Salle', 9), service('Sono', 4), service('Micros', 4)]
+    const schedules = { 4: { title: 'Sono et accueil', order: 1 }, 9: { title: 'Nettoyage', order: 2 } }
+    expect(serviceGroups(services, schedules)).toEqual([
+      { title: 'Sono et accueil', services: [service('Sono', 4), service('Micros', 4)] },
+      { title: 'Nettoyage', services: [service('Salle', 9)] },
+    ])
+  })
+
+  it('titles an unnamed schedule as none, for the reader to label it', () => {
+    const services = [service('Sono', 4), service('Salle', 9)]
+    expect(serviceGroups(services, { 4: { title: null, order: 1 }, 9: { title: 'Nettoyage', order: 2 } })).toEqual([
+      { title: null, services: [service('Sono', 4)] },
+      { title: 'Nettoyage', services: [service('Salle', 9)] },
+    ])
   })
 })
