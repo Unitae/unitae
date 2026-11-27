@@ -14,7 +14,10 @@ vi.mock('~/shared/auth/route-context.server', async importOriginal => ({
   permissionsContext,
   congregationContext,
   withScopeFromContext: (_context: unknown, fn: (db: unknown) => unknown) =>
-    fn({ member: { findMany: () => Promise.resolve([]) }, schedule: { findMany: () => Promise.resolve([]) } }),
+    fn({
+      member: { findMany: () => Promise.resolve([]) },
+      schedule: { findMany: () => Promise.resolve(state.templates) },
+    }),
 }))
 
 vi.mock('~/shared/infra/logger.server', () => {
@@ -36,6 +39,13 @@ const state = vi.hoisted(() => ({
   fills: [] as number[],
   /** The meeting itself: a draft is work in progress, opened only by whoever may act on it. */
   eventStatus: 'released',
+  /** The second duties schedule left unnamed, and the template each schedule was made from. */
+  secondUnnamed: false,
+  templates: [] as {
+    id: number
+    scheduleTemplateId: number | null
+    scheduleTemplate: { name: string | null } | null
+  }[],
 }))
 
 vi.mock('~/features/events/server/event-part-assignments.server', () => ({
@@ -75,7 +85,7 @@ vi.mock('~/features/events/server/event-part-assignments.server', () => ({
                 id: 3,
                 kind: 'duty',
                 status: state.secondDuties,
-                name: 'Visioconférence',
+                name: state.secondUnnamed ? null : 'Visioconférence',
                 key: null,
                 scheduleTemplate: { responsibleRoleId: 10 },
               },
@@ -194,6 +204,8 @@ beforeEach(() => {
   state.secondDuties = null
   state.fills = []
   state.eventStatus = 'released'
+  state.secondUnnamed = false
+  state.templates = []
 })
 
 // A meeting holding two duties schedules (one per template its type uses, user 2026-11-27), each its own
@@ -246,6 +258,25 @@ describe('the event page with two duties schedules', () => {
     expect(data.event.schedules.map(schedule => schedule.id)).toEqual([2, 3])
     expect(data.event.eventServiceParts.map(service => service.id)).toEqual([2, 5])
     expect(data.fillableSchedules).toEqual([2])
+  })
+})
+
+describe('a schedule without a name', () => {
+  // Two unnamed duties schedules would both read « Services » (user, 2026-11-27).
+  it('reads as its template’s name, and as none when the template has none', async () => {
+    state.secondDuties = 'published'
+    state.secondUnnamed = true
+    state.templates = [
+      { id: 2, scheduleTemplateId: 8, scheduleTemplate: { name: null } },
+      { id: 3, scheduleTemplateId: 12, scheduleTemplate: { name: 'Nettoyage' } },
+    ]
+    const data = (await loader({ params: { eventId: '40' }, context: readerContext() } as never)) as {
+      event: { schedules: { id: number; name: string | null; templateId: number | null }[] }
+    }
+    expect(data.event.schedules.map(({ id, name, templateId }) => ({ id, name, templateId }))).toEqual([
+      { id: 2, name: 'Services', templateId: 8 },
+      { id: 3, name: 'Nettoyage', templateId: 12 },
+    ])
   })
 })
 

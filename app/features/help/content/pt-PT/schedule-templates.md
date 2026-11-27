@@ -22,7 +22,7 @@ Um modelo de planeamento dá o conteúdo aos planeamentos das reuniões: as part
 
 Um modelo que nenhum tipo de evento utiliza adiciona-se a uma reunião com **Adicionar um planeamento**, na página da reunião.
 
-Para que um tipo de evento o utilize, abra esse tipo em **Definições › Tipos de evento**: em **Planeamentos utilizados**, **Usar um modelo** propõe os modelos que o tipo ainda não utiliza. Um tipo utiliza no máximo um modelo espiritual e tantos modelos de serviços quantos precisar: cada um torna-se um planeamento das suas novas reuniões. As setas mudam a sua ordem e a cruz retira um: as respetivas partes e serviços ficam no modelo, e as reuniões já criadas mantêm os seus planeamentos. Só as novas reuniões seguem estas alterações.
+Para que um tipo de evento o utilize, abra esse tipo em **Definições › Tipos de evento**: em **Planeamentos utilizados**, **Usar um modelo** propõe os modelos que o tipo ainda não utiliza. Um tipo utiliza no máximo um modelo espiritual e tantos modelos de serviços quantos precisar: cada um torna-se um planeamento das suas novas reuniões. Um planeamento tem o nome do seu modelo: dois modelos de serviços sem nome leriam ambos **Serviços**, por isso um tipo só aceita um, e o seguinte recebe primeiro um nome. As setas mudam a sua ordem e a cruz retira um: as respetivas partes e serviços ficam no modelo, e as reuniões já criadas mantêm os seus planeamentos. Só as novas reuniões seguem estas alterações.
 
 ## As partes e as secções
 

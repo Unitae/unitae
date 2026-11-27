@@ -35,9 +35,13 @@ export async function getTypePanel(
   // schedule each, user 2026-11-27).
   const used = new Set(page.scheduleTemplates.map(each => each.id))
   const usesProgramme = page.scheduleTemplates.some(each => each.kind === ScheduleKind.Programme)
+  // An unnamed duties template beside one the type uses unnamed is shown greyed, with why: it would be refused.
+  const unnamedDuty = (each: { kind: string; name: string | null }) =>
+    each.kind === ScheduleKind.Duty && !each.name?.trim()
+  const usesUnnamed = page.scheduleTemplates.some(unnamedDuty)
   const candidates = page.allScheduleTemplates
     .filter(each => !used.has(each.id) && (each.kind === ScheduleKind.Duty || !usesProgramme))
-    .map(row)
+    .map(each => ({ ...row(each), ...(usesUnnamed && unnamedDuty(each) ? { unavailable: 'unnamed' as const } : {}) }))
   // What the panel reads of the type, and no more: its parts and services are « Modèles de planning »'s.
   const { name, key, color, weekDay, startTime, endTime, attendanceKind } = page.template
   return {

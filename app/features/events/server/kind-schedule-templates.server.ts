@@ -7,7 +7,10 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 // holds one programme), as many duties templates as wanted, each a schedule of its own on the type's new meetings (user,
 // 2026-11-27), each once.
 
-export type AddKindScheduleTemplateRefusal = 'sort-used' | 'used' | 'system'
+// A second unnamed duties template is refused: its schedules would read « Services » beside the first's (user,
+// 2026-11-27), so it is named in « Modèles de planning » first.
+
+export type AddKindScheduleTemplateRefusal = 'sort-used' | 'used' | 'unnamed' | 'system'
 
 function changed(kindId: number, congregationId: number, actorId: number, metadata: Record<string, unknown>) {
   audit({
@@ -28,7 +31,7 @@ function kindWithLinks(db: TransactionClient, kindId: number, congregationId: nu
       key: true,
       scheduleTemplates: {
         orderBy: [{ order: 'asc' }, { scheduleTemplateId: 'asc' }],
-        select: { scheduleTemplateId: true, order: true, scheduleTemplate: { select: { kind: true } } },
+        select: { scheduleTemplateId: true, order: true, scheduleTemplate: { select: { kind: true, name: true } } },
       },
     },
   })
@@ -46,7 +49,10 @@ export async function addKindScheduleTemplate(
   await db.$queryRaw`SELECT "id" FROM "EventTemplate" WHERE "id" = ${kindId} AND "congregationId" = ${congregationId} FOR UPDATE`
   const [kind, template] = await Promise.all([
     kindWithLinks(db, kindId, congregationId),
-    db.scheduleTemplate.findFirst({ where: { id: scheduleTemplateId, congregationId }, select: { kind: true } }),
+    db.scheduleTemplate.findFirst({
+      where: { id: scheduleTemplateId, congregationId },
+      select: { kind: true, name: true },
+    }),
   ])
   if (kind == null || template == null) return null
   // « Autre évènement » holds no schedule: its meetings take one from the meeting page.
@@ -56,6 +62,10 @@ export async function addKindScheduleTemplate(
   }
   const programmeHeld = kind.scheduleTemplates.some(link => link.scheduleTemplate.kind === ScheduleKind.Programme)
   if (template.kind === ScheduleKind.Programme && programmeHeld) return { ok: false, reason: 'sort-used' }
+  const unnamed = (each: { kind: string; name: string | null }) => each.kind === ScheduleKind.Duty && !each.name?.trim()
+  if (unnamed(template) && kind.scheduleTemplates.some(link => unnamed(link.scheduleTemplate))) {
+    return { ok: false, reason: 'unnamed' }
+  }
   const order = Math.max(-1, ...kind.scheduleTemplates.map(link => link.order)) + 1
   await db.eventKindScheduleTemplate.create({
     data: { eventKindId: kindId, scheduleTemplateId, order, congregationId },

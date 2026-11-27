@@ -2,6 +2,7 @@ import { parseWithZod } from '@conform-to/zod/v4'
 import { data } from 'react-router'
 import { isSystemTemplate } from '~/features/events'
 import {
+  type AddKindScheduleTemplateRefusal,
   addKindScheduleTemplate,
   deleteTemplate,
   duplicateTemplate,
@@ -120,6 +121,14 @@ export async function handleTemplateAction(
 
 const ID = /^[1-9][0-9]*$/
 
+// Why « Utiliser un modèle » was refused; « Autre évènement » never shows the list, so its refusal reads as the sort's.
+const USE_REFUSALS: Record<AddKindScheduleTemplateRefusal, () => string> = {
+  used: () => m.settings_template_schedules_used(),
+  unnamed: () => m.settings_template_schedules_unnamed(),
+  'sort-used': () => m.settings_template_schedules_sort_used(),
+  system: () => m.settings_template_schedules_sort_used(),
+}
+
 /**
  * The schedule templates the type uses (6b-2): « Utiliser un modèle », « Retirer », and their order. Undefined for any
  * other intent.
@@ -152,10 +161,6 @@ async function handleScheduleTemplatesIntent(
   }
   const used = await addKindScheduleTemplate(db, templateId, ids[0], congregationId, actorId)
   if (used == null) return null
-  if (!used.ok) {
-    const message =
-      used.reason === 'used' ? m.settings_template_schedules_used() : m.settings_template_schedules_sort_used()
-    return refused({ status: 'error', error: { '': [message] } }, 409)
-  }
+  if (!used.ok) return refused({ status: 'error', error: { '': [USE_REFUSALS[used.reason]()] } }, 409)
   return saved
 }
