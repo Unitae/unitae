@@ -2,7 +2,11 @@ import { parseWithZod } from '@conform-to/zod/v4'
 import { Plus } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { data, redirect, type ShouldRevalidateFunctionArgs, useFetcher } from 'react-router'
-import { listScheduleTemplatesForSettings, updateScheduleTemplate } from '~/features/events/index.server'
+import {
+  duplicateScheduleTemplate,
+  listScheduleTemplatesForSettings,
+  updateScheduleTemplate,
+} from '~/features/events/index.server'
 import { HelpEntryButton, onlyHelpPanelChanged } from '~/features/help'
 import { scheduleTemplateView } from '~/features/settings/model/schedule-template-view'
 import { scheduleTemplateSchema } from '~/features/settings/schemas/schedule-template.schema'
@@ -80,6 +84,17 @@ export async function action({ request, context }: Route.ActionArgs) {
       const result = await handleCreateScheduleTemplate(db, formData, { id: currentUser.id, congregationId })
       if (!result.ok) return data(result, { status: 400 })
       return okWithToast(request, m.settings_schedule_templates_created(), { id: result.id })
+    })
+  }
+  // « Dupliquer », from the panel open on it: the copy opens in the panel, from its id.
+  if (formData.get('intent') === 'duplicate-template') {
+    const scheduleTemplateId = Number(new URL(request.url).searchParams.get('template'))
+    return withScopeFromContext(context, async (db, congregationId) => {
+      const copy = Number.isInteger(scheduleTemplateId)
+        ? await duplicateScheduleTemplate(db, scheduleTemplateId, congregationId, currentUser.id)
+        : null
+      if (copy == null) return refusal(null, [m.settings_schedule_templates_error_vanished()], 409)
+      return okWithToast(request, m.settings_schedule_templates_duplicated(), { id: copy.id })
     })
   }
   // « Supprimer le modèle », from the panel open on it.

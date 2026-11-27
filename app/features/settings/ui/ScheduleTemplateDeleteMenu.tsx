@@ -1,7 +1,7 @@
 import { Callout } from '@unitae/ui'
 import { MoreHorizontal } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { useFetcher } from 'react-router'
+import { useFetcher, useNavigate } from 'react-router'
 import { scheduleTemplateDeleteLines } from '~/features/settings/model/schedule-template-delete-lines'
 import type { ScheduleTemplateView } from '~/features/settings/model/schedule-template-view'
 import * as m from '~/i18n/paraglide/messages'
@@ -20,7 +20,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 type Template = Pick<ScheduleTemplateView, 'id' | 'kind' | 'title' | 'kinds' | 'schedules' | 'responsible'>
 
 /**
- * The template's « … » in its panel, and « Supprimer le modèle » (design round A, « TourA-Modeles-Dialogues »): the
+ * The template's « … » in its panel: « Dupliquer », which opens the copy, and « Supprimer le modèle » (design round A,
+ * « TourA-Modeles-Dialogues »): the
  * dialog says what goes and what stays, the kinds that use it, the schedules made from it and who answers for them
  * after. Once deleted, the panel closes.
  */
@@ -42,6 +43,18 @@ export function ScheduleTemplateDeleteMenu({ template, onDeleted }: { template: 
   const errors = answer?.ok === false && answer !== handled.current ? answer.errors : null
 
   const lines = scheduleTemplateDeleteLines(template)
+  // « Dupliquer »: the copy opens in the panel once it exists (user, 2026-11-27).
+  const navigate = useNavigate()
+  const copier = useFetcher<{ ok: true; id: number } | { ok: false; errors: string[] }>({
+    key: `schedule-template-${template.id}-duplicate`,
+  })
+  const copied = copier.state === 'idle' ? copier.data : undefined
+  const opened = useRef<unknown>(null)
+  useEffect(() => {
+    if (copied == null || copied === opened.current || copied.ok !== true) return
+    opened.current = copied
+    navigate(`?template=${copied.id}`)
+  }, [copied, navigate])
 
   return (
     <>
@@ -58,6 +71,12 @@ export function ScheduleTemplateDeleteMenu({ template, onDeleted }: { template: 
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            disabled={copier.state !== 'idle'}
+            onSelect={() => copier.submit({ intent: 'duplicate-template' }, { method: 'post' })}
+          >
+            {m.settings_schedule_templates_duplicate()}
+          </DropdownMenuItem>
           <DropdownMenuItem variant="destructive" onSelect={() => setOpen(true)}>
             {m.settings_schedule_templates_delete()}
           </DropdownMenuItem>
