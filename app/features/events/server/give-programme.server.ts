@@ -147,11 +147,16 @@ export async function giveProgramme(
     { eventId: event.id, programmeId, dutiesId: null, parts: template.parts, services: [] },
     congregationId,
   )
-  for (const [scheduleTemplateId, services] of byDutiesTemplate(template.serviceParts)) {
+  const groups = byDutiesTemplate(template.serviceParts)
+  const dutiesTemplates = [...groups.keys()].flatMap(id => (id == null ? [] : [id]))
+  for (const [scheduleTemplateId, services] of groups) {
+    // The first template's services fill a duties schedule the meeting already holds from none of its kind's duties
+    // templates (a meeting created ahead, given one by hand), as they did before a kind could use several.
+    const adopt = scheduleTemplateId === dutiesTemplates[0] ? dutiesTemplates : undefined
     const dutiesId =
       scheduleTemplateId == null
         ? await eventScheduleId(db, eventId, ScheduleKind.Duty, congregationId, { takeEventStatus })
-        : await eventScheduleOfTemplate(db, eventId, scheduleTemplateId, congregationId, { takeEventStatus })
+        : await eventScheduleOfTemplate(db, eventId, scheduleTemplateId, congregationId, { takeEventStatus, adopt })
     await writeTemplateItems(
       db,
       { eventId: event.id, programmeId: null, dutiesId, parts: [], services },

@@ -105,18 +105,32 @@ export async function eventScheduleId(
 
 /**
  * The event's schedule made from this schedule template, made on the spot when it has none: for a kind using several
- * duties templates, a meeting gets one schedule per template (user, 2026-11-27). Its status follows D52 as
- * eventScheduleId's; the event's row is locked before it is made, so two writers make it once.
+ * duties templates, a meeting gets one schedule per template (user, 2026-11-27). `adopt`: before making one, take a
+ * schedule of its sort the event holds from none of these templates (one added by hand while its kind used none, or
+ * from a template its kind no longer uses), as eventScheduleId took the event's schedule of the sort. Its status follows
+ * D52 as eventScheduleId's; the event's row is locked before it is made, so two writers make it once.
  */
 export async function eventScheduleOfTemplate(
   db: TransactionClient,
   eventId: number,
   scheduleTemplateId: number,
   congregationId: number,
-  { takeEventStatus = false }: { takeEventStatus?: boolean } = {},
+  { takeEventStatus = false, adopt }: { takeEventStatus?: boolean; adopt?: readonly number[] } = {},
 ): Promise<number> {
-  const find = () =>
-    db.schedule.findFirst({ where: { eventId, scheduleTemplateId, congregationId }, select: { id: true } })
+  const find = async () =>
+    (await db.schedule.findFirst({ where: { eventId, scheduleTemplateId, congregationId }, select: { id: true } })) ??
+    (adopt == null
+      ? null
+      : await db.schedule.findFirst({
+          where: {
+            eventId,
+            congregationId,
+            kind: ScheduleKind.Duty,
+            OR: [{ scheduleTemplateId: null }, { scheduleTemplateId: { notIn: [...adopt] } }],
+          },
+          orderBy: [{ order: 'asc' }, { id: 'asc' }],
+          select: { id: true },
+        }))
   const existing = await find()
   if (existing) return existing.id
   const template = await db.scheduleTemplate.findFirst({

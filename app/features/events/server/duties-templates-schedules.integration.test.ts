@@ -20,6 +20,7 @@ const { createProgrammeOnDay } = await import('./programme-creation.server')
 const { TEMPLATE_PROGRAMME_COUNT } = await import('./give-programme.server')
 const { programmeTemplate } = await import('~/features/events/model/empty-meetings')
 const { getProgrammeCreationData } = await import('./programme-creation.queries')
+const { createMeetingProgramme } = await import('./create-meeting-programme.server')
 
 class Rollback extends Error {}
 
@@ -129,6 +130,96 @@ describe('a type using several duties templates', () => {
         { kind: 'duty', name: 'Accueil', template: 1, items: ['Porte', 'Parking'] },
         { kind: 'duty', name: 'Visioconférence', template: 2, items: ['Zoom', 'Caméra'] },
       ],
+    })
+  })
+
+  // A meeting created ahead may already hold an empty services schedule of no template of its type (added by hand
+  // while the type used none): its programme fills that one, as before, rather than making a second beside it. And a
+  // published one gives every schedule it gets its status.
+  it('fills the empty services schedule a meeting holds, and publishes what a published meeting gets', async () => {
+    let read: Record<string, unknown> | undefined
+    try {
+      await testDb.$transaction(
+        async tx => {
+          const stamp = `duties-ahead-${process.pid}-${globalThis.performance.now().toString().replace('.', '')}`
+          const congregationId = (await tx.congregation.create({ data: { name: stamp, slug: stamp, active: true } })).id
+          await tx.$executeRawUnsafe(`SET LOCAL app.congregation_id = '${String(congregationId)}'`)
+          const db = tx as unknown as TransactionClient
+          const actorId = (
+            await tx.userAccount.create({ data: { email: `${stamp}@test.com`, password: 'x', congregationId } })
+          ).id
+          const kind = await tx.eventTemplate.create({
+            data: { name: 'Visite', key: stamp, weekDay: 3, startTime: '19:00', endTime: '21:00', congregationId },
+          })
+          const programme = await tx.scheduleTemplate.create({
+            data: { name: 'Visite', kind: 'programme', congregationId },
+          })
+          const accueil = await tx.scheduleTemplate.create({ data: { name: 'Accueil', kind: 'duty', congregationId } })
+          await tx.eventKindScheduleTemplate.createMany({
+            data: [
+              { eventKindId: kind.id, scheduleTemplateId: programme.id, order: 0, congregationId },
+              { eventKindId: kind.id, scheduleTemplateId: accueil.id, order: 1, congregationId },
+            ],
+          })
+          await tx.templatePart.create({
+            data: {
+              name: 'Discours',
+              section: '',
+              track: '',
+              order: 0,
+              scheduleTemplateId: programme.id,
+              congregationId,
+            },
+          })
+          await tx.templateServicePart.create({
+            data: { name: 'Porte', key: `porte-${stamp}`, order: 0, scheduleTemplateId: accueil.id, congregationId },
+          })
+          const meeting = (day: string, status: string) =>
+            tx.event.create({
+              data: {
+                name: 'Visite',
+                startDate: new Date(`${day}T17:00:00Z`),
+                endDate: new Date(`${day}T19:00:00Z`),
+                status,
+                templateId: kind.id,
+                congregationId,
+              },
+            })
+          const held = await meeting('2099-04-01', 'draft')
+          const byHand = await tx.schedule.create({
+            data: { eventId: held.id, kind: 'duty', name: 'ZZ Accueil', order: 1, status: 'draft', congregationId },
+          })
+          const published = await meeting('2099-04-08', 'released')
+          const ctx = { congregationId, timezone: 'Europe/Paris', actorId }
+          await createMeetingProgramme(db, held.id, ctx)
+          await createMeetingProgramme(db, published.id, ctx)
+          const schedules = (eventId: number) =>
+            tx.schedule.findMany({
+              where: { eventId },
+              orderBy: [{ order: 'asc' }, { id: 'asc' }],
+              select: { id: true, kind: true, status: true, _count: { select: { items: true } } },
+            })
+          read = {
+            held: (await schedules(held.id)).map(each => ({
+              kind: each.kind,
+              byHand: each.id === byHand.id,
+              items: each._count.items,
+            })),
+            published: (await schedules(published.id)).map(each => `${each.kind}:${each.status}`),
+          }
+          throw new Rollback()
+        },
+        { timeout: 30_000 },
+      )
+    } catch (error) {
+      if (!(error instanceof Rollback)) throw error
+    }
+    expect(read).toEqual({
+      held: [
+        { kind: 'programme', byHand: false, items: 1 },
+        { kind: 'duty', byHand: true, items: 1 },
+      ],
+      published: ['programme:published', 'duty:published'],
     })
   })
 })
