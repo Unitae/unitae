@@ -286,6 +286,19 @@ describe('itemsPerRoom', () => {
     }
     expect(() => itemsPerRoom([one])).toThrow(WITHOUT_ROOMS_RE)
   })
+
+  // A part in one room reads its row's people too (R4): a row read without the ids or the conflict the item was read
+  // with would show every ordinary part unassigned, silently.
+  it('refuses a one-room row read without the ids or the conflict the item was read with', () => {
+    for (const key of ['assigneeId', 'assistantId', 'externalSpeakerId', 'hasConflict'] as const) {
+      const one = item(3, { name: 'Discours', assigneeId: 7 })
+      one.rooms = one.rooms?.map(row => {
+        const { [key]: _, ...rest } = row
+        return rest as typeof row
+      })
+      expect(() => itemsPerRoom([one]), key).toThrow(WITHOUT_ROOMS_RE)
+    }
+  })
 })
 
 describe('heldBy', () => {

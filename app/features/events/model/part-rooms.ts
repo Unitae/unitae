@@ -136,11 +136,20 @@ interface RowPeople {
   externalSpeaker?: unknown
 }
 
-const PEOPLE = ['assignee', 'assistant', 'externalSpeaker'] as const
+// The people records, and the columns a row stands in for (a reader selecting them on the item must on its rows too).
+const PEOPLE = [
+  'assignee',
+  'assistant',
+  'externalSpeaker',
+  'assigneeId',
+  'assistantId',
+  'externalSpeakerId',
+  'hasConflict',
+] as const
 
 /**
- * A reader that read the item's people records must read its rows' too, or every room would show the item's (the
- * main room's) people, silently: refused rather than drawn wrong.
+ * A reader that read the item's people (records, ids or conflict) must read its rows' too, or a room would show none
+ * or the item's, silently: refused rather than drawn wrong.
  */
 function assertRowPeople(item: RowPeople, row: RowPeople) {
   for (const key of PEOPLE) {
