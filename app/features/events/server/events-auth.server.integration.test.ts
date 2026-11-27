@@ -723,6 +723,40 @@ describe('mayReadSlotFacts (integration)', () => {
     expect([service, part]).toEqual([true, false])
   })
 
+  // A meeting may hold several duties schedules (user, 2026-11-27): their slot's own schedule decides, not every one.
+  it('lets the services responsible read their slot beside another duties schedule they do not answer for', async () => {
+    const other = await withScope(primaryCongId, async tx => {
+      const template = await tx.scheduleTemplate.create({
+        data: { name: 'Visio', kind: 'duty', congregationId: primaryCongId },
+      })
+      const schedule = await tx.schedule.create({
+        data: {
+          eventId: ownedEventId,
+          kind: 'duty',
+          order: 2,
+          name: 'Visio',
+          scheduleTemplateId: template.id,
+          congregationId: primaryCongId,
+        },
+      })
+      return { template: template.id, schedule: schedule.id }
+    })
+    try {
+      const result = await withScope(primaryCongId, tx =>
+        mayReadSlotFacts(tx, allowNone, serviceResponsibleId, owned(), primaryCongId, {
+          kind: 'service',
+          assignmentId: ownedServicePartId,
+        }),
+      )
+      expect(result).toBe(true)
+    } finally {
+      await withScope(primaryCongId, async tx => {
+        await tx.schedule.delete({ where: { id: other.schedule } })
+        await tx.scheduleTemplate.delete({ where: { id: other.template } })
+      })
+    }
+  })
+
   it('refuses someone who may only read programmes', async () => {
     const result = await withScope(primaryCongId, tx =>
       mayReadSlotFacts(tx, allowOnly(Permission.CanViewPrograms), plainId, owned(), primaryCongId, {

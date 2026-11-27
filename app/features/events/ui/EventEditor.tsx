@@ -102,7 +102,8 @@ export function EventEditor({
 
   function handleServiceDragEnd(dragEvent: DragEndEvent) {
     if (!dragEvent.over) return
-    const ids = event.eventServiceParts.map(service => service.id)
+    // The section shown: a responsible of one duties schedule may move its services, not another schedule's.
+    const ids = focusedServices.map(service => service.id)
     const reordered = reorderPartIds(ids, Number(dragEvent.active.id), Number(dragEvent.over.id))
     if (reordered === ids) return
     reorderFetcher.submit(

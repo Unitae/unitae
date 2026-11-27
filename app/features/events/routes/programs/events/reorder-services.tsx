@@ -39,7 +39,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       throw redirect('/programs')
     }
 
-    const done = await reorderServiceAssignments(db, congregationId, eventId, orderedIds)
+    // One schedule's services move alone (its section on the page); a list across schedules must be the whole meeting.
+    const done = await reorderServiceAssignments(db, congregationId, eventId, orderedIds, scheduleId)
     return { ok: done }
   })
 }

@@ -159,6 +159,43 @@ describe('reorderServiceAssignments', () => {
   })
 })
 
+// A meeting may hold several duties schedules, each with its responsible (user, 2026-11-27): one schedule's services
+// move alone, the others' stay; that list must be the whole schedule, as the event's must be the whole event.
+describe('reorderServiceAssignments within one duties schedule', () => {
+  it('puts one schedule’s services in order, leaving the other schedule’s, and refuses a partial list', async () => {
+    const [sono, estrade, accueil] = eventServices
+    const first = await withScope(congregationId, async tx => {
+      const row = await tx.item.findUniqueOrThrow({ where: { id: sono }, select: { scheduleId: true } })
+      return row.scheduleId as number
+    })
+    const second = await withScope(congregationId, async tx => {
+      const id = (
+        await tx.schedule.create({ data: { eventId, kind: 'duty', order: 2, name: 'Visio', congregationId } })
+      ).id
+      await tx.item.update({ where: { id: accueil }, data: { scheduleId: id } })
+      return id
+    })
+    try {
+      const run = (ids: number[], scheduleId: number | null) =>
+        withScope(congregationId, tx => reorderServiceAssignments(tx, congregationId, eventId, ids, scheduleId))
+      const results = {
+        partial: await run([estrade], first),
+        other: await run([estrade, sono, accueil], first),
+        withoutSchedule: await run([estrade, sono], null),
+        whole: await run([estrade, sono], first),
+      }
+      expect(results).toEqual({ partial: false, other: false, withoutSchedule: false, whole: true })
+      // Sono after Estrade; Accueil, of the other schedule, where it was.
+      expect(await eventOrder()).toEqual([5, 0, 10])
+    } finally {
+      await withScope(congregationId, async tx => {
+        await tx.item.update({ where: { id: accueil }, data: { scheduleId: first } })
+        await tx.schedule.delete({ where: { id: second } })
+      })
+    }
+  })
+})
+
 describe('reorderTemplateServices', () => {
   it("puts the template's services in the given order", async () => {
     const [sono, estrade, accueil] = templateServices
