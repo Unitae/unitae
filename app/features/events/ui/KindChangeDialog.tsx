@@ -18,6 +18,8 @@ export interface KindChangeSchedule {
   id: number
   title: string
   kind: string
+  /** The template it was made from: the new kind's suggestion of that template is not added beside it. */
+  templateId?: number | null
   status: string
   assignments: number
   /** Whether the reader may remove it (canChangeSchedule): one they may not stays kept. */
@@ -74,7 +76,13 @@ export function KindChangeDialog({
   }
   const kind = kinds.find(option => String(option.id) === kindId)
   const isKept = (id: number) => !removed.includes(id)
-  const heldKinds = new Set(schedules.filter(schedule => isKept(schedule.id)).map(schedule => schedule.kind))
+  // One programme per meeting; duties schedules as many as wanted, each template once (user, 2026-11-27): a suggestion
+  // is unavailable beside a kept programme, or beside a kept schedule of its own template.
+  const kept = schedules.filter(schedule => isKept(schedule.id))
+  const programmeKept = kept.some(schedule => schedule.kind === ScheduleKind.Programme)
+  const keptTemplates = new Set(kept.map(schedule => schedule.templateId))
+  const isHeld = (suggestion: { id: number; kind: string }) =>
+    (suggestion.kind === ScheduleKind.Programme && programmeKept) || keptTemplates.has(suggestion.id)
   const losesPublished = schedules.some(
     schedule => !isKept(schedule.id) && schedule.status === ScheduleStatus.Published && schedule.assignments > 0,
   )
@@ -82,7 +90,7 @@ export function KindChangeDialog({
     setKindId(value)
     const next = kinds.find(option => String(option.id) === value)
     // Its suggestions of a kind the meeting no longer holds come ticked, as the board shows.
-    setAdded((next?.suggested ?? []).filter(suggestion => !heldKinds.has(suggestion.kind)).map(s => s.id))
+    setAdded((next?.suggested ?? []).filter(suggestion => !isHeld(suggestion)).map(s => s.id))
   }
   const toggle = (list: number[], id: number, on: boolean) => (on ? [...list, id] : list.filter(other => other !== id))
   // Unticking a schedule ticks the new kind's suggestion of its kind, which takes its place (the user's choice).
@@ -150,7 +158,7 @@ export function KindChangeDialog({
                 <p className="text-muted-foreground text-sm">{m.programs_kind_change_none()}</p>
               )}
               {kind.suggested.map(suggestion => {
-                const held = heldKinds.has(suggestion.kind)
+                const held = isHeld(suggestion)
                 return (
                   <CheckRow
                     key={suggestion.id}

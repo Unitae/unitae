@@ -6,8 +6,8 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 
 /**
  * What a meeting type's side panel shows on « Types d’évènement » (6b-2b): its own fields, how many programmes use it,
- * its empty meetings ahead off its day or hours, the schedule templates it uses and those it may come to use (one of
- * each sort, 6b-2). Null for a type of another congregation.
+ * its empty meetings ahead off its day or hours, the schedule templates it uses and those it may come to use (one
+ * programme, any duties templates). Null for a type of another congregation.
  */
 export async function getTypePanel(
   db: TransactionClient,
@@ -31,11 +31,13 @@ export async function getTypePanel(
     const { suggestedBy: _, ...shown } = row(each)
     return shown
   })
-  const usedSorts = new Set(page.scheduleTemplates.map(each => each.kind))
-  const candidates =
-    usedSorts.size < Object.values(ScheduleKind).length
-      ? page.allScheduleTemplates.filter(each => !usedSorts.has(each.kind)).map(row)
-      : null
+  // A programme template while it uses none (a meeting holds one), every duties template it does not use yet (one
+  // schedule each, user 2026-11-27).
+  const used = new Set(page.scheduleTemplates.map(each => each.id))
+  const usesProgramme = page.scheduleTemplates.some(each => each.kind === ScheduleKind.Programme)
+  const candidates = page.allScheduleTemplates
+    .filter(each => !used.has(each.id) && (each.kind === ScheduleKind.Duty || !usesProgramme))
+    .map(row)
   // What the panel reads of the type, and no more: its parts and services are « Modèles de planning »'s.
   const { name, key, color, weekDay, startTime, endTime, attendanceKind } = page.template
   return {

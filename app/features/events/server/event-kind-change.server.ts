@@ -221,7 +221,7 @@ async function lockForChange(db: TransactionClient, eventId: number, kindId: num
       startDate: true,
       templateId: true,
       origin: true,
-      schedules: { select: { id: true, kind: true } },
+      schedules: { select: { id: true, kind: true, scheduleTemplateId: true } },
     },
   })
   return { event, kind }
@@ -231,15 +231,17 @@ async function lockForChange(db: TransactionClient, eventId: number, kindId: num
 function refusalOf(
   schedules: { id: number }[],
   change: KindChange,
-  kept: { kind: string }[],
-  added: { kind: string; _count: { parts: number; serviceParts: number } }[],
+  kept: { kind: string; scheduleTemplateId?: number | null }[],
+  added: { id: number; kind: string; _count: { parts: number; serviceParts: number } }[],
 ): KindChangeRefusal | null {
   // Every schedule of the meeting in exactly one list: the dialog listed it, and said what becomes of it.
   const listedOnce = (id: number) => change.keep.includes(id) !== change.remove.includes(id)
   if (!schedules.every(schedule => listedOnce(schedule.id))) return 'stale'
   if (added.length !== new Set(change.add).size || !added.every(bringsItems)) return 'not-suggested'
-  const kinds = [...kept, ...added].map(schedule => schedule.kind)
-  return new Set(kinds).size === kinds.length ? null : 'kind-held'
+  // One programme per meeting; duties schedules as many as wanted, each template once (user, 2026-11-27).
+  const programmes = [...kept, ...added].filter(schedule => schedule.kind === ScheduleKind.Programme).length
+  const keptTemplates = new Set(kept.map(schedule => schedule.scheduleTemplateId))
+  return programmes > 1 || added.some(template => keptTemplates.has(template.id)) ? 'kind-held' : null
 }
 
 async function everyOf<T>(items: T[], check: (item: T) => Promise<boolean>): Promise<boolean> {

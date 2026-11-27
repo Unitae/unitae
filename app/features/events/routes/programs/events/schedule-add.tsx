@@ -33,7 +33,11 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   if ('reason' in outcome) {
     session.flash(
       'error',
-      outcome.reason === 'kind-held' ? m.programs_schedule_add_kind_held() : m.programs_schedule_add_awaiting(),
+      outcome.reason === 'kind-held'
+        ? m.programs_schedule_add_kind_held()
+        : outcome.reason === 'present'
+          ? m.programs_schedule_add_template_held()
+          : m.programs_schedule_add_awaiting(),
     )
     return data({ ok: false as const }, { headers: { 'Set-Cookie': await commitSession(session) } })
   }

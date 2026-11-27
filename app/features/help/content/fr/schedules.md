@@ -18,7 +18,7 @@ Le responsable d’un planning est le rôle que son modèle nomme : son titulair
 
 Dans **Réunions › Programmes**, **Nouveau** ouvre **Créer des réunions**. Chaque réunion créée arrive avec les plannings qu’utilise son type : la page les montre sous chaque type, avec ce qu’ils contiennent. Les réunions déjà créées d’avance, encore vides, reçoivent les leurs au lieu d’être créées une seconde fois ; celles déjà préparées ne changent pas.
 
-Une date décochée est passée ; si une réunion avait été créée d’avance ce jour-là, elle est retirée. Un planning qui ne sert pas pour une réunion se supprime ensuite depuis celle-ci. Une réunion n’a qu’un planning de chaque sorte : un autre modèle (une visioconférence, un nettoyage…) en remplace un de la même sorte une fois celui-ci supprimé, avec **Ajouter un planning**.
+Une date décochée est passée ; si une réunion avait été créée d’avance ce jour-là, elle est retirée. Un planning qui ne sert pas pour une réunion se supprime ensuite depuis celle-ci. Une réunion n’a qu’un planning spirituel, et autant de plannings de services que voulu : un autre modèle de services (une visioconférence, un nettoyage…) s’ajoute avec **Ajouter un planning**.
 
 ## Publier un planning
 
@@ -45,7 +45,7 @@ Pour reprendre un planning, cliquez sur **Repasser en brouillon** dans son bloc 
 ## Ajouter un planning
 
 1. Cliquez sur **Ajouter un planning**, en haut de la page.
-2. Choisissez un modèle : ceux qu’utilise le type de la réunion viennent en premier. Le planning arrive avec ses parties ou ses services, en brouillon. Un modèle que la réunion a déjà, ou dont elle a déjà la sorte, reste grisé, avec la raison.
+2. Choisissez un modèle : ceux qu’utilise le type de la réunion viennent en premier. Le planning arrive avec ses parties ou ses services, en brouillon. Un modèle que la réunion a déjà, ou un modèle spirituel quand elle a déjà son programme, reste grisé, avec la raison.
 
 Avec le droit de gérer les programmes, **Planning vide…** crée un planning qui n’existe que pour cette réunion : donnez-lui un nom et sa sorte, spirituel ou services. Pour le réutiliser, créez plutôt un modèle dans **Réglages**.
 
@@ -70,7 +70,7 @@ Une réunion change de nature, le Mémorial à la place de la réunion de semain
 
 1. Choisissez le nouveau type : la réunion prend son nom.
 2. Sous **Garder sur la réunion**, chaque planning reste coché. Décochez celui qui doit partir : il emporte ses attributions, et les personnes averties reçoivent « Attribution annulée » s’il était publié. Un planning dont vous n’êtes pas responsable reste coché.
-3. Cochez les plannings qu’utilise le nouveau type. Un planning de la même sorte qu’un planning gardé n’est disponible qu’une fois celui-ci décoché, et décocher l’ancien le coche.
+3. Cochez les plannings qu’utilise le nouveau type. Un planning spirituel n’est disponible qu’une fois l’ancien décoché, et décocher l’ancien le coche ; un modèle que la réunion garde déjà ne s’ajoute pas une seconde fois.
 4. Cliquez sur **Changer le type**.
 
 Les plannings gardés restent à leur responsable. Les chiffres d’assistance déjà saisis suivent le nouveau type sur la carte S-88, ou n’y comptent plus s’il n’en relève pas.

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // What a meeting type's side panel reads (6b-2b): its own fields, its empty meetings to move, the templates it uses and
-// those it may come to use, of a sort it uses none of (6b-2).
+// those it may come to use (one programme, any duties templates).
 
 vi.mock('~/features/events/index.server', () => ({ countMeetingsToMove: vi.fn() }))
 vi.mock('~/features/settings/server/template-page.queries', () => ({ getTemplatePage: vi.fn() }))
@@ -65,10 +65,12 @@ describe('getTypePanel', () => {
     expect(panel?.candidates?.map(each => [each.id, each.suggestedBy])).toEqual([[7, 'Mémorial']])
   })
 
-  it('offers none once it uses one template of each sort', async () => {
+  // One programme at most, every duties template once (user, 2026-11-27).
+  it('offers the duties templates it does not use, and no programme once it uses one', async () => {
     const used = [listed(9, 'programme'), listed(7, 'duty')]
-    vi.mocked(getTemplatePage).mockResolvedValue(page('midweek-meeting', used, used) as never)
-    expect((await getTypePanel({} as never, 4, context))?.candidates).toBeNull()
+    const all = [...used, listed(8, 'programme'), listed(6, 'duty')]
+    vi.mocked(getTemplatePage).mockResolvedValue(page('midweek-meeting', used, all) as never)
+    expect((await getTypePanel({} as never, 4, context))?.candidates?.map(each => each.id)).toEqual([6])
   })
 
   it('counts no meetings to move for a built-in type, and answers null for a type it cannot read', async () => {

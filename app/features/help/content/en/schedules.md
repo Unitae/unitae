@@ -18,7 +18,7 @@ A schedule’s person in charge is the role its template names: its holder and i
 
 In **Meetings › Programs**, **New** opens **Create meetings**. Each meeting created comes with the schedules its kind uses: the page shows them under each kind, with what they hold. Meetings already created ahead, still empty, receive theirs instead of being created again; those already prepared do not change.
 
-An unticked date is skipped; if a meeting had been created ahead that day, it is removed. A schedule a meeting does not need can be deleted afterwards from that meeting. A meeting has one schedule of each kind: another template (a videoconference, a cleaning…) replaces one of the same kind once it is deleted, with **Add a schedule**.
+An unticked date is skipped; if a meeting had been created ahead that day, it is removed. A schedule a meeting does not need can be deleted afterwards from that meeting. A meeting has one spiritual schedule, and as many services schedules as needed: another services template (a videoconference, a cleaning…) is added with **Add a schedule**.
 
 ## Publish a schedule
 
@@ -45,7 +45,7 @@ To take a schedule back, click **Move back to draft** in its block: it leaves th
 ## Add a schedule
 
 1. Click **Add a schedule**, at the top of the page.
-2. Choose a template: those the meeting’s kind uses come first. The schedule arrives with its parts or services, as a draft. A template the meeting already has, or whose kind it already holds, stays greyed, with why.
+2. Choose a template: those the meeting’s kind uses come first. The schedule arrives with its parts or services, as a draft. A template the meeting already has, or a spiritual template when it already has its programme, stays greyed, with why.
 
 With the right to manage the programs, **Empty schedule…** makes a schedule for this meeting only: give it a name and its kind, spiritual or services. To use it again, create a template in **Settings** instead.
 
@@ -70,7 +70,7 @@ A meeting changes its nature, the Memorial instead of the midweek meeting for ex
 
 1. Choose the new kind: the meeting takes its name.
 2. Under **Keep on the meeting**, every schedule stays ticked. Untick the one that must go: it takes its assignments with it, and the people told are told “Assignment cancelled” if it was published. A schedule you are not in charge of stays ticked.
-3. Tick the schedules the new kind uses. A schedule of the same kind as one kept is available only once that one is unticked, and unticking the old one ticks it.
+3. Tick the schedules the new kind uses. A spiritual schedule is available only once the old one is unticked, and unticking the old one ticks it; a template the meeting keeps already is not added a second time.
 4. Click **Change the kind**.
 
 The schedules kept stay with their person in charge. Attendance counts already entered follow the new kind on the S-88 card, or no longer count if it has none.

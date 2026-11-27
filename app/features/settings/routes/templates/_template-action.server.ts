@@ -152,6 +152,10 @@ async function handleScheduleTemplatesIntent(
   }
   const used = await addKindScheduleTemplate(db, templateId, ids[0], congregationId, actorId)
   if (used == null) return null
-  if (!used.ok) return refused({ status: 'error', error: { '': [m.settings_template_schedules_sort_used()] } }, 409)
+  if (!used.ok) {
+    const message =
+      used.reason === 'used' ? m.settings_template_schedules_used() : m.settings_template_schedules_sort_used()
+    return refused({ status: 'error', error: { '': [message] } }, 409)
+  }
   return saved
 }

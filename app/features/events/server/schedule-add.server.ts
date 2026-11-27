@@ -68,8 +68,12 @@ const TEMPLATE_ITEMS = {
   serviceParts: { orderBy: [{ order: 'asc' }, { id: 'asc' }], include: { allowedRoles: true } },
 } satisfies Prisma.ScheduleTemplateInclude
 
-/** Why a schedule could not be added, though the caller may: the kind is held, or the meeting awaits its programme. */
-export type ScheduleAddRefusal = 'kind-held' | 'awaiting-programme'
+/**
+ * Why a schedule could not be added, though the caller may: a programme where it holds one (a meeting holds one), a
+ * template it holds already (`present`; duties schedules are as many as wanted, each template once), or the meeting
+ * awaits its programme.
+ */
+export type ScheduleAddRefusal = 'kind-held' | 'present' | 'awaiting-programme'
 
 /** Whether a source brings no item of its kind: empty (no template), or a template with nothing of that kind. */
 function bringsNothing(kind: string, counts: { parts: number; serviceParts: number } | null): boolean {
@@ -92,7 +96,7 @@ async function lockEventForAdd(db: TransactionClient, eventId: number, congregat
     select: {
       status: true,
       origin: true,
-      schedules: { select: { kind: true } },
+      schedules: { select: { kind: true, scheduleTemplateId: true } },
       _count: { select: { items: true } },
       template: { select: { key: true, ...TEMPLATE_PROGRAMME_COUNT } },
     },
@@ -123,14 +127,20 @@ function fillFromTemplate(
 /** Why the event refuses a schedule of this kind bringing these items, or null when it takes it. */
 function refusalOf(
   event: {
-    schedules: { kind: string }[]
+    schedules: { kind: string; scheduleTemplateId?: number | null }[]
     _count: { items: number }
     template: ProgrammeTemplateCounts | null
   },
   kind: ScheduleKind,
   counts: { parts: number; serviceParts: number } | null,
+  scheduleTemplateId: number | null = null,
 ): ScheduleAddRefusal | null {
-  if (event.schedules.some(schedule => schedule.kind === kind)) return 'kind-held'
+  if (kind === ScheduleKind.Programme && event.schedules.some(schedule => schedule.kind === kind)) return 'kind-held'
+  if (
+    scheduleTemplateId != null &&
+    event.schedules.some(schedule => schedule.scheduleTemplateId === scheduleTemplateId)
+  )
+    return 'present'
   const awaits = isAwaitingProgramme({
     parts: event._count.items,
     services: 0,
@@ -165,7 +175,7 @@ export async function addSchedule(
   const event = await lockEventForAdd(db, eventId, congregationId)
   if (event == null) return null
   const counts = template && { parts: template.parts.length, serviceParts: template.serviceParts.length }
-  const reason = refusalOf(event, kind, counts)
+  const reason = refusalOf(event, kind, counts, template?.id ?? null)
   if (reason != null) {
     logger.info('schedule add refused', { reason, eventId, kind, congregationId, actorId })
     return { reason }
@@ -229,8 +239,10 @@ export async function scheduleAddOptions(
     },
   })
   if (event == null) return none
-  const missing = SCHEDULE_KINDS.filter(kind => !event.schedules.some(schedule => schedule.kind === kind))
-  if (missing.length === 0) return none
+  // The kinds it may take another schedule of: a programme while it holds none, duties always (one per template).
+  const missing = SCHEDULE_KINDS.filter(
+    kind => kind === ScheduleKind.Duty || !event.schedules.some(schedule => schedule.kind === kind),
+  )
   const manages = can(Permission.CanManagePrograms)
   const roleIds = manages ? [] : await resolveEffectiveRoleIds(db, userId, congregationId)
   if (!manages && roleIds.length === 0) return none
@@ -252,9 +264,11 @@ export async function scheduleAddOptions(
     orderBy: [{ name: { sort: 'asc', nulls: 'last' } }, { id: 'asc' }],
   })
   const unavailable = (template: (typeof templates)[number]) => {
-    const held = event.schedules.find(schedule => schedule.kind === template.kind)
-    if (held == null) return {}
-    return { unavailable: held.scheduleTemplateId === template.id ? ('present' as const) : ('kind-held' as const) }
+    if (event.schedules.some(schedule => schedule.scheduleTemplateId === template.id)) {
+      return { unavailable: 'present' as const }
+    }
+    const programmeHeld = event.schedules.some(schedule => schedule.kind === ScheduleKind.Programme)
+    return template.kind === ScheduleKind.Programme && programmeHeld ? { unavailable: 'kind-held' as const } : {}
   }
   const option = (template: (typeof templates)[number]): ScheduleAddOption => ({
     id: template.id,
