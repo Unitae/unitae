@@ -14,7 +14,7 @@ Um documento dinâmico é construído com os dados da congregação: muda sozinh
 
 ## Os tipos de documentos
 
-- **Programa**: as próximas reuniões, com as respetivas partes ou serviços. Pode adicionar vários, por exemplo um por tipo de reunião.
+- **Programa**: as próximas reuniões, com as respetivas partes ou serviços. Pode adicionar vários, por exemplo um por tipo de evento.
 - **Grupos de serviço de campo**: cada grupo com o respetivo superintendente, ajudante e publicadores.
 - **Pioneiros**: os pioneiros atuais, por tipo.
 - **Organigrama**: as responsabilidades da congregação, cargo a cargo.

@@ -14,7 +14,7 @@ A live document is built from the congregation’s data: it changes by itself wh
 
 ## The kinds of documents
 
-- **Program**: the coming meetings, with their parts or their services. You can add several, for instance one per kind of meeting.
+- **Program**: the coming meetings, with their parts or their services. You can add several, for instance one per event type.
 - **Field service groups**: each group with its overseer, its assistant and its publishers.
 - **Pioneers**: the current pioneers, by type.
 - **Organization chart**: the congregation’s responsibilities, post by post.

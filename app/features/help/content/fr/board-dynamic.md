@@ -14,7 +14,7 @@ Un document dynamique se construit avec les données de l’assemblée : il chan
 
 ## Les types de documents
 
-- **Programme** : les réunions à venir, avec leurs parties ou leurs services. Vous pouvez en ajouter plusieurs, par exemple un par type de réunion.
+- **Programme** : les réunions à venir, avec leurs parties ou leurs services. Vous pouvez en ajouter plusieurs, par exemple un par type d’évènement.
 - **Groupes de prédication** : chaque groupe avec son responsable, son adjoint et ses proclamateurs.
 - **Pionniers** : les pionniers du moment, par type.
 - **Organigramme** : les responsabilités de l’assemblée, poste par poste.

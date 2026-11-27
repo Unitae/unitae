@@ -87,7 +87,7 @@ describe('seedDefaultTemplates', () => {
     const createdNames = db.eventTemplate.create.mock.calls.map(
       (call: unknown[]) => (call[0] as { data: { name: string } }).data.name,
     )
-    expect(createdNames).toEqual(['Réunion de semaine', 'Réunion du week-end', 'Mémorial', 'Autre événement'])
+    expect(createdNames).toEqual(['Réunion de semaine', 'Réunion du week-end', 'Mémorial', 'Autre évènement'])
   })
 
   it('makes the seeded meetings count in attendance, the Mémorial apart, and nothing else', async () => {

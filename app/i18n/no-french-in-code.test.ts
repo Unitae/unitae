@@ -28,6 +28,10 @@ const ALLOWED: Record<string, { strings: string[]; why: string }> = {
     strings: ['Réunion de milieu de semaine'],
     why: 'sample data for the email preview server, never sent',
   },
+  'features/settings/server/import-event-templates.server.ts': {
+    strings: ['Autre événement', 'Autre évènement'],
+    why: 'the built-in type’s stored name before and after 20261203090000_freeform_kind_spelling, compared on restore',
+  },
   'features/territories/model/shop-kind.type.ts': {
     strings: ['santé-optique', 'restauration-snack-café'],
     why: 'stored identifiers of shop kinds, labelled through messages',
