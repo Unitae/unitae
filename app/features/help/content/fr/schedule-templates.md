@@ -22,7 +22,7 @@ Un modèle de planning donne leur contenu aux plannings des réunions : les part
 
 Un modèle qu’aucun type de réunion n’utilise s’ajoute à une réunion avec **Ajouter un planning**, sur la page de la réunion.
 
-Pour qu’un type de réunion l’utilise, ouvrez ce type dans **Réglages › Modèles de programme** : sous **Plannings utilisés**, **Utiliser un modèle** propose les modèles d’une sorte que le type n’a pas encore. Un type utilise au plus un modèle spirituel et un modèle de services. Les flèches changent leur ordre, et la croix en retire un : ses parties et ses services restent dans le modèle, et les réunions déjà créées gardent leurs plannings. Seules les nouvelles réunions suivent ces changements.
+Pour qu’un type de réunion l’utilise, ouvrez ce type dans **Réglages › Types d’évènement** : sous **Plannings utilisés**, **Utiliser un modèle** propose les modèles d’une sorte que le type n’a pas encore. Un type utilise au plus un modèle spirituel et un modèle de services. Les flèches changent leur ordre, et la croix en retire un : ses parties et ses services restent dans le modèle, et les réunions déjà créées gardent leurs plannings. Seules les nouvelles réunions suivent ces changements.
 
 ## Ses parties et ses sections
 

@@ -949,15 +949,15 @@
     "settings_general_password_security_scope_responsibilities_hint": "Elders, ministerial servants and accounts with management rights.",
     "settings_general_password_security_scope_everyone": "Everyone",
     "settings_general_password_security_scope_everyone_hint": "Every account in the congregation.",
-    "settings_templates_meta_title": "Program templates - Settings - Unitae",
-    "settings_templates_subtitle": "What repeats from one meeting to the next: day, times, parts, services and who runs them.",
-    "settings_templates_new_button": "New template",
+    "settings_templates_meta_title": "Event types - Settings - Unitae",
+    "settings_templates_subtitle": "What repeats from one meeting to the next: day, times, attendance and the schedules used.",
+    "settings_templates_new_button": "New type",
     "settings_templates_one_time": "One-off",
     "settings_template_edit_weekday_label": "Day of the week",
     "settings_template_edit_start_time_label": "Start time",
     "settings_template_edit_end_time_label": "End time",
     "settings_template_edit_color_label": "Colour",
-    "settings_template_system_body_freeform": "Reserved by the app for one-time events that do not fit a recurring template.",
+    "settings_template_system_body_freeform": "Reserved by the app for one-time events that do not fit a recurring type.",
     "settings_template_schedules_title": "Schedules used",
     "settings_template_schedules_down": "Move “{name}” down",
     "settings_template_schedules_up": "Move “{name}” up",
@@ -969,9 +969,9 @@
     "settings_template_schedules_use": "Use a template",
     "settings_template_schedules_sort_used": "A template of this kind is already used: remove it first.",
     "settings_template_schedules_saved": "Schedules updated.",
-    "settings_template_schedules_hint": "New meetings created from this template get these schedules. Their parts and services are set in “Schedule templates”.",
-    "settings_template_schedules_empty": "No schedule: new meetings created from this template start empty.",
-    "settings_template_system_locked_intent": "This template is managed by the app — only the colour can be changed.",
+    "settings_template_schedules_hint": "New meetings of this type get these schedules. Their parts and services are set in “Schedule templates”.",
+    "settings_template_schedules_empty": "No schedule: new meetings of this type start empty.",
+    "settings_template_system_locked_intent": "This type is managed by the app — only the colour can be changed.",
     "settings_template_edit_part_updated": "Part updated.",
     "settings_template_edit_part_added": "Part added.",
     "settings_template_edit_part_deleted": "Part deleted.",
@@ -980,10 +980,10 @@
     "settings_template_edit_service_role_added": "Service role added.",
     "settings_template_edit_service_role_deleted": "Service role deleted.",
     "settings_template_new_name_placeholder": "E.g.: Life and Ministry Meeting",
-    "settings_template_new_success": "Template “{name}” created.",
-    "settings_template_view_duplicate_success": "Template duplicated: “{name}”.",
-    "settings_template_view_delete_success": "Template deleted: “{name}”.",
-    "settings_template_view_delete_error": "Unable to delete this template.",
+    "settings_template_new_success": "Type “{name}” created.",
+    "settings_template_view_duplicate_success": "Type duplicated: “{name}”.",
+    "settings_template_view_delete_success": "Type deleted: “{name}”.",
+    "settings_template_view_delete_error": "Unable to delete this type.",
     "settings_template_view_delete_in_use": [
         {
             "declarations": [
@@ -992,8 +992,8 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "This template is still used by {count} event and cannot be deleted.",
-                "countPlural=*": "This template is still used by {count} events and cannot be deleted."
+                "countPlural=one": "This type is still used by {count} event and cannot be deleted.",
+                "countPlural=*": "This type is still used by {count} events and cannot be deleted."
             }
         }
     ],
@@ -2052,8 +2052,8 @@
     "programs_create_programme_button": "Create the program",
     "programs_create_programme_success": "Program created.",
     "programs_create_programme_exists": "This meeting already has a program.",
-    "programs_create_programme_nothing": "This meeting’s template has no part or service to give it.",
-    "programs_awaiting_hint": "This meeting has no program yet. “Create the program” gives it the parts and services of its template.",
+    "programs_create_programme_nothing": "The schedule templates this meeting’s type uses have no part or service to give it.",
+    "programs_awaiting_hint": "This meeting has no program yet. “Create the program” gives it the parts and services of the schedules its type uses.",
     "programs_event_draft_badge": "Draft",
     "programs_event_release_button": "Publish",
     "programs_event_unrelease_button": "Move back to draft",
@@ -2362,7 +2362,7 @@
     ],
     "programs_bulk_invalid_payload": "The selection is invalid. Refresh the page and try again.",
     "programs_empty_title": "No programs yet",
-    "programs_empty_description": "Meetings are created from the congregation’s templates, several weeks at a time.",
+    "programs_empty_description": "Meetings are created from the congregation’s event types, several weeks at a time.",
     "programs_new_meta_title": "Create meetings - Unitae",
     "programs_new_page_title": "Create meetings",
     "programs_new_mode_title": "What you create",
@@ -2402,8 +2402,8 @@
     "programs_new_created_until": "Prepared up to {date}",
     "programs_new_none_to_come": "No prepared meeting to come",
     "programs_new_no_meetings_title": "No regular meeting yet",
-    "programs_new_no_meetings_body": "Meetings are created from the congregation’s templates: their day, hours, parts and services.",
-    "programs_new_no_meetings_link": "Create a template in the settings",
+    "programs_new_no_meetings_body": "Meetings are created from the congregation’s event types: their day, hours and the schedules they use.",
+    "programs_new_no_meetings_link": "Create a type in the settings",
     "programs_new_period_title": "Period",
     "programs_new_period_description": "It starts the day after the last prepared meeting: nothing twice, nothing forgotten in between.",
     "programs_new_from_label": "From",
@@ -4151,7 +4151,7 @@
     "permission_desc_can_manage_programs": "Can create, edit and delete meetings",
     "permission_desc_can_assign_program_parts": "Can assign and remove people on parts",
     "permission_desc_can_publish_programs": "Can publish and unpublish programs",
-    "permission_desc_can_manage_program_templates": "Can create and configure meeting templates",
+    "permission_desc_can_manage_program_templates": "Can create and configure event types and schedule templates",
     "permission_desc_can_view_absences": "Can see when others are unavailable",
     "permission_desc_can_view_external_speakers": "Can view the visiting speakers registry",
     "permission_desc_can_manage_external_speakers": "Can add and edit visiting speakers",
@@ -4338,7 +4338,7 @@
     "data_transfer_entity_territory_entrance_links": "Territory-entrance links",
     "data_transfer_entity_building_entrance_links": "Building-entrance links",
     "data_transfer_entity_attributions": "Territory assignments",
-    "data_transfer_entity_programme_templates": "Program templates",
+    "data_transfer_entity_programme_templates": "Event types",
     "data_transfer_entity_programme_template_parts": "Program parts",
     "data_transfer_entity_programme_template_service_roles": "Service roles",
     "data_transfer_entity_programme_template_responsibles": "People in charge of the program",
@@ -5933,7 +5933,7 @@
     "settings_title": "Settings",
     "settings_entry_general": "General",
     "settings_entry_publishers": "Publishers",
-    "settings_entry_templates": "Program templates",
+    "settings_entry_templates": "Event types",
     "settings_entry_schedule_templates": "Schedule templates",
     "settings_entry_part_types": "Part types",
     "settings_entry_territories": "Territories",
@@ -6241,7 +6241,7 @@
     "settings_roles_not_held": "You do not have this right: an administrator gives or removes it.",
     "settings_roles_saved": "Permissions saved.",
     "events_template_copy_name": "{name} (copy)",
-    "settings_templates_col_template": "Template",
+    "settings_templates_col_template": "Type",
     "settings_templates_col_when": "When",
     "settings_templates_col_content": "Content",
     "settings_templates_col_responsibles": "Run by",
@@ -6273,14 +6273,14 @@
         }
     ],
     "settings_templates_managers": "The program managers",
-    "settings_templates_built_in": "Built-in templates",
+    "settings_templates_built_in": "Built-in types",
     "settings_templates_built_in_hint": "their colour only",
     "settings_templates_freeform_content": "Free name and times",
-    "settings_templates_empty": "No template yet. Create one to prepare programs faster.",
+    "settings_templates_empty": "No type yet. Create one to prepare programs faster.",
     "settings_templates_new_description": "The meeting’s day and times; its parts, services and who runs it are set afterwards on its page.",
-    "settings_templates_new_submit": "Create the template",
-    "settings_templates_name_required": "Enter the template’s name.",
-    "settings_template_page_subtitle": "Program template",
+    "settings_templates_new_submit": "Create the type",
+    "settings_templates_name_required": "Enter the type’s name.",
+    "settings_template_page_subtitle": "Event type",
     "settings_template_move_meetings_title": [
         {
             "declarations": [
@@ -6289,12 +6289,12 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "{count} upcoming meeting is not on the template’s day and time.",
-                "countPlural=*": "{count} upcoming meetings are not on the template’s day and time."
+                "countPlural=one": "{count} upcoming meeting is not on the type’s day and time.",
+                "countPlural=*": "{count} upcoming meetings are not on the type’s day and time."
             }
         }
     ],
-    "settings_template_move_meetings_body": "Each meeting without a program goes to the template’s day in its own week. A week that already has its meeting on that day keeps it, and deleted weeks stay deleted.",
+    "settings_template_move_meetings_body": "Each meeting without a program goes to the type’s day in its own week. A week that already has its meeting on that day keeps it, and deleted weeks stay deleted.",
     "settings_template_move_meetings_button": [
         {
             "declarations": [
@@ -6334,7 +6334,7 @@
             }
         }
     ],
-    "settings_template_move_meetings_none": "The upcoming meetings are already on the template’s day and time.",
+    "settings_template_move_meetings_none": "The upcoming meetings are already on the type’s day and time.",
     "settings_template_page_used": [
         {
             "declarations": [
@@ -6343,14 +6343,14 @@
             ],
             "selectors": ["countPlural"],
             "match": {
-                "countPlural=one": "Program template · used by {count} program",
-                "countPlural=*": "Program template · used by {count} programs"
+                "countPlural=one": "Event type · used by {count} program",
+                "countPlural=*": "Event type · used by {count} programs"
             }
         }
     ],
-    "settings_template_built_in_subtitle": "Built-in template",
+    "settings_template_built_in_subtitle": "Built-in type",
     "settings_template_info": "Details",
-    "settings_template_color_hint": "A dot of this colour marks the template in lists and the calendar.",
+    "settings_template_color_hint": "A dot of this colour marks the type in lists and the calendar.",
     "settings_template_attendance_label": "Attendance",
     "settings_template_attendance_none": "Not counted",
     "settings_template_attendance_midweek": "Midweek meeting",
@@ -6360,7 +6360,7 @@
     "settings_template_parts_empty": "No part yet. Add the first one.",
     "settings_template_duplicate": "Duplicate",
     "settings_template_delete": "Delete…",
-    "settings_template_delete_title": "Delete this template?",
+    "settings_template_delete_title": "Delete this type?",
     "settings_template_delete_description": "“{name}”, its parts, its services and who runs it are removed. No program created so far used it.",
     "settings_template_delete_in_use": [
         {
@@ -6375,9 +6375,9 @@
             }
         }
     ],
-    "settings_template_saved": "Template saved.",
+    "settings_template_saved": "Type saved.",
     "settings_template_responsibles_moved": "Who fills and publishes its schedules is set on each schedule template:",
-    "settings_template_read_only": "You see this template without being able to change it.",
+    "settings_template_read_only": "You see this type without being able to change it.",
     "settings_presets_form_has_reader_hint": "A second person on the part.",
     "settings_presets_form_student_slip": "Student assignment slip (S-89)",
     "settings_presets_form_student_slip_hint": "On a published midweek programme, the student can get his slip to print.",
@@ -6457,12 +6457,12 @@
     "audit_log_action_role_permission_changed": "Role permissions changed",
     "audit_log_action_permission_direct_grants_migrated": "Direct rights converted to roles",
     "audit_log_action_part_allowed_roles_changed": "Part roles changed",
-    "audit_log_action_event_template_created": "Program template created",
-    "audit_log_action_event_template_updated": "Program template changed",
-    "audit_log_action_event_template_deleted": "Program template deleted",
-    "audit_log_action_event_template_duplicated": "Program template duplicated",
-    "audit_log_action_event_template_schedule_templates_changed": "Program template schedules changed",
-    "audit_log_action_event_template_responsibles_changed": "Template responsibles changed",
+    "audit_log_action_event_template_created": "Event type created",
+    "audit_log_action_event_template_updated": "Event type changed",
+    "audit_log_action_event_template_deleted": "Event type deleted",
+    "audit_log_action_event_template_duplicated": "Event type duplicated",
+    "audit_log_action_event_template_schedule_templates_changed": "Event type schedules changed",
+    "audit_log_action_event_template_responsibles_changed": "Event type responsibles changed",
     "audit_log_action_service_role_allowed_roles_changed": "Service roles changed",
     "audit_log_action_part_preset_created": "Part type created",
     "audit_log_action_schedule_template_updated": "Schedule template changed",
@@ -6552,7 +6552,7 @@
     "audit_log_empty": "No action in this period.",
     "audit_log_entity_member": "Record",
     "audit_log_entity_role": "Role",
-    "audit_log_entity_event_template": "Program template",
+    "audit_log_entity_event_template": "Event type",
     "audit_log_entity_template_part": "Template part",
     "audit_log_entity_template_service": "Template service",
     "audit_log_entity_event_part": "Program part",
@@ -7796,8 +7796,8 @@
     "attendance_panel_previous": "More recent meeting",
     "attendance_panel_next": "Older meeting",
     "attendance_empty_title": "No meeting is counted yet.",
-    "attendance_empty_body": "Choose in your program templates which meetings are counted.",
-    "attendance_empty_action": "Open the program templates",
+    "attendance_empty_body": "Choose in your event types which meetings are counted.",
+    "attendance_empty_action": "Open the event types",
     "attendance_history_cleared": "{count}: cleared by {name} on {date} at {time}",
     "attendance_col_actions": "Actions",
     "attendance_error_count_failed": "Not saved, try again",

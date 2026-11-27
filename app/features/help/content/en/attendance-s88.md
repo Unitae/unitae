@@ -29,6 +29,6 @@ A meeting counts in the averages only once both its numbers, in the hall and onl
 
 ## Choose which meetings are counted
 
-Whoever manages program templates chooses the counted meetings: in **Settings › Program templates**, open the meeting’s template and, under **Details**, set **Attendance** to **Midweek meeting**, **Weekend meeting**, **Counted separately** (outside the averages and the S-88, for the Memorial) or **Not counted**. Then click **Save**.
+Whoever manages event types chooses the counted meetings: in **Settings › Event types**, open the meeting’s type and, under **Details**, set **Attendance** to **Midweek meeting**, **Weekend meeting**, **Counted separately** (outside the averages and the S-88, for the Memorial) or **Not counted**. Then click **Save**.
 
 On the same page, **Show attendance on the program** lets everyone who sees the program read last week’s total. Averages and history stay restricted.
