@@ -22,7 +22,8 @@ import { listRoles } from '~/shared/domain/roles.server'
 import { Permission } from '~/shared/types/permission'
 import { distinct } from '~/shared/utils/distinct'
 import { requireParamId } from '~/shared/utils/params.server'
-import { fillsWhatIntentWrites, handleEditIntent } from './_edit-event-intents.server'
+import { handleEditIntent } from './_edit-event-intents.server'
+import { fillsWhatIntentWrites } from './_edit-event-rights.server'
 
 import type { Route } from './+types/edit'
 
