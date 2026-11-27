@@ -20,8 +20,10 @@ import {
   updateServicePartAssignment,
 } from '~/features/events/server/event-parts.server'
 import type { ItemKind } from '~/features/events/server/item-projection.server'
+import { canFillSchedule } from '~/features/events/server/schedule-rights.server'
 import * as m from '~/i18n/paraglide/messages'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import type { Permission } from '~/shared/types/permission'
 import { combineLocalDateTime } from '~/shared/utils/event-time'
 
 export type IntentResult = { message: string | null } | { reply: () => unknown }
@@ -86,6 +88,27 @@ export async function serviceScheduleNamed(
   if (itemId == null) return null
   const item = await db.item.findFirst({ where: { id: itemId, congregationId }, select: { scheduleId: true } })
   return item?.scheduleId ?? null
+}
+
+/**
+ * Whether the caller may fill every schedule the intent writes (plan §10, D31), on top of the event right the route
+ * checked: a service intent names its duties schedule (a meeting may hold several), whose responsible alone is asked.
+ */
+export async function fillsWhatIntentWrites(
+  db: TransactionClient,
+  can: (permission: Permission) => boolean,
+  asked: { userId: number; congregationId: number },
+  event: { id: number; templateId: number | null },
+  posted: { intent: FormDataEntryValue | null; formData: FormData },
+  checks: IntentChecks,
+): Promise<boolean> {
+  const { userId, congregationId } = asked
+  const named = await serviceScheduleNamed(db, posted.intent, posted.formData, checks, congregationId)
+  for (const kind of kindsFilledBy(posted.intent)) {
+    const scheduleId = kind === 'service' ? named : null
+    if (!(await canFillSchedule(db, can, userId, event, kind, congregationId, scheduleId))) return false
+  }
+  return true
 }
 
 /** The decisions that depend on who is asking, made by the route. */

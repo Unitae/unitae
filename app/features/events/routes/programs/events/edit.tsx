@@ -22,7 +22,7 @@ import { listRoles } from '~/shared/domain/roles.server'
 import { Permission } from '~/shared/types/permission'
 import { distinct } from '~/shared/utils/distinct'
 import { requireParamId } from '~/shared/utils/params.server'
-import { handleEditIntent, kindsFilledBy, serviceScheduleNamed } from './_edit-event-intents.server'
+import { fillsWhatIntentWrites, handleEditIntent } from './_edit-event-intents.server'
 
 import type { Route } from './+types/edit'
 
@@ -120,13 +120,9 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       itemInEvent: (kind: ItemKind, { itemId, legacyId }: { itemId?: string; legacyId?: string }) =>
         resolveEventItem(db, { itemId: itemId ?? null, legacyId: legacyId ?? null }, kind, eventId, congregationId),
     }
-    // A service intent names its duties schedule (a meeting may hold several): that one's responsible alone is asked.
-    const named = await serviceScheduleNamed(db, intent, formData, checks, congregationId)
-    for (const kind of kindsFilledBy(intent)) {
-      const scheduleId = kind === 'service' ? named : null
-      if (!(await canFillSchedule(db, can, currentUser.id, event, kind, congregationId, scheduleId))) {
-        throw redirect('/programs')
-      }
+    const asked = { userId: currentUser.id, congregationId }
+    if (!(await fillsWhatIntentWrites(db, can, asked, event, { intent, formData }, checks))) {
+      throw redirect('/programs')
     }
 
     const timezone = context.get(congregationContext).timezone

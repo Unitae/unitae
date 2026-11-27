@@ -129,7 +129,7 @@ describe('Fill a schedule (items, assignees): « Attribuer », « Gérer », or 
   // Several duties schedules on one meeting (each from its own template, with its own responsible): an action naming
   // its schedule asks for that one's responsible alone; one naming only the kind still asks for every one.
   it('lets each duties schedule’s responsible fill theirs alone, named by the schedule', async () => {
-    await inCongregation(async ({ db, congregationId, dutyLead, meeting }) => {
+    await inCongregation(async ({ db, congregationId, dutyLead, programmeLead, meeting }) => {
       const visioRole = await db.role.create({ data: { key: `visio-${congregationId}`, name: 'v', congregationId } })
       const visio = await db.scheduleTemplate.create({
         data: { name: 'Visioconférence', kind: 'duty', responsibleRoleId: visioRole.id, congregationId },
@@ -161,6 +161,9 @@ describe('Fill a schedule (items, assignees): « Attribuer », « Gérer », or 
       // A schedule of another event, or of the other kind, is not this one's.
       const programme = await db.schedule.findFirstOrThrow({ where: { eventId: meeting.id, kind: 'programme' } })
       expect(await fill(dutyLead, programme.id)).toBe(false)
+      // Named with the other kind's schedule, by that schedule's own responsible: still not a service's.
+      expect(await fill(programmeLead, programme.id)).toBe(false)
+      expect(await canFillSchedule(db, nothing, dutyLead, meeting, 'part', congregationId, services.id)).toBe(false)
     })
   })
 
