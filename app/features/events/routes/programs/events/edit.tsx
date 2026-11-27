@@ -1,5 +1,6 @@
 import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
+import { ScheduleKind } from '~/features/events/model/schedule.type'
 import {
   getPartAssignmentAllowedRoleIdsForParts,
   getServicePartAssignmentAllowedRoleIdsForParts,
@@ -65,6 +66,20 @@ export function loader({ params, context }: Route.LoaderArgs) {
       listPartPresets(db, congregationId),
     ])
 
+    // Each duties schedule is filled by its own responsible (a meeting may hold several): « Modifier le planning » of
+    // one asks for that one.
+    const fillableSchedules = (
+      await Promise.all(
+        event.schedules
+          .filter(schedule => schedule.kind === ScheduleKind.Duty)
+          .map(async schedule =>
+            (await canFillSchedule(db, can, currentUser.id, event, 'service', congregationId, schedule.id))
+              ? [schedule.id]
+              : [],
+          ),
+      )
+    ).flat()
+
     const partsWithRoles = event.eventParts.map(part => ({
       ...part,
       allowedSpeakerRoleIds: partRoles.get(part.id)?.speaker ?? [],
@@ -92,6 +107,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
       timezone: context.get(congregationContext).timezone,
       canFillParts,
       canFillServices,
+      fillableSchedules,
       // A template responsible may edit an event without being allowed to read the programmes.
       canViewPrograms: permissions.has(Permission.CanViewPrograms),
     }

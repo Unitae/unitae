@@ -3,7 +3,7 @@ import { isAwaitingProgramme, programmeTemplate } from '~/features/events/model/
 import { EventStatus } from '~/features/events/model/event-status.type'
 import { itemsPerRoom } from '~/features/events/model/part-rooms'
 import { type EventPageRights, mayOpenEvent, maySeeSchedule } from '~/features/events/model/programme-access'
-import { type ScheduleKind, ScheduleStatus } from '~/features/events/model/schedule.type'
+import { ScheduleKind, ScheduleStatus } from '~/features/events/model/schedule.type'
 import { unfilledSlots } from '~/features/events/model/unfilled-slots'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { Permission } from '~/shared/types/permission'
@@ -84,7 +84,8 @@ export async function bulkPublishPreview(
       canEdit: rights?.canEdit === true,
       canPublish: rights?.canPublish === true,
       canAssign: rights?.canAssignParts === true,
-      canAssignService: rights?.canAssignServices === true,
+      // Opening asks for some duties schedule; each draft is then judged alone (fillsDuties, below).
+      canAssignService: rights?.opensForDuties === true,
     }
   }
 
@@ -101,7 +102,13 @@ export async function bulkPublishPreview(
       } else preview.events.publish.push(whole)
       continue
     }
-    for (const schedule of event.schedules.filter(each => maySeeSchedule(each, rights))) {
+    // A draft duties schedule reaches its own responsible only: a meeting may hold several, each someone else's.
+    const fillsThis = (each: { id: number; kind: string }) =>
+      each.kind === ScheduleKind.Duty
+        ? rightsOf.get(event.id)?.canAssignServices === true ||
+          (rightsOf.get(event.id)?.fillsDuties.includes(each.id) ?? false)
+        : undefined
+    for (const schedule of event.schedules.filter(each => maySeeSchedule(each, rights, fillsThis(each)))) {
       const named: PreviewSchedule = {
         id: schedule.id,
         name: schedule.name,

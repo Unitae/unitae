@@ -1,5 +1,14 @@
-import type { ScheduleKind } from '~/features/events/model/schedule.type'
-import { type ItemKind, SCHEDULE_KIND_OF } from '~/features/events/server/item-projection.server'
+import type { ItemKind } from '~/features/events/server/item-projection.server'
+import {
+  answersForEvery,
+  deletes,
+  type EventFacts,
+  eventFacts,
+  fills,
+  fillsSome,
+  NO_FACTS,
+  publishes,
+} from '~/features/events/server/schedule-facts.server'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
@@ -51,6 +60,26 @@ export async function canFillSchedule(
     })
   }
   return allowed
+}
+
+/**
+ * Whether the caller fills some schedule of one kind on the event: what opening a draft meeting, and seeing it listed,
+ * asks of a schedule's responsible (a meeting may hold several duties schedules, each its own responsible's). Acting
+ * on items still asks canFillSchedule, by the schedule each action names.
+ */
+export async function canFillSomeSchedule(
+  db: TransactionClient,
+  can: (permission: Permission) => boolean,
+  userId: number,
+  event: { id: number; templateId: number | null },
+  kind: ItemKind,
+  congregationId: number,
+): Promise<boolean> {
+  if (fillsEverySchedule(can)) return true
+  const roleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
+  if (roleIds.length === 0) return false
+  const facts = (await eventFacts(db, [event], congregationId)).get(event.id) ?? NO_FACTS
+  return fillsSome(event, facts, kind, roleIds)
 }
 
 /**
@@ -110,102 +139,6 @@ export async function canChangeEvent(
 ): Promise<boolean> {
   if (can(Permission.CanManagePrograms)) return true
   return canChangeEventsOfKind(db, can, userId, event.templateId, congregationId)
-}
-
-/** Every one of these is the caller's: never true of none, which "all the caller's" would wrongly grant. */
-const answersForEvery = (answerable: readonly Answerable[], roleIds: readonly number[]) =>
-  answerable.length > 0 && answerable.every(({ role }) => role != null && roleIds.includes(role))
-
-/** A schedule, or a schedule template its kind suggests, as the rules read it: its kind and responsible role. */
-interface Answerable {
-  kind: ScheduleKind
-  /** None for a schedule without a template (D47), or a template no role answers for. */
-  role: number | null
-}
-
-/** What the event rules read of the events they judge, in one pass for all of them. */
-interface EventFacts {
-  /** The schedules it holds, with their ids: an action may name one. */
-  schedules: (Answerable & { id: number })[]
-  /** The schedule templates its kind suggests, in the order a writer picks them. */
-  suggested: Answerable[]
-}
-
-async function eventFacts(
-  db: TransactionClient,
-  events: readonly { id: number; templateId: number | null }[],
-  congregationId: number,
-): Promise<Map<number, EventFacts>> {
-  const ids = events.map(event => event.id)
-  const kindIds = [...new Set(events.flatMap(event => (event.templateId == null ? [] : [event.templateId])))]
-  const [schedules, links] = await Promise.all([
-    db.schedule.findMany({
-      where: { eventId: { in: ids }, congregationId },
-      select: { id: true, eventId: true, kind: true, scheduleTemplate: { select: { responsibleRoleId: true } } },
-    }),
-    kindIds.length === 0
-      ? []
-      : db.eventKindScheduleTemplate.findMany({
-          where: { eventKindId: { in: kindIds }, congregationId },
-          orderBy: [{ order: 'asc' }, { scheduleTemplateId: 'asc' }],
-          select: { eventKindId: true, scheduleTemplate: { select: { kind: true, responsibleRoleId: true } } },
-        }),
-  ])
-  const facts = new Map(events.map(event => [event.id, { schedules: [], suggested: [] } as EventFacts]))
-  for (const schedule of schedules) {
-    facts.get(schedule.eventId)?.schedules.push({
-      id: schedule.id,
-      kind: schedule.kind as ScheduleKind,
-      role: schedule.scheduleTemplate?.responsibleRoleId ?? null,
-    })
-  }
-  for (const event of events) {
-    const own = facts.get(event.id)
-    if (own == null) continue
-    for (const link of links) {
-      if (link.eventKindId !== event.templateId) continue
-      own.suggested.push({
-        kind: link.scheduleTemplate.kind as ScheduleKind,
-        role: link.scheduleTemplate.responsibleRoleId,
-      })
-    }
-  }
-  return facts
-}
-
-/** D28, D50: a responsible of its kind, when it holds schedules and every one is theirs. */
-function deletes(event: { templateId: number | null }, facts: EventFacts, roleIds: number[], kinds: number[]) {
-  return event.templateId != null && kinds.includes(event.templateId) && answersForEvery(facts.schedules, roleIds)
-}
-
-/**
- * canFillSchedule's rule over the facts: the responsible of every schedule of that kind, or of the template its first
- * one would get while it holds none.
- */
-function fills(
-  event: { templateId: number | null },
-  facts: EventFacts,
-  kind: ItemKind,
-  roleIds: number[],
-  scheduleId: number | null = null,
-) {
-  const scheduleKind = SCHEDULE_KIND_OF[kind]
-  // Named: that schedule alone, when it is the event's and of the kind; nothing otherwise.
-  if (scheduleId != null) {
-    const named = facts.schedules.find(schedule => schedule.id === scheduleId && schedule.kind === scheduleKind)
-    return named != null && answersForEvery([named], roleIds)
-  }
-  const own = facts.schedules.filter(schedule => schedule.kind === scheduleKind)
-  if (own.length > 0) return answersForEvery(own, roleIds)
-  if (event.templateId == null) return false
-  const first = facts.suggested.find(template => template.kind === scheduleKind)
-  return first != null && answersForEvery([first], roleIds)
-}
-
-/** D49: the responsible of every schedule it holds — of every template its kind suggests while it holds none. */
-function publishes(event: { templateId: number | null }, facts: EventFacts, roleIds: number[]) {
-  if (event.templateId == null) return false
-  return answersForEvery(facts.schedules.length > 0 ? facts.schedules : facts.suggested, roleIds)
 }
 
 /**
@@ -285,11 +218,16 @@ export interface ScheduleRights {
   canPublish: boolean
   /** canFillSchedule, its programme. */
   canAssignParts: boolean
-  /** canFillSchedule, its duties. */
+  /** canFillSchedule, its duties: every duties schedule is the caller's. What judges a draft's items by kind. */
   canAssignServices: boolean
+  /**
+   * canFillSomeSchedule, its duties: some duties schedule is the caller's (a meeting may hold several). What opening the
+   * meeting asks, never what shows a draft: that is `fillsDuties`, schedule by schedule.
+   */
+  opensForDuties: boolean
+  /** The duties schedules the caller answers for, each alone: a draft of one reaches its own responsible only. */
+  fillsDuties: number[]
 }
-
-const NO_FACTS: EventFacts = { schedules: [], suggested: [] }
 
 /**
  * The rights of many events at once, for the screens that list them (plan §10, 5a-3): what canChangeEvent,
@@ -314,6 +252,8 @@ export async function scheduleRightsFor(
       canPublish: true,
       canAssignParts: true,
       canAssignServices: true,
+      opensForDuties: true,
+      fillsDuties: [],
     }
     return { rightsOf: new Map(events.map(event => [event.id, all])), kindIds: [] }
   }
@@ -336,6 +276,10 @@ export async function scheduleRightsFor(
           canPublish: publishesAll || publishes(event, own, roleIds),
           canAssignParts: fillsAll || fills(event, own, 'part', roleIds),
           canAssignServices: fillsAll || fills(event, own, 'service', roleIds),
+          opensForDuties: fillsAll || fillsSome(event, own, 'service', roleIds),
+          fillsDuties: own.schedules
+            .filter(schedule => schedule.kind === 'duty' && answersForEvery([schedule], roleIds))
+            .map(schedule => schedule.id),
         },
       ]
     }),

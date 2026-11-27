@@ -34,6 +34,7 @@ interface EventEditorProps {
     endDate: Date | string
     eventParts: (PartAssignment & Pick<PartData, 'speakerLabel' | 'readerLabel'>)[]
     eventServiceParts: ServicePartAssignment[]
+    schedules: { id: number; kind: string }[]
   }
   roles: RoleOption[]
   presets: PartPresetOption[]
@@ -135,11 +136,24 @@ export function EventEditor({
     sectionSuggestions,
     trackSuggestions,
   }
-  const serviceEditor = { mode: 'event' as const, fetcher: serviceFetcher, service: editingService ?? null, roles }
+  // A new service goes into the duties schedule this page is for (a meeting may hold several).
+  const focusedDuties = focus?.kind === ScheduleKind.Duty ? focus.id : null
+  const serviceEditor = {
+    mode: 'event' as const,
+    fetcher: serviceFetcher,
+    service: editingService ?? null,
+    roles,
+    scheduleId: focusedDuties,
+  }
   const copy =
     editing?.kind === 'service'
       ? serviceEditorCopy('event', editing.id != null)
       : partEditorCopy('event', editing?.id != null)
+  // The services of the duties schedule this page is for; one of no schedule (written before schedules) is the first's.
+  const firstDuties = event.schedules.find(schedule => schedule.kind === ScheduleKind.Duty)?.id ?? null
+  const focusedServices = event.eventServiceParts.filter(
+    service => focusedDuties == null || (service.scheduleId ?? firstDuties) === focusedDuties,
+  )
   // That schedule's panel alone, on its « Modifier le planning » page; none on « Modifier la réunion ».
   const shows = (kind: ScheduleKind) => focus?.kind === kind
   const date = formatEventDate(event.startDate, timezone, getLocale(), {
@@ -194,7 +208,7 @@ export function EventEditor({
           )}
           {shows(ScheduleKind.Duty) && (
             <EventServicesPanel
-              services={event.eventServiceParts}
+              services={focusedServices}
               roles={roles}
               selectedId={editing?.kind === 'service' ? editing.id : null}
               onAddService={trigger => panel.request({ kind: 'service', id: null, trigger })}

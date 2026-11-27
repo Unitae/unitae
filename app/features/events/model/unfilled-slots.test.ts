@@ -25,25 +25,33 @@ describe('unfilledSlots', () => {
 })
 
 describe('unfilledToPublish', () => {
-  it('counts the slots of the drafts « Tout publier » would publish, nothing of the others', () => {
-    const unfilled = { programme: 5, duty: 3 }
+  it('counts the slots of the drafts « Tout publier » would publish, each schedule its own, nothing of the others', () => {
+    // Two duties schedules beside the programme, each with its own slots.
+    const unfilled = new Map([
+      [1, 5],
+      [2, 3],
+      [3, 2],
+    ])
+    const of = (schedule: { id: number }) => unfilled.get(schedule.id) ?? 0
     expect(
       unfilledToPublish(
         [
-          { kind: 'programme', publishable: true },
-          { kind: 'duty', publishable: true },
+          { id: 1, publishable: true },
+          { id: 2, publishable: true },
+          { id: 3, publishable: true },
         ],
-        unfilled,
+        of,
       ),
-    ).toBe(8)
+    ).toBe(10)
     // Someone else's draft, or a published schedule, is not publishable here: it adds nothing.
     expect(
       unfilledToPublish(
         [
-          { kind: 'programme', publishable: false },
-          { kind: 'duty', publishable: true },
+          { id: 1, publishable: false },
+          { id: 2, publishable: true },
+          { id: 3, publishable: false },
         ],
-        unfilled,
+        of,
       ),
     ).toBe(3)
   })

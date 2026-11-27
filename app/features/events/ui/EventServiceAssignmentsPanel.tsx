@@ -13,6 +13,8 @@ import { PHONE_ONLY_DESCRIPTION } from './ScheduleHeading'
 export interface AssignedService extends AssignableService {
   assignee: PersonName | null
   hasConflict: boolean
+  /** The duties schedule it is in: a meeting may hold several (one per template its kind uses). */
+  scheduleId?: number | null
 }
 
 interface EventServiceAssignmentsPanelProps {

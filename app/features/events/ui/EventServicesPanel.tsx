@@ -27,6 +27,8 @@ export type ServicePartAssignment = {
   id: number
   name: string
   allowedRoleIds: number[]
+  /** The duties schedule it is in: a meeting may hold several. */
+  scheduleId?: number | null
 }
 
 interface EventServicesPanelProps {
