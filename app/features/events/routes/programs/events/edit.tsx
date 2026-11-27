@@ -6,6 +6,7 @@ import {
 } from '~/features/events/server/allowed-roles.queries'
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
 import { resolveEventItem } from '~/features/events/server/events-auth.server'
+import type { ItemKind } from '~/features/events/server/item-projection.server'
 import { listPartPresets } from '~/features/events/server/part-presets.queries'
 import { findProgrammeEvent } from '~/features/events/server/programme-event.queries'
 import { canChangeEvent, canFillSchedule } from '~/features/events/server/schedule-rights.server'
@@ -21,7 +22,8 @@ import { listRoles } from '~/shared/domain/roles.server'
 import { Permission } from '~/shared/types/permission'
 import { distinct } from '~/shared/utils/distinct'
 import { requireParamId } from '~/shared/utils/params.server'
-import { handleEditIntent, kindsFilledBy } from './_edit-event-intents.server'
+import { handleEditIntent } from './_edit-event-intents.server'
+import { fillsWhatIntentWrites } from './_edit-event-rights.server'
 
 import type { Route } from './+types/edit'
 
@@ -115,15 +117,26 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     }
     // On top of the event right above, an intent that writes items must also be allowed to fill their schedule (plan
     // §10, D31: a programme responsible no longer fills the duties of a template that names another).
-    for (const kind of kindsFilledBy(intent)) {
-      if (!(await canFillSchedule(db, can, currentUser.id, event, kind, congregationId))) throw redirect('/programs')
+    const checks = {
+      itemInEvent: (kind: ItemKind, { itemId, legacyId }: { itemId?: string; legacyId?: string }) =>
+        resolveEventItem(db, { itemId: itemId ?? null, legacyId: legacyId ?? null }, kind, eventId, congregationId),
+    }
+    const asked = { userId: currentUser.id, congregationId }
+    if (!(await fillsWhatIntentWrites(db, can, asked, event, { intent, formData }, checks))) {
+      throw redirect('/programs')
     }
 
     const timezone = context.get(congregationContext).timezone
-    const result = await handleEditIntent(intent, formData, db, eventId, congregationId, currentUser.id, timezone, {
-      itemInEvent: (kind, { itemId, legacyId }) =>
-        resolveEventItem(db, { itemId: itemId ?? null, legacyId: legacyId ?? null }, kind, eventId, congregationId),
-    })
+    const result = await handleEditIntent(
+      intent,
+      formData,
+      db,
+      eventId,
+      congregationId,
+      currentUser.id,
+      timezone,
+      checks,
+    )
     if (result && 'reply' in result) return data(result.reply(), { status: 400 })
     if (result?.message) session.flash('success', result.message)
 

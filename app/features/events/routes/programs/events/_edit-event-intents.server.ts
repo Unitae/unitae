@@ -257,6 +257,7 @@ async function handleAddService(
       name: submission.value.serviceName,
       allowedRoleIds: submission.value.allowedRoleIds,
       congregationId,
+      scheduleId: submission.value.scheduleId ?? null,
     },
     actorId,
   )

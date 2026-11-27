@@ -37,6 +37,11 @@ const matches = (item: (typeof ITEMS)[number], where: Where) =>
 const db = {
   item: {
     findFirst: ({ where }: { where: Where }) => Promise.resolve(ITEMS.find(item => matches(item, where)) ?? null),
+    // The schedule an item is in, for the rights check naming it: one per kind on event 40.
+    findMany: ({ where }: { where: { id: { in: number[] } } }) =>
+      Promise.resolve(
+        ITEMS.filter(item => where.id.in.includes(item.id)).map(item => ({ scheduleId: item.kind === 'duty' ? 2 : 1 })),
+      ),
   },
 }
 

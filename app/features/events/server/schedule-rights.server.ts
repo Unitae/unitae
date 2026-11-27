@@ -19,8 +19,9 @@ export function fillsEverySchedule(can: (permission: Permission) => boolean): bo
 /**
  * Whether the caller may fill an event's schedule of one kind: its items and who holds them (plan §10, D3, D7, D47).
  * « Attribuer » and « Gérer » reach every schedule; otherwise the responsible of the schedule's template, through the
- * role it names. An event holds one schedule of each kind today; should it hold several, the caller must answer for
- * each, since the editor's intents name a kind and not a schedule. An event without a schedule of that kind yet takes the
+ * role it names. An action naming its schedule (`scheduleId`: an item's own, or the block a service is added to) asks
+ * for that schedule's responsible alone; one naming only the kind asks for every schedule of the kind, as an event may
+ * hold several duties schedules (one per template its kind uses). An event without a schedule of that kind yet takes the
  * template its first schedule would get (the writer's: its kind's first suggested one), since filling it starts it. A
  * schedule without a template, and an event without a kind, have no responsible.
  */
@@ -31,6 +32,7 @@ export async function canFillSchedule(
   event: { id: number; templateId: number | null },
   kind: ItemKind,
   congregationId: number,
+  scheduleId?: number | null,
 ): Promise<boolean> {
   // fillsEverySchedule, named here as the permission gate reads each policy's own body.
   if (can(Permission.CanAssignProgramParts) || can(Permission.CanManagePrograms)) return true
@@ -38,7 +40,7 @@ export async function canFillSchedule(
   if (roleIds.length === 0) return false
   // The same facts and rule as the screens read (scheduleRightsFor), so a page and its route never disagree.
   const facts = (await eventFacts(db, [event], congregationId)).get(event.id) ?? NO_FACTS
-  const allowed = fills(event, facts, kind, roleIds)
+  const allowed = fills(event, facts, kind, roleIds, scheduleId ?? null)
   if (!allowed) {
     logger.warn('canFillSchedule: refused a caller holding roles', {
       userId,
@@ -123,8 +125,8 @@ interface Answerable {
 
 /** What the event rules read of the events they judge, in one pass for all of them. */
 interface EventFacts {
-  /** The schedules it holds. */
-  schedules: Answerable[]
+  /** The schedules it holds, with their ids: an action may name one. */
+  schedules: (Answerable & { id: number })[]
   /** The schedule templates its kind suggests, in the order a writer picks them. */
   suggested: Answerable[]
 }
@@ -139,7 +141,7 @@ async function eventFacts(
   const [schedules, links] = await Promise.all([
     db.schedule.findMany({
       where: { eventId: { in: ids }, congregationId },
-      select: { eventId: true, kind: true, scheduleTemplate: { select: { responsibleRoleId: true } } },
+      select: { id: true, eventId: true, kind: true, scheduleTemplate: { select: { responsibleRoleId: true } } },
     }),
     kindIds.length === 0
       ? []
@@ -152,6 +154,7 @@ async function eventFacts(
   const facts = new Map(events.map(event => [event.id, { schedules: [], suggested: [] } as EventFacts]))
   for (const schedule of schedules) {
     facts.get(schedule.eventId)?.schedules.push({
+      id: schedule.id,
       kind: schedule.kind as ScheduleKind,
       role: schedule.scheduleTemplate?.responsibleRoleId ?? null,
     })
@@ -179,8 +182,19 @@ function deletes(event: { templateId: number | null }, facts: EventFacts, roleId
  * canFillSchedule's rule over the facts: the responsible of every schedule of that kind, or of the template its first
  * one would get while it holds none.
  */
-function fills(event: { templateId: number | null }, facts: EventFacts, kind: ItemKind, roleIds: number[]) {
+function fills(
+  event: { templateId: number | null },
+  facts: EventFacts,
+  kind: ItemKind,
+  roleIds: number[],
+  scheduleId: number | null = null,
+) {
   const scheduleKind = SCHEDULE_KIND_OF[kind]
+  // Named: that schedule alone, when it is the event's and of the kind; nothing otherwise.
+  if (scheduleId != null) {
+    const named = facts.schedules.find(schedule => schedule.id === scheduleId && schedule.kind === scheduleKind)
+    return named != null && answersForEvery([named], roleIds)
+  }
   const own = facts.schedules.filter(schedule => schedule.kind === scheduleKind)
   if (own.length > 0) return answersForEvery(own, roleIds)
   if (event.templateId == null) return false

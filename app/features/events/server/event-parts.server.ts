@@ -174,17 +174,30 @@ export async function addServicePartAssignment(
     name: string
     allowedRoleIds: number[]
     congregationId: number
+    /**
+     * The duties schedule it goes into, for an event holding several (one per template its kind uses): one of this
+     * event's, refused otherwise. Without it, the event's first, made when it holds none.
+     */
+    scheduleId?: number | null
   },
   actorId: number,
 ) {
-  const { allowedRoleIds, ...createData } = data
-  // After the services the event has: a new one goes last.
+  const { allowedRoleIds, scheduleId: named, ...createData } = data
+  const scheduleId =
+    named == null
+      ? await eventScheduleId(db, data.eventId, ScheduleKind.Duty, data.congregationId)
+      : await namedDutiesSchedule(db, data.eventId, named, data.congregationId)
+  // After the services already there, a new one goes last: the named schedule's, or the event's.
   const last = await db.item.aggregate({
-    where: { eventId: data.eventId, congregationId: data.congregationId, ...SERVICE_ITEMS },
+    where: {
+      eventId: data.eventId,
+      congregationId: data.congregationId,
+      ...SERVICE_ITEMS,
+      ...(named != null && { scheduleId }),
+    },
     _max: { order: true },
   })
   const order = last._max.order == null ? 0 : last._max.order + 5
-  const scheduleId = await eventScheduleId(db, data.eventId, ScheduleKind.Duty, data.congregationId)
   const assignment = await db.item.create({ data: { ...createData, order, scheduleId } })
 
   const diff = await setServicePartAssignmentAllowedRoles(db, assignment.id, allowedRoleIds, data.congregationId)
@@ -200,6 +213,16 @@ export async function addServicePartAssignment(
   }
 
   return assignment
+}
+
+/** A duties schedule of this event, by its id; refused for another event's, or a programme. */
+async function namedDutiesSchedule(db: TransactionClient, eventId: number, scheduleId: number, congregationId: number) {
+  const schedule = await db.schedule.findFirst({
+    where: { id: scheduleId, eventId, kind: ScheduleKind.Duty, congregationId },
+    select: { id: true },
+  })
+  if (schedule == null) throw new NotFoundError('Schedule', scheduleId)
+  return schedule.id
 }
 
 export async function updatePartAssignment(

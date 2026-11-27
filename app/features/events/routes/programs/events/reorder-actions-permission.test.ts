@@ -16,7 +16,8 @@ const { state } = vi.hoisted(() => ({
 
 vi.mock('~/shared/auth/route-context.server', async importOriginal => ({
   ...(await importOriginal<typeof import('~/shared/auth/route-context.server')>()),
-  withScopeFromContext: (_context: unknown, fn: (db: unknown) => unknown) => fn({}),
+  withScopeFromContext: (_context: unknown, fn: (db: unknown) => unknown) =>
+    fn({ item: { findMany: () => Promise.resolve([]) } }),
 }))
 
 vi.mock('~/features/events/server/schedule-rights.server', () => ({

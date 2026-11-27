@@ -78,6 +78,8 @@ export const addServiceSchema = z.object({
   intent: z.literal('add-service'),
   serviceName: z.string().min(1),
   allowedRoleIds: roleIdsField.default([]),
+  // The duties schedule the service goes into, for a meeting holding several; the first one without it.
+  scheduleId: z.coerce.number().int().positive().optional(),
 })
 
 export const deleteServiceSchema = z.object({
