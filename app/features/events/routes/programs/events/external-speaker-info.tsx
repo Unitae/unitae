@@ -21,6 +21,8 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
   const externalSpeakerId = Number(url.searchParams.get('externalSpeakerId'))
   // An item id, under a name of its own (plan T12).
   const excludePartAssignmentId = parseOptionalId(url.searchParams.get('excludePartItemId'))
+  // The room of the part being assigned (parallel rooms); none, its only or main room.
+  const roomId = parseOptionalId(url.searchParams.get('roomId'))
 
   if (!externalSpeakerId || Number.isNaN(externalSpeakerId)) return Response.json(null)
 
@@ -63,6 +65,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       event,
       congregationId,
       excludePartAssignmentId,
+      roomId,
     })
 
     return Response.json({
