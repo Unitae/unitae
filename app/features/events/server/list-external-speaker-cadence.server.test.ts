@@ -297,7 +297,10 @@ describe('listExternalSpeakerCadence — anchor matching + hasHistory', () => {
     await listExternalSpeakerCadence(db, DEFAULT_ARGS)
 
     const call = vi.mocked(db.item.findMany).mock.calls[0][0]
-    expect(call?.where).toMatchObject({ externalSpeakerId: 42 })
+    // Given in one of its rooms (parallel rooms).
+    expect(call?.where).toMatchObject({
+      OR: [{ externalSpeakerId: 42 }, { rooms: { some: { externalSpeakerId: 42 } } }],
+    })
   })
 
   it('returns hasHistory=true when the speaker held the same-name-and-section slot at some point in the past', async () => {

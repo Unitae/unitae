@@ -1,4 +1,4 @@
-import { itemsPerRoom } from '~/features/events/model/part-rooms'
+import { isSameRoom, itemsPerRoom } from '~/features/events/model/part-rooms'
 import {
   type CadenceEntry,
   type CadenceHelperResult,
@@ -25,6 +25,8 @@ type Options = {
   // collide into the same cadence.
   partSection: string
   slot: PartSlot
+  /** The room being assigned: a dot names that room's person on each meeting (matched by name, the main by key). */
+  room?: { key: string | null; name: string | null } | null
   pastCount: number
   futureCount: number
 }
@@ -40,7 +42,7 @@ type Options = {
 // Freeform events have a template of their own, the freeform one.
 export async function listUserCadence(
   db: TransactionClient,
-  { userId, event, congregationId, partName, partSection, slot, pastCount, futureCount }: Options,
+  { userId, event, congregationId, partName, partSection, slot, room, pastCount, futureCount }: Options,
 ): Promise<CadenceHelperResult> {
   if (event.templateId == null) return { past: [], future: [], hasHistory: false, lastAssignedAt: null }
 
@@ -116,7 +118,9 @@ export async function listUserCadence(
     const matches = itemsPerRoom(row.items).filter(
       p => normalize(p.name) === targetName && normalize(p.section) === targetSection,
     )
-    const person = matches.map(personOnSlot).find(p => p != null)
+    // The person of the room being assigned, when that meeting held it; else the first room's.
+    const inRoom = room == null ? [] : matches.filter(p => p.rooms?.[0] != null && isSameRoom(p.rooms[0].room, room))
+    const person = [...inRoom, ...matches].map(personOnSlot).find(p => p != null)
     return {
       date: row.startDate.toISOString(),
       assigned: matches.some(isOnSlot),
