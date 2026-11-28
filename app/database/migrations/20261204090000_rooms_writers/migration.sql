@@ -6,9 +6,10 @@
 
 -- 1. A meeting part's room rows. A part in one room (today's copies, a part for everyone) keeps one row that follows its
 -- track and takes, of its people and conflict, the columns that changed. A part with a row per room keeps its rows: a
--- write of the item's people (a version still running) reaches its main room's row, and its track is not its room.
+-- write of the item's people (a version still running) reaches its main room's row, its track is not its room, and no
+-- writer moves it to another programme.
 CREATE OR REPLACE FUNCTION "item_room"() RETURNS trigger LANGUAGE plpgsql AS $$
-DECLARE room_id int; renamed boolean := false; rows_held int; main_row int; each_row record;
+DECLARE room_id int; renamed boolean := false; rows_held int; main_row int;
 BEGIN
   IF TG_OP = 'DELETE' THEN
     IF OLD."scheduleId" IS NOT NULL THEN
@@ -30,24 +31,9 @@ BEGIN
   SELECT count(*) INTO rows_held FROM "ItemRoom" WHERE "itemId" = NEW."id";
   IF rows_held >= 2 THEN
     IF TG_OP = 'UPDATE' AND OLD."scheduleId" IS DISTINCT FROM NEW."scheduleId" THEN
-      -- Moved to another programme: each row to the room of the same name there, the main room to its main room; a
-      -- row whose room is taken already goes rather than failing the write.
-      FOR each_row IN
-        SELECT l."id", r."key", r."name", r."order" FROM "ItemRoom" l JOIN "ScheduleRoom" r ON r."id" = l."roomId"
-        WHERE l."itemId" = NEW."id" ORDER BY (r."key" = 'main') IS TRUE DESC, r."order", l."id"
-      LOOP
-        room_id := CASE
-          WHEN each_row."key" = 'main' OR each_row."name" IS NULL THEN "schedule_main_room"(NEW."scheduleId", NEW."congregationId")
-          ELSE "schedule_room_for"(NEW."scheduleId", each_row."name", each_row."order" + 1, NEW."congregationId")
-        END;
-        BEGIN
-          UPDATE "ItemRoom" SET "roomId" = room_id, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = each_row."id";
-        EXCEPTION WHEN unique_violation THEN
-          DELETE FROM "ItemRoom" WHERE "id" = each_row."id";
-        END;
-      END LOOP;
-      PERFORM "prune_schedule_rooms"(NEW."scheduleId");
-      IF OLD."scheduleId" IS NOT NULL THEN PERFORM "prune_schedule_rooms"(OLD."scheduleId"); END IF;
+      -- No writer moves a part held in several rooms to another meeting's programme: one that did would map its
+      -- rooms by name onto rooms the target may name otherwise, and could lose a room's person. Refused, loudly.
+      RAISE EXCEPTION 'Item % is held in several rooms: it cannot move to another programme', NEW."id";
     END IF;
     IF TG_OP = 'UPDATE' AND (
       NEW."assigneeId" IS DISTINCT FROM OLD."assigneeId" OR NEW."assistantId" IS DISTINCT FROM OLD."assistantId"

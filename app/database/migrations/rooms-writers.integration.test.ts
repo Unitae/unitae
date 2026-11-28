@@ -22,6 +22,8 @@ const { seedDefaultTemplates, syncTemplateScheduleTemplates } = await import('~/
 
 class Rollback extends Error {}
 
+const SEVERAL_ROOMS_RE = /held in several rooms/
+
 afterAll(async () => {
   await runtime.$disconnect()
 })
@@ -116,6 +118,37 @@ describe('a part with a row per room, written the old way', () => {
       return tx.itemRoom.count({ where: { itemId: inRooms.id } })
     })
     expect(read).toBe(2)
+  })
+})
+
+// No writer moves such a part to another meeting's programme: one that did would learn it here, rather than lose a
+// room's person to a room name the target already holds.
+describe('a part with a row per room, moved to another meeting', () => {
+  it('is refused', async () => {
+    const read = await inFixture(async ({ tx, inRooms }) => {
+      const other = await tx.item.findFirstOrThrow({
+        where: {
+          id: { not: inRooms.id },
+          schedule: { kind: 'programme' },
+          event: { items: { none: { id: inRooms.id } } },
+        },
+        select: { eventId: true, scheduleId: true },
+      })
+      try {
+        await tx.$executeRawUnsafe('SAVEPOINT move')
+        await tx.$executeRawUnsafe(
+          'UPDATE "Item" SET "scheduleId" = $1, "eventId" = $2 WHERE "id" = $3',
+          other.scheduleId,
+          other.eventId,
+          inRooms.id,
+        )
+        return 'moved'
+      } catch (error) {
+        await tx.$executeRawUnsafe('ROLLBACK TO SAVEPOINT move')
+        return String(error)
+      }
+    })
+    expect(read).toMatch(SEVERAL_ROOMS_RE)
   })
 })
 
