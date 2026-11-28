@@ -25,6 +25,10 @@ const mockDb = {
     updateMany: vi.fn(),
     count: vi.fn(),
   },
+  itemRoom: {
+    findMany: vi.fn(),
+    updateMany: vi.fn(),
+  },
 }
 
 const {
@@ -161,19 +165,21 @@ describe('deleteExternalSpeaker', () => {
 
   it('frees the planned talks, erases name and contact, and keeps the row for past programmes', async () => {
     mockDb.externalSpeaker.findFirst.mockResolvedValue({ id: 7, archivedAt: new Date('2026-01-03') })
-    mockDb.item.updateMany.mockResolvedValue({ count: 1 })
+    // The talks still planned are on rooms (parallel rooms R4): one, in one part.
+    mockDb.itemRoom.findMany.mockResolvedValue([{ itemId: 40 }])
+    mockDb.itemRoom.updateMany.mockResolvedValue({ count: 1 })
     mockDb.item.count.mockResolvedValue(2)
     mockDb.externalSpeaker.update.mockImplementation(({ data }) => Promise.resolve({ id: 7, ...data }))
 
     const result = await deleteExternalSpeaker(mockDb as never, 7, 1, 99)
 
     expect(result).toEqual({ freedParts: 1, pastParts: 2 })
-    const freed = mockDb.item.updateMany.mock.calls[0]?.[0]
+    const freed = mockDb.itemRoom.updateMany.mock.calls[0]?.[0]
     expect(freed).toMatchObject({
       where: { congregationId: 1, externalSpeakerId: 7 },
       data: { externalSpeakerId: null },
     })
-    expect(freed.where.event.startDate.gte).toBeInstanceOf(Date)
+    expect(freed.where.item.event.startDate.gte).toBeInstanceOf(Date)
     const erased = mockDb.externalSpeaker.update.mock.calls[0]?.[0].data
     expect(erased).toMatchObject({
       name: '',

@@ -51,6 +51,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     externalSpeakerId,
     topic,
     durationMin,
+    roomId,
   } = submission.value
 
   const resolvedExternalSpeakerId = speakerType === 'external' ? externalSpeakerId : null
@@ -92,6 +93,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       topic,
       congregationId,
       durationMin,
+      roomId,
     )
 
     if ('error' in result) {

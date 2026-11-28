@@ -200,10 +200,10 @@ describe('refreshConflictFlags co-participant preservation (integration)', () =>
       })
     })
 
-    // The flag lives on the item the old row mirrors: refreshConflictFlags writes the item.
+    // The flag lives on the room row of the item the old row mirrors (parallel rooms R4).
     const still = await withScope(congId, tx =>
-      tx.item.findFirstOrThrow({
-        where: { legacyPartId: partAssignmentId, congregationId: congId },
+      tx.itemRoom.findFirstOrThrow({
+        where: { item: { legacyPartId: partAssignmentId, congregationId: congId } },
         select: { hasConflict: true },
       }),
     )
@@ -227,8 +227,8 @@ describe('Draft-event conflict flow (integration)', () => {
     )
 
     const refreshed = await withScope(congId, tx =>
-      tx.item.findFirstOrThrow({
-        where: { legacyPartId: partAssignmentId, congregationId: congId },
+      tx.itemRoom.findFirstOrThrow({
+        where: { item: { legacyPartId: partAssignmentId, congregationId: congId } },
         select: { hasConflict: true },
       }),
     )

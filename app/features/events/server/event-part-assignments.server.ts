@@ -1,5 +1,5 @@
 import { type ProgrammeTemplateCounts, programmeTemplate } from '~/features/events/model/empty-meetings'
-import { asItsMainRoom } from '~/features/events/model/part-rooms'
+import { asItsMainRoom, roomBeingAssigned } from '~/features/events/model/part-rooms'
 import { ScheduleStatus } from '~/features/events/model/schedule.type'
 import {
   getPartAssignmentAllowedRoleIds,
@@ -23,6 +23,7 @@ import {
   SERVICE_ITEM_ORDER,
   SERVICE_ITEMS,
 } from '~/features/events/server/item-projection.server'
+import { inAnotherRoom, PART_ROOMS, writeRoom } from '~/features/events/server/part-room-writes.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
@@ -165,20 +166,27 @@ export async function assignPart(
   topic: string,
   congregationId: number,
   durationMin: number | null = null,
+  /** The room being assigned (parallel rooms); none, the part's only or main room. */
+  roomId: number | null = null,
 ) {
   await lockItemRow(db, assignmentId, congregationId)
   const existing = await db.item.findFirst({
     where: { id: assignmentId, congregationId, ...PART_ITEMS },
-    include: { event: true, schedule: { select: { status: true } } },
+    include: { event: true, schedule: { select: { status: true } }, ...PART_ROOMS },
   })
   // Inlined so TS narrows `existing` for the rest of the writer; the shared
   // message lives in PROGRAMME_ASSIGNMENT_ERRORS so both writers stay in sync.
   if (!existing) return { error: PROGRAMME_ASSIGNMENT_ERRORS.assignmentNotFound }
+  // The room being assigned: one of the part's (a room it does not hold is not found).
+  const rows = existing.rooms ?? [] // a part read before rooms (none) is written on the item, as before
+  const row = roomBeingAssigned(rows, roomId)
+  if (roomId != null && row == null) return { error: PROGRAMME_ASSIGNMENT_ERRORS.assignmentNotFound }
+  const held = row ?? existing
+  const others = rows.filter(each => each !== row)
 
-  // Captured before the update so the route can diff old vs. new and decide
-  // which members to notify (assigned / unassigned).
-  const previousAssigneeId = existing.assigneeId
-  const previousAssistantId = existing.assistantId
+  // Captured before the update: the route diffs old and new to decide whom to notify (assigned / unassigned).
+  const previousAssigneeId = held.assigneeId
+  const previousAssistantId = held.assistantId
 
   const cleanTopic = sanitizeText(topic)
 
@@ -188,25 +196,25 @@ export async function assignPart(
       where: { id: externalSpeakerId, congregationId, anonymizedAt: null },
       select: { archivedAt: true },
     })
-    const invalidSpeaker = checkExternalSpeakerValid(speaker, existing.externalSpeakerId === externalSpeakerId)
+    const invalidSpeaker = checkExternalSpeakerValid(speaker, held.externalSpeakerId === externalSpeakerId)
     if (invalidSpeaker) return invalidSpeaker
+    if (inAnotherRoom(others, { assigneeId: null, assistantId: null, externalSpeakerId })) {
+      return { error: PROGRAMME_ASSIGNMENT_ERRORS.alreadyInAnotherRoom }
+    }
 
-    const assignment = await db.item.update({
-      where: { id_congregationId: { id: assignmentId, congregationId } },
-      data: {
-        assigneeId: null,
-        assistantId: null,
-        externalSpeakerId,
-        topic: cleanTopic,
-        hasConflict: false,
-        durationMin,
-      },
+    const people = { assigneeId: null, assistantId: null, externalSpeakerId, hasConflict: false }
+    const assignment = await writeRoom(db, assignmentId, congregationId, row, people, {
+      topic: cleanTopic,
+      durationMin,
     })
     return { assignment, previousAssigneeId, previousAssistantId }
   }
 
   const notDistinct = checkParticipantsDistinct(assigneeId, assistantId)
   if (notDistinct) return notDistinct
+  if (inAnotherRoom(others, { assigneeId, assistantId, externalSpeakerId: null })) {
+    return { error: PROGRAMME_ASSIGNMENT_ERRORS.alreadyInAnotherRoom }
+  }
 
   // On a published schedule we still block day-off overlaps outright — silently
   // scheduling a publisher on top of a known absence on a public programme is
@@ -237,10 +245,8 @@ export async function assignPart(
 
   const hasConflict = speakerCheck.hasConflict || readerCheck.hasConflict
 
-  const assignment = await db.item.update({
-    where: { id_congregationId: { id: assignmentId, congregationId } },
-    data: { assigneeId, assistantId, externalSpeakerId: null, topic: cleanTopic, hasConflict, durationMin },
-  })
+  const people = { assigneeId, assistantId, externalSpeakerId: null, hasConflict }
+  const assignment = await writeRoom(db, assignmentId, congregationId, row, people, { topic: cleanTopic, durationMin })
 
   return { assignment, previousAssigneeId, previousAssistantId }
 }
@@ -283,22 +289,27 @@ export async function assignServicePart(
   return { assignment, previousAssigneeId }
 }
 
-export async function unassignPart(db: TransactionClient, assignmentId: number, congregationId: number) {
+export async function unassignPart(
+  db: TransactionClient,
+  assignmentId: number,
+  congregationId: number,
+  /** The room being freed (parallel rooms); none, the part's only or main room. */
+  roomId: number | null = null,
+) {
   await lockItemRow(db, assignmentId, congregationId)
   const existing = await db.item.findFirst({
     where: { id: assignmentId, congregationId, ...PART_ITEMS },
-    select: { assigneeId: true, assistantId: true },
+    select: { assigneeId: true, assistantId: true, externalSpeakerId: true, ...PART_ROOMS },
   })
   if (!existing) return null
+  const row = roomBeingAssigned(existing.rooms ?? [], roomId)
+  if (roomId != null && row == null) return null
+  const held = row ?? existing
 
-  const assignment = await db.item.update({
-    where: {
-      id_congregationId: { id: assignmentId, congregationId },
-    },
-    data: { assigneeId: null, assistantId: null, externalSpeakerId: null, hasConflict: false },
-  })
+  const none = { assigneeId: null, assistantId: null, externalSpeakerId: null, hasConflict: false }
+  const assignment = await writeRoom(db, assignmentId, congregationId, row, none)
 
-  return { assignment, previousAssigneeId: existing.assigneeId, previousAssistantId: existing.assistantId }
+  return { assignment, previousAssigneeId: held.assigneeId, previousAssistantId: held.assistantId }
 }
 
 export async function unassignServicePart(db: TransactionClient, assignmentId: number, congregationId: number) {

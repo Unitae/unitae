@@ -6,6 +6,7 @@ vi.mock('~/shared/infra/db.server', () => ({
     event: { findMany: vi.fn() },
     absence: { findMany: vi.fn() },
     item: { findMany: vi.fn(), updateMany: vi.fn() },
+    itemRoom: { findMany: vi.fn(), updateMany: vi.fn() },
   },
 }))
 
@@ -16,24 +17,20 @@ beforeEach(() => {
   vi.resetAllMocks()
 })
 
-// Parts and duties are both items: the writer reads them through the same `item.findMany`, told apart by the kind of
-// the schedule in the where clause (PART_ITEMS / SERVICE_ITEMS).
-function kindOf(args: unknown): string | undefined {
-  return (args as { where?: { AND?: { schedule?: { kind?: string } }[] } })?.where?.AND?.[0]?.schedule?.kind
-}
-
-// The reads of one kind, in call order.
+// A part's people are on its room rows (parallel rooms R4): the writer reads the rooms a member holds through
+// `itemRoom.findMany` and flags them through `itemRoom.updateMany`; duties stay items (`item.findMany`/`updateMany`).
 function readsOf(kind: ScheduleKind) {
-  return vi
-    .mocked(db.item.findMany)
-    .mock.calls.map(c => c[0])
-    .filter(args => kindOf(args) === kind)
+  const calls =
+    kind === ScheduleKind.Duty ? vi.mocked(db.item.findMany).mock.calls : vi.mocked(db.itemRoom.findMany).mock.calls
+  return calls.map(c => c[0])
 }
 
-// The batched writes group rows by outcome, so a row's flag is read off whichever
-// updateMany carried it rather than off a per-row update call.
+// The batched writes group rows by outcome, so a row's flag is read off whichever updateMany carried it rather than off
+// a per-row update call; the parts' items touched after (their updatedAt) are not flags.
 function writes() {
-  return vi.mocked(db.item.updateMany).mock.calls.map(c => c[0])
+  return [...vi.mocked(db.itemRoom.updateMany).mock.calls, ...vi.mocked(db.item.updateMany).mock.calls]
+    .map(c => c[0])
+    .filter(call => (call?.data as { hasConflict?: boolean } | undefined)?.hasConflict !== undefined)
 }
 
 function flagWrittenFor(calls: { where?: unknown; data?: unknown }[] | undefined, rowId: number): boolean | undefined {
@@ -63,10 +60,15 @@ describe('refreshConflictFlags', () => {
     }) as never)
   }
 
-  // The parts and the duties the writer finds, whichever order it asks for them in.
-  function stubItems(parts: unknown[], services: unknown[]) {
-    vi.mocked(db.item.findMany).mockImplementation(((args: unknown) =>
-      Promise.resolve(kindOf(args) === ScheduleKind.Duty ? services : parts)) as never)
+  // The parts (each in one room: its row's id is the part's here) and the duties the writer finds.
+  function stubItems(
+    parts: { id: number; eventId: number; assigneeId: number | null; assistantId: number | null }[],
+    services: unknown[],
+  ) {
+    vi.mocked(db.itemRoom.findMany).mockResolvedValue(
+      parts.map(({ eventId, ...part }) => ({ ...part, itemId: part.id, item: { eventId } })) as never,
+    )
+    vi.mocked(db.item.findMany).mockResolvedValue(services as never)
   }
 
   it('writes hasConflict:true when the member has an overlapping day-off', async () => {
@@ -185,6 +187,7 @@ describe('refreshConflictFlags', () => {
 
     expect(db.item.updateMany).not.toHaveBeenCalled()
     expect(db.item.findMany).not.toHaveBeenCalled()
+    expect(db.itemRoom.findMany).not.toHaveBeenCalled()
   })
 
   // Every overlapping event must be reconciled, not just the first. The old shape looped
@@ -212,8 +215,8 @@ describe('refreshConflictFlags', () => {
 
     // One parts query, scoped to all three events rather than one per event.
     expect(readsOf(ScheduleKind.Programme)).toHaveLength(1)
-    const partsWhere = readsOf(ScheduleKind.Programme)[0]?.where as { eventId?: { in?: number[] } }
-    expect(partsWhere.eventId?.in).toEqual([1, 2, 3])
+    const partsWhere = readsOf(ScheduleKind.Programme)[0]?.where as { item?: { eventId?: { in?: number[] } } }
+    expect(partsWhere.item?.eventId?.in).toEqual([1, 2, 3])
 
     // All three rows reconciled, in a single grouped write.
     const calls = writes()

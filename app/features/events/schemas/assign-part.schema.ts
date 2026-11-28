@@ -22,6 +22,12 @@ export const assignPartSchema = z.object({
     .transform(v => (v != null && v !== '' && v !== 'none' ? Number(v) : null))
     .pipe(z.number().nullable()),
   topic: z.string().optional().default(''),
+  // The room being assigned (parallel rooms); none, the part's only or main room, as a form of the previous image posts.
+  roomId: z
+    .string()
+    .optional()
+    .transform(v => (v != null && v !== '' ? Number(v) : null))
+    .pipe(z.number().int().positive().nullable()),
   durationMin: z
     .string()
     .optional()
