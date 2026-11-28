@@ -214,3 +214,37 @@ export function heldBy<T extends { rooms?: ItemRoomRow[] } & RowPeople>(
     ...('externalSpeaker' in row && { externalSpeaker: row.externalSpeaker }),
   } as Omit<T, 'rooms'>
 }
+
+/** A room row as a one-line reader reads it: its people, its conflict, and which room (the main one by key). */
+interface MainRoomRow {
+  assigneeId?: number | null
+  assistantId?: number | null
+  externalSpeakerId?: number | null
+  hasConflict?: boolean
+  assignee?: unknown
+  assistant?: unknown
+  externalSpeaker?: unknown
+  room?: { key: string | null }
+}
+
+/**
+ * A part as its main room holds it, for a reader of one line per part (the meeting page's data, the archive, until R4
+ * draws rooms): its one row's people and conflict (a copy, in whatever room), or its main room's row of several, in the
+ * place of the item's, which R4's writers stop updating (no dual-write); its rows left out, the shape it always had.
+ */
+export function asItsMainRoom<T extends RowPeople & { rooms?: MainRoomRow[] }>(item: T): Omit<T, 'rooms'> {
+  const { rooms, ...rest } = item
+  if (rooms == null || rooms.length === 0) return rest
+  const row = rooms.length === 1 ? rooms[0] : (rooms.find(each => each.room?.key === 'main') ?? rooms[0])
+  assertRowPeople(item, row as RowPeople)
+  return {
+    ...rest,
+    ...('assigneeId' in rest && { assigneeId: row.assigneeId ?? null }),
+    ...('assistantId' in rest && { assistantId: row.assistantId ?? null }),
+    ...('externalSpeakerId' in rest && { externalSpeakerId: row.externalSpeakerId ?? null }),
+    ...('hasConflict' in rest && { hasConflict: row.hasConflict ?? false }),
+    ...('assignee' in row && { assignee: row.assignee }),
+    ...('assistant' in row && { assistant: row.assistant }),
+    ...('externalSpeaker' in row && { externalSpeaker: row.externalSpeaker }),
+  } as Omit<T, 'rooms'>
+}

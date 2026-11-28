@@ -34,6 +34,7 @@ export {
   partPresetSpeakerLabel,
 } from './model/part-preset-defaults'
 export {
+  asItsMainRoom,
   heldBy,
   type ItemWithRooms,
   itemsPerRoom,

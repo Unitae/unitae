@@ -1,5 +1,6 @@
 import type { Job } from 'bullmq'
 import JsZip from 'jszip'
+import { asItsMainRoom } from '~/features/events'
 import { kindOfSlot, PART_ITEMS, SERVICE_ITEMS } from '~/features/events/index.server'
 import { EXPORT_PROGRESS_CAP } from '~/shared/constants/limits'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
@@ -712,11 +713,21 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
             externalSpeakerId: true,
             scheduleId: true,
             templateItem: { select: { legacyPartId: true } },
+            rooms: {
+              select: {
+                assigneeId: true,
+                assistantId: true,
+                externalSpeakerId: true,
+                hasConflict: true,
+                room: { select: { key: true } },
+              },
+            },
           },
           orderBy: { id: 'asc' },
         })
-        // In the file's own key order: `partId` after `eventId`, as the old rows' columns came.
-        return items.map(({ templateItem, eventId, presetId, ...item }) => {
+        // In the file's own key order: `partId` after `eventId`, as the old rows' columns came. A part's people are its
+        // main room's (parallel rooms R4 writes them on its rows alone), the file's shape unchanged.
+        return items.map(asItsMainRoom).map(({ templateItem, eventId, presetId, ...item }) => {
           const { assigneeId, assistantId, allowExternalSpeaker, externalSpeakerId, scheduleId, ...head } = item
           return {
             ...head,
