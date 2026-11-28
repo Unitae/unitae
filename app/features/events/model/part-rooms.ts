@@ -214,3 +214,24 @@ export function heldBy<T extends { rooms?: ItemRoomRow[] } & RowPeople>(
     ...('externalSpeaker' in row && { externalSpeaker: row.externalSpeaker }),
   } as Omit<T, 'rooms'>
 }
+
+/**
+ * The row of the room being assigned among a part's rows: that room, or (none named) its only room, else its main
+ * room's. Undefined for a part read before rooms (no row): its own columns stand in.
+ */
+export function roomBeingAssigned<R extends { roomId: number; room: { key: string | null } }>(
+  rows: readonly R[],
+  roomId?: number | null,
+): R | undefined {
+  if (roomId != null) return rows.find(row => row.roomId === roomId)
+  return rows.length === 1 ? rows[0] : (rows.find(row => row.room.key === 'main') ?? rows[0])
+}
+
+/** Whether two rooms are the same across meetings: the main room by key, another by its name (user default, R4). */
+export function isSameRoom(
+  a: { key: string | null; name: string | null },
+  b: { key: string | null; name: string | null },
+): boolean {
+  if (a.key === 'main' || b.key === 'main') return a.key === b.key
+  return (a.name ?? '').trim().toLowerCase() === (b.name ?? '').trim().toLowerCase()
+}

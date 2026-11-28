@@ -1,3 +1,4 @@
+import { itemsPerRoom } from '~/features/events/model/part-rooms'
 import {
   type CadenceEntry,
   type CadenceHelperResult,
@@ -7,6 +8,7 @@ import {
   PROGRAMME_SCHEDULE_SELECT,
 } from '~/features/events/server/cadence-shared.server'
 import { PART_ITEMS } from '~/features/events/server/item-projection.server'
+import { ITEM_ROOMS } from '~/features/events/server/item-rooms.queries'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { EXTERNAL_SPEAKER_LABEL_SELECT, externalSpeakerLabel } from '~/shared/utils/external-speaker-label'
 import { formatPersonName } from '~/shared/utils/format-person-name'
@@ -37,12 +39,21 @@ export async function listExternalSpeakerCadence(
   const partsSelect = {
     where: PART_ITEMS,
     select: {
+      id: true,
       name: true,
       section: true,
       assigneeId: true,
       externalSpeakerId: true,
       assignee: { select: { firstname: true, lastname: true } },
       externalSpeaker: { select: EXTERNAL_SPEAKER_LABEL_SELECT },
+      // Each room's people (parallel rooms): a part held in several rooms reads as one copy per room.
+      rooms: {
+        select: {
+          ...ITEM_ROOMS.rooms.select,
+          assignee: { select: { firstname: true, lastname: true } },
+          externalSpeaker: { select: EXTERNAL_SPEAKER_LABEL_SELECT },
+        },
+      },
     },
   } as const
 
@@ -71,7 +82,8 @@ export async function listExternalSpeakerCadence(
     db.item.findMany({
       where: {
         event: { ...commonWhere, startDate: { lt: event.startDate } },
-        externalSpeakerId,
+        // Given in one of its rooms (parallel rooms).
+        OR: [{ externalSpeakerId }, { rooms: { some: { externalSpeakerId } } }],
         ...PART_ITEMS,
       },
       select: { name: true, section: true, event: { select: { startDate: true } } },
@@ -90,7 +102,9 @@ export async function listExternalSpeakerCadence(
     return null
   }
   const toEntry = (row: (typeof pastRows)[number]): CadenceEntry => {
-    const matches = row.items.filter(p => normalize(p.name) === targetName && normalize(p.section) === targetSection)
+    const matches = itemsPerRoom(row.items).filter(
+      p => normalize(p.name) === targetName && normalize(p.section) === targetSection,
+    )
     const person = matches.map(nameOf).find(n => n != null)
     return {
       date: row.startDate.toISOString(),

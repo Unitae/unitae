@@ -34,6 +34,8 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
   const excludePartAssignmentId = parseOptionalId(url.searchParams.get('excludePartItemId'))
   const excludeServiceAssignmentId = parseOptionalId(url.searchParams.get('excludeServiceItemId'))
   const partSlot = parsePartSlot(url.searchParams.get('partSlot'))
+  // The room of the part being assigned (parallel rooms); none, its only or main room.
+  const roomId = parseOptionalId(url.searchParams.get('roomId'))
 
   if (!userId || Number.isNaN(userId)) return Response.json(null)
   // One slot per request: the check and the data must be about the same one.
@@ -69,6 +71,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       eventId,
       congregationId,
       excludePartAssignmentId,
+      roomId,
       excludeServiceAssignmentId,
     })
 
@@ -77,6 +80,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       event,
       congregationId,
       excludePartAssignmentId,
+      roomId,
       excludeServiceAssignmentId,
       partSlot,
     })
