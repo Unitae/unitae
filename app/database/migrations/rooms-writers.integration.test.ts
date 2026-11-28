@@ -150,6 +150,24 @@ describe('a part with a row per room, moved to another meeting', () => {
     })
     expect(read).toMatch(SEVERAL_ROOMS_RE)
   })
+
+  it('is refused leaving its programme for its meeting’s services, its rooms’ people kept', async () => {
+    const read = await inFixture(async ({ tx, inRooms }) => {
+      const part = await tx.item.findUniqueOrThrow({ where: { id: inRooms.id }, select: { eventId: true } })
+      const duties = await tx.schedule.findFirstOrThrow({ where: { eventId: part.eventId, kind: 'duty' } })
+      let outcome = 'moved'
+      try {
+        await tx.$executeRawUnsafe('SAVEPOINT leave')
+        await tx.$executeRawUnsafe('UPDATE "Item" SET "scheduleId" = $1 WHERE "id" = $2', duties.id, inRooms.id)
+      } catch (error) {
+        await tx.$executeRawUnsafe('ROLLBACK TO SAVEPOINT leave')
+        outcome = String(error)
+      }
+      return { outcome, rows: await tx.itemRoom.count({ where: { itemId: inRooms.id } }) }
+    })
+    expect(read.outcome).toMatch(SEVERAL_ROOMS_RE)
+    expect(read.rows).toBe(2)
+  })
 })
 
 describe('a part in one room', () => {

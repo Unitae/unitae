@@ -7,7 +7,7 @@
 -- 1. A meeting part's room rows. A part in one room (today's copies, a part for everyone) keeps one row that follows its
 -- track and takes, of its people and conflict, the columns that changed. A part with a row per room keeps its rows: a
 -- write of the item's people (a version still running) reaches its main room's row, its track is not its room, and no
--- writer moves it to another programme.
+-- writer moves it to another programme or out of one.
 CREATE OR REPLACE FUNCTION "item_room"() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE room_id int; renamed boolean := false; rows_held int; main_row int;
 BEGIN
@@ -21,6 +21,10 @@ BEGIN
   END IF;
   IF NEW."scheduleId" IS NULL
     OR NOT EXISTS (SELECT 1 FROM "Schedule" WHERE "id" = NEW."scheduleId" AND "kind" = 'programme') THEN
+    -- Leaving the programme would take every room's people: refused for a part held in several, as a move is.
+    IF TG_OP = 'UPDATE' AND (SELECT count(*) FROM "ItemRoom" WHERE "itemId" = NEW."id") >= 2 THEN
+      RAISE EXCEPTION 'Item % is held in several rooms: it cannot leave its programme', NEW."id";
+    END IF;
     DELETE FROM "ItemRoom" WHERE "itemId" = NEW."id";
     IF TG_OP = 'UPDATE' AND OLD."scheduleId" IS DISTINCT FROM NEW."scheduleId" AND OLD."scheduleId" IS NOT NULL THEN
       PERFORM "prune_schedule_rooms"(OLD."scheduleId");
