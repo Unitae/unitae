@@ -296,8 +296,18 @@ async function speakerFacts(
     }),
   ])
 
-  const name = normalize(target.partName)
-  const section = normalize(target.partSection)
+  return {
+    lastAssignedAt: lastGiven(past, normalize(target.partName), normalize(target.partSection)),
+    elsewhere: speakersElsewhere(current, target),
+  }
+}
+
+/** When each outside speaker last gave the part, in any room. */
+function lastGiven(
+  past: (WithRooms & { name: string; section: string; event: { startDate: Date } })[],
+  name: string,
+  section: string,
+): Record<number, string> {
   const lastAssignedAt: Record<number, string> = {}
   for (const row of past) {
     if (normalize(row.name) !== name || normalize(row.section) !== section) continue
@@ -308,6 +318,11 @@ async function speakerFacts(
       if (known == null || known < iso) lastAssignedAt[externalSpeakerId] = iso
     }
   }
+  return lastAssignedAt
+}
+
+/** What else each outside speaker gives at the event, the room being assigned left out. */
+function speakersElsewhere(current: (WithRooms & { id: number; name: string })[], target: SlotTarget) {
   const elsewhere: Record<number, string[]> = {}
   for (const row of current) {
     const lines = linesOf(row)
@@ -316,5 +331,5 @@ async function speakerFacts(
       elsewhere[line.externalSpeakerId] = [...(elsewhere[line.externalSpeakerId] ?? []), row.name]
     }
   }
-  return { lastAssignedAt, elsewhere }
+  return elsewhere
 }
