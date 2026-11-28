@@ -1,4 +1,5 @@
 import { type ProgrammeTemplateCounts, programmeTemplate } from '~/features/events/model/empty-meetings'
+import { asItsMainRoom } from '~/features/events/model/part-rooms'
 import { ScheduleStatus } from '~/features/events/model/schedule.type'
 import {
   getPartAssignmentAllowedRoleIds,
@@ -73,6 +74,15 @@ export async function getEventProgramme(db: TransactionClient, eventId: number, 
         externalSpeaker: { include: { speakerCongregation: { select: { name: true } } } },
         // Read live rather than denormalized: an improved wording should reach assignments that already exist.
         preset: true,
+        // Its rooms' people (parallel rooms): one line per part reads its main room (asItsMainRoom).
+        rooms: {
+          include: {
+            assignee: true,
+            assistant: true,
+            externalSpeaker: { include: { speakerCongregation: { select: { name: true } } } },
+            room: { select: { key: true } },
+          },
+        },
       },
       orderBy: PART_ITEM_ORDER,
     }),
@@ -86,7 +96,7 @@ export async function getEventProgramme(db: TransactionClient, eventId: number, 
   return {
     ...event,
     template: event.template && withTotals(event.template),
-    eventParts: parts.map(asEventPart),
+    eventParts: parts.map(part => asEventPart(asItsMainRoom(part))),
     eventServiceParts: services.map(asEventServicePart),
   }
 }

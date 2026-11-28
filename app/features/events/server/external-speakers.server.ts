@@ -202,7 +202,14 @@ export async function deleteExternalSpeaker(
     where: { congregationId, externalSpeakerId: id, event: { startDate: { gte: now } }, ...PART_ITEMS },
     data: { externalSpeakerId: null },
   })
-  const pastParts = await db.item.count({ where: { congregationId, externalSpeakerId: id, ...PART_ITEMS } })
+  // The talks given, in any room: parallel rooms R4 writes a part's people on its rows alone.
+  const pastParts = await db.item.count({
+    where: {
+      congregationId,
+      ...PART_ITEMS,
+      OR: [{ externalSpeakerId: id }, { rooms: { some: { externalSpeakerId: id } } }],
+    },
+  })
 
   await db.externalSpeaker.update({
     where: { id_congregationId: { id, congregationId } },

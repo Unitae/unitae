@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { assignmentLines, heldBy, type ItemWithRooms, itemsPerRoom, partsInRooms } from './part-rooms'
+import { asItsMainRoom, assignmentLines, heldBy, type ItemWithRooms, itemsPerRoom, partsInRooms } from './part-rooms'
 
 // The one reading of a programme's parts in their rooms: today's copies (a part in two rooms is two items, each in
 // its room) and R4's shape (one item, a row per room) read the same.
@@ -350,6 +350,54 @@ describe('heldBy', () => {
       return bare
     })
     expect(() => heldBy(one, 8)).toThrow(WITHOUT_ROOMS_RE)
+  })
+})
+
+// What a reader of one line per part reads (R4, before the meeting page draws rooms): the part as its main room holds
+// it, its rows left out, the shape it always had.
+describe('asItsMainRoom', () => {
+  const row = (key: string | null, assigneeId: number | null, hasConflict = false) => ({
+    assigneeId,
+    assistantId: null,
+    externalSpeakerId: null,
+    hasConflict,
+    room: { key },
+  })
+  const part = (rooms?: ReturnType<typeof row>[]) => ({
+    id: 4,
+    name: 'Lecture',
+    assigneeId: 7,
+    assistantId: 9 as number | null,
+    externalSpeakerId: null as number | null,
+    hasConflict: false,
+    rooms,
+  })
+
+  it('reads its one row, whatever the room (a copy in « Salle B »)', () => {
+    expect(asItsMainRoom(part([row(null, 8, true)]))).toEqual({
+      id: 4,
+      name: 'Lecture',
+      assigneeId: 8,
+      assistantId: null,
+      externalSpeakerId: null,
+      hasConflict: true,
+    })
+  })
+
+  it('reads the main room’s row of a part in several rooms', () => {
+    expect(asItsMainRoom(part([row(null, 8), row('main', 6)])).assigneeId).toBe(6)
+  })
+
+  it('reads an item without rows as itself, without its rooms', () => {
+    const { rooms: _, ...bare } = part()
+    expect(asItsMainRoom(part())).toEqual(bare)
+    expect(asItsMainRoom(part([]))).toEqual(bare)
+  })
+
+  it('carries the row’s people records when read with them', () => {
+    const one = { ...part([row('main', 8)]), assignee: { id: 7 } }
+    one.rooms = one.rooms?.map(each => ({ ...each, assignee: { id: 8 } }))
+    expect(asItsMainRoom(one).assignee).toEqual({ id: 8 })
   })
 })
 
