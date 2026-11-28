@@ -28,6 +28,8 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
   const partAssignmentId = parseOptionalId(url.searchParams.get('partItemId'))
   const serviceAssignmentId = parseOptionalId(url.searchParams.get('serviceItemId'))
   const slot = url.searchParams.get('slot') === 'assistant' ? 'assistant' : 'assignee'
+  // The room being assigned (parallel rooms); none, the part's only or main room.
+  const roomId = parseOptionalId(url.searchParams.get('roomId'))
 
   // One slot per request: the check and the data must be about the same one.
   if (partAssignmentId != null && serviceAssignmentId != null) return Response.json(null, { status: 400 })
@@ -51,7 +53,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
         select: { name: true, section: true },
       })
       if (!part) return Response.json(null, { status: 404 })
-      target = { kind, assignmentId, partName: part.name, partSection: part.section, slot }
+      target = { kind, assignmentId, partName: part.name, partSection: part.section, slot, roomId }
     } else {
       const service = await db.item.findFirst({
         where: { id: assignmentId, congregationId, ...SERVICE_ITEMS },
