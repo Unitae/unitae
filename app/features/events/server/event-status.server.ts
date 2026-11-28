@@ -1,5 +1,6 @@
 import { isAwaitingProgramme, programmeTemplate } from '~/features/events/model/empty-meetings'
 import { EventStatus } from '~/features/events/model/event-status.type'
+import { assignmentLines } from '~/features/events/model/part-rooms'
 import { TEMPLATE_PROGRAMME_COUNT } from '~/features/events/server/give-programme.server'
 import { PART_ITEMS, SERVICE_ITEM_ORDER, SERVICE_ITEMS } from '~/features/events/server/item-projection.server'
 import { setEventSchedulesStatus } from '~/features/events/server/schedules.server'
@@ -44,6 +45,8 @@ export const ASSIGNMENT_SELECT = {
   hasConflict: true,
   assigneeId: true,
   assistantId: true,
+  // Each room's people and conflict (parallel rooms): read as a line per room by assignmentLines.
+  rooms: { select: { assigneeId: true, assistantId: true, hasConflict: true } },
 } as const
 
 /** An event with its parts and services, read from items (plan T12), in the shape the release checks take. */
@@ -61,8 +64,9 @@ async function eventWithAssignments(db: TransactionClient, eventId: number, cong
       orderBy: SERVICE_ITEM_ORDER,
     }),
   ])
-  const eventServiceParts = services.map(({ assistantId: _assistant, ...service }) => service)
-  return { ...event, eventParts, eventServiceParts }
+  // A line per room: a conflict in any room holds the meeting back, and each room's people are told.
+  const eventServiceParts = assignmentLines(services).map(({ assistantId: _assistant, ...service }) => service)
+  return { ...event, eventParts: assignmentLines(eventParts), eventServiceParts }
 }
 
 // Tx-only half of the release flow. State flip + audit happen on the tx
