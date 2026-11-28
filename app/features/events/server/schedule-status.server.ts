@@ -1,4 +1,5 @@
 import { EventStatus } from '~/features/events/model/event-status.type'
+import { assignmentLines } from '~/features/events/model/part-rooms'
 import { ScheduleKind, ScheduleStatus } from '~/features/events/model/schedule.type'
 import { TEMPLATE_PROGRAMME_COUNT } from '~/features/events/server/give-programme.server'
 import { MIXED_ITEM_ORDER } from '~/features/events/server/item-projection.server'
@@ -129,10 +130,12 @@ export async function publishSchedule(
     },
   })
   const ref: ScheduleRef = { id: schedule.id, eventId: schedule.eventId, kind: schedule.kind as ScheduleKind }
+  // A line per room: a conflict in any room holds it back, and each room's people are told.
+  const lines = assignmentLines(schedule.items)
   if (schedule.status === ScheduleStatus.Published) return { schedule: ref, changed: false, notifyTargets: [] }
 
   const fromTemplate = schedule.scheduleTemplateId != null
-  const refusal = scheduleRefusal({ kind: ref.kind, items: schedule.items, fromTemplate }, schedule.event.template)
+  const refusal = scheduleRefusal({ kind: ref.kind, items: lines, fromTemplate }, schedule.event.template)
   if (refusal === 'awaiting') {
     return { schedule: ref, error: EVENT_STATUS_ERRORS.releaseAwaitingProgramme, reason: 'awaiting' }
   }
@@ -142,7 +145,7 @@ export async function publishSchedule(
     return { schedule: ref, error: EVENT_STATUS_ERRORS.publishEmpty, reason: 'empty' }
   }
   if (refusal === 'conflicts') {
-    const conflicting = schedule.items.filter(item => item.hasConflict).length
+    const conflicting = lines.filter(item => item.hasConflict).length
     logger.warn('publishing blocked by conflicts', { scheduleId, kind: ref.kind, congregationId, actorId, conflicting })
     return { schedule: ref, error: EVENT_STATUS_ERRORS.releaseBlockedByConflicts, reason: 'conflicts' }
   }
@@ -170,8 +173,8 @@ export async function publishSchedule(
   })
   // Programme items have a second slot (the reader); duties have none, as releaseEvent reads them.
   const isProgramme = ref.kind === ScheduleKind.Programme
-  const parts = isProgramme ? schedule.items : []
-  const services = isProgramme ? [] : schedule.items.map(({ assistantId: _assistant, ...service }) => service)
+  const parts = isProgramme ? lines : []
+  const services = isProgramme ? [] : lines.map(({ assistantId: _assistant, ...service }) => service)
   return { schedule: ref, changed: true, notifyTargets: computeNotifyTargets(parts, services) }
 }
 

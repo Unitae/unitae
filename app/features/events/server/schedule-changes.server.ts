@@ -1,4 +1,5 @@
 import { EventStatus } from '~/features/events/model/event-status.type'
+import { assignmentLines } from '~/features/events/model/part-rooms'
 import { ScheduleKind, ScheduleStatus } from '~/features/events/model/schedule.type'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
@@ -116,7 +117,16 @@ export async function deleteSchedule(
       kind: true,
       status: true,
       name: true,
-      items: { select: { id: true, name: true, hasConflict: true, assigneeId: true, assistantId: true } },
+      items: {
+        select: {
+          id: true,
+          name: true,
+          hasConflict: true,
+          assigneeId: true,
+          assistantId: true,
+          rooms: { select: { assigneeId: true, assistantId: true, hasConflict: true } },
+        },
+      },
     },
   })
   const ref = refOf(schedule)
@@ -125,11 +135,13 @@ export async function deleteSchedule(
   // first publication, neither has anyone whose notice still waits out its debounce; published before, they may have
   // been told then, and are told now. Someone assigned between a withdraw and a republish, deleted inside the debounce, is told
   // a cancellation of what they never received: the lesser harm.
+  // A line per room (parallel rooms): each room's people are told.
+  const lines = assignmentLines(schedule.items)
   const assignees =
     schedule.status === ScheduleStatus.Published
       ? computeNotifyTargets(
-          isProgramme ? schedule.items : [],
-          isProgramme ? [] : schedule.items.map(({ assistantId: _assistant, ...service }) => service),
+          isProgramme ? lines : [],
+          isProgramme ? [] : lines.map(({ assistantId: _assistant, ...service }) => service),
         )
       : []
   const firstTime = assignees.length > 0 && (await publicationCount(db, ref, congregationId)) === 1

@@ -28,7 +28,7 @@ afterAll(async () => {
 
 describe('the programme document, a part in two rooms', () => {
   it('reads a meeting of copies and the same meeting with a row per room alike', async () => {
-    let read: { copies: unknown; rows: unknown } | undefined
+    let read: { copies: unknown; rows: unknown; oneRoom: unknown } | undefined
     try {
       await testDb.$transaction(
         async tx => {
@@ -49,7 +49,7 @@ describe('the programme document, a part in two rooms', () => {
             {
               kindId: kind.id,
               days: ['2027-03-03', '2027-03-10'],
-              speakers: [await person('Paul'), await person('Jean')],
+              speakers: [await person('Paul'), await person('Marc')],
             },
             { congregationId, actorId },
           )
@@ -75,7 +75,22 @@ describe('the programme document, a part in two rooms', () => {
                 trackOrder: part.trackOrder,
                 assignee: part.assignee?.firstname ?? null,
               }))
-          read = { copies: partsOf(seeded.copies), rows: partsOf(seeded.rows) }
+          // R4 writes a part's people on its rows alone (no dual-write): a part in one room whose row holds someone
+          // other than its item's columns reads the row's.
+          const jean = await person('Jean')
+          const oneRoom = await tx.item.findFirstOrThrow({
+            where: { eventId: seeded.rows, track: '', schedule: { kind: 'programme' } },
+            select: { id: true, name: true, rooms: { select: { id: true } } },
+            orderBy: { order: 'asc' },
+          })
+          if (oneRoom.rooms.length !== 1) throw new Error('not a one-room part')
+          await tx.itemRoom.update({ where: { id: oneRoom.rooms[0].id }, data: { assigneeId: jean } })
+          const after = await getDynamicDocumentData(db, DynamicType.Programme, kind.key, congregationId)
+          if (after?.type !== DynamicType.Programme) throw new Error('not a programme')
+          const readOneRoom = after.events
+            .find(event => event.id === seeded.rows)
+            ?.eventParts.find(part => part.id === oneRoom.id)?.assignee?.firstname
+          read = { copies: partsOf(seeded.copies), rows: partsOf(seeded.rows), oneRoom: readOneRoom }
           throw new Rollback()
         },
         { timeout: 30_000 },
@@ -89,7 +104,8 @@ describe('the programme document, a part in two rooms', () => {
     // The part in both rooms, a speaker in each, as the board draws copies sharing an order.
     expect((read.copies as { track: string; assignee: string | null }[]).filter(part => part.track !== '')).toEqual([
       expect.objectContaining({ track: 'Salle principale', assignee: 'Paul' }),
-      expect.objectContaining({ track: 'Salle B', assignee: 'Jean' }),
+      expect.objectContaining({ track: 'Salle B', assignee: 'Marc' }),
     ])
+    expect(read.oneRoom).toBe('Jean')
   })
 })

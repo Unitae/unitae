@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { asItsMainRoom, heldBy, type ItemWithRooms, itemsPerRoom, partsInRooms } from './part-rooms'
+import { asItsMainRoom, assignmentLines, heldBy, type ItemWithRooms, itemsPerRoom, partsInRooms } from './part-rooms'
 
 // The one reading of a programme's parts in their rooms: today's copies (a part in two rooms is two items, each in
 // its room) and R4's shape (one item, a row per room) read the same.
@@ -191,6 +191,32 @@ describe('itemsPerRoom', () => {
     expect(itemsPerRoom(items)).toEqual(items)
   })
 
+  // R4 (no dual-write): the writers put a part's people on its rows only, so a part in one room reads its row's people,
+  // its place staying the item's (a copy's track, read before R4's writers).
+  it('reads a one-room item’s people from its row, its place from the item', () => {
+    const one = item(3, {
+      name: 'Discours',
+      order: 1,
+      track: 'Salle B',
+      trackOrder: 2,
+      assigneeId: 7,
+      assistantId: 9,
+      hasConflict: false,
+      rooms: [{ room: SALLE_B, assigneeId: 8 }],
+    })
+    one.rooms = one.rooms?.map(row => ({ ...row, assistantId: null, hasConflict: true }))
+    const [read] = itemsPerRoom([one])
+    expect([read?.id, read?.track, read?.trackOrder]).toEqual([3, 'Salle B', 2])
+    expect([read?.assigneeId, read?.assistantId, read?.hasConflict]).toEqual([8, null, true])
+  })
+
+  it('reads a one-room item’s people records from its row, when read with it', () => {
+    const person = (id: number, firstname: string) => ({ id, firstname })
+    const one = { ...item(3, { name: 'Discours', rooms: [{ room: MAIN }] }), assignee: person(7, 'Paul') }
+    one.rooms = one.rooms?.map(row => ({ ...row, assignee: person(8, 'Jean') }))
+    expect(itemsPerRoom([one])[0]?.assignee).toEqual(person(8, 'Jean'))
+  })
+
   it('reads an item with a row per room as one copy per room, its room’s people and place on each', () => {
     const one = item(5, {
       name: 'Lecture',
@@ -259,6 +285,19 @@ describe('itemsPerRoom', () => {
       assignee: { id: 7, firstname: 'Paul' },
     }
     expect(() => itemsPerRoom([one])).toThrow(WITHOUT_ROOMS_RE)
+  })
+
+  // A part in one room reads its row's people too (R4): a row read without the ids or the conflict the item was read
+  // with would show every ordinary part unassigned, silently.
+  it('refuses a one-room row read without the ids or the conflict the item was read with', () => {
+    for (const key of ['assigneeId', 'assistantId', 'externalSpeakerId', 'hasConflict'] as const) {
+      const one = item(3, { name: 'Discours', assigneeId: 7 })
+      one.rooms = one.rooms?.map(row => {
+        const { [key]: _, ...rest } = row
+        return rest as typeof row
+      })
+      expect(() => itemsPerRoom([one]), key).toThrow(WITHOUT_ROOMS_RE)
+    }
   })
 })
 
@@ -359,5 +398,43 @@ describe('asItsMainRoom', () => {
     const one = { ...part([row('main', 8)]), assignee: { id: 7 } }
     one.rooms = one.rooms?.map(each => ({ ...each, assignee: { id: 8 } }))
     expect(asItsMainRoom(one).assignee).toEqual({ id: 8 })
+  })
+})
+
+// What publishing reads (R4): who holds each room of a part and whether it is flagged, under the item's own id (release
+// notices and checks act on items), the item itself when it has no row.
+describe('assignmentLines', () => {
+  const part = (rooms?: { assigneeId: number | null; assistantId: number | null; hasConflict: boolean }[]) => ({
+    id: 4,
+    name: 'Lecture',
+    assigneeId: 7,
+    assistantId: null as number | null,
+    hasConflict: false,
+    rooms,
+  })
+
+  it('gives a line per room, each with its room’s people and conflict, under the item’s id', () => {
+    const lines = assignmentLines([
+      part([
+        { assigneeId: 7, assistantId: null, hasConflict: false },
+        { assigneeId: 8, assistantId: 9, hasConflict: true },
+      ]),
+    ])
+    expect(lines).toEqual([
+      { id: 4, name: 'Lecture', assigneeId: 7, assistantId: null, hasConflict: false },
+      { id: 4, name: 'Lecture', assigneeId: 8, assistantId: 9, hasConflict: true },
+    ])
+  })
+
+  // A second speaker read on the item but not on its rows would lose every reader's notice, silently.
+  it('refuses rows read without the second speaker the item was read with', () => {
+    const rows = [{ assigneeId: 7, hasConflict: false }] as never
+    expect(() => assignmentLines([{ ...part(), rooms: rows }])).toThrow(WITHOUT_ROOMS_RE)
+  })
+
+  it('reads an item without rows (a service, an item written before rooms) as itself', () => {
+    const { rooms: _, ...service } = part()
+    expect(assignmentLines([part()])).toEqual([service])
+    expect(assignmentLines([part([])])).toEqual([service])
   })
 })
