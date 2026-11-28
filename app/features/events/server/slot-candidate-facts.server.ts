@@ -9,8 +9,73 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 
 /** The slot being assigned: one of a part's two people, or a service. */
 export type SlotTarget =
-  | { kind: 'part'; assignmentId: number; partName: string; partSection: string; slot: PartSlot }
+  | {
+      kind: 'part'
+      assignmentId: number
+      partName: string
+      partSection: string
+      slot: PartSlot
+      /** The room being assigned (parallel rooms); none, its only or main room. */
+      roomId?: number | null
+    }
   | { kind: 'service'; assignmentId: number; serviceName: string }
+
+// A part's people are its rows' (parallel rooms R4 writes them there alone): each room is a line, a part read before
+// rooms (no row) is a line of its own.
+const ROOM_PEOPLE = {
+  rooms: {
+    select: {
+      roomId: true,
+      assigneeId: true,
+      assistantId: true,
+      externalSpeakerId: true,
+      room: { select: { key: true } },
+    },
+  },
+} as const
+
+interface RoomLine {
+  roomId: number | null
+  isMain: boolean
+  assigneeId: number | null
+  assistantId: number | null
+  externalSpeakerId: number | null
+}
+
+type WithRooms = {
+  assigneeId?: number | null
+  assistantId?: number | null
+  externalSpeakerId?: number | null
+  rooms: {
+    roomId: number
+    assigneeId: number | null
+    assistantId: number | null
+    externalSpeakerId: number | null
+    room: { key: string | null }
+  }[]
+}
+
+function linesOf(item: WithRooms): RoomLine[] {
+  if (item.rooms.length === 0) {
+    return [
+      {
+        roomId: null,
+        isMain: true,
+        assigneeId: item.assigneeId ?? null,
+        assistantId: item.assistantId ?? null,
+        externalSpeakerId: item.externalSpeakerId ?? null,
+      },
+    ]
+  }
+  return item.rooms.map(row => ({ ...row, room: undefined, isMain: row.room.key === 'main' }))
+}
+
+/** Whether a line is the room being assigned: that room, or (none named) the part's only or main room. */
+function isEdited(item: { id: number }, lines: RoomLine[], line: RoomLine, target: SlotTarget): boolean {
+  if (target.kind !== 'part' || item.id !== target.assignmentId) return false
+  if (target.roomId != null) return line.roomId === target.roomId
+  return lines.length <= 1 || line.isMain
+}
 
 /**
  * What can be said about each person before picking one for a slot. A member missing from a map has nothing to
@@ -77,16 +142,31 @@ async function heldPart(
   target: Extract<SlotTarget, { kind: 'part' }>,
 ): Promise<{ memberId: number; date: Date }[]> {
   const field = target.slot === 'assignee' ? 'assigneeId' : 'assistantId'
+  // A turn in any room is a turn on the part.
   const rows = await db.item.findMany({
-    where: { ...PART_ITEMS, congregationId: past.congregationId, event: past, [field]: { not: null } },
-    select: { name: true, section: true, assigneeId: true, assistantId: true, event: { select: { startDate: true } } },
+    where: {
+      ...PART_ITEMS,
+      congregationId: past.congregationId,
+      event: past,
+      OR: [{ [field]: { not: null } }, { rooms: { some: { [field]: { not: null } } } }],
+    },
+    select: {
+      name: true,
+      section: true,
+      assigneeId: true,
+      assistantId: true,
+      event: { select: { startDate: true } },
+      ...ROOM_PEOPLE,
+    },
   })
   const name = normalize(target.partName)
   const section = normalize(target.partSection)
   return rows.flatMap(row => {
-    const memberId = row[field]
-    const matches = memberId != null && normalize(row.name) === name && normalize(row.section) === section
-    return matches ? [{ memberId, date: row.event.startDate }] : []
+    if (normalize(row.name) !== name || normalize(row.section) !== section) return []
+    return linesOf(row).flatMap(line => {
+      const memberId = line[field]
+      return memberId == null ? [] : [{ memberId, date: row.event.startDate }]
+    })
   })
 }
 
@@ -138,18 +218,13 @@ async function alreadyAtEvent(
   congregationId: number,
   target: SlotTarget,
 ): Promise<SlotCandidateFacts['elsewhere']> {
-  // The whole edited row is left out, as listUserSameEventAssignments does: the person in the other slot of the
-  // same part is not « elsewhere ».
+  // The room being assigned is left out whole, as listUserSameEventAssignments does: the person in its other slot is
+  // not « elsewhere »; another room of the same part is (parallel rooms).
   const [parts, services] = await Promise.all([
     db.item.findMany({
-      where: {
-        ...PART_ITEMS,
-        eventId: event.id,
-        congregationId,
-        ...(target.kind === 'part' ? { NOT: { id: target.assignmentId } } : {}),
-      },
+      where: { ...PART_ITEMS, eventId: event.id, congregationId },
       orderBy: [{ order: 'asc' }, ...PART_TIE_BREAK],
-      select: { name: true, assigneeId: true, assistantId: true },
+      select: { id: true, name: true, assigneeId: true, assistantId: true, ...ROOM_PEOPLE },
     }),
     db.item.findMany({
       where: {
@@ -170,8 +245,12 @@ async function alreadyAtEvent(
     if (!names.includes(name)) elsewhere[memberId] = [...names, name]
   }
   for (const part of parts) {
-    add(part.assigneeId, part.name)
-    add(part.assistantId, part.name)
+    const lines = linesOf(part)
+    for (const line of lines) {
+      if (isEdited(part, lines, line, target)) continue
+      add(line.assigneeId, part.name)
+      add(line.assistantId, part.name)
+    }
   }
   for (const service of services) add(service.assigneeId, service.name)
   return elsewhere
@@ -194,21 +273,26 @@ async function speakerFacts(
           where: {
             ...PART_ITEMS,
             congregationId,
-            externalSpeakerId: { not: null },
+            OR: [{ externalSpeakerId: { not: null } }, { rooms: { some: { externalSpeakerId: { not: null } } } }],
             event: { templateId: event.templateId, congregationId, startDate: { lt: event.startDate } },
           },
-          select: { name: true, section: true, externalSpeakerId: true, event: { select: { startDate: true } } },
+          select: {
+            name: true,
+            section: true,
+            externalSpeakerId: true,
+            event: { select: { startDate: true } },
+            ...ROOM_PEOPLE,
+          },
         }),
     db.item.findMany({
       where: {
         ...PART_ITEMS,
         eventId: event.id,
         congregationId,
-        externalSpeakerId: { not: null },
-        NOT: { id: target.assignmentId },
+        OR: [{ externalSpeakerId: { not: null } }, { rooms: { some: { externalSpeakerId: { not: null } } } }],
       },
       orderBy: [{ order: 'asc' }, ...PART_TIE_BREAK],
-      select: { name: true, externalSpeakerId: true },
+      select: { id: true, name: true, externalSpeakerId: true, ...ROOM_PEOPLE },
     }),
   ])
 
@@ -216,15 +300,21 @@ async function speakerFacts(
   const section = normalize(target.partSection)
   const lastAssignedAt: Record<number, string> = {}
   for (const row of past) {
-    if (row.externalSpeakerId == null || normalize(row.name) !== name || normalize(row.section) !== section) continue
+    if (normalize(row.name) !== name || normalize(row.section) !== section) continue
     const iso = row.event.startDate.toISOString()
-    const known = lastAssignedAt[row.externalSpeakerId]
-    if (known == null || known < iso) lastAssignedAt[row.externalSpeakerId] = iso
+    for (const { externalSpeakerId } of linesOf(row)) {
+      if (externalSpeakerId == null) continue
+      const known = lastAssignedAt[externalSpeakerId]
+      if (known == null || known < iso) lastAssignedAt[externalSpeakerId] = iso
+    }
   }
   const elsewhere: Record<number, string[]> = {}
   for (const row of current) {
-    if (row.externalSpeakerId != null)
-      elsewhere[row.externalSpeakerId] = [...(elsewhere[row.externalSpeakerId] ?? []), row.name]
+    const lines = linesOf(row)
+    for (const line of lines) {
+      if (line.externalSpeakerId == null || isEdited(row, lines, line, target)) continue
+      elsewhere[line.externalSpeakerId] = [...(elsewhere[line.externalSpeakerId] ?? []), row.name]
+    }
   }
   return { lastAssignedAt, elsewhere }
 }
