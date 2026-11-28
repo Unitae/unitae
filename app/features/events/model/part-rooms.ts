@@ -232,11 +232,17 @@ export function assignmentLines<T extends AssignmentRow & { rooms?: AssignmentRo
 ): Omit<T, 'rooms'>[] {
   return items.flatMap(({ rooms, ...item }) => {
     if (rooms == null || rooms.length === 0) return [item]
-    return rooms.map(row => ({
-      ...item,
-      assigneeId: row.assigneeId,
-      ...('assistantId' in item && { assistantId: row.assistantId ?? null }),
-      hasConflict: row.hasConflict,
-    }))
+    return rooms.map(row => {
+      // A second speaker read on the item must be on its rows too, or each reader's notice would go, silently.
+      if ('assistantId' in item && !('assistantId' in row)) {
+        throw new Error("A part's assistantId was read without its rooms' (select it on its rows too)")
+      }
+      return {
+        ...item,
+        assigneeId: row.assigneeId,
+        ...('assistantId' in item && { assistantId: row.assistantId ?? null }),
+        hasConflict: row.hasConflict,
+      }
+    })
   })
 }

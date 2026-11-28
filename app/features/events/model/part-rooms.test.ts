@@ -339,6 +339,12 @@ describe('assignmentLines', () => {
     ])
   })
 
+  // A second speaker read on the item but not on its rows would lose every reader's notice, silently.
+  it('refuses rows read without the second speaker the item was read with', () => {
+    const rows = [{ assigneeId: 7, hasConflict: false }] as never
+    expect(() => assignmentLines([{ ...part(), rooms: rows }])).toThrow(WITHOUT_ROOMS_RE)
+  })
+
   it('reads an item without rows (a service, an item written before rooms) as itself', () => {
     const { rooms: _, ...service } = part()
     expect(assignmentLines([part()])).toEqual([service])
