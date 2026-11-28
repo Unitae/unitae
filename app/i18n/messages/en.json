@@ -7571,6 +7571,7 @@
     "event_part_error_assignment_not_found": "This assignment does not exist.",
     "event_part_error_external_speaker_invalid": "This visiting speaker does not exist or is no longer on their congregation’s list.",
     "event_part_error_participants_not_distinct": "The speaker and the reader cannot be the same person.",
+    "event_part_error_already_in_another_room": "This person already has this part in another room.",
     "event_part_error_ineligible_speaker": "The selected speaker does not hold any of the roles allowed for this part.",
     "event_part_error_ineligible_reader": "The selected second speaker does not hold any of the roles allowed for this part.",
     "event_part_error_ineligible_servant": "The selected publisher does not hold any of the roles allowed for this service.",

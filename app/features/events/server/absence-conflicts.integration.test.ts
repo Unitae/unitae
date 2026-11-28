@@ -162,15 +162,16 @@ describe('the conflict readers and the absences table', () => {
       await refreshConflictFlags(tx, ids.paul, AWAY_START, AWAY_END, ids.cong)
       await refreshConflictFlags(tx, ids.marie, AWAY_START, AWAY_END, ids.cong)
     })
-    // The flags live on the items; the parts' items are keyed by the part they mirror, the fixture's own ids.
+    // A part's flag lives on its room row (parallel rooms R4); the parts' items are keyed by the part they mirror, the
+    // fixture's own ids.
     const flags = await withScope(ids.cong, tx =>
       tx.item.findMany({
         where: { eventId: ids.meeting, schedule: { kind: 'programme' } },
-        select: { legacyPartId: true, hasConflict: true },
+        select: { legacyPartId: true, rooms: { select: { hasConflict: true } } },
       }),
     )
 
-    expect(Object.fromEntries(flags.map(part => [part.legacyPartId, part.hasConflict]))).toEqual({
+    expect(Object.fromEntries(flags.map(part => [part.legacyPartId, part.rooms[0]?.hasConflict]))).toEqual({
       [ids.paulPart]: true,
       [ids.mariePart]: false,
     })

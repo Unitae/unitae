@@ -34,15 +34,16 @@ export async function refreshConflictFlags(
   // Fetch every affected row up front rather than per event. The previous shape issued
   // one parts query, one services query and two absence lookups PER EVENT PER ROW, so a
   // single absence edit could fan out into dozens of round trips.
-  const parts = await db.item.findMany({
+  // A part's people are on its room rows (parallel rooms R4, no dual-write): each room it holds is flagged on its own.
+  const rooms = await db.itemRoom.findMany({
     where: {
-      ...PART_ITEMS,
-      eventId: { in: eventIds },
       congregationId,
       OR: [{ assigneeId: memberId }, { assistantId: memberId }],
+      item: { ...PART_ITEMS, eventId: { in: eventIds }, congregationId },
     },
-    select: { id: true, eventId: true, assigneeId: true, assistantId: true },
+    select: { id: true, itemId: true, assigneeId: true, assistantId: true, item: { select: { eventId: true } } },
   })
+  const parts = rooms.map(({ item, ...row }) => ({ ...row, eventId: item.eventId }))
 
   // Service-role rows have a single assignee, so no co-participant to consider.
   const services = await db.item.findMany({
@@ -109,11 +110,11 @@ export async function refreshConflictFlags(
     return ranges.some(range => range.start <= eventEnd && range.end >= eventStart)
   }
 
-  const partsInConflict: number[] = []
-  const partsClear: number[] = []
+  const roomsInConflict: number[] = []
+  const roomsClear: number[] = []
   for (const part of parts) {
     const conflict = isAbsent(part.assigneeId, part.eventId) || isAbsent(part.assistantId, part.eventId)
-    ;(conflict ? partsInConflict : partsClear).push(part.id)
+    ;(conflict ? roomsInConflict : roomsClear).push(part.id)
   }
 
   const servicesInConflict: number[] = []
@@ -122,13 +123,20 @@ export async function refreshConflictFlags(
     ;(isAbsent(service.assigneeId, service.eventId) ? servicesInConflict : servicesClear).push(service.id)
   }
 
-  // Two writes at most, instead of one per row: parts and duties are items alike.
-  const inConflict = [...partsInConflict, ...servicesInConflict]
-  const clear = [...partsClear, ...servicesClear]
-  if (inConflict.length > 0) {
-    await db.item.updateMany({ where: { id: { in: inConflict }, congregationId }, data: { hasConflict: true } })
+  // A few writes, never one per row: the parts' rooms, then the duties (items), each set or cleared at once.
+  const flag = async (ids: number[], hasConflict: boolean, on: 'rooms' | 'services') => {
+    if (ids.length === 0) return
+    if (on === 'rooms')
+      await db.itemRoom.updateMany({ where: { id: { in: ids }, congregationId }, data: { hasConflict } })
+    else await db.item.updateMany({ where: { id: { in: ids }, congregationId }, data: { hasConflict } })
   }
-  if (clear.length > 0) {
-    await db.item.updateMany({ where: { id: { in: clear }, congregationId }, data: { hasConflict: false } })
+  await flag(roomsInConflict, true, 'rooms')
+  await flag(roomsClear, false, 'rooms')
+  await flag(servicesInConflict, true, 'services')
+  await flag(servicesClear, false, 'services')
+  // A room written is its part changed (its updatedAt, which the board and the feed read).
+  const touched = [...new Set(parts.map(part => part.itemId))]
+  if (touched.length > 0) {
+    await db.item.updateMany({ where: { id: { in: touched }, congregationId }, data: { updatedAt: new Date() } })
   }
 }

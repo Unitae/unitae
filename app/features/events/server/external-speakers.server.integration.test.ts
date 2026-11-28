@@ -146,8 +146,9 @@ describe('deleteExternalSpeaker', () => {
 
     expect(result).toEqual({ freedParts: 1, pastParts: 1 })
     const after = await withScope(congregationId, async tx => ({
-      past: await tx.item.findFirst({ where: { id: pastPart }, select: { externalSpeakerId: true } }),
-      future: await tx.item.findFirst({ where: { id: futurePart }, select: { externalSpeakerId: true } }),
+      // Who gives a part's talk is on its room row (parallel rooms R4).
+      past: await tx.itemRoom.findFirst({ where: { itemId: pastPart }, select: { externalSpeakerId: true } }),
+      future: await tx.itemRoom.findFirst({ where: { itemId: futurePart }, select: { externalSpeakerId: true } }),
       speaker: await tx.externalSpeaker.findFirst({
         where: { id: paul },
         select: { name: true, phone: true, anonymizedAt: true, speakerCongregationId: true },

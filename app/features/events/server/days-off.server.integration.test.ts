@@ -161,12 +161,12 @@ describe('an absence', () => {
         const part = await tx.eventPart.create({
           data: { name: 'Lecture', eventId: meeting.id, assigneeId: member.id, congregationId },
         })
-        // The fixture's part lives in its meeting's schedule, as the writers put it, and the flags read the item.
+        // The fixture's part lives in its meeting's schedule, as the writers put it; its flag on its room row (R4).
         await settleFixtureSchedules(tx as never, congregationId)
         const item = await tx.item.findFirstOrThrow({ where: { legacyPartId: part.id }, select: { id: true } })
         const created = await createDayOff(tx, account.id, member.id, START, END, congregationId)
         const row = await tx.absence.findFirst({ where: { id: created?.absenceId }, select: { memberId: true } })
-        const flagged = (await tx.item.findFirstOrThrow({ where: { id: item.id } })).hasConflict
+        const flagged = (await tx.itemRoom.findFirstOrThrow({ where: { itemId: item.id } })).hasConflict
         const events = await tx.event.count({ where: { id: { not: meeting.id } } })
         const cancelled = await deleteDayOff(tx, {
           absenceId: created?.absenceId as number,
@@ -174,7 +174,7 @@ describe('an absence', () => {
           memberId: member.id,
           congregationId,
         })
-        const cleared = !(await tx.item.findFirstOrThrow({ where: { id: item.id } })).hasConflict
+        const cleared = !(await tx.itemRoom.findFirstOrThrow({ where: { itemId: item.id } })).hasConflict
         return { created, row, flagged, events, cancelled, cleared, left: await tx.absence.count() }
       })
 

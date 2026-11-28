@@ -652,11 +652,9 @@ describe('getConflictingAssignments (integration)', () => {
       )
 
       // refreshConflictFlags writes the item, which the old rows no longer follow.
+      // A part's flag lives on its room row (parallel rooms R4); a duty's on its item.
       const partFlag = await withScope(congregationId, tx =>
-        tx.item.findUniqueOrThrow({
-          where: { id_congregationId: { id: setup.partId, congregationId } },
-          select: { hasConflict: true },
-        }),
+        tx.itemRoom.findFirstOrThrow({ where: { itemId: setup.partId }, select: { hasConflict: true } }),
       )
       const serviceFlag = await withScope(congregationId, tx =>
         tx.item.findUniqueOrThrow({

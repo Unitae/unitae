@@ -70,7 +70,14 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         where: { id: assignmentId, congregationId },
         select: { name: true },
       })
-      const result = await unassignPart(db, assignmentId, congregationId)
+      // The room being freed (parallel rooms); none, the part's only or main room.
+      const room = Number(url.searchParams.get('room'))
+      const result = await unassignPart(
+        db,
+        assignmentId,
+        congregationId,
+        Number.isInteger(room) && room > 0 ? room : null,
+      )
       logger.info(`Unassigned part. User ID: ${currentUser.id}. Assignment: ${assignmentId}.`)
 
       if (result) {

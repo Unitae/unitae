@@ -198,17 +198,19 @@ export async function deleteExternalSpeaker(
   if (speaker.archivedAt == null) throw new ConflictError('Retire the speaker from the list before deleting it')
 
   const now = new Date()
-  const freed = await db.item.updateMany({
-    where: { congregationId, externalSpeakerId: id, event: { startDate: { gte: now } }, ...PART_ITEMS },
-    data: { externalSpeakerId: null },
-  })
-  // The talks given, in any room: parallel rooms R4 writes a part's people on its rows alone.
+  // The talks still planned, in whichever room (parallel rooms R4 writes a part's people on its rows alone).
+  const planned = { congregationId, externalSpeakerId: id, item: { event: { startDate: { gte: now } }, ...PART_ITEMS } }
+  const freedItems = [
+    ...new Set((await db.itemRoom.findMany({ where: planned, select: { itemId: true } })).map(row => row.itemId)),
+  ]
+  const freed = await db.itemRoom.updateMany({ where: planned, data: { externalSpeakerId: null } })
+  if (freedItems.length > 0) {
+    await db.item.updateMany({ where: { id: { in: freedItems }, congregationId }, data: { updatedAt: new Date() } })
+  }
+  // The talks given, in any room: parallel rooms R4 writes a part's people on its rows alone (an item's own column may
+  // still name a speaker freed since).
   const pastParts = await db.item.count({
-    where: {
-      congregationId,
-      ...PART_ITEMS,
-      OR: [{ externalSpeakerId: id }, { rooms: { some: { externalSpeakerId: id } } }],
-    },
+    where: { congregationId, ...PART_ITEMS, rooms: { some: { externalSpeakerId: id } } },
   })
 
   await db.externalSpeaker.update({

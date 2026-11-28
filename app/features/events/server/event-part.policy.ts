@@ -26,6 +26,9 @@ export const PROGRAMME_ASSIGNMENT_ERRORS = {
   get participantsNotDistinct() {
     return m.event_part_error_participants_not_distinct()
   },
+  get alreadyInAnotherRoom() {
+    return m.event_part_error_already_in_another_room()
+  },
   get ineligibleSpeaker() {
     return m.event_part_error_ineligible_speaker()
   },

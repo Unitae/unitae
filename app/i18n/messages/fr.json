@@ -7571,6 +7571,7 @@
     "event_part_error_assignment_not_found": "L’attribution n’existe pas.",
     "event_part_error_external_speaker_invalid": "Cet orateur extérieur n’existe pas ou n’est plus sur la liste de son assemblée.",
     "event_part_error_participants_not_distinct": "L’orateur et le lecteur ne peuvent pas être la même personne.",
+    "event_part_error_already_in_another_room": "Cette personne a déjà cette partie dans une autre salle.",
     "event_part_error_ineligible_speaker": "L’orateur sélectionné ne fait pas partie des rôles autorisés pour cette partie.",
     "event_part_error_ineligible_reader": "Le deuxième orateur sélectionné ne fait pas partie des rôles autorisés pour cette partie.",
     "event_part_error_ineligible_servant": "Le proclamateur sélectionné ne fait pas partie des rôles autorisés pour ce service.",

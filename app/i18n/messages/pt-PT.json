@@ -7571,6 +7571,7 @@
     "event_part_error_assignment_not_found": "Esta designação não existe.",
     "event_part_error_external_speaker_invalid": "Este orador visitante não existe ou já não consta da lista da congregação.",
     "event_part_error_participants_not_distinct": "O orador e o leitor não podem ser a mesma pessoa.",
+    "event_part_error_already_in_another_room": "Esta pessoa já tem esta parte noutra sala.",
     "event_part_error_ineligible_speaker": "O orador escolhido não tem nenhuma das funções permitidas para esta parte.",
     "event_part_error_ineligible_reader": "O segundo orador escolhido não tem nenhuma das funções permitidas para esta parte.",
     "event_part_error_ineligible_servant": "O publicador escolhido não tem nenhuma das funções permitidas para este serviço.",
